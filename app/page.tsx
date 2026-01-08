@@ -173,7 +173,7 @@ export default function Home() {
       <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="w-full mx-auto">
           <div className="text-center mb-16 px-4">
-            <h2 className="text-5xl sm:text-6xl font-black mb-4 tracking-tight">
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-4 tracking-[-0.03em]">
               Our Work
             </h2>
             <p className="text-xl text-gray-600 font-light">
