@@ -30,7 +30,7 @@ export default function Home() {
     { id: 3, name: 'Project Three', url: 'https://aiwebdesignfirm.vercel.app/', thumbnail: '/site.png' },
     { id: 4, name: 'Genesis Characters', url: 'https://lukeybird.github.io/GenesisApp/', thumbnail: '/genesis.png' },
     { id: 5, name: 'Project Five', url: 'https://lukeybird.github.io/live-game/', thumbnail: '/live.png' },
-    { id: 6, name: 'Project Six', url: 'https://example.com', thumbnail: '/placeholder-thumbnail.jpg' },
+    { id: 6, name: 'Project Six', url: 'https://lukeybird.github.io/barbershop/', thumbnail: '/barber.png' },
   ];
 
   const handlePreview = (projectId: number) => {
