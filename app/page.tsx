@@ -27,7 +27,7 @@ export default function Home() {
   const projects = [
     { id: 1, name: 'PayNGoSystems', url: 'https://www.payngosystems.com/', thumbnail: '/pay.png' },
     { id: 2, name: 'PixaWorld.io', url: 'https://pixaworld.io', thumbnail: '/pixaworld.png' },
-    { id: 3, name: 'Project Three', url: 'https://lukeybird.github.io/aidesignfirm/', thumbnail: '/site.png' },
+    { id: 3, name: 'Project Three', url: 'https://aiwebdesignfirm.vercel.app/', thumbnail: '/site.png' },
     { id: 4, name: 'Genesis Characters', url: 'https://lukeybird.github.io/GenesisApp/', thumbnail: '/genesis.png' },
     { id: 5, name: 'Project Five', url: 'https://lukeybird.github.io/live-game/', thumbnail: '/live.png' },
     { id: 6, name: 'Project Six', url: 'https://example.com', thumbnail: '/placeholder-thumbnail.jpg' },
