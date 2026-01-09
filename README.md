@@ -82,14 +82,3 @@ The design uses Tailwind CSS. You can customize colors, fonts, and spacing in:
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Styling
 
-## GitHub Push Guide
-
-For detailed instructions on pushing changes to GitHub, see [GITHUB_PUSH_GUIDE.md](./GITHUB_PUSH_GUIDE.md)
-
-Quick reference:
-```bash
-git add .
-git commit -m "Your commit message"
-git push
-```
-
