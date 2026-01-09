@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Advanced AI Web Design Firm | Fast, High-Quality Websites",
+  title: "AI Web Design Firm | Fast, High-Quality Websites",
   description: "Over 15 years of experience building and maintaining functional websites for specific markets. Fast turnarounds, detailed and high-quality work guaranteed.",
 };
 

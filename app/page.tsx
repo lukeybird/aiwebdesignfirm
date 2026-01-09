@@ -53,7 +53,7 @@ export default function Home() {
             <div className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter ${
               isStarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Advanced AI Web Design Firm
+              AI Web Design Firm
             </div>
             <div className="flex items-center gap-4">
               <button 
@@ -393,7 +393,7 @@ export default function Home() {
           isStarkMode ? 'text-gray-400' : 'text-gray-700'
         }`}>
           <p className="font-light">
-            © {new Date().getFullYear()} Advanced AI Web Design Firm. All rights reserved.
+            © {new Date().getFullYear()} AI Web Design Firm. All rights reserved.
           </p>
         </div>
       </footer>
