@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
@@ -427,6 +428,28 @@ export default function Home() {
           )}
         </span>
         </button>
+      </div>
+
+      {/* Key Icon - Access Portal - Bottom Right - Floating Action Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Link
+          href="/login"
+          className={`w-14 h-14 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-2xl hover:scale-110 flex items-center justify-center ${
+            isStarkMode 
+              ? 'bg-gray-800 border border-cyan-500/20 hover:border-cyan-500/40 focus:ring-cyan-500 shadow-cyan-500/20' 
+              : 'bg-white border-2 border-gray-300/60 hover:border-gray-400/80 focus:ring-gray-400 shadow-gray-900/20'
+          }`}
+          aria-label="Access portal"
+        >
+          <svg 
+            className={`w-6 h-6 ${isStarkMode ? 'text-cyan-400' : 'text-gray-700'}`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+        </Link>
       </div>
 
       {/* Demo Form Modal */}
