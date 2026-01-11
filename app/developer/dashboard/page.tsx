@@ -60,7 +60,6 @@ export default function DeveloperDashboard() {
   });
 
   // Additional fields state
-  const [showAddress, setShowAddress] = useState(false);
   const [showOwnerName, setShowOwnerName] = useState(false);
   const [showOwnerPhone, setShowOwnerPhone] = useState(false);
   const [showLogoRating, setShowLogoRating] = useState(false);
@@ -92,7 +91,7 @@ export default function DeveloperDashboard() {
       businessPhone: formData.businessPhone,
       businessName: formData.businessName,
       businessEmail: formData.businessEmail,
-      businessAddress: showAddress ? additionalFields.businessAddress : undefined,
+      businessAddress: additionalFields.businessAddress,
       ownerFirstName: showOwnerName ? additionalFields.ownerFirstName : undefined,
       ownerPhone: showOwnerPhone ? additionalFields.ownerPhone : undefined,
       hasLogo: showLogoRating ? additionalFields.hasLogo : undefined,
@@ -123,7 +122,6 @@ export default function DeveloperDashboard() {
       hasGoodPhotos: 1,
       customNotes: '',
     });
-    setShowAddress(false);
     setShowOwnerName(false);
     setShowOwnerPhone(false);
     setShowLogoRating(false);
@@ -184,9 +182,6 @@ export default function DeveloperDashboard() {
       }
       if (data.businessAddress) {
         setAdditionalFields(prev => ({ ...prev, businessAddress: data.businessAddress }));
-        if (!showAddress) {
-          setShowAddress(true);
-        }
       }
 
       setIsLoadingPlace(false);
@@ -286,6 +281,45 @@ export default function DeveloperDashboard() {
               : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
           }`}>
             <div className="space-y-6">
+              {/* Business Address - Google Maps Link (First Field) */}
+              <div>
+                <label className={`block text-sm font-medium mb-3 ${
+                  isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Business Address (Google Maps Link) *
+                  <span className={`ml-2 text-xs font-normal ${isStarkMode ? 'text-cyan-400' : 'text-gray-500'}`}>
+                    Paste a Google Maps link to auto-fill
+                  </span>
+                </label>
+                {isLoadingPlace && (
+                  <div className={`mb-2 text-sm ${isStarkMode ? 'text-cyan-400' : 'text-gray-600'}`}>
+                    🔄 Fetching business details...
+                  </div>
+                )}
+                {placeError && (
+                  <div className={`mb-2 p-2 rounded text-sm ${
+                    isStarkMode 
+                      ? 'bg-red-500/20 border border-red-500/40 text-red-400'
+                      : 'bg-red-50 border-2 border-red-200 text-red-600'
+                  }`}>
+                    {placeError}
+                  </div>
+                )}
+                <input
+                  type="url"
+                  required
+                  value={additionalFields.businessAddress}
+                  onChange={(e) => handleAddressChange(e.target.value)}
+                  disabled={isLoadingPlace}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 ${
+                    isStarkMode
+                      ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
+                      : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
+                  }`}
+                  placeholder="https://maps.google.com/..."
+                />
+              </div>
+
               {/* Required Fields */}
               <div>
                 <label className={`block text-sm font-medium mb-3 ${
@@ -355,78 +389,6 @@ export default function DeveloperDashboard() {
                   Additional Information (Optional)
                 </p>
                 <div className="space-y-4">
-                  {/* Business Address */}
-                  {!showAddress ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowAddress(true)}
-                      className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed transition-all hover:scale-[1.02] ${
-                        isStarkMode
-                          ? 'border-cyan-500/30 hover:border-cyan-500/50 text-cyan-400'
-                          : 'border-gray-300/60 hover:border-gray-400/80 text-gray-600'
-                      }`}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span>Add Business Address</span>
-                    </button>
-                  ) : (
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isStarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Business Address (Google Link)
-                        <span className={`ml-2 text-xs font-normal ${isStarkMode ? 'text-cyan-400' : 'text-gray-500'}`}>
-                          Paste a Google Maps link to auto-fill
-                        </span>
-                      </label>
-                      {isLoadingPlace && (
-                        <div className={`mb-2 text-sm ${isStarkMode ? 'text-cyan-400' : 'text-gray-600'}`}>
-                          🔄 Fetching business details...
-                        </div>
-                      )}
-                      {placeError && (
-                        <div className={`mb-2 p-2 rounded text-sm ${
-                          isStarkMode 
-                            ? 'bg-red-500/20 border border-red-500/40 text-red-400'
-                            : 'bg-red-50 border-2 border-red-200 text-red-600'
-                        }`}>
-                          {placeError}
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          value={additionalFields.businessAddress}
-                          onChange={(e) => handleAddressChange(e.target.value)}
-                          disabled={isLoadingPlace}
-                          className={`flex-1 px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 ${
-                            isStarkMode
-                              ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
-                              : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
-                          }`}
-                          placeholder="https://maps.google.com/..."
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAddress(false);
-                            setAdditionalFields({ ...additionalFields, businessAddress: '' });
-                            setPlaceError('');
-                          }}
-                          className={`px-4 py-3 rounded-lg transition-all ${
-                            isStarkMode
-                              ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                          }`}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Owner First Name */}
                   {!showOwnerName ? (
                     <button
