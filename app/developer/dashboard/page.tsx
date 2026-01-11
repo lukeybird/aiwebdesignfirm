@@ -78,6 +78,8 @@ export default function DeveloperDashboard() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isLoadingPlace, setIsLoadingPlace] = useState(false);
+  const [placeError, setPlaceError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +145,69 @@ export default function DeveloperDashboard() {
     router.push('/login/developer');
   };
 
+  // Check if URL is a Google Maps link
+  const isGoogleMapsUrl = (url: string): boolean => {
+    return /google\.com\/maps|maps\.google\.com/.test(url);
+  };
+
+  // Fetch place details from Google Maps URL
+  const fetchPlaceDetails = async (url: string) => {
+    setIsLoadingPlace(true);
+    setPlaceError('');
+
+    try {
+      const response = await fetch('/api/google-places', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPlaceError(data.error || 'Failed to fetch place details');
+        setIsLoadingPlace(false);
+        return;
+      }
+
+      // Auto-fill form fields
+      if (data.businessName) {
+        setFormData(prev => ({ ...prev, businessName: data.businessName }));
+      }
+      if (data.businessPhone) {
+        setFormData(prev => ({ ...prev, businessPhone: data.businessPhone }));
+      }
+      if (data.businessEmail) {
+        setFormData(prev => ({ ...prev, businessEmail: data.businessEmail }));
+      }
+      if (data.businessAddress) {
+        setAdditionalFields(prev => ({ ...prev, businessAddress: data.businessAddress }));
+        if (!showAddress) {
+          setShowAddress(true);
+        }
+      }
+
+      setIsLoadingPlace(false);
+    } catch (error) {
+      console.error('Error fetching place details:', error);
+      setPlaceError('Failed to fetch place details. Please check your API key configuration.');
+      setIsLoadingPlace(false);
+    }
+  };
+
+  // Handle address field change - detect Google Maps URL
+  const handleAddressChange = (value: string) => {
+    setAdditionalFields({ ...additionalFields, businessAddress: value });
+    setPlaceError('');
+
+    // Check if it's a Google Maps URL and auto-fill
+    if (isGoogleMapsUrl(value) && value.length > 20) {
+      fetchPlaceDetails(value);
+    }
+  };
+
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
       {/* Navigation */}
@@ -202,6 +267,17 @@ export default function DeveloperDashboard() {
               Lead created successfully!
             </div>
           )}
+
+          {/* Info Message about Google Maps */}
+          <div className={`mb-6 p-4 rounded-lg ${
+            isStarkMode 
+              ? 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-300'
+              : 'bg-blue-50 border-2 border-blue-200 text-blue-700'
+          }`}>
+            <p className="text-sm">
+              💡 <strong>Tip:</strong> Paste a Google Maps link in the Business Address field to automatically fill in business name, phone, and email!
+            </p>
+          </div>
 
           {/* Lead Creation Form */}
           <form onSubmit={handleSubmit} className={`rounded-xl p-8 lg:p-12 shadow-2xl ${
@@ -301,13 +377,31 @@ export default function DeveloperDashboard() {
                         isStarkMode ? 'text-gray-300' : 'text-gray-700'
                       }`}>
                         Business Address (Google Link)
+                        <span className={`ml-2 text-xs font-normal ${isStarkMode ? 'text-cyan-400' : 'text-gray-500'}`}>
+                          Paste a Google Maps link to auto-fill
+                        </span>
                       </label>
+                      {isLoadingPlace && (
+                        <div className={`mb-2 text-sm ${isStarkMode ? 'text-cyan-400' : 'text-gray-600'}`}>
+                          🔄 Fetching business details...
+                        </div>
+                      )}
+                      {placeError && (
+                        <div className={`mb-2 p-2 rounded text-sm ${
+                          isStarkMode 
+                            ? 'bg-red-500/20 border border-red-500/40 text-red-400'
+                            : 'bg-red-50 border-2 border-red-200 text-red-600'
+                        }`}>
+                          {placeError}
+                        </div>
+                      )}
                       <div className="flex gap-2">
                         <input
                           type="url"
                           value={additionalFields.businessAddress}
-                          onChange={(e) => setAdditionalFields({ ...additionalFields, businessAddress: e.target.value })}
-                          className={`flex-1 px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                          onChange={(e) => handleAddressChange(e.target.value)}
+                          disabled={isLoadingPlace}
+                          className={`flex-1 px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 ${
                             isStarkMode
                               ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
                               : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
@@ -319,6 +413,7 @@ export default function DeveloperDashboard() {
                           onClick={() => {
                             setShowAddress(false);
                             setAdditionalFields({ ...additionalFields, businessAddress: '' });
+                            setPlaceError('');
                           }}
                           className={`px-4 py-3 rounded-lg transition-all ${
                             isStarkMode
