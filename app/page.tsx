@@ -16,7 +16,23 @@ export default function Home() {
     return hour >= 18 || hour < 6;
   };
   
-  const [isStarkMode, setIsStarkMode] = useState(getInitialTheme());
+  const [isStarkMode, setIsStarkMode] = useState(() => {
+    // Check localStorage first, then fall back to time-based default
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved !== null) {
+        return saved === 'stark';
+      }
+    }
+    return getInitialTheme();
+  });
+
+  // Update localStorage when theme changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
+    }
+  }, [isStarkMode]);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
