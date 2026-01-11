@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
+  
   // Determine initial theme based on time of day
   const getInitialTheme = () => {
     const hour = new Date().getHours();
@@ -70,6 +73,7 @@ export default function LoginPage() {
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
             {/* Developer Login Button */}
             <button
+              onClick={() => router.push('/login/developer')}
               className={`rounded-xl p-12 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
                 isStarkMode 
                   ? 'bg-gray-800 border border-cyan-500/20 hover:border-cyan-500/40 hover:shadow-cyan-500/20'
