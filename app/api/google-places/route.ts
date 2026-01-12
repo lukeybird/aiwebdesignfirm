@@ -5,13 +5,33 @@ export async function POST(request: NextRequest) {
     // Security: Only allow requests from authenticated sessions
     // In production, you might want to add additional authentication checks here
     
-    const { url } = await request.json();
+    let { url } = await request.json();
 
     if (!url || typeof url !== 'string') {
       return NextResponse.json(
         { error: 'Invalid URL provided' },
         { status: 400 }
       );
+    }
+
+    // Resolve short links (maps.app.goo.gl or goo.gl/maps) to full URL
+    if (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps')) {
+      try {
+        // Follow redirect to get the full URL
+        const response = await fetch(url, { 
+          method: 'HEAD',
+          redirect: 'follow',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; GoogleMapsBot/1.0)'
+          }
+        });
+        if (response.url && response.url !== url) {
+          url = response.url;
+        }
+      } catch (error) {
+        console.error('Error resolving short link:', error);
+        // Continue with original URL if resolution fails
+      }
     }
 
     // Security: Validate URL format to prevent abuse

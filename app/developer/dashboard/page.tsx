@@ -189,9 +189,9 @@ export default function DeveloperDashboard() {
     router.push('/login/developer');
   };
 
-  // Check if URL is a Google Maps link
+  // Check if URL is a Google Maps link (including short links)
   const isGoogleMapsUrl = (url: string): boolean => {
-    return /google\.com\/maps|maps\.google\.com/.test(url);
+    return /google\.com\/maps|maps\.google\.com|maps\.app\.goo\.gl|goo\.gl\/maps/.test(url);
   };
 
   // Fetch place details from Google Maps URL
