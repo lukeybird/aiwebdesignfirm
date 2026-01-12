@@ -377,7 +377,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Portfolio Section */}
+      {/* Portfolio Section - Hidden for now */}
+      {false && (
       <section className={`py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${
         isStarkMode ? 'bg-black' : 'bg-gradient-to-b from-white to-gray-50/50'
       }`}>
@@ -468,6 +469,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Call to Action Section */}
       <section className={`py-32 px-6 sm:px-8 lg:px-12 transition-colors duration-300 relative ${
