@@ -648,7 +648,7 @@ export default function DeveloperDashboard() {
               </div>
             </div>
           </form>
-            <div className="mt-12">
+        </div>
               <div className={`rounded-xl p-8 lg:p-12 shadow-2xl ${
                 isStarkMode 
                   ? 'bg-gray-800 border border-cyan-500/20' 
