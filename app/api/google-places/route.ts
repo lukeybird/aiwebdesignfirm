@@ -268,7 +268,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const placesUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,formatted_address,website,international_phone_number&key=${apiKey}`;
+    // Request all available fields for better data extraction
+    const placesUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,international_phone_number,formatted_address,address_components,website,url,vicinity&key=${apiKey}`;
     
     const placesResponse = await fetch(placesUrl);
     const placesData = await placesResponse.json();
@@ -278,7 +279,8 @@ export async function POST(request: NextRequest) {
         status: placesData.status,
         error_message: placesData.error_message,
         url: url,
-        placeId: placeId
+        placeId: placeId,
+        fullResponse: placesData
       });
       
       // Return more helpful error message
@@ -296,34 +298,74 @@ export async function POST(request: NextRequest) {
     }
 
     const place = placesData.result;
+    
+    console.log('Full place data received:', JSON.stringify(place, null, 2));
 
-    // Extract business email from website if possible (this is a best guess)
-    let businessEmail = '';
-    if (place.website) {
-      // Try to construct email from website domain
-      const domain = place.website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-      businessEmail = `contact@${domain}`;
+    // Get business name - make sure it's not a place ID
+    let businessName = '';
+    if (place.name && typeof place.name === 'string' && place.name.length > 0) {
+      // Validate it's not a place ID (place IDs are typically 27+ chars and don't contain spaces)
+      if (!place.name.match(/^[A-Za-z0-9_-]{27,}$/) || place.name.includes(' ')) {
+        businessName = place.name;
+      }
     }
 
-    // Get phone number - prefer formatted, fallback to international
+    // Get phone number - try all available phone fields
     let phoneNumber = '';
     if (place.formatted_phone_number) {
       phoneNumber = place.formatted_phone_number;
     } else if (place.international_phone_number) {
       phoneNumber = place.international_phone_number;
+    } else if (place.phone_number) {
+      phoneNumber = place.phone_number;
+    }
+
+    // Get address - prefer formatted_address, fallback to vicinity
+    let businessAddress = '';
+    if (place.formatted_address && typeof place.formatted_address === 'string') {
+      // Validate it's not a place ID
+      if (!place.formatted_address.match(/^[A-Za-z0-9_-]{27,}$/)) {
+        businessAddress = place.formatted_address;
+      }
+    }
+    if (!businessAddress && place.vicinity) {
+      businessAddress = place.vicinity;
+    }
+
+    // Extract business email - try multiple methods
+    let businessEmail = '';
+    
+    // Method 1: From website domain
+    if (place.website) {
+      try {
+        const domain = place.website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+        businessEmail = `contact@${domain}`;
+      } catch (e) {
+        console.error('Error extracting email from website:', e);
+      }
     }
     
-    console.log('Place details:', {
-      name: place.name,
+    // Method 2: Try to find email in URL if available
+    if (!businessEmail && place.url) {
+      // Some Google Maps URLs might have email info, but this is unlikely
+    }
+    
+    // Note: Google Places API doesn't directly provide email addresses
+    // We can only construct a likely email from the website domain
+    
+    console.log('Extracted place details:', {
+      name: businessName,
       phone: phoneNumber,
-      address: place.formatted_address,
-      email: businessEmail
+      address: businessAddress,
+      email: businessEmail,
+      rawName: place.name,
+      rawAddress: place.formatted_address
     });
 
     return NextResponse.json({
-      businessName: place.name || '',
+      businessName: businessName,
       businessPhone: phoneNumber,
-      businessAddress: place.formatted_address || '',
+      businessAddress: businessAddress,
       businessEmail: businessEmail,
     });
   } catch (error) {
