@@ -47,42 +47,6 @@ export default function DeveloperDashboard() {
     }
   }, [router]);
 
-  // Load leads from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        try {
-          const parsedLeads = JSON.parse(storedLeads);
-          // Sort by creation date, newest first
-          parsedLeads.sort((a: Lead, b: Lead) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          setLeads(parsedLeads);
-        } catch (error) {
-          console.error('Error parsing leads:', error);
-        }
-      }
-    }
-  }, []);
-
-  // Reload leads after form submission
-  useEffect(() => {
-    if (submitSuccess && typeof window !== 'undefined') {
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        try {
-          const parsedLeads = JSON.parse(storedLeads);
-          parsedLeads.sort((a: Lead, b: Lead) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          setLeads(parsedLeads);
-        } catch (error) {
-          console.error('Error parsing leads:', error);
-        }
-      }
-    }
-  }, [submitSuccess]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -122,8 +86,6 @@ export default function DeveloperDashboard() {
   // const [lastFetchedUrl, setLastFetchedUrl] = useState('');
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [fieldSearchQuery, setFieldSearchQuery] = useState('');
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [showLeadsList, setShowLeadsList] = useState(false);
 
   // Available fields to add
   const availableFields = [
@@ -221,32 +183,8 @@ export default function DeveloperDashboard() {
     setIsSubmitting(false);
     setSubmitSuccess(true);
 
-    // Reload leads list
-    if (typeof window !== 'undefined') {
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        try {
-          const parsedLeads = JSON.parse(storedLeads);
-          parsedLeads.sort((a: Lead, b: Lead) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          setLeads(parsedLeads);
-        } catch (error) {
-          console.error('Error parsing leads:', error);
-        }
-      }
-    }
-
     // Hide success message after 3 seconds
     setTimeout(() => setSubmitSuccess(false), 3000);
-  };
-
-  const handleDeleteLead = (leadId: string) => {
-    if (typeof window !== 'undefined' && confirm('Are you sure you want to delete this lead?')) {
-      const updatedLeads = leads.filter(lead => lead.id !== leadId);
-      localStorage.setItem('leads', JSON.stringify(updatedLeads));
-      setLeads(updatedLeads);
-    }
   };
 
   const handleLogout = () => {
@@ -303,16 +241,6 @@ export default function DeveloperDashboard() {
               </div>
             </Link>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowLeadsList(!showLeadsList)}
-                className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-200 hover:scale-105 ${
-                  isStarkMode
-                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20 border border-gray-800'
-                }`}
-              >
-                {showLeadsList ? 'Hide Leads' : `View Leads (${leads.length})`}
-              </button>
               <button
                 onClick={handleLogout}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
@@ -720,9 +648,6 @@ export default function DeveloperDashboard() {
               </div>
             </div>
           </form>
-
-          {/* Leads List Section */}
-          {showLeadsList && (
             <div className="mt-12">
               <div className={`rounded-xl p-8 lg:p-12 shadow-2xl ${
                 isStarkMode 
@@ -934,6 +859,19 @@ export default function DeveloperDashboard() {
           )}
         </div>
       </section>
+
+      {/* Floating Leads Button - Bottom Right */}
+      <Link
+        href="/developer/leads"
+        className={`fixed bottom-6 right-6 z-50 px-6 py-3 rounded-full text-sm font-bold transition-all duration-200 hover:scale-110 shadow-2xl ${
+          isStarkMode
+            ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-cyan-500/50'
+            : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-900/20'
+        }`}
+        aria-label="View leads"
+      >
+        Leads
+      </Link>
 
       {/* Theme Toggle */}
       <div className="fixed bottom-6 left-6 z-50">
