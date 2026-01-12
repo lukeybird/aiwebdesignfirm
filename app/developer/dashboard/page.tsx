@@ -6,9 +6,10 @@ import Link from 'next/link';
 
 interface Lead {
   id: string;
-  businessPhone: string;
-  businessName: string;
-  businessEmail: string;
+  listingLink: string;
+  businessPhone?: string;
+  businessName?: string;
+  businessEmail?: string;
   businessAddress?: string;
   ownerFirstName?: string;
   ownerPhone?: string;
@@ -54,9 +55,11 @@ export default function DeveloperDashboard() {
 
   // Form state
   const [formData, setFormData] = useState({
+    listingLink: '', // Google Maps link (required)
     businessPhone: '',
     businessName: '',
     businessEmail: '',
+    businessAddress: '',
   });
 
   // Additional fields state
@@ -67,7 +70,6 @@ export default function DeveloperDashboard() {
   const [showNotes, setShowNotes] = useState(false);
 
   const [additionalFields, setAdditionalFields] = useState({
-    businessAddress: '',
     ownerFirstName: '',
     ownerPhone: '',
     hasLogo: 1,
@@ -134,10 +136,11 @@ export default function DeveloperDashboard() {
     // Create lead object
     const newLead: Lead = {
       id: Date.now().toString(),
-      businessPhone: formData.businessPhone,
-      businessName: formData.businessName,
-      businessEmail: formData.businessEmail,
-      businessAddress: additionalFields.businessAddress,
+      listingLink: formData.listingLink,
+      businessPhone: formData.businessPhone || undefined,
+      businessName: formData.businessName || undefined,
+      businessEmail: formData.businessEmail || undefined,
+      businessAddress: formData.businessAddress || undefined,
       ownerFirstName: showOwnerName ? additionalFields.ownerFirstName : undefined,
       ownerPhone: showOwnerPhone ? additionalFields.ownerPhone : undefined,
       hasLogo: showLogoRating ? additionalFields.hasLogo : undefined,
@@ -156,12 +159,13 @@ export default function DeveloperDashboard() {
 
     // Reset form
     setFormData({
+      listingLink: '',
       businessPhone: '',
       businessName: '',
       businessEmail: '',
+      businessAddress: '',
     });
     setAdditionalFields({
-      businessAddress: '',
       ownerFirstName: '',
       ownerPhone: '',
       hasLogo: 1,
@@ -222,18 +226,19 @@ export default function DeveloperDashboard() {
         return;
       }
 
-      // Auto-fill form fields
-      if (data.businessName) {
-        setFormData(prev => ({ ...prev, businessName: data.businessName }));
-      }
+      // Auto-fill form fields in order: Phone, Name, Email, Address
+      // Only fill if data exists (don't fill empty values)
       if (data.businessPhone) {
         setFormData(prev => ({ ...prev, businessPhone: data.businessPhone }));
+      }
+      if (data.businessName) {
+        setFormData(prev => ({ ...prev, businessName: data.businessName }));
       }
       if (data.businessEmail) {
         setFormData(prev => ({ ...prev, businessEmail: data.businessEmail }));
       }
       if (data.businessAddress) {
-        setAdditionalFields(prev => ({ ...prev, businessAddress: data.businessAddress }));
+        setFormData(prev => ({ ...prev, businessAddress: data.businessAddress }));
       }
 
       setIsLoadingPlace(false);
@@ -244,9 +249,9 @@ export default function DeveloperDashboard() {
     }
   };
 
-  // Handle address field change - detect Google Maps URL and auto-fill immediately
-  const handleAddressChange = (value: string) => {
-    setAdditionalFields({ ...additionalFields, businessAddress: value });
+  // Handle listing link field change - detect Google Maps URL and auto-fill immediately
+  const handleListingLinkChange = (value: string) => {
+    setFormData({ ...formData, listingLink: value });
     setPlaceError('');
 
     // Immediately check if it's a Google Maps URL and auto-fill
@@ -262,7 +267,7 @@ export default function DeveloperDashboard() {
     const pastedText = e.clipboardData.getData('text').trim();
     if (isGoogleMapsUrl(pastedText)) {
       // Update the field value first
-      setAdditionalFields({ ...additionalFields, businessAddress: pastedText });
+      setFormData({ ...formData, listingLink: pastedText });
       // Trigger auto-fill immediately
       fetchPlaceDetails(pastedText);
     }
@@ -346,12 +351,12 @@ export default function DeveloperDashboard() {
               : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
           }`}>
             <div className="space-y-6">
-              {/* Business Address - Google Maps Link (First Field) */}
+              {/* Listing Link - Google Maps Link (First Field - Required) */}
               <div>
                 <label className={`block text-sm font-medium mb-3 ${
                   isStarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Business Address (Google Maps Link) *
+                  Listing Link *
                   <span className={`ml-2 text-xs font-normal ${isStarkMode ? 'text-cyan-400' : 'text-gray-500'}`}>
                     Paste a Google Maps link to auto-fill
                   </span>
@@ -373,8 +378,8 @@ export default function DeveloperDashboard() {
                 <input
                   type="url"
                   required
-                  value={additionalFields.businessAddress}
-                  onChange={(e) => handleAddressChange(e.target.value)}
+                  value={formData.listingLink}
+                  onChange={(e) => handleListingLinkChange(e.target.value)}
                   onPaste={handlePaste}
                   disabled={isLoadingPlace}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 ${
@@ -386,16 +391,15 @@ export default function DeveloperDashboard() {
                 />
               </div>
 
-              {/* Required Fields */}
+              {/* Business Phone */}
               <div>
                 <label className={`block text-sm font-medium mb-3 ${
                   isStarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Business Phone *
+                  Business Phone
                 </label>
                 <input
                   type="tel"
-                  required
                   value={formData.businessPhone}
                   onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
@@ -407,15 +411,15 @@ export default function DeveloperDashboard() {
                 />
               </div>
 
+              {/* Business Name */}
               <div>
                 <label className={`block text-sm font-medium mb-3 ${
                   isStarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Business Name *
+                  Business Name
                 </label>
                 <input
                   type="text"
-                  required
                   value={formData.businessName}
                   onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
@@ -427,15 +431,15 @@ export default function DeveloperDashboard() {
                 />
               </div>
 
+              {/* Business Email */}
               <div>
                 <label className={`block text-sm font-medium mb-3 ${
                   isStarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Business Email *
+                  Business Email
                 </label>
                 <input
                   type="email"
-                  required
                   value={formData.businessEmail}
                   onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
@@ -444,6 +448,26 @@ export default function DeveloperDashboard() {
                       : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
                   }`}
                   placeholder="contact@business.com"
+                />
+              </div>
+
+              {/* Business Address */}
+              <div>
+                <label className={`block text-sm font-medium mb-3 ${
+                  isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Business Address
+                </label>
+                <input
+                  type="text"
+                  value={formData.businessAddress}
+                  onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    isStarkMode
+                      ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
+                      : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
+                  }`}
+                  placeholder="123 Main St, City, State 12345"
                 />
               </div>
 
