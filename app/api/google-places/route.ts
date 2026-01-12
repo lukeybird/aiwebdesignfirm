@@ -101,25 +101,33 @@ export async function POST(request: NextRequest) {
 
     // Try to extract place ID from URL
     // Handle various formats:
-    // - /place/PlaceName/@lat,lng,zoom/data=!4m2!3m1!1sPLACE_ID
     // - /place/PLACE_ID
     // - data parameter: data=!4m2!3m1!1sChIJ... (place ID)
+    // Google Place IDs are typically 27 characters and start with ChIJ
     const dataMatch = url.match(/data=!4m\d+!3m\d+!1s([A-Za-z0-9_-]{27,})/);
     if (dataMatch && dataMatch[1]) {
-      placeId = dataMatch[1];
-      console.log('Extracted place ID from data parameter:', placeId);
-    } else {
-      // Try to extract from place path
-      const placePathMatch = url.match(/place\/([^/@]+)/);
+      const extractedId = dataMatch[1];
+      // Validate it's a proper place ID format
+      if (extractedId.length >= 27 && extractedId.match(/^[A-Za-z0-9_-]+$/)) {
+        placeId = extractedId;
+        console.log('Extracted place ID from data parameter:', placeId);
+      }
+    }
+    
+    // If no place ID from data parameter, try place path
+    if (!placeId) {
+      const placePathMatch = url.match(/place\/([^/@?]+)/);
       if (placePathMatch) {
         let extracted = decodeURIComponent(placePathMatch[1]);
-        // Check if it's a valid place ID format (ChIJ... or similar, 27+ chars)
-        if (extracted.match(/^[A-Za-z0-9_-]{27,}$/) && !extracted.includes(' ')) {
+        // Remove any query parameters or fragments
+        extracted = extracted.split('?')[0].split('#')[0];
+        // Check if it's a valid place ID format (27+ chars, alphanumeric/underscore/hyphen)
+        if (extracted.match(/^[A-Za-z0-9_-]{27,}$/) && !extracted.includes(' ') && !extracted.includes('+')) {
           placeId = extracted;
           console.log('Extracted place ID from path:', placeId);
         } else {
           // It's a place name, save it for text search
-          placeName = extracted.replace(/\+/g, ' ');
+          placeName = extracted.replace(/\+/g, ' ').replace(/%20/g, ' ');
           console.log('Extracted place name:', placeName);
         }
       }
