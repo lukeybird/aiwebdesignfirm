@@ -47,6 +47,43 @@ export default function DeveloperDashboard() {
     }
   }, [router]);
 
+  // Load leads from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedLeads = localStorage.getItem('leads');
+      if (storedLeads) {
+        try {
+          const parsedLeads = JSON.parse(storedLeads);
+          // Sort by creation date, newest first
+          parsedLeads.sort((a: Lead, b: Lead) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setLeads(parsedLeads);
+        } catch (error) {
+          console.error('Error parsing leads:', error);
+        }
+      }
+    }
+  }, []);
+
+  // Reload leads after form submission
+  useEffect(() => {
+    if (submitSuccess && typeof window !== 'undefined') {
+      const storedLeads = localStorage.getItem('leads');
+      if (storedLeads) {
+        try {
+          const parsedLeads = JSON.parse(storedLeads);
+          parsedLeads.sort((a: Lead, b: Lead) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setLeads(parsedLeads);
+        } catch (error) {
+          console.error('Error parsing leads:', error);
+        }
+      }
+    }
+  }, [submitSuccess]);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
@@ -85,6 +122,8 @@ export default function DeveloperDashboard() {
   // const [lastFetchedUrl, setLastFetchedUrl] = useState('');
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [fieldSearchQuery, setFieldSearchQuery] = useState('');
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [showLeadsList, setShowLeadsList] = useState(false);
 
   // Available fields to add
   const availableFields = [
@@ -182,8 +221,32 @@ export default function DeveloperDashboard() {
     setIsSubmitting(false);
     setSubmitSuccess(true);
 
+    // Reload leads list
+    if (typeof window !== 'undefined') {
+      const storedLeads = localStorage.getItem('leads');
+      if (storedLeads) {
+        try {
+          const parsedLeads = JSON.parse(storedLeads);
+          parsedLeads.sort((a: Lead, b: Lead) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          setLeads(parsedLeads);
+        } catch (error) {
+          console.error('Error parsing leads:', error);
+        }
+      }
+    }
+
     // Hide success message after 3 seconds
     setTimeout(() => setSubmitSuccess(false), 3000);
+  };
+
+  const handleDeleteLead = (leadId: string) => {
+    if (typeof window !== 'undefined' && confirm('Are you sure you want to delete this lead?')) {
+      const updatedLeads = leads.filter(lead => lead.id !== leadId);
+      localStorage.setItem('leads', JSON.stringify(updatedLeads));
+      setLeads(updatedLeads);
+    }
   };
 
   const handleLogout = () => {
@@ -239,16 +302,28 @@ export default function DeveloperDashboard() {
                 AI Web Design Firm
               </div>
             </Link>
-            <button
-              onClick={handleLogout}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                isStarkMode
-                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
-              }`}
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowLeadsList(!showLeadsList)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                  isStarkMode
+                    ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/40'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+                }`}
+              >
+                {showLeadsList ? 'Hide Leads' : `View Leads (${leads.length})`}
+              </button>
+              <button
+                onClick={handleLogout}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                  isStarkMode
+                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+                }`}
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -645,6 +720,218 @@ export default function DeveloperDashboard() {
               </div>
             </div>
           </form>
+
+          {/* Leads List Section */}
+          {showLeadsList && (
+            <div className="mt-12">
+              <div className={`rounded-xl p-8 lg:p-12 shadow-2xl ${
+                isStarkMode 
+                  ? 'bg-gray-800 border border-cyan-500/20' 
+                  : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
+              }`}>
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${
+                    isStarkMode 
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
+                      : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
+                  }`}>
+                    All Leads ({leads.length})
+                  </h2>
+                  <button
+                    onClick={() => setShowLeadsList(false)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                      isStarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                    }`}
+                  >
+                    Close
+                  </button>
+                </div>
+
+                {leads.length === 0 ? (
+                  <div className={`text-center py-12 ${
+                    isStarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    <p className="text-lg">No leads created yet.</p>
+                    <p className="text-sm mt-2">Create your first lead using the form above.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                    {leads.map((lead) => (
+                      <div
+                        key={lead.id}
+                        className={`p-6 rounded-lg border transition-all hover:shadow-lg ${
+                          isStarkMode
+                            ? 'bg-gray-900/50 border-cyan-500/20 hover:border-cyan-500/40'
+                            : 'bg-gray-50 border-gray-300/60 hover:border-gray-400/80'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className={`text-xl font-bold mb-2 ${
+                              isStarkMode ? 'text-white' : 'text-gray-900'
+                            }`}>
+                              {lead.businessName || 'Unnamed Business'}
+                            </h3>
+                            <p className={`text-xs mb-3 ${
+                              isStarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                              Created: {new Date(lead.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteLead(lead.id)}
+                            className={`ml-4 px-3 py-1.5 rounded text-sm font-medium transition-all hover:scale-105 ${
+                              isStarkMode
+                                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
+                                : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                            }`}
+                          >
+                            Delete
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          {lead.listingLink && (
+                            <div>
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Listing Link:
+                              </span>
+                              <a
+                                href={lead.listingLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`ml-2 underline hover:opacity-80 ${
+                                  isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                                }`}
+                              >
+                                View Link
+                              </a>
+                            </div>
+                          )}
+                          {lead.businessPhone && (
+                            <div>
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Phone:
+                              </span>
+                              <span className={`ml-2 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.businessPhone}
+                              </span>
+                            </div>
+                          )}
+                          {lead.businessEmail && (
+                            <div>
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Email:
+                              </span>
+                              <span className={`ml-2 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.businessEmail}
+                              </span>
+                            </div>
+                          )}
+                          {lead.businessAddress && (
+                            <div className="md:col-span-2">
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Address:
+                              </span>
+                              <span className={`ml-2 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.businessAddress}
+                              </span>
+                            </div>
+                          )}
+                          {lead.ownerFirstName && (
+                            <div>
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Owner Name:
+                              </span>
+                              <span className={`ml-2 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.ownerFirstName}
+                              </span>
+                            </div>
+                          )}
+                          {lead.ownerPhone && (
+                            <div>
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Owner Phone:
+                              </span>
+                              <span className={`ml-2 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.ownerPhone}
+                              </span>
+                            </div>
+                          )}
+                          {lead.hasLogo !== undefined && (
+                            <div>
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Has Logo:
+                              </span>
+                              <span className={`ml-2 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.hasLogo}/5
+                              </span>
+                            </div>
+                          )}
+                          {lead.hasGoodPhotos !== undefined && (
+                            <div>
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Has Good Photos:
+                              </span>
+                              <span className={`ml-2 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.hasGoodPhotos}/5
+                              </span>
+                            </div>
+                          )}
+                          {lead.customNotes && (
+                            <div className="md:col-span-2">
+                              <span className={`font-medium ${
+                                isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                              }`}>
+                                Notes:
+                              </span>
+                              <p className={`mt-1 ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                              }`}>
+                                {lead.customNotes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
