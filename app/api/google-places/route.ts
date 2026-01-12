@@ -91,16 +91,18 @@ export async function POST(request: NextRequest) {
     let coordinates: { lat: number; lng: number } | null = null;
     let placeName: string | null = null;
 
-    // Try to extract coordinates from URL first (most reliable)
+    // PRIMARY APPROACH: Extract coordinates from URL (most reliable)
+    // Coordinates are almost always present in Google Maps URLs
     const coordMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
     if (coordMatch) {
       coordinates = {
         lat: parseFloat(coordMatch[1]),
         lng: parseFloat(coordMatch[2]),
       };
-      console.log('Extracted coordinates:', coordinates);
+      console.log('Extracted coordinates (primary method):', coordinates);
     }
 
+    // SECONDARY APPROACH: Try to extract place ID from URL (less reliable)
     console.log('Extracting place ID from URL:', url);
     
     // Try to extract place ID from URL
@@ -156,11 +158,12 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log('Final place ID:', placeId);
+    console.log('Final place ID from URL:', placeId);
     console.log('Coordinates found:', coordinates);
 
-    // If we have coordinates but no place ID, try to find place ID using reverse geocoding
-    if (coordinates && !placeId) {
+    // NEW PRIMARY APPROACH: Use coordinates to find place (most reliable)
+    // If we have coordinates, use them directly instead of trying to extract place IDs
+    if (coordinates) {
       const apiKey = process.env.API_KEY_GOOGLE;
       
       if (!apiKey) {
@@ -170,48 +173,43 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Use reverse geocoding to get place details
-      const reverseGeocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordinates.lat},${coordinates.lng}&key=${apiKey}`;
-      
-      const geocodeResponse = await fetch(reverseGeocodeUrl);
-      const geocodeData = await geocodeResponse.json();
-
-      if (geocodeData.results && geocodeData.results.length > 0) {
-        // Try to find place_id in the results
-        const result = geocodeData.results[0];
-        placeId = result.place_id;
-      }
-    }
-
-    // If we still don't have a place ID, use Nearby Search API with coordinates
-    // This is more reliable for finding the exact place at coordinates
-    if (!placeId && coordinates) {
-      const apiKey = process.env.API_KEY_GOOGLE;
-      
-      if (!apiKey) {
-        return NextResponse.json(
-          { error: 'Google Places API key not configured' },
-          { status: 500 }
-        );
-      }
-
-      // Use Places API Nearby Search - finds places near the coordinates
-      // Use a very small radius to get the closest match
-      const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coordinates.lat},${coordinates.lng}&radius=10&key=${apiKey}`;
+      // Method 1: Use Places API Nearby Search with very small radius
+      // This finds the exact place at the coordinates
+      const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coordinates.lat},${coordinates.lng}&radius=5&key=${apiKey}`;
       
       try {
+        console.log('Using coordinate-based approach: Nearby Search');
         const nearbyResponse = await fetch(nearbyUrl);
         const nearbyData = await nearbyResponse.json();
 
         if (nearbyData.results && nearbyData.results.length > 0) {
           // Get the closest result (first one)
-          placeId = nearbyData.results[0].place_id;
+          const nearbyPlace = nearbyData.results[0];
+          placeId = nearbyPlace.place_id;
           console.log('Found place ID using nearby search:', placeId);
-          console.log('Nearby search result:', nearbyData.results[0]);
+          console.log('Nearby search result:', nearbyPlace);
+          
+          // If we got a place ID, we'll use it below to get full details
+          // If not, we can use the nearby search result directly
+        } else {
+          console.log('No results from nearby search, trying reverse geocoding');
+          // Fallback: Use reverse geocoding
+          const reverseGeocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordinates.lat},${coordinates.lng}&key=${apiKey}`;
+          const geocodeResponse = await fetch(reverseGeocodeUrl);
+          const geocodeData = await geocodeResponse.json();
+
+          if (geocodeData.results && geocodeData.results.length > 0) {
+            const result = geocodeData.results[0];
+            placeId = result.place_id;
+            console.log('Found place ID using reverse geocoding:', placeId);
+          }
         }
       } catch (error) {
-        console.error('Error finding place with nearby search:', error);
+        console.error('Error finding place with coordinates:', error);
       }
+    } else if (!placeId) {
+      // If no coordinates and no place ID, try reverse geocoding won't work
+      console.warn('No coordinates found in URL, relying on place ID extraction only');
     }
 
     if (!placeId) {
