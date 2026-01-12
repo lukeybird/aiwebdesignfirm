@@ -3,14 +3,17 @@
 (function() {
     function getInitialTheme() {
         // Read from main site's theme preference
-        const saved = localStorage.getItem('theme');
+        let saved = localStorage.getItem('theme');
         if (saved !== null) {
             // Main site uses 'stark' for night mode, 'day' for day mode
             return saved === 'stark';
         }
-        // Fallback to time-based default
+        // No saved preference - determine from time and save it
         const hour = new Date().getHours();
-        return hour >= 18 || hour < 6;
+        const isNight = hour >= 18 || hour < 6;
+        // Save the initial decision so it persists across pages
+        localStorage.setItem('theme', isNight ? 'stark' : 'day');
+        return isNight;
     }
 
     function setTheme(isNight) {

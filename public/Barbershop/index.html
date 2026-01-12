@@ -12,8 +12,20 @@
     <script>
         // Apply theme immediately before page renders to prevent flash
         (function() {
-            const saved = localStorage.getItem('theme');
-            const isNight = saved === 'stark' || (saved === null && (new Date().getHours() >= 18 || new Date().getHours() < 6));
+            let saved = localStorage.getItem('theme');
+            let isNight;
+            
+            if (saved !== null) {
+                // Use saved preference
+                isNight = saved === 'stark';
+            } else {
+                // No saved preference - determine from time and save it
+                const hour = new Date().getHours();
+                isNight = hour >= 18 || hour < 6;
+                // Save the initial decision so it persists across pages
+                localStorage.setItem('theme', isNight ? 'stark' : 'day');
+            }
+            
             document.documentElement.setAttribute('data-theme', isNight ? 'night' : 'day');
             if (isNight) {
                 document.body.classList.add('theme-night');

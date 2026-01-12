@@ -23,6 +23,10 @@ export default function Home() {
       if (saved !== null) {
         return saved === 'stark';
       }
+      // No saved theme - determine from time and save it
+      const initialTheme = getInitialTheme();
+      localStorage.setItem('theme', initialTheme ? 'stark' : 'day');
+      return initialTheme;
     }
     return getInitialTheme();
   });
