@@ -9,6 +9,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;700&family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Montserrat:wght@300;400;600;700;800;900&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@300;400;600&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&family=Nunito:wght@400;600;700;800&family=Comfortaa:wght@400;600;700&family=Quicksand:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=Syne:wght@400;600;700;800&family=Bungee&family=Share+Tech+Mono&family=Poppins:wght@300;400;600;700;800&family=Roboto:wght@300;400;700;900&family=Open+Sans:wght@300;400;600;700;800&family=Raleway:wght@300;400;600;700;800&family=Merriweather:wght@300;400;700;900&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+        // Apply theme immediately before page renders to prevent flash
+        (function() {
+            const saved = localStorage.getItem('theme');
+            const isNight = saved === 'stark' || (saved === null && (new Date().getHours() >= 18 || new Date().getHours() < 6));
+            document.documentElement.setAttribute('data-theme', isNight ? 'night' : 'day');
+            if (isNight) {
+                document.body.classList.add('theme-night');
+            } else {
+                document.body.classList.add('theme-day');
+            }
+        })();
+    </script>
 </head>
 <body class="theme-modern">
     <!-- Back Button - Main Site Style -->

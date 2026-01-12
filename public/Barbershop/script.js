@@ -1,50 +1,68 @@
 // Theme Management (Day/Night Mode) - Uses main site's theme preference
-function getInitialTheme() {
-    // Read from main site's theme preference
-    const saved = localStorage.getItem('theme');
-    if (saved !== null) {
-        // Main site uses 'stark' for night mode, 'day' for day mode
-        return saved === 'stark';
+// Apply theme immediately to prevent flash
+(function() {
+    function getInitialTheme() {
+        // Read from main site's theme preference
+        const saved = localStorage.getItem('theme');
+        if (saved !== null) {
+            // Main site uses 'stark' for night mode, 'day' for day mode
+            return saved === 'stark';
+        }
+        // Fallback to time-based default
+        const hour = new Date().getHours();
+        return hour >= 18 || hour < 6;
     }
-    // Fallback to time-based default
-    const hour = new Date().getHours();
-    return hour >= 18 || hour < 6;
-}
 
-function setTheme(isNight) {
-    const body = document.body;
-    if (isNight) {
-        body.classList.add('theme-night');
-        body.classList.remove('theme-day');
-    } else {
-        body.classList.add('theme-day');
-        body.classList.remove('theme-night');
-    }
-    // Sync with main site's theme preference
-    localStorage.setItem('theme', isNight ? 'stark' : 'day');
-    updateBackButton(isNight);
-}
-
-function updateBackButton(isNight) {
-    const backButton = document.getElementById('backButton');
-    if (backButton) {
+    function setTheme(isNight) {
+        const body = document.body;
         if (isNight) {
-            backButton.classList.add('night-mode');
+            body.classList.add('theme-night');
+            body.classList.remove('theme-day');
         } else {
-            backButton.classList.remove('night-mode');
+            body.classList.add('theme-day');
+            body.classList.remove('theme-night');
+        }
+        updateBackButton(isNight);
+    }
+
+    function updateBackButton(isNight) {
+        const backButton = document.getElementById('backButton');
+        if (backButton) {
+            if (isNight) {
+                backButton.classList.add('night-mode');
+            } else {
+                backButton.classList.remove('night-mode');
+            }
         }
     }
-}
 
-// Initialize theme from main site's preference
-const isNightMode = getInitialTheme();
-setTheme(isNightMode);
+    // Initialize theme immediately when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            const isNightMode = getInitialTheme();
+            setTheme(isNightMode);
+        });
+    } else {
+        // DOM is already ready
+        const isNightMode = getInitialTheme();
+        setTheme(isNightMode);
+    }
 
-// Hide theme toggle button (use main site's preference only)
-const themeToggle = document.getElementById('themeToggle');
-if (themeToggle) {
-    themeToggle.style.display = 'none';
-}
+    // Hide theme toggle button (use main site's preference only)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.style.display = 'none';
+            }
+        });
+    } else {
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.style.display = 'none';
+        }
+    }
+})();
 
 // Mobile Navigation Toggle
 const navToggle = document.querySelector('.nav-toggle');
