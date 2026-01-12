@@ -193,6 +193,10 @@ body.theme-night .theme-toggle-slider::before {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+body.theme-night .theme-toggle-slider::before {
+    left: 28px;
+}
+
 @media (max-width: 768px) {
     .theme-toggle {
         bottom: 20px;
