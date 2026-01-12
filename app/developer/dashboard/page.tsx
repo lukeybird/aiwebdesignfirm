@@ -649,11 +649,7 @@ export default function DeveloperDashboard() {
             </div>
           </form>
         </div>
-              <div className={`rounded-xl p-8 lg:p-12 shadow-2xl ${
-                isStarkMode 
-                  ? 'bg-gray-800 border border-cyan-500/20' 
-                  : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
-              }`}>
+      </section>
                 <div className="flex items-center justify-between mb-8">
                   <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${
                     isStarkMode 
