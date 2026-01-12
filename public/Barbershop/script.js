@@ -1,36 +1,10 @@
-// Theme Management (Day/Night Mode) - Uses main site's theme preference
-// Apply theme immediately to prevent flash
+// Theme Management - Update back button styling based on current theme
+// Theme is already set by inline script in <head>, just update the back button
 (function() {
-    function getInitialTheme() {
-        // Read from main site's theme preference
-        let saved = localStorage.getItem('theme');
-        if (saved !== null) {
-            // Main site uses 'stark' for night mode, 'day' for day mode
-            return saved === 'stark';
-        }
-        // No saved preference - determine from time and save it
-        const hour = new Date().getHours();
-        const isNight = hour >= 18 || hour < 6;
-        // Save the initial decision so it persists across pages
-        localStorage.setItem('theme', isNight ? 'stark' : 'day');
-        return isNight;
-    }
-
-    function setTheme(isNight) {
-        const body = document.body;
-        if (isNight) {
-            body.classList.add('theme-night');
-            body.classList.remove('theme-day');
-        } else {
-            body.classList.add('theme-day');
-            body.classList.remove('theme-night');
-        }
-        updateBackButton(isNight);
-    }
-
-    function updateBackButton(isNight) {
+    function updateBackButton() {
         const backButton = document.getElementById('backButton');
         if (backButton) {
+            const isNight = document.body.classList.contains('theme-night');
             if (isNight) {
                 backButton.classList.add('night-mode');
             } else {
@@ -39,16 +13,11 @@
         }
     }
 
-    // Initialize theme immediately when DOM is ready
+    // Update back button when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            const isNightMode = getInitialTheme();
-            setTheme(isNightMode);
-        });
+        document.addEventListener('DOMContentLoaded', updateBackButton);
     } else {
-        // DOM is already ready
-        const isNightMode = getInitialTheme();
-        setTheme(isNightMode);
+        updateBackButton();
     }
 
     // Hide theme toggle button (use main site's preference only)
