@@ -175,7 +175,7 @@ export default function Home() {
                   }`}
                   onMouseEnter={() => setHoveredProject(barbershopProject.id)}
                   onMouseLeave={() => setHoveredProject(null)}
-                  onClick={() => handlePreview(barbershopProject.id)}
+                  onClick={() => window.location.href = '/templates/barbershop'}
                 >
                   {/* Browser Window Chrome */}
                   <div className={`border-b-2 px-4 py-3 ${
@@ -228,15 +228,16 @@ export default function Home() {
                       }`}
                     >
                       <div className="text-center">
-                        <button
-                          className={`px-10 py-4 rounded-full text-lg font-bold transition-all duration-300 hover:scale-110 shadow-2xl ${
+                        <Link
+                          href="/templates/barbershop"
+                          className={`inline-block px-10 py-4 rounded-full text-lg font-bold transition-all duration-300 hover:scale-110 shadow-2xl ${
                             isStarkMode
                               ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-cyan-500/60'
                               : 'bg-white text-gray-900 hover:bg-gray-100 shadow-white/40'
                           }`}
                         >
-                          {hoveredProject === barbershopProject.id ? 'Launch Site →' : 'Click to Preview'}
-                        </button>
+                          {hoveredProject === barbershopProject.id ? 'View Templates →' : 'Click to Preview'}
+                        </Link>
                         <p className={`mt-4 text-sm font-medium ${
                           isStarkMode ? 'text-gray-300' : 'text-white'
                         }`}>
