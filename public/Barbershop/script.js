@@ -1,9 +1,12 @@
-// Theme Management (Day/Night Mode)
+// Theme Management (Day/Night Mode) - Uses main site's theme preference
 function getInitialTheme() {
-    const saved = localStorage.getItem('barbershop-theme');
+    // Read from main site's theme preference
+    const saved = localStorage.getItem('theme');
     if (saved !== null) {
-        return saved === 'night';
+        // Main site uses 'stark' for night mode, 'day' for day mode
+        return saved === 'stark';
     }
+    // Fallback to time-based default
     const hour = new Date().getHours();
     return hour >= 18 || hour < 6;
 }
@@ -17,7 +20,8 @@ function setTheme(isNight) {
         body.classList.add('theme-day');
         body.classList.remove('theme-night');
     }
-    localStorage.setItem('barbershop-theme', isNight ? 'night' : 'day');
+    // Sync with main site's theme preference
+    localStorage.setItem('theme', isNight ? 'stark' : 'day');
     updateBackButton(isNight);
 }
 
@@ -32,17 +36,14 @@ function updateBackButton(isNight) {
     }
 }
 
-// Initialize theme
+// Initialize theme from main site's preference
 const isNightMode = getInitialTheme();
 setTheme(isNightMode);
 
-// Theme toggle button
+// Hide theme toggle button (use main site's preference only)
 const themeToggle = document.getElementById('themeToggle');
 if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-        const isCurrentlyNight = document.body.classList.contains('theme-night');
-        setTheme(!isCurrentlyNight);
-    });
+    themeToggle.style.display = 'none';
 }
 
 // Mobile Navigation Toggle

@@ -104,8 +104,9 @@ body.theme-night .back-to-home svg {
     }
 }
 
-/* Day/Night Toggle Button */
+/* Day/Night Toggle Button - Hidden on barbershop page */
 .theme-toggle {
+    display: none !important;
     position: fixed;
     bottom: 24px;
     left: 24px;
