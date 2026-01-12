@@ -21,16 +21,15 @@ interface Lead {
 
 export default function LeadsPage() {
   const router = useRouter();
-  const [isStarkMode, setIsStarkMode] = useState(() => {
+  // Force night mode (stark mode) all the time
+  const [isStarkMode] = useState(true);
+
+  // Save night mode to localStorage on mount
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved !== null) {
-        return saved === 'stark';
-      }
+      localStorage.setItem('theme', 'stark');
     }
-    const hour = new Date().getHours();
-    return hour >= 18 || hour < 6;
-  });
+  }, []);
 
   // Check authentication
   useEffect(() => {

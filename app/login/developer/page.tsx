@@ -11,27 +11,15 @@ export default function DeveloperLogin() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Determine initial theme based on time of day
-  const getInitialTheme = () => {
-    const hour = new Date().getHours();
-    return hour >= 18 || hour < 6;
-  };
-  
-  const [isStarkMode, setIsStarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved !== null) {
-        return saved === 'stark';
-      }
-    }
-    return getInitialTheme();
-  });
+  // Force night mode (stark mode) all the time
+  const [isStarkMode] = useState(true);
 
+  // Save night mode to localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
+      localStorage.setItem('theme', 'stark');
     }
-  }, [isStarkMode]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -7,29 +7,15 @@ import { useRouter } from 'next/navigation';
 export default function LoginPage() {
   const router = useRouter();
   
-  // Determine initial theme based on time of day
-  const getInitialTheme = () => {
-    const hour = new Date().getHours();
-    return hour >= 18 || hour < 6;
-  };
-  
-  const [isStarkMode, setIsStarkMode] = useState(() => {
-    // Check localStorage first, then fall back to time-based default
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved !== null) {
-        return saved === 'stark';
-      }
-    }
-    return getInitialTheme();
-  });
+  // Force night mode (stark mode) all the time
+  const [isStarkMode] = useState(true);
 
-  // Update localStorage when theme changes
+  // Save night mode to localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
+      localStorage.setItem('theme', 'stark');
     }
-  }, [isStarkMode]);
+  }, []);
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
