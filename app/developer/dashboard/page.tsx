@@ -21,10 +21,10 @@ interface Lead {
 
 export default function DeveloperDashboard() {
   const router = useRouter();
-  // Force night mode (stark mode) all the time
+  // Always use dark mode
   const [isStarkMode] = useState(true);
 
-  // Save night mode to localStorage on mount
+  // Set theme to dark mode in localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('theme', 'stark');
@@ -45,6 +45,13 @@ export default function DeveloperDashboard() {
       }
     }
   }, [router]);
+
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
+    }
+  }, [isStarkMode]);
 
   // Form state
   const [formData, setFormData] = useState({

@@ -10,36 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;700&family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Montserrat:wght@300;400;600;700;800;900&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@300;400;600&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&family=Nunito:wght@400;600;700;800&family=Comfortaa:wght@400;600;700&family=Quicksand:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=Syne:wght@400;600;700;800&family=Bungee&family=Share+Tech+Mono&family=Poppins:wght@300;400;600;700;800&family=Roboto:wght@300;400;700;900&family=Open+Sans:wght@300;400;600;700;800&family=Raleway:wght@300;400;600;700;800&family=Merriweather:wght@300;400;700;900&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
     <script>
-        // Force night mode all the time
+        // Always use dark mode
         (function() {
-            function applyTheme() {
-                // Always use night mode
-                const isNight = true;
-                
-                // Save to localStorage
-                localStorage.setItem('theme', 'stark');
-                
-                document.documentElement.setAttribute('data-theme', 'night');
-                
-                // Wait for body to exist before applying class
-                if (document.body) {
-                    document.body.classList.add('theme-night');
-                    document.body.classList.remove('theme-day');
-                } else {
-                    // Body doesn't exist yet, wait for it
-                    document.addEventListener('DOMContentLoaded', function() {
-                        document.body.classList.add('theme-night');
-                        document.body.classList.remove('theme-day');
-                    });
-                }
-            }
-            
-            // Try to apply immediately, or wait for DOM
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', applyTheme);
-            } else {
-                applyTheme();
-            }
+            localStorage.setItem('theme', 'stark');
+            document.documentElement.setAttribute('data-theme', 'night');
+            document.body.classList.add('theme-night');
+            document.body.classList.remove('theme-day');
         })();
     </script>
 </head>

@@ -1,10 +1,17 @@
-// Theme Management - Update back button styling based on current theme
-// Theme is already set by inline script in <head>, just update the back button
+// Theme Management - Always use dark mode
 (function() {
-    function updateBackButton() {
+    function setTheme() {
+        // Always use dark mode
+        localStorage.setItem('theme', 'stark');
+        const body = document.body;
+        body.classList.add('theme-night');
+        body.classList.remove('theme-day');
+        updateBackButton(true);
+    }
+
+    function updateBackButton(isNight) {
         const backButton = document.getElementById('backButton');
         if (backButton) {
-            const isNight = document.body.classList.contains('theme-night');
             if (isNight) {
                 backButton.classList.add('night-mode');
             } else {
@@ -13,14 +20,14 @@
         }
     }
 
-    // Update back button when DOM is ready
+    // Initialize theme immediately when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateBackButton);
+        document.addEventListener('DOMContentLoaded', setTheme);
     } else {
-        updateBackButton();
+        setTheme();
     }
 
-    // Hide theme toggle button (use main site's preference only)
+    // Hide theme toggle button
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             const themeToggle = document.getElementById('themeToggle');

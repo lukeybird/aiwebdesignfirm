@@ -11,10 +11,10 @@ export default function DeveloperLogin() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Force night mode (stark mode) all the time
+  // Always use dark mode
   const [isStarkMode] = useState(true);
 
-  // Save night mode to localStorage on mount
+  // Set theme to dark mode in localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('theme', 'stark');
@@ -169,16 +169,6 @@ export default function DeveloperLogin() {
       </section>
 
       {/* Theme Toggle */}
-      <div className="fixed bottom-6 left-6 z-50">
-        <button
-          onClick={() => setIsStarkMode(!isStarkMode)}
-          className={`relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-2xl hover:scale-110 ${
-            isStarkMode 
-              ? 'bg-cyan-500 focus:ring-cyan-500 shadow-cyan-500/50' 
-              : 'bg-white focus:ring-gray-400 shadow-gray-900/20 border border-gray-300/50'
-          }`}
-          aria-label="Toggle day/night mode"
-        >
           <span
             className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-lg transform transition-transform duration-300 flex items-center justify-center ${
               isStarkMode ? 'translate-x-7' : 'translate-x-0'
