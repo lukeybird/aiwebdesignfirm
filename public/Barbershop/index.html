@@ -10,44 +10,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;700&family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Montserrat:wght@300;400;600;700;800;900&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@300;400;600&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&family=Nunito:wght@400;600;700;800&family=Comfortaa:wght@400;600;700&family=Quicksand:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=Syne:wght@400;600;700;800&family=Bungee&family=Share+Tech+Mono&family=Poppins:wght@300;400;600;700;800&family=Roboto:wght@300;400;700;900&family=Open+Sans:wght@300;400;600;700;800&family=Raleway:wght@300;400;600;700;800&family=Merriweather:wght@300;400;700;900&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
     <script>
-        // Apply theme immediately before page renders to prevent flash
+        // Force night mode all the time
         (function() {
             function applyTheme() {
-                let saved = localStorage.getItem('theme');
-                let isNight;
+                // Always use night mode
+                const isNight = true;
                 
-                if (saved !== null) {
-                    // Use saved preference
-                    isNight = saved === 'stark';
-                } else {
-                    // No saved preference - determine from time and save it
-                    const hour = new Date().getHours();
-                    isNight = hour >= 18 || hour < 6;
-                    // Save the initial decision so it persists across pages
-                    localStorage.setItem('theme', isNight ? 'stark' : 'day');
-                }
+                // Save to localStorage
+                localStorage.setItem('theme', 'stark');
                 
-                document.documentElement.setAttribute('data-theme', isNight ? 'night' : 'day');
+                document.documentElement.setAttribute('data-theme', 'night');
                 
                 // Wait for body to exist before applying class
                 if (document.body) {
-                    if (isNight) {
-                        document.body.classList.add('theme-night');
-                        document.body.classList.remove('theme-day');
-                    } else {
-                        document.body.classList.add('theme-day');
-                        document.body.classList.remove('theme-night');
-                    }
+                    document.body.classList.add('theme-night');
+                    document.body.classList.remove('theme-day');
                 } else {
                     // Body doesn't exist yet, wait for it
                     document.addEventListener('DOMContentLoaded', function() {
-                        if (isNight) {
-                            document.body.classList.add('theme-night');
-                            document.body.classList.remove('theme-day');
-                        } else {
-                            document.body.classList.add('theme-day');
-                            document.body.classList.remove('theme-night');
-                        }
+                        document.body.classList.add('theme-night');
+                        document.body.classList.remove('theme-day');
                     });
                 }
             }

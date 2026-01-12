@@ -9,43 +9,13 @@ export default function Home() {
   const [expandedFeatures, setExpandedFeatures] = useState<Set<number>>(new Set());
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  // Determine initial theme based on time of day
-  const getInitialTheme = () => {
-    const hour = new Date().getHours();
-    // Day mode: 6 AM to 6 PM (6-17), Night mode: 6 PM to 6 AM (18-5)
-    return hour >= 18 || hour < 6;
-  };
-  
-  const [isStarkMode, setIsStarkMode] = useState(() => {
-    // Check localStorage first, then fall back to time-based default
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved !== null) {
-        return saved === 'stark';
-      }
-      // No saved theme - determine from time and save it
-      const initialTheme = getInitialTheme();
-      localStorage.setItem('theme', initialTheme ? 'stark' : 'day');
-      return initialTheme;
-    }
-    return getInitialTheme();
-  });
+  // Force night mode (stark mode) all the time
+  const [isStarkMode] = useState(true);
 
-  // Update localStorage when theme changes AND on initial load
+  // Save night mode to localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
-    }
-  }, [isStarkMode]);
-  
-  // Ensure theme is saved on initial mount if not already saved
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved === null) {
-        // No theme saved yet, save the current one
-        localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
-      }
+      localStorage.setItem('theme', 'stark');
     }
   }, []);
   const [formData, setFormData] = useState({
@@ -547,8 +517,8 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Theme Toggle - Day/Night Switch - Bottom Left - Floating Action Button */}
-      <div className="fixed bottom-6 left-6 z-50">
+      {/* Theme Toggle - Hidden for now */}
+      {/* <div className="fixed bottom-6 left-6 z-50">
         <button
           onClick={() => setIsStarkMode(!isStarkMode)}
           className={`relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-2xl hover:scale-110 ${
@@ -576,7 +546,7 @@ export default function Home() {
           )}
         </span>
         </button>
-      </div>
+      </div> */}
 
       {/* Key Icon - Access Portal - Bottom Right - Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50">
