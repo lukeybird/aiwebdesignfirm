@@ -230,11 +230,29 @@ export async function POST(request: NextRequest) {
 
           if (geocodeData.results && geocodeData.results.length > 0) {
             const result = geocodeData.results[0];
+            
+            // Validate address from geocoding
+            let businessAddress = '';
+            if (result.formatted_address && typeof result.formatted_address === 'string') {
+              const address = result.formatted_address.trim();
+              const isPlaceId = address.match(/^[A-Za-z0-9_-]{27,}$/) && !address.includes(' ');
+              const looksLikeEncoded = address.match(/^[A-Z0-9+]{10,}$/);
+              if (!isPlaceId && !looksLikeEncoded && address.length > 5) {
+                businessAddress = address;
+              }
+            }
+            
+            // Extract business name from first part of address
+            let businessName = '';
+            if (businessAddress) {
+              businessName = businessAddress.split(',')[0] || '';
+            }
+            
             // Return what we can get from geocoding
             return NextResponse.json({
-              businessName: result.formatted_address.split(',')[0] || '',
+              businessName: businessName,
               businessPhone: '',
-              businessAddress: result.formatted_address || url,
+              businessAddress: businessAddress,
               businessEmail: '',
             });
           }
@@ -325,10 +343,35 @@ export async function POST(request: NextRequest) {
             // Use this data instead
             const place = detailsData.result;
             
+            // Validate business name
+            let businessName = '';
+            if (place.name && typeof place.name === 'string' && place.name.trim().length > 0) {
+              const name = place.name.trim();
+              const isPlaceId = name.match(/^[A-Za-z0-9_-]{27,}$/) && !name.includes(' ');
+              const looksLikeEncoded = name.match(/^[A-Z0-9+]{10,}$/);
+              if (!isPlaceId && !looksLikeEncoded && name.length > 2) {
+                businessName = name;
+              }
+            }
+            
+            // Validate business address
+            let businessAddress = '';
+            if (place.formatted_address && typeof place.formatted_address === 'string') {
+              const address = place.formatted_address.trim();
+              const isPlaceId = address.match(/^[A-Za-z0-9_-]{27,}$/) && !address.includes(' ');
+              const looksLikeEncoded = address.match(/^[A-Z0-9+]{10,}$/);
+              if (!isPlaceId && !looksLikeEncoded && address.length > 5) {
+                businessAddress = address;
+              }
+            }
+            if (!businessAddress && place.vicinity) {
+              businessAddress = place.vicinity;
+            }
+            
             return NextResponse.json({
-              businessName: place.name || '',
+              businessName: businessName,
               businessPhone: place.formatted_phone_number || place.international_phone_number || '',
-              businessAddress: place.formatted_address || place.vicinity || '',
+              businessAddress: businessAddress,
               businessEmail: place.website ? `contact@${place.website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]}` : '',
             });
           }
