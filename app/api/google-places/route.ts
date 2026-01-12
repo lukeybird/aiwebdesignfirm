@@ -17,50 +17,21 @@ export async function POST(request: NextRequest) {
     // Resolve short links (maps.app.goo.gl or goo.gl/maps) to full URL
     if (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps')) {
       try {
-        // First, try to get the redirect URL by following redirects
-        let resolvedUrl = url;
-        let redirectCount = 0;
-        const maxRedirects = 5;
-        
-        while (redirectCount < maxRedirects && (resolvedUrl.includes('maps.app.goo.gl') || resolvedUrl.includes('goo.gl/maps'))) {
-          const response = await fetch(resolvedUrl, { 
-            method: 'HEAD',
-            redirect: 'manual', // Don't follow automatically
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-          });
-          
-          // Check for redirect
-          if (response.status >= 300 && response.status < 400 && response.headers.get('location')) {
-            resolvedUrl = response.headers.get('location')!;
-            // Handle relative URLs
-            if (resolvedUrl.startsWith('/')) {
-              const urlObj = new URL(resolvedUrl, url);
-              resolvedUrl = urlObj.href;
-            }
-            redirectCount++;
-          } else {
-            // Try GET request if HEAD doesn't work
-            const getResponse = await fetch(resolvedUrl, {
-              method: 'GET',
-              redirect: 'follow',
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-              }
-            });
-            if (getResponse.url && getResponse.url !== resolvedUrl) {
-              resolvedUrl = getResponse.url;
-            }
-            break;
+        console.log('Resolving short link:', url);
+        // Use GET request with redirect: 'follow' to automatically resolve
+        const response = await fetch(url, {
+          method: 'GET',
+          redirect: 'follow',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           }
-        }
+        });
         
-        if (resolvedUrl && resolvedUrl !== url && resolvedUrl.includes('google.com/maps')) {
-          url = resolvedUrl;
+        if (response.url && response.url !== url && response.url.includes('google.com/maps')) {
+          url = response.url;
           console.log('Resolved short link to:', url);
         } else {
-          console.warn('Short link resolution did not return a valid Google Maps URL. Resolved to:', resolvedUrl);
+          console.warn('Short link resolution did not result in Google Maps URL. Final URL:', response.url);
         }
       } catch (error) {
         console.error('Error resolving short link:', error);
