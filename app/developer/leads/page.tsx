@@ -91,7 +91,7 @@ export default function LeadsPage() {
   };
 
   return (
-    <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
+    <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-red-900 text-white' : 'bg-red-50 text-black'}`}>
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-colors duration-300 ${
         isStarkMode 
@@ -141,8 +141,8 @@ export default function LeadsPage() {
       {/* Leads List Section */}
       <section className={`pt-32 pb-24 px-6 sm:px-8 lg:px-12 transition-colors duration-300 ${
         isStarkMode 
-          ? 'bg-gradient-to-b from-black via-gray-900 to-black' 
-          : 'bg-gradient-to-b from-white via-gray-50/50 to-white'
+          ? 'bg-gradient-to-b from-red-900 via-red-800 to-red-900' 
+          : 'bg-gradient-to-b from-red-50 via-red-100/50 to-red-50'
       }`}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
