@@ -305,10 +305,10 @@ export default function DeveloperDashboard() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowLeadsList(!showLeadsList)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-200 hover:scale-105 ${
                   isStarkMode
-                    ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/40'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20 border border-gray-800'
                 }`}
               >
                 {showLeadsList ? 'Hide Leads' : `View Leads (${leads.length})`}
