@@ -340,7 +340,7 @@ export default function DeveloperDashboard() {
               : 'bg-blue-50 border-2 border-blue-200 text-blue-700'
           }`}>
             <p className="text-sm">
-              💡 <strong>Tip:</strong> Paste a Google Maps link in the Business Address field to automatically fill in business name, phone, and email!
+              💡 <strong>Tip:</strong> Paste a Google Maps link in the Listing Link field to automatically fill in business phone, name, email, and address!
             </p>
           </div>
 
