@@ -152,8 +152,23 @@ export async function POST(request: NextRequest) {
     const placesData = await placesResponse.json();
 
     if (placesData.status !== 'OK' || !placesData.result) {
+      console.error('Places API error:', {
+        status: placesData.status,
+        error_message: placesData.error_message,
+        url: url,
+        placeId: placeId
+      });
+      
+      // Return more helpful error message
+      let errorMsg = 'Could not fetch place details';
+      if (placesData.error_message) {
+        errorMsg += `: ${placesData.error_message}`;
+      } else if (placesData.status) {
+        errorMsg += ` (Status: ${placesData.status})`;
+      }
+      
       return NextResponse.json(
-        { error: 'Could not fetch place details' },
+        { error: errorMsg },
         { status: 400 }
       );
     }
