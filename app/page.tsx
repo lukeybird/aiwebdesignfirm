@@ -374,6 +374,104 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Barbershop Section */}
+      <section className={`py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${
+        isStarkMode ? 'bg-black' : 'bg-gradient-to-b from-gray-50/50 to-white'
+      }`}>
+        <div className="w-full mx-auto">
+          <div className="text-center mb-16 px-4">
+            <h2 className={`text-6xl sm:text-7xl lg:text-8xl font-black mb-4 tracking-[-0.05em] ${isStarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+              Barbershop Designs
+            </h2>
+            <p className={`text-xl font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Explore the variety of designs we have for barbershops
+            </p>
+          </div>
+          
+          <div className="flex justify-center">
+            <div className="w-full max-w-4xl">
+              {(() => {
+                const barbershopProject = projects.find(p => p.thumbnail === '/barber.png');
+                if (!barbershopProject) return null;
+                
+                return (
+                  <div
+                    className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] shadow-xl ${
+                      isStarkMode
+                        ? 'bg-gray-800 border border-cyan-500/20 hover:border-cyan-500/40'
+                        : 'bg-white border-2 border-gray-300/60 hover:border-gray-400/80 hover:shadow-2xl hover:shadow-gray-900/15'
+                    }`}
+                    onMouseEnter={() => setHoveredProject(barbershopProject.id)}
+                    onMouseLeave={() => setHoveredProject(null)}
+                  >
+                    {/* Browser Window Chrome */}
+                    <div className={`border-b-2 px-3 py-2.5 ${
+                      isStarkMode 
+                        ? 'bg-gray-900 border-cyan-500/20' 
+                        : 'bg-gray-100/80 border-gray-300/60'
+                    }`}>
+                      {/* Traffic Lights (macOS style) */}
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Website Preview Area */}
+                    <div className={`aspect-[16/10] bg-gradient-to-br relative overflow-hidden ${
+                      isStarkMode 
+                        ? 'from-gray-900 to-gray-800' 
+                        : 'from-gray-50 to-gray-100'
+                    }`}>
+                      {/* Thumbnail image */}
+                      {!imageErrors.has(barbershopProject.id) ? (
+                        <img 
+                          src={barbershopProject.thumbnail} 
+                          alt={barbershopProject.name}
+                          className="w-full h-full object-cover"
+                          onError={() => {
+                            setImageErrors(prev => new Set(prev).add(barbershopProject.id));
+                          }}
+                        />
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-br flex items-center justify-center ${
+                          isStarkMode
+                            ? 'from-gray-800 to-gray-700'
+                            : 'from-gray-200 to-gray-300'
+                        }`}>
+                          <div className={`text-xs ${
+                            isStarkMode ? 'text-gray-500' : 'text-gray-400'
+                          }`}>Website Preview</div>
+                        </div>
+                      )}
+                      
+                      {/* Overlay with preview button */}
+                      <div
+                        className={`absolute inset-0 bg-black/70 flex items-center justify-center transition-all duration-300 ${
+                          hoveredProject === barbershopProject.id ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      >
+                        <button
+                          onClick={() => handlePreview(barbershopProject.id)}
+                          className={`px-8 py-3 rounded-full font-bold transition-all duration-200 hover:scale-105 ${
+                            isStarkMode
+                              ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                          }`}
+                        >
+                          Launch Site
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Call to Action Section */}
       <section className={`py-32 px-6 sm:px-8 lg:px-12 transition-colors duration-300 relative ${
         isStarkMode 
