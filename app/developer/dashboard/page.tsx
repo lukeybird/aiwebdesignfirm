@@ -46,13 +46,6 @@ export default function DeveloperDashboard() {
     }
   }, [router]);
 
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
-    }
-  }, [isStarkMode]);
-
   // Form state
   const [formData, setFormData] = useState({
     listingLink: '', // Google Maps link (required)

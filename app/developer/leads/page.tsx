@@ -46,12 +46,6 @@ export default function LeadsPage() {
     }
   }, [router]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', isStarkMode ? 'stark' : 'day');
-    }
-  }, [isStarkMode]);
-
   const [leads, setLeads] = useState<Lead[]>([]);
 
   // Load leads from localStorage
