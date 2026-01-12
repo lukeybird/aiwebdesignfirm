@@ -79,9 +79,10 @@ export default function DeveloperDashboard() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [isLoadingPlace, setIsLoadingPlace] = useState(false);
-  const [placeError, setPlaceError] = useState('');
-  const [lastFetchedUrl, setLastFetchedUrl] = useState('');
+  // Auto-fill disabled - manual entry only
+  // const [isLoadingPlace, setIsLoadingPlace] = useState(false);
+  // const [placeError, setPlaceError] = useState('');
+  // const [lastFetchedUrl, setLastFetchedUrl] = useState('');
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [fieldSearchQuery, setFieldSearchQuery] = useState('');
 
@@ -193,84 +194,27 @@ export default function DeveloperDashboard() {
     router.push('/login/developer');
   };
 
+  // Auto-fill functionality disabled - manual entry only
   // Check if URL is a Google Maps link (including short links)
-  const isGoogleMapsUrl = (url: string): boolean => {
-    return /google\.com\/maps|maps\.google\.com|maps\.app\.goo\.gl|goo\.gl\/maps/.test(url);
-  };
+  // const isGoogleMapsUrl = (url: string): boolean => {
+  //   return /google\.com\/maps|maps\.google\.com|maps\.app\.goo\.gl|goo\.gl\/maps/.test(url);
+  // };
 
-  // Fetch place details from Google Maps URL
-  const fetchPlaceDetails = async (url: string) => {
-    // Prevent duplicate calls for the same URL
-    if (lastFetchedUrl === url || isLoadingPlace) {
-      return;
-    }
+  // Fetch place details from Google Maps URL - DISABLED
+  // const fetchPlaceDetails = async (url: string) => {
+  //   // Auto-fill code removed - manual entry only
+  // };
 
-    setIsLoadingPlace(true);
-    setPlaceError('');
-    setLastFetchedUrl(url);
-
-    try {
-      const response = await fetch('/api/google-places', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setPlaceError(data.error || 'Failed to fetch place details');
-        setIsLoadingPlace(false);
-        return;
-      }
-
-      // Auto-fill form fields in order: Phone, Name, Email, Address
-      // Only fill if data exists (don't fill empty values)
-      if (data.businessPhone) {
-        setFormData(prev => ({ ...prev, businessPhone: data.businessPhone }));
-      }
-      if (data.businessName) {
-        setFormData(prev => ({ ...prev, businessName: data.businessName }));
-      }
-      if (data.businessEmail) {
-        setFormData(prev => ({ ...prev, businessEmail: data.businessEmail }));
-      }
-      if (data.businessAddress) {
-        setFormData(prev => ({ ...prev, businessAddress: data.businessAddress }));
-      }
-
-      setIsLoadingPlace(false);
-    } catch (error) {
-      console.error('Error fetching place details:', error);
-      setPlaceError('Failed to fetch place details. Please check your API key configuration.');
-      setIsLoadingPlace(false);
-    }
-  };
-
-  // Handle listing link field change - detect Google Maps URL and auto-fill immediately
+  // Handle listing link field change - manual entry only
   const handleListingLinkChange = (value: string) => {
     setFormData({ ...formData, listingLink: value });
-    setPlaceError('');
-
-    // Immediately check if it's a Google Maps URL and auto-fill
-    // Trigger as soon as a valid Google Maps URL is detected
-    if (isGoogleMapsUrl(value) && value.trim().length > 0) {
-      // Trigger immediately - no delay
-      fetchPlaceDetails(value.trim());
-    }
+    // Auto-fill disabled - no API calls
   };
 
-  // Also handle paste events for immediate detection
+  // Handle paste events - manual entry only
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const pastedText = e.clipboardData.getData('text').trim();
-    if (isGoogleMapsUrl(pastedText)) {
-      // Update the field value first
-      setFormData({ ...formData, listingLink: pastedText });
-      // Trigger auto-fill immediately
-      fetchPlaceDetails(pastedText);
-    }
+    // Auto-fill disabled - just allow normal paste behavior
+    // The onChange handler will update the field value
   };
 
   return (
@@ -381,7 +325,6 @@ export default function DeveloperDashboard() {
                   value={formData.listingLink}
                   onChange={(e) => handleListingLinkChange(e.target.value)}
                   onPaste={handlePaste}
-                  disabled={isLoadingPlace}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 ${
                     isStarkMode
                       ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
