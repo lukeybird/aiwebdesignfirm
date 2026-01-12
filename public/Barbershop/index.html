@@ -12,25 +12,51 @@
     <script>
         // Apply theme immediately before page renders to prevent flash
         (function() {
-            let saved = localStorage.getItem('theme');
-            let isNight;
-            
-            if (saved !== null) {
-                // Use saved preference
-                isNight = saved === 'stark';
-            } else {
-                // No saved preference - determine from time and save it
-                const hour = new Date().getHours();
-                isNight = hour >= 18 || hour < 6;
-                // Save the initial decision so it persists across pages
-                localStorage.setItem('theme', isNight ? 'stark' : 'day');
+            function applyTheme() {
+                let saved = localStorage.getItem('theme');
+                let isNight;
+                
+                if (saved !== null) {
+                    // Use saved preference
+                    isNight = saved === 'stark';
+                } else {
+                    // No saved preference - determine from time and save it
+                    const hour = new Date().getHours();
+                    isNight = hour >= 18 || hour < 6;
+                    // Save the initial decision so it persists across pages
+                    localStorage.setItem('theme', isNight ? 'stark' : 'day');
+                }
+                
+                document.documentElement.setAttribute('data-theme', isNight ? 'night' : 'day');
+                
+                // Wait for body to exist before applying class
+                if (document.body) {
+                    if (isNight) {
+                        document.body.classList.add('theme-night');
+                        document.body.classList.remove('theme-day');
+                    } else {
+                        document.body.classList.add('theme-day');
+                        document.body.classList.remove('theme-night');
+                    }
+                } else {
+                    // Body doesn't exist yet, wait for it
+                    document.addEventListener('DOMContentLoaded', function() {
+                        if (isNight) {
+                            document.body.classList.add('theme-night');
+                            document.body.classList.remove('theme-day');
+                        } else {
+                            document.body.classList.add('theme-day');
+                            document.body.classList.remove('theme-night');
+                        }
+                    });
+                }
             }
             
-            document.documentElement.setAttribute('data-theme', isNight ? 'night' : 'day');
-            if (isNight) {
-                document.body.classList.add('theme-night');
+            // Try to apply immediately, or wait for DOM
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', applyTheme);
             } else {
-                document.body.classList.add('theme-day');
+                applyTheme();
             }
         })();
     </script>
