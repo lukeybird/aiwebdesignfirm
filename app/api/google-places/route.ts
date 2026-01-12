@@ -290,6 +290,8 @@ export async function POST(request: NextRequest) {
     // Request all available fields for better data extraction
     const placesUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,international_phone_number,formatted_address,address_components,website,url,vicinity&key=${apiKey}`;
     
+    console.log('Calling Places API with URL:', placesUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+    
     const placesResponse = await fetch(placesUrl);
     const placesData = await placesResponse.json();
 
@@ -301,6 +303,37 @@ export async function POST(request: NextRequest) {
         placeId: placeId,
         fullResponse: placesData
       });
+      
+      // If Places API fails but we have coordinates, try nearby search as fallback
+      if (coordinates && (placesData.status === 'INVALID_REQUEST' || placesData.status === 'NOT_FOUND')) {
+        console.log('Places API failed, trying nearby search with coordinates as fallback');
+        const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coordinates.lat},${coordinates.lng}&radius=10&key=${apiKey}`;
+        const nearbyResponse = await fetch(nearbyUrl);
+        const nearbyData = await nearbyResponse.json();
+        
+        if (nearbyData.results && nearbyData.results.length > 0) {
+          const nearbyPlace = nearbyData.results[0];
+          const nearbyPlaceId = nearbyPlace.place_id;
+          console.log('Found place via nearby search, fetching details:', nearbyPlaceId);
+          
+          // Now fetch full details with the correct place ID
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${nearbyPlaceId}&fields=name,formatted_phone_number,international_phone_number,formatted_address,address_components,website,url,vicinity&key=${apiKey}`;
+          const detailsResponse = await fetch(detailsUrl);
+          const detailsData = await detailsResponse.json();
+          
+          if (detailsData.status === 'OK' && detailsData.result) {
+            // Use this data instead
+            const place = detailsData.result;
+            
+            return NextResponse.json({
+              businessName: place.name || '',
+              businessPhone: place.formatted_phone_number || place.international_phone_number || '',
+              businessAddress: place.formatted_address || place.vicinity || '',
+              businessEmail: place.website ? `contact@${place.website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]}` : '',
+            });
+          }
+        }
+      }
       
       // Return more helpful error message
       let errorMsg = 'Could not fetch place details';
