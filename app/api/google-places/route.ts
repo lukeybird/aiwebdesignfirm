@@ -157,7 +157,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If we still don't have a place ID, use Find Place API with coordinates
+    // If we still don't have a place ID, use Nearby Search API with coordinates
+    // This is more reliable for finding the exact place at coordinates
     if (!placeId && coordinates) {
       const apiKey = process.env.API_KEY_GOOGLE;
       
@@ -168,30 +169,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Use Places API Find Place - more reliable than nearby search
-      // This finds the place at the exact coordinates
-      const findPlaceUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${coordinates.lat},${coordinates.lng}&inputtype=textquery&locationbias=circle:50@${coordinates.lat},${coordinates.lng}&fields=place_id,name,formatted_phone_number,formatted_address,website,international_phone_number&key=${apiKey}`;
+      // Use Places API Nearby Search - finds places near the coordinates
+      // Use a very small radius to get the closest match
+      const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coordinates.lat},${coordinates.lng}&radius=10&key=${apiKey}`;
       
       try {
-        const findPlaceResponse = await fetch(findPlaceUrl);
-        const findPlaceData = await findPlaceResponse.json();
+        const nearbyResponse = await fetch(nearbyUrl);
+        const nearbyData = await nearbyResponse.json();
 
-        if (findPlaceData.candidates && findPlaceData.candidates.length > 0) {
-          placeId = findPlaceData.candidates[0].place_id;
-          console.log('Found place ID using Find Place API:', placeId);
-        } else {
-          // Fallback to nearby search
-          const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coordinates.lat},${coordinates.lng}&radius=50&key=${apiKey}`;
-          const nearbyResponse = await fetch(nearbyUrl);
-          const nearbyData = await nearbyResponse.json();
-
-          if (nearbyData.results && nearbyData.results.length > 0) {
-            placeId = nearbyData.results[0].place_id;
-            console.log('Found place ID using nearby search:', placeId);
-          }
+        if (nearbyData.results && nearbyData.results.length > 0) {
+          // Get the closest result (first one)
+          placeId = nearbyData.results[0].place_id;
+          console.log('Found place ID using nearby search:', placeId);
+          console.log('Nearby search result:', nearbyData.results[0]);
         }
       } catch (error) {
-        console.error('Error finding place:', error);
+        console.error('Error finding place with nearby search:', error);
       }
     }
 
@@ -300,13 +293,23 @@ export async function POST(request: NextRequest) {
     const place = placesData.result;
     
     console.log('Full place data received:', JSON.stringify(place, null, 2));
+    console.log('Place ID used:', placeId);
+    console.log('Place name raw:', place.name);
+    console.log('Place address raw:', place.formatted_address);
 
-    // Get business name - make sure it's not a place ID
+    // Get business name - make sure it's not a place ID or encoded string
     let businessName = '';
-    if (place.name && typeof place.name === 'string' && place.name.length > 0) {
-      // Validate it's not a place ID (place IDs are typically 27+ chars and don't contain spaces)
-      if (!place.name.match(/^[A-Za-z0-9_-]{27,}$/) || place.name.includes(' ')) {
-        businessName = place.name;
+    if (place.name && typeof place.name === 'string' && place.name.trim().length > 0) {
+      const name = place.name.trim();
+      // Validate it's not a place ID (place IDs are typically 27+ chars, alphanumeric only, no spaces)
+      // Also check it's not an encoded string like "76WR3X44+JGW"
+      const isPlaceId = name.match(/^[A-Za-z0-9_-]{27,}$/) && !name.includes(' ');
+      const looksLikeEncoded = name.match(/^[A-Z0-9+]{10,}$/); // Pattern like "76WR3X44+JGW"
+      
+      if (!isPlaceId && !looksLikeEncoded && name.length > 2) {
+        businessName = name;
+      } else {
+        console.warn('Rejected business name (looks like place ID or encoded):', name);
       }
     }
 
@@ -323,9 +326,15 @@ export async function POST(request: NextRequest) {
     // Get address - prefer formatted_address, fallback to vicinity
     let businessAddress = '';
     if (place.formatted_address && typeof place.formatted_address === 'string') {
-      // Validate it's not a place ID
-      if (!place.formatted_address.match(/^[A-Za-z0-9_-]{27,}$/)) {
-        businessAddress = place.formatted_address;
+      const address = place.formatted_address.trim();
+      // Validate it's not a place ID or encoded string
+      const isPlaceId = address.match(/^[A-Za-z0-9_-]{27,}$/) && !address.includes(' ');
+      const looksLikeEncoded = address.match(/^[A-Z0-9+]{10,}$/);
+      
+      if (!isPlaceId && !looksLikeEncoded && address.length > 5) {
+        businessAddress = address;
+      } else {
+        console.warn('Rejected business address (looks like place ID or encoded):', address);
       }
     }
     if (!businessAddress && place.vicinity) {
