@@ -17,21 +17,50 @@ export async function POST(request: NextRequest) {
     // Resolve short links (maps.app.goo.gl or goo.gl/maps) to full URL
     if (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps')) {
       try {
-        // Use GET request to follow redirects and get the full URL
-        const response = await fetch(url, { 
-          method: 'GET',
-          redirect: 'follow',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        // First, try to get the redirect URL by following redirects
+        let resolvedUrl = url;
+        let redirectCount = 0;
+        const maxRedirects = 5;
+        
+        while (redirectCount < maxRedirects && (resolvedUrl.includes('maps.app.goo.gl') || resolvedUrl.includes('goo.gl/maps'))) {
+          const response = await fetch(resolvedUrl, { 
+            method: 'HEAD',
+            redirect: 'manual', // Don't follow automatically
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+          
+          // Check for redirect
+          if (response.status >= 300 && response.status < 400 && response.headers.get('location')) {
+            resolvedUrl = response.headers.get('location')!;
+            // Handle relative URLs
+            if (resolvedUrl.startsWith('/')) {
+              const urlObj = new URL(resolvedUrl, url);
+              resolvedUrl = urlObj.href;
+            }
+            redirectCount++;
+          } else {
+            // Try GET request if HEAD doesn't work
+            const getResponse = await fetch(resolvedUrl, {
+              method: 'GET',
+              redirect: 'follow',
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              }
+            });
+            if (getResponse.url && getResponse.url !== resolvedUrl) {
+              resolvedUrl = getResponse.url;
+            }
+            break;
           }
-        });
-        // The final URL after redirects
-        const finalUrl = response.url;
-        if (finalUrl && finalUrl !== url && finalUrl.includes('google.com/maps')) {
-          url = finalUrl;
+        }
+        
+        if (resolvedUrl && resolvedUrl !== url && resolvedUrl.includes('google.com/maps')) {
+          url = resolvedUrl;
           console.log('Resolved short link to:', url);
         } else {
-          console.warn('Short link resolution did not return a valid Google Maps URL');
+          console.warn('Short link resolution did not return a valid Google Maps URL. Resolved to:', resolvedUrl);
         }
       } catch (error) {
         console.error('Error resolving short link:', error);
@@ -65,9 +94,31 @@ export async function POST(request: NextRequest) {
     let coordinates: { lat: number; lng: number } | null = null;
 
     // Try to extract place ID from URL
-    const placeIdMatch = url.match(/place\/([^/]+)/);
+    // Handle various formats:
+    // - /place/PlaceName/@lat,lng,zoom/data=!4m2!3m1!1sPLACE_ID
+    // - /place/PLACE_ID
+    // - /place/PlaceName+Address/@lat,lng,zoom/data=!4m2!3m1!1sPLACE_ID
+    const placeIdMatch = url.match(/place\/([^/@]+)/);
     if (placeIdMatch) {
-      placeId = placeIdMatch[1].split('/')[0];
+      let extractedId = placeIdMatch[1];
+      
+      // Check if there's a data parameter with place_id (more reliable)
+      const dataMatch = url.match(/data=!4m\d+!3m\d+!1s([^!]+)/);
+      if (dataMatch && dataMatch[1]) {
+        placeId = dataMatch[1];
+        console.log('Extracted place ID from data parameter:', placeId);
+      } else {
+        // Try to extract from the place path - might be encoded
+        extractedId = decodeURIComponent(extractedId);
+        // If it looks like a place ID (starts with ChIJ or similar), use it
+        if (extractedId.match(/^[A-Za-z0-9_-]{27,}$/)) {
+          placeId = extractedId;
+          console.log('Extracted place ID from path:', placeId);
+        } else {
+          // It's probably a place name, not an ID - we'll need to use coordinates
+          console.log('Extracted place name (not ID):', extractedId);
+        }
+      }
     }
 
     // Try to extract coordinates from URL
