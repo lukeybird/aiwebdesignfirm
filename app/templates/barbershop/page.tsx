@@ -22,20 +22,8 @@ export default function BarbershopTemplates() {
     }
   }, [isStarkMode]);
 
-  // Template images from the Barbershop folder
-  // Note: You can add more template images here as you create them (up to 26 templates)
-  const templateImages = [
-    { id: 1, image: '/Barbershop/barber_cut_closeshot.png', name: 'Classic Cuts Template' },
-    { id: 2, image: '/Barbershop/barber_interior_chairs_farshot.png', name: 'Interior Showcase' },
-    { id: 3, image: '/Barbershop/barber_midshot.png', name: 'Professional Style' },
-    { id: 4, image: '/Barbershop/barber_pole.png', name: 'Traditional Design' },
-    { id: 5, image: '/Barbershop/barber_shop_logo.png', name: 'Brand Identity' },
-    { id: 6, image: '/Barbershop/barber_supercloseshot.png', name: 'Detail Focus' },
-    { id: 7, image: '/Barbershop/cut_midshot.jpg', name: 'Service Highlight' },
-    { id: 8, image: '/Barbershop/far_shot_interior.png', name: 'Space Design' },
-    { id: 9, image: '/Barbershop/scissors.png', name: 'Tools Showcase' },
-    // Add more templates here as you create them (up to 26 total)
-  ];
+  // Display the actual HTML template site
+  const templateUrl = '/Barbershop/index.html';
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
@@ -97,69 +85,39 @@ export default function BarbershopTemplates() {
             </p>
           </div>
 
-          {/* Template Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {templateImages.map((template) => (
-              <div
-                key={template.id}
-                className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] shadow-xl ${
-                  isStarkMode
-                    ? 'bg-gray-800 border border-cyan-500/20 hover:border-cyan-500/40'
-                    : 'bg-white border-2 border-gray-300/60 hover:border-gray-400/80 hover:shadow-2xl hover:shadow-gray-900/15'
-                }`}
-              >
-                {/* Browser Window Chrome */}
-                <div className={`border-b-2 px-3 py-2.5 ${
-                  isStarkMode 
-                    ? 'bg-gray-900 border-cyan-500/20' 
-                    : 'bg-gray-100/80 border-gray-300/60'
-                }`}>
-                  {/* Traffic Lights (macOS style) */}
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                  </div>
-                </div>
-                
-                {/* Template Preview */}
-                <div className={`aspect-[16/10] bg-gradient-to-br relative overflow-hidden ${
-                  isStarkMode 
-                    ? 'from-gray-900 to-gray-800' 
-                    : 'from-gray-50 to-gray-100'
-                }`}>
-                  <img 
-                    src={template.image} 
-                    alt={template.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <button
-                      className={`px-6 py-3 rounded-full font-bold transition-all duration-200 hover:scale-105 ${
-                        isStarkMode
-                          ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                          : 'bg-white text-gray-900 hover:bg-gray-100 shadow-lg shadow-gray-900/20'
-                      }`}
-                    >
-                      View Template
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Template Name */}
-                <div className={`p-4 border-t ${
-                  isStarkMode ? 'border-cyan-500/20' : 'border-gray-200/80'
-                }`}>
-                  <h3 className={`font-bold text-sm ${
-                    isStarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    {template.name}
-                  </h3>
+          {/* Template Preview */}
+          <div className="flex justify-center">
+            <div
+              className={`group relative rounded-2xl overflow-hidden transition-all duration-300 shadow-2xl w-full max-w-6xl ${
+                isStarkMode
+                  ? 'bg-gray-800 border-2 border-cyan-500/30 hover:border-cyan-500/60'
+                  : 'bg-white border-2 border-gray-300/80 hover:border-gray-400 hover:shadow-2xl hover:shadow-gray-900/20'
+              }`}
+            >
+              {/* Browser Window Chrome */}
+              <div className={`border-b-2 px-4 py-3 ${
+                isStarkMode 
+                  ? 'bg-gray-900 border-cyan-500/30' 
+                  : 'bg-gray-100/90 border-gray-300/80'
+              }`}>
+                {/* Traffic Lights (macOS style) */}
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
                 </div>
               </div>
-            ))}
+              
+              {/* Website Preview Area */}
+              <div className="relative w-full" style={{ height: '800px' }}>
+                <iframe
+                  src={templateUrl}
+                  className="w-full h-full border-0"
+                  title="Barbershop Template Preview"
+                  style={{ minHeight: '800px' }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Call to Action */}
