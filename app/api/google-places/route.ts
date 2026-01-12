@@ -99,6 +99,8 @@ export async function POST(request: NextRequest) {
       console.log('Extracted coordinates:', coordinates);
     }
 
+    console.log('Extracting place ID from URL:', url);
+    
     // Try to extract place ID from URL
     // Handle various formats:
     // - /place/PLACE_ID
@@ -107,10 +109,12 @@ export async function POST(request: NextRequest) {
     const dataMatch = url.match(/data=!4m\d+!3m\d+!1s([A-Za-z0-9_-]{27,})/);
     if (dataMatch && dataMatch[1]) {
       const extractedId = dataMatch[1];
-      // Validate it's a proper place ID format
+      // Validate it's a proper place ID format (27+ chars, typically starts with ChIJ)
       if (extractedId.length >= 27 && extractedId.match(/^[A-Za-z0-9_-]+$/)) {
         placeId = extractedId;
         console.log('Extracted place ID from data parameter:', placeId);
+      } else {
+        console.warn('Rejected invalid place ID from data parameter:', extractedId);
       }
     }
     
@@ -121,17 +125,28 @@ export async function POST(request: NextRequest) {
         let extracted = decodeURIComponent(placePathMatch[1]);
         // Remove any query parameters or fragments
         extracted = extracted.split('?')[0].split('#')[0];
-        // Check if it's a valid place ID format (27+ chars, alphanumeric/underscore/hyphen)
-        if (extracted.match(/^[A-Za-z0-9_-]{27,}$/) && !extracted.includes(' ') && !extracted.includes('+')) {
+        console.log('Extracted from place path:', extracted);
+        
+        // Check if it's a valid place ID format (27+ chars, alphanumeric/underscore/hyphen, no spaces or plus signs)
+        // Place IDs typically start with "ChIJ" but not always
+        const isValidPlaceId = extracted.match(/^[A-Za-z0-9_-]{27,}$/) && 
+                               !extracted.includes(' ') && 
+                               !extracted.includes('+') &&
+                               extracted.length >= 27;
+        
+        if (isValidPlaceId) {
           placeId = extracted;
           console.log('Extracted place ID from path:', placeId);
         } else {
-          // It's a place name, save it for text search
+          // It's a place name or encoded string, save it for text search but don't use as place ID
           placeName = extracted.replace(/\+/g, ' ').replace(/%20/g, ' ');
-          console.log('Extracted place name:', placeName);
+          console.log('Extracted place name (not using as place ID):', placeName);
         }
       }
     }
+    
+    console.log('Final place ID:', placeId);
+    console.log('Coordinates found:', coordinates);
 
     // If we have coordinates but no place ID, try to find place ID using reverse geocoding
     if (coordinates && !placeId) {
