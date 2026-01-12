@@ -1,3 +1,50 @@
+// Theme Management (Day/Night Mode)
+function getInitialTheme() {
+    const saved = localStorage.getItem('barbershop-theme');
+    if (saved !== null) {
+        return saved === 'night';
+    }
+    const hour = new Date().getHours();
+    return hour >= 18 || hour < 6;
+}
+
+function setTheme(isNight) {
+    const body = document.body;
+    if (isNight) {
+        body.classList.add('theme-night');
+        body.classList.remove('theme-day');
+    } else {
+        body.classList.add('theme-day');
+        body.classList.remove('theme-night');
+    }
+    localStorage.setItem('barbershop-theme', isNight ? 'night' : 'day');
+    updateBackButton(isNight);
+}
+
+function updateBackButton(isNight) {
+    const backButton = document.getElementById('backButton');
+    if (backButton) {
+        if (isNight) {
+            backButton.classList.add('night-mode');
+        } else {
+            backButton.classList.remove('night-mode');
+        }
+    }
+}
+
+// Initialize theme
+const isNightMode = getInitialTheme();
+setTheme(isNightMode);
+
+// Theme toggle button
+const themeToggle = document.getElementById('themeToggle');
+if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+        const isCurrentlyNight = document.body.classList.contains('theme-night');
+        setTheme(!isCurrentlyNight);
+    });
+}
+
 // Mobile Navigation Toggle
 const navToggle = document.querySelector('.nav-toggle');
 const navMenu = document.querySelector('.nav-menu');
