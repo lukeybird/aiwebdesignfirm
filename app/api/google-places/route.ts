@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     // Get place details using Places API
     // Security: API key is stored server-side only, never exposed to client
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    const apiKey = process.env.API_KEY_GOOGLE;
     
     if (!apiKey) {
       // Don't expose detailed error in production
