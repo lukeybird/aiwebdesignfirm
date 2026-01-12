@@ -41,10 +41,17 @@ export default function LoginPage() {
       }`}>
         <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-4">
           <div className="flex items-center justify-between max-w-[2400px] mx-auto">
-            <Link href="/" className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter transition-colors hover:opacity-80 ${
-              isStarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              AI Web Design Firm
+            <Link href="/" className="flex items-center gap-3 transition-colors hover:opacity-80">
+              <img 
+                src="/blueBall.png" 
+                alt="Logo" 
+                className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 object-contain"
+              />
+              <div className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter ${
+                isStarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                AI Web Design Firm
+              </div>
             </Link>
           </div>
         </div>
