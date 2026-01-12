@@ -17,16 +17,21 @@ export async function POST(request: NextRequest) {
     // Resolve short links (maps.app.goo.gl or goo.gl/maps) to full URL
     if (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps')) {
       try {
-        // Follow redirect to get the full URL
+        // Use GET request to follow redirects and get the full URL
         const response = await fetch(url, { 
-          method: 'HEAD',
+          method: 'GET',
           redirect: 'follow',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; GoogleMapsBot/1.0)'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
         });
-        if (response.url && response.url !== url) {
-          url = response.url;
+        // The final URL after redirects
+        const finalUrl = response.url;
+        if (finalUrl && finalUrl !== url && finalUrl.includes('google.com/maps')) {
+          url = finalUrl;
+          console.log('Resolved short link to:', url);
+        } else {
+          console.warn('Short link resolution did not return a valid Google Maps URL');
         }
       } catch (error) {
         console.error('Error resolving short link:', error);
@@ -121,8 +126,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!placeId) {
+      console.error('Could not extract place ID from URL:', url);
       return NextResponse.json(
-        { error: 'Could not extract place information from URL' },
+        { error: 'Could not extract place information from URL. Please make sure you\'re using a valid Google Maps link.' },
         { status: 400 }
       );
     }
@@ -135,7 +141,7 @@ export async function POST(request: NextRequest) {
       // Don't expose detailed error in production
       console.error('Google Places API key not configured');
       return NextResponse.json(
-        { error: 'Service temporarily unavailable. Please contact support.' },
+        { error: 'Google Places API key not configured. Please add GOOGLE_PLACES_API_KEY to your environment variables.' },
         { status: 500 }
       );
     }
