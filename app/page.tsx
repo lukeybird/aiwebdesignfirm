@@ -132,109 +132,117 @@ export default function Home() {
       <section className={`py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${
         isStarkMode ? 'bg-black' : 'bg-gradient-to-b from-white to-gray-50/30'
       }`}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12 px-4">
-            <h2 className={`text-5xl sm:text-6xl lg:text-7xl font-black mb-4 tracking-tight ${
-              isStarkMode 
-                ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
-                : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
-            }`}>
-              Barbershop Templates
-            </h2>
-            <p className={`text-xl sm:text-2xl font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Explore the variety of designs we have for barbershops
-            </p>
-          </div>
-          
-          <div className="flex justify-center">
-            {(() => {
-              const barbershopProject = projects.find(p => p.thumbnail === '/barber.png');
-              if (!barbershopProject) return null;
-              
-              return (
-                <div
-                  className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] shadow-2xl w-full max-w-5xl ${
-                    isStarkMode
-                      ? 'bg-gray-800 border-2 border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-cyan-500/30'
-                      : 'bg-white border-2 border-gray-300/80 hover:border-gray-400 hover:shadow-2xl hover:shadow-gray-900/20'
-                  }`}
-                  onMouseEnter={() => setHoveredProject(barbershopProject.id)}
-                  onMouseLeave={() => setHoveredProject(null)}
-                  onClick={() => window.location.href = '/templates/barbershop'}
-                >
-                  {/* Browser Window Chrome */}
-                  <div className={`border-b-2 px-4 py-3 ${
+        <div className="max-w-7xl mx-auto">
+          {(() => {
+            const barbershopProject = projects.find(p => p.thumbnail === '/barber.png');
+            if (!barbershopProject) return null;
+            
+            return (
+              <div className="flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-12">
+                {/* Left Side - Text Content */}
+                <div className="flex-1 lg:pr-8">
+                  <h2 className={`text-4xl sm:text-5xl lg:text-6xl font-black mb-6 tracking-tight ${
                     isStarkMode 
-                      ? 'bg-gray-900 border-cyan-500/30' 
-                      : 'bg-gray-100/90 border-gray-300/80'
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
+                      : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
                   }`}>
-                    {/* Traffic Lights (macOS style) */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
-                    </div>
-                  </div>
-                  
-                  {/* Website Preview Area */}
-                  <div className={`aspect-[16/10] bg-gradient-to-br relative overflow-hidden ${
-                    isStarkMode 
-                      ? 'from-gray-900 to-gray-800' 
-                      : 'from-gray-50 to-gray-100'
-                  }`}>
-                    {/* Thumbnail image */}
-                    {!imageErrors.has(barbershopProject.id) ? (
-                      <img 
-                        src={barbershopProject.thumbnail} 
-                        alt={barbershopProject.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        onError={() => {
-                          setImageErrors(prev => new Set(prev).add(barbershopProject.id));
-                        }}
-                      />
-                    ) : (
-                      <div className={`w-full h-full bg-gradient-to-br flex items-center justify-center ${
-                        isStarkMode
-                          ? 'from-gray-800 to-gray-700'
-                          : 'from-gray-200 to-gray-300'
-                      }`}>
-                        <div className={`text-xs ${
-                          isStarkMode ? 'text-gray-500' : 'text-gray-400'
-                        }`}>Website Preview</div>
+                    Barbershop Templates
+                  </h2>
+                  <p className={`text-lg sm:text-xl font-light mb-6 leading-relaxed ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Explore the variety of professional barbershop website templates we've created. Each design is crafted to showcase your barbershop's unique style and help you attract more clients.
+                  </p>
+                  <Link
+                    href="/templates/barbershop"
+                    className={`inline-block px-8 py-4 rounded-full text-base font-bold transition-all duration-300 hover:scale-105 shadow-lg ${
+                      isStarkMode
+                        ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-cyan-500/50'
+                        : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-900/20'
+                    }`}
+                  >
+                    View All Templates →
+                  </Link>
+                </div>
+                
+                {/* Right Side - Template Preview */}
+                <div className="flex-1 lg:max-w-[600px]">
+                  <div
+                    className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] shadow-2xl ${
+                      isStarkMode
+                        ? 'bg-gray-800 border-2 border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-cyan-500/30'
+                        : 'bg-white border-2 border-gray-300/80 hover:border-gray-400 hover:shadow-2xl hover:shadow-gray-900/20'
+                    }`}
+                    onMouseEnter={() => setHoveredProject(barbershopProject.id)}
+                    onMouseLeave={() => setHoveredProject(null)}
+                    onClick={() => window.location.href = '/templates/barbershop'}
+                  >
+                    {/* Browser Window Chrome */}
+                    <div className={`border-b-2 px-4 py-3 ${
+                      isStarkMode 
+                        ? 'bg-gray-900 border-cyan-500/30' 
+                        : 'bg-gray-100/90 border-gray-300/80'
+                    }`}>
+                      {/* Traffic Lights (macOS style) */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
                       </div>
-                    )}
+                    </div>
                     
-                    {/* Overlay with preview button - Always visible but more prominent on hover */}
-                    <div
-                      className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
-                        hoveredProject === barbershopProject.id 
-                          ? 'bg-black/80 backdrop-blur-sm' 
-                          : 'bg-black/40 backdrop-blur-[2px]'
-                      }`}
-                    >
-                      <div className="text-center">
-                        <Link
-                          href="/templates/barbershop"
-                          className={`inline-block px-10 py-4 rounded-full text-lg font-bold transition-all duration-300 hover:scale-110 shadow-2xl ${
-                            isStarkMode
-                              ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-cyan-500/60'
-                              : 'bg-white text-gray-900 hover:bg-gray-100 shadow-white/40'
-                          }`}
-                        >
-                          {hoveredProject === barbershopProject.id ? 'View Templates →' : 'Click to Preview'}
-                        </Link>
-                        <p className={`mt-4 text-sm font-medium ${
-                          isStarkMode ? 'text-gray-300' : 'text-white'
+                    {/* Website Preview Area */}
+                    <div className={`aspect-[16/10] bg-gradient-to-br relative overflow-hidden ${
+                      isStarkMode 
+                        ? 'from-gray-900 to-gray-800' 
+                        : 'from-gray-50 to-gray-100'
+                    }`}>
+                      {/* Thumbnail image */}
+                      {!imageErrors.has(barbershopProject.id) ? (
+                        <img 
+                          src={barbershopProject.thumbnail} 
+                          alt={barbershopProject.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          onError={() => {
+                            setImageErrors(prev => new Set(prev).add(barbershopProject.id));
+                          }}
+                        />
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-br flex items-center justify-center ${
+                          isStarkMode
+                            ? 'from-gray-800 to-gray-700'
+                            : 'from-gray-200 to-gray-300'
                         }`}>
-                          View our barbershop template designs
-                        </p>
+                          <div className={`text-xs ${
+                            isStarkMode ? 'text-gray-500' : 'text-gray-400'
+                          }`}>Website Preview</div>
+                        </div>
+                      )}
+                      
+                      {/* Overlay with preview button - Always visible but more prominent on hover */}
+                      <div
+                        className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+                          hoveredProject === barbershopProject.id 
+                            ? 'bg-black/80 backdrop-blur-sm' 
+                            : 'bg-black/40 backdrop-blur-[2px]'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div
+                            className={`inline-block px-8 py-3 rounded-full text-base font-bold transition-all duration-300 hover:scale-110 shadow-xl ${
+                              isStarkMode
+                                ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-cyan-500/60'
+                                : 'bg-white text-gray-900 hover:bg-gray-100 shadow-white/40'
+                            }`}
+                          >
+                            {hoveredProject === barbershopProject.id ? 'View Templates →' : 'Click to Preview'}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            })()}
-          </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
