@@ -92,14 +92,23 @@ export async function POST(request: NextRequest) {
     let placeName: string | null = null;
 
     // PRIMARY APPROACH: Extract coordinates from URL (most reliable)
-    // Coordinates are almost always present in Google Maps URLs
-    const coordMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    // Coordinates are almost always present in Google Maps URLs and Google Business listing share links
+    // Formats: @lat,lng or @lat,lng,zoom or /@lat,lng
+    let coordMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    if (!coordMatch) {
+      // Try alternative format: /@lat,lng
+      coordMatch = url.match(/\/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    }
     if (coordMatch) {
-      coordinates = {
-        lat: parseFloat(coordMatch[1]),
-        lng: parseFloat(coordMatch[2]),
-      };
-      console.log('Extracted coordinates (primary method):', coordinates);
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[2]);
+      // Validate coordinates are reasonable (between -90/90 for lat, -180/180 for lng)
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        coordinates = { lat, lng };
+        console.log('Extracted coordinates (primary method):', coordinates);
+      } else {
+        console.warn('Invalid coordinates extracted:', { lat, lng });
+      }
     }
 
     // SECONDARY APPROACH: Try to extract place ID from URL (less reliable)
