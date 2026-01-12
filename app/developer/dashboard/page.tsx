@@ -79,6 +79,7 @@ export default function DeveloperDashboard() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isLoadingPlace, setIsLoadingPlace] = useState(false);
   const [placeError, setPlaceError] = useState('');
+  const [lastFetchedUrl, setLastFetchedUrl] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,8 +151,14 @@ export default function DeveloperDashboard() {
 
   // Fetch place details from Google Maps URL
   const fetchPlaceDetails = async (url: string) => {
+    // Prevent duplicate calls for the same URL
+    if (lastFetchedUrl === url || isLoadingPlace) {
+      return;
+    }
+
     setIsLoadingPlace(true);
     setPlaceError('');
+    setLastFetchedUrl(url);
 
     try {
       const response = await fetch('/api/google-places', {
@@ -192,14 +199,27 @@ export default function DeveloperDashboard() {
     }
   };
 
-  // Handle address field change - detect Google Maps URL
+  // Handle address field change - detect Google Maps URL and auto-fill immediately
   const handleAddressChange = (value: string) => {
     setAdditionalFields({ ...additionalFields, businessAddress: value });
     setPlaceError('');
 
-    // Check if it's a Google Maps URL and auto-fill
-    if (isGoogleMapsUrl(value) && value.length > 20) {
-      fetchPlaceDetails(value);
+    // Immediately check if it's a Google Maps URL and auto-fill
+    // Trigger as soon as a valid Google Maps URL is detected
+    if (isGoogleMapsUrl(value) && value.trim().length > 0) {
+      // Trigger immediately - no delay
+      fetchPlaceDetails(value.trim());
+    }
+  };
+
+  // Also handle paste events for immediate detection
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData('text').trim();
+    if (isGoogleMapsUrl(pastedText)) {
+      // Update the field value first
+      setAdditionalFields({ ...additionalFields, businessAddress: pastedText });
+      // Trigger auto-fill immediately
+      fetchPlaceDetails(pastedText);
     }
   };
 
@@ -310,6 +330,7 @@ export default function DeveloperDashboard() {
                   required
                   value={additionalFields.businessAddress}
                   onChange={(e) => handleAddressChange(e.target.value)}
+                  onPaste={handlePaste}
                   disabled={isLoadingPlace}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 ${
                     isStarkMode
