@@ -302,23 +302,10 @@ export default function DeveloperDashboard() {
                 }`}>
                   Listing Link *
                   <span className={`ml-2 text-xs font-normal ${isStarkMode ? 'text-cyan-400' : 'text-gray-500'}`}>
-                    Paste a Google Maps link to auto-fill
+                    Enter the Google Maps listing link
                   </span>
                 </label>
-                {isLoadingPlace && (
-                  <div className={`mb-2 text-sm ${isStarkMode ? 'text-cyan-400' : 'text-gray-600'}`}>
-                    🔄 Fetching business details...
-                  </div>
-                )}
-                {placeError && (
-                  <div className={`mb-2 p-2 rounded text-sm ${
-                    isStarkMode 
-                      ? 'bg-red-500/20 border border-red-500/40 text-red-400'
-                      : 'bg-red-50 border-2 border-red-200 text-red-600'
-                  }`}>
-                    {placeError}
-                  </div>
-                )}
+                {/* Auto-fill disabled - loading and error states removed */}
                 <input
                   type="url"
                   required
