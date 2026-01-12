@@ -305,10 +305,25 @@ export async function POST(request: NextRequest) {
       businessEmail = `contact@${domain}`;
     }
 
+    // Get phone number - prefer formatted, fallback to international
+    let phoneNumber = '';
+    if (place.formatted_phone_number) {
+      phoneNumber = place.formatted_phone_number;
+    } else if (place.international_phone_number) {
+      phoneNumber = place.international_phone_number;
+    }
+    
+    console.log('Place details:', {
+      name: place.name,
+      phone: phoneNumber,
+      address: place.formatted_address,
+      email: businessEmail
+    });
+
     return NextResponse.json({
       businessName: place.name || '',
-      businessPhone: place.formatted_phone_number || place.international_phone_number || '',
-      businessAddress: place.formatted_address || url,
+      businessPhone: phoneNumber,
+      businessAddress: place.formatted_address || '',
       businessEmail: businessEmail,
     });
   } catch (error) {
