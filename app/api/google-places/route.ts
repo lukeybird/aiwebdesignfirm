@@ -19,19 +19,50 @@ export async function POST(request: NextRequest) {
       try {
         console.log('Resolving short link:', url);
         // Use GET request with redirect: 'follow' to automatically resolve
-        const response = await fetch(url, {
-          method: 'GET',
-          redirect: 'follow',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
+        // Also need to handle redirects manually in case 'follow' doesn't work
+        let resolvedUrl = url;
+        let attempts = 0;
+        const maxAttempts = 5;
         
-        if (response.url && response.url !== url && response.url.includes('google.com/maps')) {
-          url = response.url;
+        while (attempts < maxAttempts && (resolvedUrl.includes('maps.app.goo.gl') || resolvedUrl.includes('goo.gl/maps'))) {
+          const response = await fetch(resolvedUrl, {
+            method: 'GET',
+            redirect: 'manual', // Don't follow automatically so we can inspect
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          });
+          
+          // Check for redirect
+          if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (location) {
+              resolvedUrl = location.startsWith('http') ? location : new URL(location, resolvedUrl).href;
+              attempts++;
+              continue;
+            }
+          }
+          
+          // If no redirect, try with 'follow' to get final URL
+          const followResponse = await fetch(resolvedUrl, {
+            method: 'GET',
+            redirect: 'follow',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          });
+          
+          if (followResponse.url && followResponse.url !== resolvedUrl) {
+            resolvedUrl = followResponse.url;
+          }
+          break;
+        }
+        
+        if (resolvedUrl && resolvedUrl !== url && resolvedUrl.includes('google.com/maps')) {
+          url = resolvedUrl;
           console.log('Resolved short link to:', url);
         } else {
-          console.warn('Short link resolution did not result in Google Maps URL. Final URL:', response.url);
+          console.warn('Short link resolution did not result in Google Maps URL. Final URL:', resolvedUrl);
         }
       } catch (error) {
         console.error('Error resolving short link:', error);
@@ -76,6 +107,7 @@ export async function POST(request: NextRequest) {
     // Handle various formats:
     // - /place/PLACE_ID
     // - data parameter: data=!4m2!3m1!1sChIJ... (place ID)
+    // - /maps/place/PLACE_ID
     // Google Place IDs are typically 27 characters and start with ChIJ
     const dataMatch = url.match(/data=!4m\d+!3m\d+!1s([A-Za-z0-9_-]{27,})/);
     if (dataMatch && dataMatch[1]) {
@@ -89,13 +121,20 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // If no place ID from data parameter, try place path
+    // If no place ID from data parameter, try place path (multiple patterns)
     if (!placeId) {
-      const placePathMatch = url.match(/place\/([^/@?]+)/);
+      // Try /place/PLACE_ID first
+      let placePathMatch = url.match(/\/place\/([^/@?&#]+)/);
+      
+      // Also try /maps/place/PLACE_ID
+      if (!placePathMatch) {
+        placePathMatch = url.match(/\/maps\/place\/([^/@?&#]+)/);
+      }
+      
       if (placePathMatch) {
         let extracted = decodeURIComponent(placePathMatch[1]);
         // Remove any query parameters or fragments
-        extracted = extracted.split('?')[0].split('#')[0];
+        extracted = extracted.split('?')[0].split('#')[0].split('&')[0];
         console.log('Extracted from place path:', extracted);
         
         // Check if it's a valid place ID format (27+ chars, alphanumeric/underscore/hyphen, no spaces or plus signs)
@@ -103,7 +142,8 @@ export async function POST(request: NextRequest) {
         const isValidPlaceId = extracted.match(/^[A-Za-z0-9_-]{27,}$/) && 
                                !extracted.includes(' ') && 
                                !extracted.includes('+') &&
-                               extracted.length >= 27;
+                               extracted.length >= 27 &&
+                               !extracted.match(/^[A-Z0-9+]{10,}$/); // Reject encoded strings like "76WR3X44+JGW"
         
         if (isValidPlaceId) {
           placeId = extracted;
