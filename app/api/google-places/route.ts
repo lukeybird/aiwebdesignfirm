@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // If we have coordinates but no place ID, try to find place ID using reverse geocoding
     if (coordinates && !placeId) {
-      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      const apiKey = process.env.API_KEY_GOOGLE;
       
       if (!apiKey) {
         return NextResponse.json(
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // If we still don't have a place ID, try to search by coordinates
     if (!placeId && coordinates) {
-      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      const apiKey = process.env.API_KEY_GOOGLE;
       
       if (!apiKey) {
         return NextResponse.json(
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       // Don't expose detailed error in production
       console.error('Google Places API key not configured');
       return NextResponse.json(
-        { error: 'Google Places API key not configured. Please add GOOGLE_PLACES_API_KEY to your environment variables.' },
+        { error: 'Google Places API key not configured. Please add API_KEY_GOOGLE to your environment variables.' },
         { status: 500 }
       );
     }
