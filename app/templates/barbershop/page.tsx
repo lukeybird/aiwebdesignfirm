@@ -23,16 +23,18 @@ export default function BarbershopTemplates() {
   }, [isStarkMode]);
 
   // Template images from the Barbershop folder
+  // Note: You can add more template images here as you create them (up to 26 templates)
   const templateImages = [
-    '/Barbershop/barber_cut_closeshot.png',
-    '/Barbershop/barber_interior_chairs_farshot.png',
-    '/Barbershop/barber_midshot.png',
-    '/Barbershop/barber_pole.png',
-    '/Barbershop/barber_shop_logo.png',
-    '/Barbershop/barber_supercloseshot.png',
-    '/Barbershop/cut_midshot.jpg',
-    '/Barbershop/far_shot_interior.png',
-    '/Barbershop/scissors.png',
+    { id: 1, image: '/Barbershop/barber_cut_closeshot.png', name: 'Classic Cuts Template' },
+    { id: 2, image: '/Barbershop/barber_interior_chairs_farshot.png', name: 'Interior Showcase' },
+    { id: 3, image: '/Barbershop/barber_midshot.png', name: 'Professional Style' },
+    { id: 4, image: '/Barbershop/barber_pole.png', name: 'Traditional Design' },
+    { id: 5, image: '/Barbershop/barber_shop_logo.png', name: 'Brand Identity' },
+    { id: 6, image: '/Barbershop/barber_supercloseshot.png', name: 'Detail Focus' },
+    { id: 7, image: '/Barbershop/cut_midshot.jpg', name: 'Service Highlight' },
+    { id: 8, image: '/Barbershop/far_shot_interior.png', name: 'Space Design' },
+    { id: 9, image: '/Barbershop/scissors.png', name: 'Tools Showcase' },
+    // Add more templates here as you create them (up to 26 total)
   ];
 
   return (
