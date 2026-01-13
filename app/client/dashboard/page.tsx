@@ -280,10 +280,9 @@ export default function ClientDashboard() {
   // Get only image files for gallery
   const imageFiles = files.filter(file => isImageFile(file.type));
 
-  const openGallery = (index: number) => {
+  const openGallery = (fileId: string) => {
     // Find the index in the imageFiles array
-    const clickedFile = files[index];
-    const imageIndex = imageFiles.findIndex(f => f.id === clickedFile.id);
+    const imageIndex = imageFiles.findIndex(f => f.id === fileId);
     if (imageIndex !== -1) {
       setGalleryIndex(imageIndex);
       setGalleryOpen(true);
@@ -756,8 +755,7 @@ export default function ClientDashboard() {
                       }`}
                       onClick={() => {
                         if (isImageFile(file.type)) {
-                          const fileIndex = files.findIndex(f => f.id === file.id);
-                          openGallery(fileIndex);
+                          openGallery(file.id);
                         }
                       }}
                     >
