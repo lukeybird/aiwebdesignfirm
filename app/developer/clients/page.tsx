@@ -141,6 +141,57 @@ export default function ClientsPage() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  // Format phone number: +18137877458 -> +1 (813) 787-7458
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return phone;
+    
+    // Remove all non-digit characters except the leading +
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // Check if it starts with +1 (US format)
+    if (cleaned.startsWith('+1') && cleaned.length === 12) {
+      const areaCode = cleaned.substring(2, 5);
+      const firstPart = cleaned.substring(5, 8);
+      const secondPart = cleaned.substring(8, 12);
+      return `+1 (${areaCode}) ${firstPart}-${secondPart}`;
+    }
+    
+    // If it's 11 digits starting with 1 (without +)
+    if (cleaned.startsWith('1') && cleaned.length === 11) {
+      const areaCode = cleaned.substring(1, 4);
+      const firstPart = cleaned.substring(4, 7);
+      const secondPart = cleaned.substring(7, 11);
+      return `+1 (${areaCode}) ${firstPart}-${secondPart}`;
+    }
+    
+    // If it's 10 digits (assume US number without country code)
+    if (cleaned.length === 10) {
+      const areaCode = cleaned.substring(0, 3);
+      const firstPart = cleaned.substring(3, 6);
+      const secondPart = cleaned.substring(6, 10);
+      return `(${areaCode}) ${firstPart}-${secondPart}`;
+    }
+    
+    // Return original if it doesn't match expected formats
+    return phone;
+  };
+
+  // Get clean phone number for tel: link (remove formatting)
+  const getCleanPhoneNumber = (phone: string): string => {
+    if (!phone) return '';
+    // Remove all non-digit characters except +
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    // If it doesn't start with +, add +1 for US numbers
+    if (!cleaned.startsWith('+')) {
+      if (cleaned.length === 10) {
+        return `+1${cleaned}`;
+      } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
+        return `+${cleaned}`;
+      }
+    }
+    return cleaned;
+  };
+
   const isImageFile = (fileType: string) => {
     return fileType.startsWith('image/');
   };
@@ -575,9 +626,20 @@ export default function ClientsPage() {
                         }`}>
                           Phone Number:
                         </span>
-                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                          {(selectedClient as any).phone || 'Not provided'}
-                        </span>
+                        {(selectedClient as any).phone ? (
+                          <a
+                            href={`tel:${getCleanPhoneNumber((selectedClient as any).phone)}`}
+                            className={`underline hover:opacity-80 ${
+                              isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                            }`}
+                          >
+                            {formatPhoneNumber((selectedClient as any).phone)}
+                          </a>
+                        ) : (
+                          <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                            Not provided
+                          </span>
+                        )}
                       </div>
                       <div>
                         <span className={`font-medium block mb-1 ${
