@@ -125,12 +125,32 @@ export default function ClientDashboard() {
       return;
     }
 
+    // Calculate total size of files to upload
+    let totalNewSize = 0;
+    for (let i = 0; i < fileList.length; i++) {
+      totalNewSize += fileList[i].size;
+    }
+
+    // Check if upload would exceed storage limit
+    if (totalStorageUsed + totalNewSize > STORAGE_LIMIT) {
+      const remainingMB = (storageRemaining / (1024 * 1024)).toFixed(2);
+      alert(`Upload would exceed storage limit. You have ${remainingMB} MB remaining. Maximum storage is 100 MB (0.1 GB).`);
+      e.target.value = '';
+      return;
+    }
+
     setIsUploading(true);
 
     try {
       // Upload each file to Vercel Blob via API
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
+        
+        // Double-check each file individually
+        if (totalStorageUsed + file.size > STORAGE_LIMIT) {
+          alert(`File "${file.name}" would exceed storage limit. Skipping.`);
+          continue;
+        }
         
         const formData = new FormData();
         formData.append('file', file);
@@ -615,8 +635,7 @@ export default function ClientDashboard() {
                   >
                     {/* Image Preview or File Icon */}
                     <div 
-                      className="aspect-square relative bg-gray-800 cursor-pointer"
-                      onClick={() => handleDownloadFile(file)}
+                      className="aspect-square relative bg-gray-800"
                     >
                       {isImageFile(file.type) ? (
                         <img
@@ -629,15 +648,6 @@ export default function ClientDashboard() {
                           <div className="text-4xl">📄</div>
                         </div>
                       )}
-                      
-                      {/* Overlay on hover */}
-                      <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
-                        <div className={`px-3 py-1 rounded text-xs font-medium ${
-                          isStarkMode ? 'bg-cyan-500 text-black' : 'bg-white text-gray-900'
-                        }`}>
-                          {isImageFile(file.type) ? 'Click to Download' : 'Click to View'}
-                        </div>
-                      </div>
                     </div>
                     
                     {/* File Name and Actions */}
