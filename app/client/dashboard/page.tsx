@@ -260,17 +260,219 @@ export default function ClientDashboard() {
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
           <div className="mb-12">
-            <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-black mb-4 tracking-tight ${
-              isStarkMode 
-                ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
-                : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
-            }`}>
-              Welcome, {clientName || 'Client'}
-            </h1>
-            <p className={`text-xl font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Manage your project files and assets
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-black mb-4 tracking-tight ${
+                  isStarkMode 
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
+                    : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
+                }`}>
+                  Welcome, {clientName || 'Client'}
+                </h1>
+                <p className={`text-xl font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Manage your project files and assets
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAccountSettings(!showAccountSettings)}
+                className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                  isStarkMode
+                    ? showAccountSettings
+                      ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                      : 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                    : showAccountSettings
+                      ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+                }`}
+              >
+                {showAccountSettings ? 'Hide Settings' : 'Account Settings'}
+              </button>
+            </div>
           </div>
+
+          {/* Account Settings Section */}
+          {showAccountSettings && (
+            <div className={`mb-8 rounded-xl p-8 ${
+              isStarkMode 
+                ? 'bg-gray-800 border border-cyan-500/20' 
+                : 'bg-white border-2 border-gray-300/60'
+            }`}>
+              <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Account Information
+              </h2>
+              
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsSavingAccount(true);
+                  
+                  if (typeof window !== 'undefined') {
+                    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+                    const updatedClients = clients.map((c: any) => 
+                      c.email === clientEmail
+                        ? {
+                            ...c,
+                            fullName: accountInfo.fullName,
+                            phone: accountInfo.phone,
+                            businessName: accountInfo.businessName,
+                            businessAddress: accountInfo.businessAddress,
+                            businessWebsite: accountInfo.businessWebsite,
+                          }
+                        : c
+                    );
+                    localStorage.setItem('clients', JSON.stringify(updatedClients));
+                    setClientName(accountInfo.fullName);
+                    setIsSavingAccount(false);
+                    alert('Account information updated successfully!');
+                  }
+                }}
+                className="space-y-6"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={`block mb-2 font-medium ${
+                      isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={accountInfo.fullName}
+                      onChange={(e) => setAccountInfo({ ...accountInfo, fullName: e.target.value })}
+                      required
+                      className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                        isStarkMode
+                          ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                          : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block mb-2 font-medium ${
+                      isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={accountInfo.email}
+                      disabled
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isStarkMode
+                          ? 'bg-gray-900/50 border-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Email cannot be changed
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className={`block mb-2 font-medium ${
+                      isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={accountInfo.phone}
+                      onChange={(e) => setAccountInfo({ ...accountInfo, phone: e.target.value })}
+                      placeholder="+1 (555) 123-4567"
+                      className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                        isStarkMode
+                          ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                          : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block mb-2 font-medium ${
+                      isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Business Name
+                    </label>
+                    <input
+                      type="text"
+                      value={accountInfo.businessName}
+                      onChange={(e) => setAccountInfo({ ...accountInfo, businessName: e.target.value })}
+                      placeholder="Your Business Name"
+                      className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                        isStarkMode
+                          ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                          : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                      }`}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className={`block mb-2 font-medium ${
+                      isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Business Address
+                    </label>
+                    <input
+                      type="text"
+                      value={accountInfo.businessAddress}
+                      onChange={(e) => setAccountInfo({ ...accountInfo, businessAddress: e.target.value })}
+                      placeholder="123 Main St, City, State ZIP"
+                      className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                        isStarkMode
+                          ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                          : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                      }`}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className={`block mb-2 font-medium ${
+                      isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Business Website
+                    </label>
+                    <input
+                      type="url"
+                      value={accountInfo.businessWebsite}
+                      onChange={(e) => setAccountInfo({ ...accountInfo, businessWebsite: e.target.value })}
+                      placeholder="https://www.example.com"
+                      className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                        isStarkMode
+                          ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                          : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    disabled={isSavingAccount}
+                    className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                      isStarkMode
+                        ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                        : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                      } ${isSavingAccount ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {isSavingAccount ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAccountSettings(false)}
+                    className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                      isStarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
+                        : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* File Upload Section */}
           <div className={`mb-8 rounded-xl p-8 ${
