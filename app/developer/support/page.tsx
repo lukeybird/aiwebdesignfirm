@@ -56,8 +56,19 @@ export default function SupportPage() {
 
   // Load conversations
   useEffect(() => {
-    loadConversations();
+    loadConversations(true); // Show loading on initial load
   }, []);
+
+  // Poll for new conversations/messages every 5 seconds (when no conversation is selected)
+  useEffect(() => {
+    if (selectedConversation) return; // Don't poll if a conversation is selected (handled by separate effect)
+
+    const interval = setInterval(() => {
+      loadConversations(); // Refresh conversations list to update unread counts
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedConversation]);
 
   // Poll for new messages when a conversation is selected
   useEffect(() => {
@@ -71,18 +82,43 @@ export default function SupportPage() {
     return () => clearInterval(interval);
   }, [selectedConversation]);
 
-  const loadConversations = async () => {
+  const loadConversations = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      if (showLoading) {
+        setIsLoading(true);
+      }
       const response = await fetch('/api/messages');
       const data = await response.json();
       if (data.conversations) {
-        setConversations(data.conversations);
+        // Normalize message structure to match interface
+        const normalizedConversations = data.conversations.map((conv: any) => ({
+          ...conv,
+          messages: conv.messages.map((msg: any) => ({
+            id: msg.id,
+            sender_type: msg.senderType || msg.sender_type,
+            message_text: msg.messageText || msg.message_text,
+            is_read: msg.isRead !== undefined ? msg.isRead : msg.is_read,
+            created_at: msg.createdAt || msg.created_at
+          }))
+        }));
+        setConversations(normalizedConversations);
+        
+        // If a conversation is selected, update it with the latest data
+        if (selectedConversation) {
+          const updatedConv = normalizedConversations.find(
+            (c: any) => c.clientId === selectedConversation.clientId
+          );
+          if (updatedConv) {
+            setSelectedConversation(updatedConv);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
