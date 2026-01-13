@@ -107,7 +107,23 @@ export default function ClientDashboard() {
       const response = await fetch(`/api/messages?clientId=${clientId}`);
       const data = await response.json();
       if (data.messages) {
-        setMessages(data.messages);
+        // Normalize message structure
+        const normalizedMessages = data.messages.map((msg: any) => ({
+          id: msg.id,
+          sender_type: msg.sender_type || msg.senderType,
+          message_text: msg.message_text || msg.messageText,
+          is_read: msg.is_read !== undefined ? msg.is_read : msg.isRead,
+          created_at: msg.created_at || msg.createdAt
+        }));
+        setMessages(normalizedMessages);
+        
+        // Auto-scroll to bottom when new messages arrive
+        setTimeout(() => {
+          const chatMessages = document.getElementById('chat-messages');
+          if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -169,12 +185,15 @@ export default function ClientDashboard() {
     const clientId = localStorage.getItem('clientId');
     if (!clientId) return;
 
+    // Load messages immediately
+    loadMessages(clientId);
+
     const interval = setInterval(() => {
       loadMessages(clientId);
-    }, 3000); // Poll every 3 seconds
+    }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(interval);
-  }, [chatOpen]);
+  }, [chatOpen, clientEmail]);
 
   const loadFiles = async (clientId: string) => {
     try {
@@ -1138,31 +1157,37 @@ export default function ClientDashboard() {
                 <p>No messages yet. Start a conversation!</p>
               </div>
             ) : (
-              messages.map((msg: any) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.sender_type === 'client' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    msg.sender_type === 'client'
-                      ? isStarkMode
-                        ? 'bg-cyan-500 text-black'
-                        : 'bg-gray-900 text-white'
-                      : isStarkMode
-                        ? 'bg-gray-700 text-white'
-                        : 'bg-gray-100 text-gray-900'
-                  }`}>
-                    <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
-                    <p className={`text-xs mt-1 ${
-                      msg.sender_type === 'client'
-                        ? isStarkMode ? 'text-gray-800' : 'text-gray-300'
-                        : isStarkMode ? 'text-gray-400' : 'text-gray-500'
+              messages.map((msg: any) => {
+                const senderType = msg.sender_type || msg.senderType || 'client';
+                const messageText = msg.message_text || msg.messageText || '';
+                const createdAt = msg.created_at || msg.createdAt || new Date().toISOString();
+                
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex ${senderType === 'client' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                      senderType === 'client'
+                        ? isStarkMode
+                          ? 'bg-cyan-500 text-black'
+                          : 'bg-gray-900 text-white'
+                        : isStarkMode
+                          ? 'bg-gray-700 text-white'
+                          : 'bg-gray-100 text-gray-900'
                     }`}>
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                      <p className="text-sm whitespace-pre-wrap">{messageText}</p>
+                      <p className={`text-xs mt-1 ${
+                        senderType === 'client'
+                          ? isStarkMode ? 'text-gray-800' : 'text-gray-300'
+                          : isStarkMode ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
