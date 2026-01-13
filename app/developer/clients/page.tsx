@@ -112,6 +112,16 @@ export default function ClientsPage() {
       } else {
         setClientFiles([]);
       }
+
+      // Load account info for editing
+      setEditedAccountInfo({
+        fullName: selectedClient.fullName || '',
+        phone: (selectedClient as any).phone || '',
+        businessName: (selectedClient as any).businessName || '',
+        businessAddress: (selectedClient as any).businessAddress || '',
+        businessWebsite: (selectedClient as any).businessWebsite || '',
+      });
+      setIsEditingAccount(false);
     }
   }, [selectedClient]);
 
