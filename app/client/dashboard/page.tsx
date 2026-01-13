@@ -21,6 +21,16 @@ export default function ClientDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [editingFileName, setEditingFileName] = useState('');
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [accountInfo, setAccountInfo] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    businessName: '',
+    businessAddress: '',
+    businessWebsite: '',
+  });
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -55,6 +65,15 @@ export default function ClientDashboard() {
       const client = clients.find((c: any) => c.email === email);
       if (client) {
         setClientName(client.fullName);
+        // Load account info
+        setAccountInfo({
+          fullName: client.fullName || '',
+          email: client.email || '',
+          phone: client.phone || '',
+          businessName: client.businessName || '',
+          businessAddress: client.businessAddress || '',
+          businessWebsite: client.businessWebsite || '',
+        });
       }
 
       // Load files for this client
