@@ -31,6 +31,8 @@ export default function ClientDashboard() {
     businessWebsite: '',
   });
   const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -274,6 +276,49 @@ export default function ClientDashboard() {
   const isImageFile = (fileType: string) => {
     return fileType.startsWith('image/');
   };
+
+  // Get only image files for gallery
+  const imageFiles = files.filter(file => isImageFile(file.type));
+
+  const openGallery = (index: number) => {
+    // Find the index in the imageFiles array
+    const clickedFile = files[index];
+    const imageIndex = imageFiles.findIndex(f => f.id === clickedFile.id);
+    if (imageIndex !== -1) {
+      setGalleryIndex(imageIndex);
+      setGalleryOpen(true);
+    }
+  };
+
+  const closeGallery = () => {
+    setGalleryOpen(false);
+  };
+
+  const nextImage = () => {
+    setGalleryIndex((prev) => (prev + 1) % imageFiles.length);
+  };
+
+  const prevImage = () => {
+    setGalleryIndex((prev) => (prev - 1 + imageFiles.length) % imageFiles.length);
+  };
+
+  // Keyboard navigation for gallery
+  useEffect(() => {
+    if (!galleryOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        nextImage();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      } else if (e.key === 'Escape') {
+        closeGallery();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [galleryOpen, galleryIndex, imageFiles.length]);
 
   const handleDownloadFile = (file: UploadedFile) => {
     const link = document.createElement('a');
