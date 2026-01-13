@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import heic2any from 'heic2any';
 
 interface UploadedFile {
   id: string;
@@ -146,11 +147,40 @@ export default function ClientDashboard() {
     try {
       // Upload each file to Vercel Blob via API
       for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
+        let file = fileList[i];
+        let fileName = file.name;
+        
+        // Convert HEIC files to JPEG
+        if (file.type === 'image/heic' || file.type === 'image/heif' || fileName.toLowerCase().endsWith('.heic') || fileName.toLowerCase().endsWith('.heif')) {
+          try {
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: 'image/jpeg',
+              quality: 0.92
+            });
+            
+            // heic2any returns an array, get the first item
+            const convertedFile = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            
+            // Create a new File object from the converted blob
+            const newFileName = fileName.replace(/\.(heic|heif)$/i, '.jpg');
+            file = new File([convertedFile as Blob], newFileName, {
+              type: 'image/jpeg',
+              lastModified: file.lastModified
+            });
+            
+            // Update the file name
+            fileName = newFileName;
+          } catch (conversionError) {
+            console.error('Error converting HEIC file:', conversionError);
+            alert(`Failed to convert HEIC file "${file.name}". Please convert it to JPEG/PNG first.`);
+            continue;
+          }
+        }
         
         // Double-check each file individually
         if (totalStorageUsed + file.size > STORAGE_LIMIT) {
-          alert(`File "${file.name}" would exceed storage limit. Skipping.`);
+          alert(`File "${fileName}" would exceed storage limit. Skipping.`);
           continue;
         }
         
