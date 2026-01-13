@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import heic2any from 'heic2any';
 
 interface UploadedFile {
   id: string;
