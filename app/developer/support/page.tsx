@@ -76,7 +76,8 @@ export default function SupportPage() {
 
     const interval = setInterval(() => {
       loadConversationMessages(selectedConversation.clientId);
-      loadConversations(); // Also refresh the conversation list to update unread counts
+      // Only refresh conversations list (not the selected conversation messages)
+      loadConversations(); 
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(interval);
@@ -102,16 +103,6 @@ export default function SupportPage() {
           }))
         }));
         setConversations(normalizedConversations);
-        
-        // If a conversation is selected, update it with the latest data
-        if (selectedConversation) {
-          const updatedConv = normalizedConversations.find(
-            (c: any) => c.clientId === selectedConversation.clientId
-          );
-          if (updatedConv) {
-            setSelectedConversation(updatedConv);
-          }
-        }
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
