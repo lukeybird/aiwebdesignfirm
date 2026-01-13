@@ -70,6 +70,18 @@ export async function initDatabase() {
       )
     `;
 
+    // Create messages table for client-developer chat
+    await sql`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+        sender_type VARCHAR(20) NOT NULL CHECK (sender_type IN ('client', 'developer')),
+        message_text TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
