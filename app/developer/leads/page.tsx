@@ -233,7 +233,9 @@ export default function LeadsPage() {
                                 <span className={`text-sm ${
                                   isStarkMode ? 'text-gray-300' : 'text-gray-700'
                                 }`}>
-                                  {lastNote.text}
+                                  {lastNote.text.length > 60 
+                                    ? `${lastNote.text.substring(0, 60)}...` 
+                                    : lastNote.text}
                                 </span>
                                 <span className={`text-sm italic ${
                                   isStarkMode ? 'text-gray-500' : 'text-gray-500'
@@ -248,7 +250,9 @@ export default function LeadsPage() {
                                 <span className={`text-sm ${
                                   isStarkMode ? 'text-gray-300' : 'text-gray-700'
                                 }`}>
-                                  {lead.customNotes}
+                                  {lead.customNotes && lead.customNotes.length > 60
+                                    ? `${lead.customNotes.substring(0, 60)}...`
+                                    : lead.customNotes}
                                 </span>
                                 <span className={`text-sm italic ${
                                   isStarkMode ? 'text-gray-500' : 'text-gray-500'
