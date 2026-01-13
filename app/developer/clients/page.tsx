@@ -28,6 +28,14 @@ export default function ClientsPage() {
   const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showAccountInfo, setShowAccountInfo] = useState(false);
+  const [isEditingAccount, setIsEditingAccount] = useState(false);
+  const [editedAccountInfo, setEditedAccountInfo] = useState({
+    fullName: '',
+    phone: '',
+    businessName: '',
+    businessAddress: '',
+    businessWebsite: '',
+  });
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -325,94 +333,297 @@ export default function ClientsPage() {
                     ? 'bg-gray-900 border-cyan-500/30'
                     : 'bg-gray-50 border-gray-300/60'
                 }`}>
-                  <h3 className={`text-xl font-black mb-4 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Account Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <span className={`font-medium block mb-1 ${
-                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                      }`}>
-                        Full Name:
-                      </span>
-                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                        {selectedClient.fullName || 'Not provided'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className={`font-medium block mb-1 ${
-                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                      }`}>
-                        Email:
-                      </span>
-                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                        {selectedClient.email}
-                      </span>
-                    </div>
-                    <div>
-                      <span className={`font-medium block mb-1 ${
-                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                      }`}>
-                        Phone Number:
-                      </span>
-                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                        {(selectedClient as any).phone || 'Not provided'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className={`font-medium block mb-1 ${
-                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                      }`}>
-                        Business Name:
-                      </span>
-                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                        {(selectedClient as any).businessName || 'Not provided'}
-                      </span>
-                    </div>
-                    <div className="md:col-span-2">
-                      <span className={`font-medium block mb-1 ${
-                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                      }`}>
-                        Business Address:
-                      </span>
-                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                        {(selectedClient as any).businessAddress || 'Not provided'}
-                      </span>
-                    </div>
-                    <div className="md:col-span-2">
-                      <span className={`font-medium block mb-1 ${
-                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                      }`}>
-                        Business Website:
-                      </span>
-                      {(selectedClient as any).businessWebsite ? (
-                        <a
-                          href={(selectedClient as any).businessWebsite}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`underline hover:opacity-80 ${
-                            isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-xl font-black ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Account Information
+                    </h3>
+                    {!isEditingAccount && (
+                      <button
+                        onClick={() => setIsEditingAccount(true)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                          isStarkMode
+                            ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                            : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                        }`}
+                      >
+                        Edit Info
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingAccount ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (typeof window !== 'undefined' && selectedClient) {
+                          const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+                          const updatedClients = clients.map((c: any) => 
+                            c.email === selectedClient.email
+                              ? {
+                                  ...c,
+                                  fullName: editedAccountInfo.fullName,
+                                  phone: editedAccountInfo.phone,
+                                  businessName: editedAccountInfo.businessName,
+                                  businessAddress: editedAccountInfo.businessAddress,
+                                  businessWebsite: editedAccountInfo.businessWebsite,
+                                }
+                              : c
+                          );
+                          localStorage.setItem('clients', JSON.stringify(updatedClients));
+                          
+                          // Update the selected client and all clients lists
+                          const updatedClient = updatedClients.find((c: any) => c.email === selectedClient.email);
+                          setSelectedClient(updatedClient);
+                          setAllClients(updatedClients);
+                          setClients(updatedClients);
+                          
+                          setIsEditingAccount(false);
+                          alert('Account information updated successfully!');
+                        }
+                      }}
+                      className="space-y-4"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className={`block mb-2 font-medium ${
+                            isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={editedAccountInfo.fullName}
+                            onChange={(e) => setEditedAccountInfo({ ...editedAccountInfo, fullName: e.target.value })}
+                            required
+                            className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                              isStarkMode
+                                ? 'bg-gray-800 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                                : 'bg-white border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                            }`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className={`block mb-2 font-medium ${
+                            isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            value={selectedClient.email}
+                            disabled
+                            className={`w-full px-4 py-2 rounded-lg border ${
+                              isStarkMode
+                                ? 'bg-gray-800/50 border-gray-700 text-gray-500 cursor-not-allowed'
+                                : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          />
+                          <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                            Email cannot be changed
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className={`block mb-2 font-medium ${
+                            isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Phone Number
+                          </label>
+                          <input
+                            type="tel"
+                            value={editedAccountInfo.phone}
+                            onChange={(e) => setEditedAccountInfo({ ...editedAccountInfo, phone: e.target.value })}
+                            placeholder="+1 (555) 123-4567"
+                            className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                              isStarkMode
+                                ? 'bg-gray-800 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                                : 'bg-white border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                            }`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className={`block mb-2 font-medium ${
+                            isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Business Name
+                          </label>
+                          <input
+                            type="text"
+                            value={editedAccountInfo.businessName}
+                            onChange={(e) => setEditedAccountInfo({ ...editedAccountInfo, businessName: e.target.value })}
+                            placeholder="Business Name"
+                            className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                              isStarkMode
+                                ? 'bg-gray-800 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                                : 'bg-white border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                            }`}
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className={`block mb-2 font-medium ${
+                            isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Business Address
+                          </label>
+                          <input
+                            type="text"
+                            value={editedAccountInfo.businessAddress}
+                            onChange={(e) => setEditedAccountInfo({ ...editedAccountInfo, businessAddress: e.target.value })}
+                            placeholder="123 Main St, City, State ZIP"
+                            className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                              isStarkMode
+                                ? 'bg-gray-800 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                                : 'bg-white border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                            }`}
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className={`block mb-2 font-medium ${
+                            isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Business Website
+                          </label>
+                          <input
+                            type="url"
+                            value={editedAccountInfo.businessWebsite}
+                            onChange={(e) => setEditedAccountInfo({ ...editedAccountInfo, businessWebsite: e.target.value })}
+                            placeholder="https://www.example.com"
+                            className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                              isStarkMode
+                                ? 'bg-gray-800 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                                : 'bg-white border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 pt-4">
+                        <button
+                          type="submit"
+                          className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                            isStarkMode
+                              ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
                           }`}
                         >
-                          {(selectedClient as any).businessWebsite}
-                        </a>
-                      ) : (
-                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                          Not provided
+                          Save Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingAccount(false);
+                            // Reset to original values
+                            if (selectedClient) {
+                              setEditedAccountInfo({
+                                fullName: selectedClient.fullName || '',
+                                phone: (selectedClient as any).phone || '',
+                                businessName: (selectedClient as any).businessName || '',
+                                businessAddress: (selectedClient as any).businessAddress || '',
+                                businessWebsite: (selectedClient as any).businessWebsite || '',
+                              });
+                            }
+                          }}
+                          className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                            isStarkMode
+                              ? 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                          }`}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <span className={`font-medium block mb-1 ${
+                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                        }`}>
+                          Full Name:
                         </span>
-                      )}
+                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                          {selectedClient.fullName || 'Not provided'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className={`font-medium block mb-1 ${
+                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                        }`}>
+                          Email:
+                        </span>
+                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                          {selectedClient.email}
+                        </span>
+                      </div>
+                      <div>
+                        <span className={`font-medium block mb-1 ${
+                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                        }`}>
+                          Phone Number:
+                        </span>
+                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                          {(selectedClient as any).phone || 'Not provided'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className={`font-medium block mb-1 ${
+                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                        }`}>
+                          Business Name:
+                        </span>
+                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                          {(selectedClient as any).businessName || 'Not provided'}
+                        </span>
+                      </div>
+                      <div className="md:col-span-2">
+                        <span className={`font-medium block mb-1 ${
+                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                        }`}>
+                          Business Address:
+                        </span>
+                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                          {(selectedClient as any).businessAddress || 'Not provided'}
+                        </span>
+                      </div>
+                      <div className="md:col-span-2">
+                        <span className={`font-medium block mb-1 ${
+                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                        }`}>
+                          Business Website:
+                        </span>
+                        {(selectedClient as any).businessWebsite ? (
+                          <a
+                            href={(selectedClient as any).businessWebsite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`underline hover:opacity-80 ${
+                              isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                            }`}
+                          >
+                            {(selectedClient as any).businessWebsite}
+                          </a>
+                        ) : (
+                          <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                            Not provided
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className={`font-medium block mb-1 ${
+                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                        }`}>
+                          Account Created:
+                        </span>
+                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                          {new Date(selectedClient.createdAt).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className={`font-medium block mb-1 ${
-                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                      }`}>
-                        Account Created:
-                      </span>
-                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                        {new Date(selectedClient.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
