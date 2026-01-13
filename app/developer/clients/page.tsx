@@ -1012,6 +1012,103 @@ export default function ClientsPage() {
           </div>
         </div>
       </section>
+
+      {/* Gallery Modal */}
+      {galleryOpen && imageFiles.length > 0 && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+              linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+              linear-gradient(-45deg, transparent 75%, #2a2a2a 75%)
+            `,
+            backgroundSize: '40px 40px',
+            backgroundPosition: '0 0, 0 20px, 20px -20px, -20px 0px',
+            backgroundColor: '#1f1f1f'
+          }}
+          onClick={closeGallery}
+        >
+          {/* Close Button */}
+          <button
+            onClick={closeGallery}
+            className={`absolute top-4 right-4 z-10 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              isStarkMode
+                ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+            }`}
+          >
+            ✕ Close
+          </button>
+
+          {/* Previous Button */}
+          {imageFiles.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prevImage();
+              }}
+              className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                isStarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+              }`}
+            >
+              ← Previous
+            </button>
+          )}
+
+          {/* Next Button */}
+          {imageFiles.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                nextImage();
+              }}
+              className={`absolute right-4 top-1/2 -translate-y-1/2 z-10 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                isStarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+              }`}
+            >
+              Next →
+            </button>
+          )}
+
+          {/* Image Display - Made larger */}
+          <div 
+            className="w-full h-full flex items-center justify-center p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={imageFiles[galleryIndex].url}
+              alt={imageFiles[galleryIndex].name}
+              className="max-w-[95vw] max-h-[95vh] w-auto h-auto object-contain"
+            />
+          </div>
+
+          {/* Image Counter */}
+          {imageFiles.length > 1 && (
+            <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium ${
+              isStarkMode
+                ? 'bg-gray-800 text-white border border-cyan-500/20'
+                : 'bg-gray-100 text-gray-900 border border-gray-300/60'
+            }`}>
+              {galleryIndex + 1} / {imageFiles.length}
+            </div>
+          )}
+
+          {/* Image Name */}
+          <div className={`absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm ${
+            isStarkMode
+              ? 'bg-gray-800/80 text-white'
+              : 'bg-gray-100/80 text-gray-900'
+          }`}>
+            {imageFiles[galleryIndex].name}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
