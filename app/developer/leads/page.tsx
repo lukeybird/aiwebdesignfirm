@@ -53,6 +53,8 @@ export default function LeadsPage() {
   }, [isStarkMode]);
 
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [notesText, setNotesText] = useState<string>('');
 
   // Load leads from localStorage
   useEffect(() => {
@@ -87,6 +89,30 @@ export default function LeadsPage() {
       localStorage.setItem('leads', JSON.stringify(updatedLeads));
       setLeads(updatedLeads);
     }
+  };
+
+  const handleEditNotes = (lead: Lead) => {
+    setEditingNotesId(lead.id);
+    setNotesText(lead.customNotes || '');
+  };
+
+  const handleSaveNotes = (leadId: string) => {
+    if (typeof window !== 'undefined') {
+      const updatedLeads = leads.map(lead => 
+        lead.id === leadId 
+          ? { ...lead, customNotes: notesText }
+          : lead
+      );
+      localStorage.setItem('leads', JSON.stringify(updatedLeads));
+      setLeads(updatedLeads);
+      setEditingNotesId(null);
+      setNotesText('');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNotesId(null);
+    setNotesText('');
   };
 
   return (
@@ -347,20 +373,76 @@ export default function LeadsPage() {
                         </span>
                       </div>
                     )}
-                    {lead.customNotes && (
-                      <div className="md:col-span-2">
+                    {/* Notes Section */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center justify-between mb-2">
                         <span className={`font-medium ${
                           isStarkMode ? 'text-cyan-400' : 'text-gray-700'
                         }`}>
                           Notes:
                         </span>
-                        <p className={`mt-1 ${
+                        {editingNotesId !== lead.id && (
+                          <button
+                            onClick={() => handleEditNotes(lead)}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-all hover:scale-105 ${
+                              isStarkMode
+                                ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/40'
+                                : 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100 border border-cyan-200'
+                            }`}
+                          >
+                            {lead.customNotes ? 'Edit Notes' : 'Add Notes'}
+                          </button>
+                        )}
+                      </div>
+                      
+                      {editingNotesId === lead.id ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={notesText}
+                            onChange={(e) => setNotesText(e.target.value)}
+                            placeholder="Add notes about this lead..."
+                            rows={4}
+                            className={`w-full p-3 rounded-lg border resize-none focus:outline-none focus:ring-2 ${
+                              isStarkMode
+                                ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
+                                : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                            }`}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleSaveNotes(lead.id)}
+                              className={`px-4 py-2 rounded text-sm font-medium transition-all hover:scale-105 ${
+                                isStarkMode
+                                  ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                                  : 'bg-cyan-600 text-white hover:bg-cyan-700'
+                              }`}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className={`px-4 py-2 rounded text-sm font-medium transition-all hover:scale-105 ${
+                                isStarkMode
+                                  ? 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
+                                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className={`mt-1 whitespace-pre-wrap ${
                           isStarkMode ? 'text-gray-300' : 'text-gray-900'
                         }`}>
-                          {lead.customNotes}
+                          {lead.customNotes || (
+                            <span className={`italic ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              No notes added yet
+                            </span>
+                          )}
                         </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
