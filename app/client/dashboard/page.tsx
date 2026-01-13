@@ -1118,10 +1118,10 @@ export default function ClientDashboard() {
 
       {/* Chat Box */}
       {chatOpen && (
-        <div className={`fixed bottom-6 right-6 z-50 w-96 h-[600px] rounded-lg shadow-2xl flex flex-col ${
+        <div className={`fixed inset-0 sm:bottom-6 sm:right-6 sm:inset-auto sm:w-96 sm:h-[600px] sm:rounded-lg z-50 shadow-2xl flex flex-col ${
           isStarkMode
-            ? 'bg-gray-800 border border-cyan-500/40'
-            : 'bg-white border-2 border-gray-300'
+            ? 'bg-gray-800 border-0 sm:border border-cyan-500/40'
+            : 'bg-white border-0 sm:border-2 border-gray-300'
         }`}>
           {/* Chat Header */}
           <div className={`flex items-center justify-between p-4 border-b ${
