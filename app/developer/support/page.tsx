@@ -6,10 +6,10 @@ import Link from 'next/link';
 
 interface Message {
   id: number;
-  senderType: string;
-  messageText: string;
-  isRead: boolean;
-  createdAt: string;
+  sender_type: string;
+  message_text: string;
+  is_read: boolean;
+  created_at: string;
 }
 
 interface Conversation {
@@ -81,7 +81,14 @@ export default function SupportPage() {
       if (data.messages) {
         const conversation = conversations.find(c => c.clientId === clientId);
         if (conversation) {
-          conversation.messages = data.messages;
+          // Update messages with proper structure
+          conversation.messages = data.messages.map((msg: any) => ({
+            id: msg.id,
+            sender_type: msg.sender_type,
+            message_text: msg.message_text,
+            is_read: msg.is_read,
+            created_at: msg.created_at
+          }));
           conversation.unreadCount = 0;
           setSelectedConversation({ ...conversation });
           setConversations([...conversations]);
@@ -117,7 +124,7 @@ export default function SupportPage() {
       // Add message to local state
       if (selectedConversation) {
         selectedConversation.messages.push(data.message);
-        selectedConversation.lastMessageAt = data.message.created_at;
+        selectedConversation.lastMessageAt = data.message.created_at || data.message.createdAt;
         setSelectedConversation({ ...selectedConversation });
         setNewMessage('');
         
@@ -359,24 +366,24 @@ export default function SupportPage() {
                         key={msg.id}
                         className={`flex ${msg.senderType === 'developer' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                          msg.senderType === 'developer'
-                            ? isStarkMode
-                              ? 'bg-cyan-500 text-black'
-                              : 'bg-gray-900 text-white'
-                            : isStarkMode
-                              ? 'bg-gray-700 text-white'
-                              : 'bg-gray-100 text-gray-900'
+                      <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                        msg.sender_type === 'developer'
+                          ? isStarkMode
+                            ? 'bg-cyan-500 text-black'
+                            : 'bg-gray-900 text-white'
+                          : isStarkMode
+                            ? 'bg-gray-700 text-white'
+                            : 'bg-gray-100 text-gray-900'
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap">{msg.message_text}</p>
+                        <p className={`text-xs mt-1 ${
+                          msg.sender_type === 'developer'
+                            ? isStarkMode ? 'text-gray-800' : 'text-gray-300'
+                            : isStarkMode ? 'text-gray-400' : 'text-gray-500'
                         }`}>
-                          <p className="text-sm whitespace-pre-wrap">{msg.messageText}</p>
-                          <p className={`text-xs mt-1 ${
-                            msg.senderType === 'developer'
-                              ? isStarkMode ? 'text-gray-800' : 'text-gray-300'
-                              : isStarkMode ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
                       </div>
                     ))}
                   </div>
