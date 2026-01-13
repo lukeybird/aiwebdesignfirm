@@ -591,12 +591,39 @@ export default function Home() {
 
               {/* Form */}
               <form 
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  // Form submission will be handled by 3rd party service later
-                  console.log('Form submitted:', formData);
-                  // For now, just close the form
-                  setIsFormOpen(false);
+                  
+                  try {
+                    const response = await fetch('/api/contact', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify(formData),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                      // Success - show success message and reset form
+                      alert('Thank you! Your demo request has been submitted successfully.');
+                      setFormData({
+                        fullName: '',
+                        phone: '',
+                        email: '',
+                        competitorSites: '',
+                        notes: '',
+                      });
+                      setIsFormOpen(false);
+                    } else {
+                      // Error - show error message
+                      alert(data.error || 'Failed to submit form. Please try again.');
+                    }
+                  } catch (error) {
+                    console.error('Form submission error:', error);
+                    alert('An error occurred. Please try again later.');
+                  }
                 }}
                 className="space-y-6"
               >
