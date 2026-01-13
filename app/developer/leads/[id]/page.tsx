@@ -323,13 +323,15 @@ export default function LeadProfilePage() {
             </div>
             <button
               onClick={handleDeleteLead}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 ${
+              className={`px-3 py-2 rounded-full text-lg transition-all hover:scale-105 ${
                 isStarkMode
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
                   : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
               }`}
+              aria-label="Delete Lead"
+              title="Delete Lead"
             >
-              Delete Lead
+              🗑️
             </button>
           </div>
 
