@@ -30,6 +30,17 @@ export async function POST(request: NextRequest) {
       const { Resend } = await import('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
 
+      const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+      const toEmail = process.env.TO_EMAIL || 'contact@aiwebdesignfirm.com';
+
+      // Log configuration (without exposing full API key)
+      console.log('Resend configuration:', {
+        hasApiKey: !!process.env.RESEND_API_KEY,
+        apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) + '...',
+        fromEmail,
+        toEmail,
+      });
+
       const emailContent = `
         New Demo Request from ${fullName}
         
@@ -44,34 +55,58 @@ export async function POST(request: NextRequest) {
         Submitted at: ${new Date().toLocaleString()}
       `;
 
-      const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
-        to: process.env.TO_EMAIL || 'contact@aiwebdesignfirm.com',
-        subject: `New Demo Request from ${fullName}`,
-        text: emailContent,
-        html: `
-          <h2>New Demo Request</h2>
-          <p><strong>Name:</strong> ${fullName}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Phone:</strong> ${phone}</p>
-          ${competitorSites ? `<p><strong>Competitor Sites:</strong> ${competitorSites}</p>` : ''}
-          ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
-          <p><em>Submitted at: ${new Date().toLocaleString()}</em></p>
-        `,
-      });
+      try {
+        const { data, error } = await resend.emails.send({
+          from: fromEmail,
+          to: toEmail,
+          subject: `New Demo Request from ${fullName}`,
+          text: emailContent,
+          html: `
+            <h2>New Demo Request</h2>
+            <p><strong>Name:</strong> ${fullName}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone}</p>
+            ${competitorSites ? `<p><strong>Competitor Sites:</strong> ${competitorSites}</p>` : ''}
+            ${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ''}
+            <p><em>Submitted at: ${new Date().toLocaleString()}</em></p>
+          `,
+        });
 
-      if (error) {
-        console.error('Resend error:', error);
+        if (error) {
+          console.error('Resend API error:', JSON.stringify(error, null, 2));
+          
+          // Provide more specific error messages
+          let errorMessage = 'Failed to send email';
+          if (error.message) {
+            errorMessage = error.message;
+          } else if (typeof error === 'object' && error !== null) {
+            errorMessage = JSON.stringify(error);
+          }
+          
+          return NextResponse.json(
+            { 
+              error: errorMessage,
+              details: 'Check Vercel function logs for more details. Common issues: Invalid API key, unverified domain, or incorrect email format.'
+            },
+            { status: 500 }
+          );
+        }
+
+        console.log('Email sent successfully:', data);
         return NextResponse.json(
-          { error: 'Failed to send email' },
+          { success: true, message: 'Form submitted successfully' },
+          { status: 200 }
+        );
+      } catch (resendError: any) {
+        console.error('Resend send error:', resendError);
+        return NextResponse.json(
+          { 
+            error: resendError?.message || 'Failed to send email',
+            details: 'Check that RESEND_API_KEY is set correctly in Vercel environment variables.'
+          },
           { status: 500 }
         );
       }
-
-      return NextResponse.json(
-        { success: true, message: 'Form submitted successfully' },
-        { status: 200 }
-      );
     }
 
     // Option 2: Using Nodemailer with SMTP (Gmail, SendGrid, etc.)
@@ -105,8 +140,8 @@ export async function POST(request: NextRequest) {
     }
     */
 
-    // If no email service is configured, just log the data
-    // In production, you should always have an email service configured
+    // If no email service is configured
+    console.error('No email service configured! RESEND_API_KEY is missing.');
     console.log('Form submission (no email service configured):', {
       fullName,
       email,
@@ -117,11 +152,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { 
-        success: true, 
-        message: 'Form submitted (logged only - configure email service for production)',
-        warning: 'No email service configured. Form data was logged to console only.'
+        error: 'Email service not configured',
+        message: 'RESEND_API_KEY environment variable is missing. Please add it to Vercel environment variables.',
+        details: 'Go to Vercel Dashboard → Settings → Environment Variables and add RESEND_API_KEY'
       },
-      { status: 200 }
+      { status: 500 }
     );
   } catch (error) {
     console.error('Form submission error:', error);

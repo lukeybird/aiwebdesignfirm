@@ -617,8 +617,11 @@ export default function Home() {
                       });
                       setIsFormOpen(false);
                     } else {
-                      // Error - show error message
-                      alert(data.error || 'Failed to submit form. Please try again.');
+                      // Error - show detailed error message
+                      const errorMsg = data.error || 'Failed to submit form. Please try again.';
+                      const details = data.details ? `\n\n${data.details}` : '';
+                      alert(`${errorMsg}${details}`);
+                      console.error('Form submission error:', data);
                     }
                   } catch (error) {
                     console.error('Form submission error:', error);
