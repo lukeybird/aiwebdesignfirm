@@ -751,7 +751,15 @@ export default function ClientDashboard() {
                   >
                     {/* Image Preview or File Icon */}
                     <div 
-                      className="aspect-square relative bg-gray-800"
+                      className={`aspect-square relative bg-gray-800 ${
+                        isImageFile(file.type) ? 'cursor-pointer' : ''
+                      }`}
+                      onClick={() => {
+                        if (isImageFile(file.type)) {
+                          const fileIndex = files.findIndex(f => f.id === file.id);
+                          openGallery(fileIndex);
+                        }
+                      }}
                     >
                       {isImageFile(file.type) ? (
                         <img
