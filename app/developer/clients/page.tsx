@@ -27,6 +27,7 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showAccountInfo, setShowAccountInfo] = useState(false);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -295,9 +296,125 @@ export default function ClientsPage() {
                 ? 'bg-gray-800 border border-cyan-500/20' 
                 : 'bg-white border-2 border-gray-300/60'
             }`}>
-              <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {selectedClient ? `${selectedClient.fullName}'s Files` : 'Select a Client'}
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className={`text-2xl font-black ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {selectedClient ? `${selectedClient.fullName}'s Files` : 'Select a Client'}
+                </h2>
+                {selectedClient && (
+                  <button
+                    onClick={() => setShowAccountInfo(!showAccountInfo)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                      isStarkMode
+                        ? showAccountInfo
+                          ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                          : 'bg-gray-700 text-white hover:bg-gray-600 border border-cyan-500/20'
+                        : showAccountInfo
+                          ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                          : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300/60'
+                    }`}
+                  >
+                    {showAccountInfo ? 'Hide Info' : 'View Account Info'}
+                  </button>
+                )}
+              </div>
+
+              {/* Account Information Section */}
+              {selectedClient && showAccountInfo && (
+                <div className={`mb-6 p-6 rounded-lg border ${
+                  isStarkMode
+                    ? 'bg-gray-900 border-cyan-500/30'
+                    : 'bg-gray-50 border-gray-300/60'
+                }`}>
+                  <h3 className={`text-xl font-black mb-4 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Account Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className={`font-medium block mb-1 ${
+                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                      }`}>
+                        Full Name:
+                      </span>
+                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {selectedClient.fullName || 'Not provided'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className={`font-medium block mb-1 ${
+                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                      }`}>
+                        Email:
+                      </span>
+                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {selectedClient.email}
+                      </span>
+                    </div>
+                    <div>
+                      <span className={`font-medium block mb-1 ${
+                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                      }`}>
+                        Phone Number:
+                      </span>
+                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {(selectedClient as any).phone || 'Not provided'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className={`font-medium block mb-1 ${
+                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                      }`}>
+                        Business Name:
+                      </span>
+                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {(selectedClient as any).businessName || 'Not provided'}
+                      </span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className={`font-medium block mb-1 ${
+                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                      }`}>
+                        Business Address:
+                      </span>
+                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {(selectedClient as any).businessAddress || 'Not provided'}
+                      </span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className={`font-medium block mb-1 ${
+                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                      }`}>
+                        Business Website:
+                      </span>
+                      {(selectedClient as any).businessWebsite ? (
+                        <a
+                          href={(selectedClient as any).businessWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`underline hover:opacity-80 ${
+                            isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                          }`}
+                        >
+                          {(selectedClient as any).businessWebsite}
+                        </a>
+                      ) : (
+                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                          Not provided
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className={`font-medium block mb-1 ${
+                        isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                      }`}>
+                        Account Created:
+                      </span>
+                      <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {new Date(selectedClient.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {!selectedClient ? (
                 <div className={`text-center py-12 ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
