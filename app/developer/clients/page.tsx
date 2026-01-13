@@ -1225,33 +1225,17 @@ export default function ClientsPage() {
       {/* Toast Notification */}
       {toastMessage && (
         <div 
-          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-in slide-in-from-right fade-in duration-300 ${
             isStarkMode
               ? 'bg-gray-800 border border-cyan-500/40 text-white'
               : 'bg-white border-2 border-gray-300 text-gray-900'
           }`}
-          style={{
-            animation: 'slideIn 0.3s ease-out',
-          }}
         >
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">{toastMessage}</span>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
     </main>
   );
 }
