@@ -23,8 +23,10 @@ interface ClientFile {
 export default function ClientsPage() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
+  const [allClients, setAllClients] = useState<Client[]>([]); // Store all clients for filtering
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -62,6 +64,7 @@ export default function ClientsPage() {
           parsedClients.sort((a: Client, b: Client) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
+          setAllClients(parsedClients);
           setClients(parsedClients);
         } catch (error) {
           console.error('Error parsing clients:', error);
@@ -69,6 +72,22 @@ export default function ClientsPage() {
       }
     }
   }, []);
+
+  // Filter clients based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setClients(allClients);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = allClients.filter((client) => {
+      const nameMatch = client.fullName.toLowerCase().includes(query);
+      const emailMatch = client.email.toLowerCase().includes(query);
+      return nameMatch || emailMatch;
+    });
+    setClients(filtered);
+  }, [searchQuery, allClients]);
 
   // Load files for selected client
   useEffect(() => {
@@ -214,9 +233,24 @@ export default function ClientsPage() {
                 ? 'bg-gray-800 border border-cyan-500/20' 
                 : 'bg-white border-2 border-gray-300/60'
             }`}>
-              <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <h2 className={`text-2xl font-black mb-4 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Client Accounts ({clients.length})
               </h2>
+
+              {/* Search Bar */}
+              <div className="mb-6">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 transition-all ${
+                    isStarkMode
+                      ? 'bg-gray-900 border-cyan-500/40 text-white placeholder-gray-500 focus:ring-cyan-500/50'
+                      : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-cyan-500/50'
+                  }`}
+                />
+              </div>
 
               {clients.length === 0 ? (
                 <div className={`text-center py-12 ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
