@@ -759,89 +759,192 @@ export default function ClientsPage() {
                     </form>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <span className={`font-medium block mb-1 ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Full Name:
-                        </span>
-                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                          {selectedClient.fullName || 'Not provided'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className={`font-medium block mb-1 ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Email:
-                        </span>
-                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                          {selectedClient.email}
-                        </span>
-                      </div>
-                      <div>
-                        <span className={`font-medium block mb-1 ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Phone Number:
-                        </span>
-                        {(selectedClient as any).phone ? (
-                          <a
-                            href={`tel:${getCleanPhoneNumber((selectedClient as any).phone)}`}
-                            className={`underline hover:opacity-80 ${
-                              isStarkMode ? 'text-cyan-300' : 'text-blue-600'
-                            }`}
-                          >
-                            {formatPhoneNumber((selectedClient as any).phone)}
-                          </a>
-                        ) : (
-                          <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                            Not provided
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className={`font-medium block mb-1 ${
+                            isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                          }`}>
+                            Full Name:
                           </span>
-                        )}
-                      </div>
-                      <div>
-                        <span className={`font-medium block mb-1 ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Business Name:
-                        </span>
-                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                          {(selectedClient as any).businessName || 'Not provided'}
-                        </span>
-                      </div>
-                      <div className="md:col-span-2">
-                        <span className={`font-medium block mb-1 ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Business Address:
-                        </span>
-                        <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                          {(selectedClient as any).businessAddress || 'Not provided'}
-                        </span>
-                      </div>
-                      <div className="md:col-span-2">
-                        <span className={`font-medium block mb-1 ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Business Website:
-                        </span>
-                        {(selectedClient as any).businessWebsite ? (
-                          <a
-                            href={(selectedClient as any).businessWebsite}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`underline hover:opacity-80 ${
-                              isStarkMode ? 'text-cyan-300' : 'text-blue-600'
-                            }`}
-                          >
-                            {(selectedClient as any).businessWebsite}
-                          </a>
-                        ) : (
                           <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                            Not provided
+                            {selectedClient.fullName || 'Not provided'}
                           </span>
-                        )}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const text = selectedClient.fullName || 'Not provided';
+                            navigator.clipboard.writeText(text);
+                            alert('Copied to clipboard!');
+                          }}
+                          className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
+                            isStarkMode
+                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                          }`}
+                          title="Copy"
+                        >
+                          📋
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className={`font-medium block mb-1 ${
+                            isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                          }`}>
+                            Email:
+                          </span>
+                          <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                            {selectedClient.email}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedClient.email);
+                            alert('Copied to clipboard!');
+                          }}
+                          className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
+                            isStarkMode
+                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                          }`}
+                          title="Copy"
+                        >
+                          📋
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className={`font-medium block mb-1 ${
+                            isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                          }`}>
+                            Phone Number:
+                          </span>
+                          {(selectedClient as any).phone ? (
+                            <a
+                              href={`tel:${getCleanPhoneNumber((selectedClient as any).phone)}`}
+                              className={`underline hover:opacity-80 ${
+                                isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                              }`}
+                            >
+                              {formatPhoneNumber((selectedClient as any).phone)}
+                            </a>
+                          ) : (
+                            <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                              Not provided
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const text = (selectedClient as any).phone 
+                              ? formatPhoneNumber((selectedClient as any).phone)
+                              : 'Not provided';
+                            navigator.clipboard.writeText(text);
+                            alert('Copied to clipboard!');
+                          }}
+                          className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
+                            isStarkMode
+                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                          }`}
+                          title="Copy"
+                        >
+                          📋
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className={`font-medium block mb-1 ${
+                            isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                          }`}>
+                            Business Name:
+                          </span>
+                          <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                            {(selectedClient as any).businessName || 'Not provided'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const text = (selectedClient as any).businessName || 'Not provided';
+                            navigator.clipboard.writeText(text);
+                            alert('Copied to clipboard!');
+                          }}
+                          className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
+                            isStarkMode
+                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                          }`}
+                          title="Copy"
+                        >
+                          📋
+                        </button>
+                      </div>
+                      <div className="md:col-span-2 flex items-center justify-between">
+                        <div>
+                          <span className={`font-medium block mb-1 ${
+                            isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                          }`}>
+                            Business Address:
+                          </span>
+                          <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                            {(selectedClient as any).businessAddress || 'Not provided'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const text = (selectedClient as any).businessAddress || 'Not provided';
+                            navigator.clipboard.writeText(text);
+                            alert('Copied to clipboard!');
+                          }}
+                          className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
+                            isStarkMode
+                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                          }`}
+                          title="Copy"
+                        >
+                          📋
+                        </button>
+                      </div>
+                      <div className="md:col-span-2 flex items-center justify-between">
+                        <div>
+                          <span className={`font-medium block mb-1 ${
+                            isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                          }`}>
+                            Business Website:
+                          </span>
+                          {(selectedClient as any).businessWebsite ? (
+                            <a
+                              href={(selectedClient as any).businessWebsite}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`underline hover:opacity-80 ${
+                                isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                              }`}
+                            >
+                              {(selectedClient as any).businessWebsite}
+                            </a>
+                          ) : (
+                            <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                              Not provided
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const text = (selectedClient as any).businessWebsite || 'Not provided';
+                            navigator.clipboard.writeText(text);
+                            alert('Copied to clipboard!');
+                          }}
+                          className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
+                            isStarkMode
+                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                          }`}
+                          title="Copy"
+                        >
+                          📋
+                        </button>
                       </div>
                       <div>
                         <span className={`font-medium block mb-1 ${

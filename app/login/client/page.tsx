@@ -280,7 +280,7 @@ export default function ClientLogin() {
                       ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
                       : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
                   }`}
-                  placeholder="your@email.com"
+                  placeholder="example@aiwebdesignfirm.com"
                 />
               </div>
 
