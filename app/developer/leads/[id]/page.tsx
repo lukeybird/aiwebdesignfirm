@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 
+interface Note {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 interface Lead {
   id: string;
   listingLink: string;
@@ -15,7 +21,8 @@ interface Lead {
   ownerPhone?: string;
   hasLogo?: number;
   hasGoodPhotos?: number;
-  customNotes?: string;
+  customNotes?: string; // Legacy field for migration
+  notes?: Note[]; // New array of notes
   createdAt: string;
 }
 
@@ -25,8 +32,9 @@ export default function LeadProfilePage() {
   const leadId = params?.id as string;
   
   const [lead, setLead] = useState<Lead | null>(null);
-  const [notesText, setNotesText] = useState<string>('');
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [newNoteText, setNewNoteText] = useState<string>('');
+  const [isAddingNote, setIsAddingNote] = useState(false);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -62,8 +70,23 @@ export default function LeadProfilePage() {
           const parsedLeads = JSON.parse(storedLeads);
           const foundLead = parsedLeads.find((l: Lead) => l.id === leadId);
           if (foundLead) {
+            // Migrate legacy customNotes to notes array if needed
+            if (foundLead.customNotes && !foundLead.notes) {
+              foundLead.notes = [{
+                id: `note-${Date.now()}`,
+                text: foundLead.customNotes,
+                createdAt: new Date().toISOString()
+              }];
+              // Remove legacy field
+              delete foundLead.customNotes;
+              // Update in localStorage
+              const updatedLeads = parsedLeads.map((l: Lead) => 
+                l.id === leadId ? foundLead : l
+              );
+              localStorage.setItem('leads', JSON.stringify(updatedLeads));
+            }
             setLead(foundLead);
-            setNotesText(foundLead.customNotes || '');
+            setNotes(foundLead.notes || []);
           } else {
             // Lead not found, redirect to leads list
             router.push('/developer/leads');
@@ -98,28 +121,56 @@ export default function LeadProfilePage() {
     }
   };
 
-  const handleSaveNotes = () => {
-    if (typeof window !== 'undefined' && lead) {
+  const handleAddNote = () => {
+    if (typeof window !== 'undefined' && lead && newNoteText.trim()) {
+      const newNote: Note = {
+        id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        text: newNoteText.trim(),
+        createdAt: new Date().toISOString()
+      };
+      
+      const updatedNotes = [...notes, newNote];
+      setNotes(updatedNotes);
+      
       const storedLeads = localStorage.getItem('leads');
       if (storedLeads) {
         const parsedLeads = JSON.parse(storedLeads);
         const updatedLeads = parsedLeads.map((l: Lead) => 
           l.id === lead.id 
-            ? { ...l, customNotes: notesText }
+            ? { ...l, notes: updatedNotes }
             : l
         );
         localStorage.setItem('leads', JSON.stringify(updatedLeads));
-        setLead({ ...lead, customNotes: notesText });
-        setIsEditingNotes(false);
+        setLead({ ...lead, notes: updatedNotes });
+      }
+      
+      setNewNoteText('');
+      setIsAddingNote(false);
+    }
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    if (typeof window !== 'undefined' && lead && confirm('Are you sure you want to delete this note?')) {
+      const updatedNotes = notes.filter(note => note.id !== noteId);
+      setNotes(updatedNotes);
+      
+      const storedLeads = localStorage.getItem('leads');
+      if (storedLeads) {
+        const parsedLeads = JSON.parse(storedLeads);
+        const updatedLeads = parsedLeads.map((l: Lead) => 
+          l.id === lead.id 
+            ? { ...l, notes: updatedNotes }
+            : l
+        );
+        localStorage.setItem('leads', JSON.stringify(updatedLeads));
+        setLead({ ...lead, notes: updatedNotes });
       }
     }
   };
 
-  const handleCancelEdit = () => {
-    if (lead) {
-      setNotesText(lead.customNotes || '');
-      setIsEditingNotes(false);
-    }
+  const handleCancelAdd = () => {
+    setNewNoteText('');
+    setIsAddingNote(false);
   };
 
   if (!lead) {
