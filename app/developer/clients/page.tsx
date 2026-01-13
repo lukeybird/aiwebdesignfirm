@@ -790,7 +790,7 @@ export default function ClientsPage() {
                           <div className={`px-3 py-1 rounded text-xs font-medium ${
                             isStarkMode ? 'bg-cyan-500 text-black' : 'bg-white text-gray-900'
                           }`}>
-                            View
+                            Download
                           </div>
                         </div>
                       </div>
@@ -803,9 +803,24 @@ export default function ClientsPage() {
                         >
                           {file.name}
                         </h3>
-                        <p className={`text-xs ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                        <p className={`text-xs mb-2 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                           {formatFileSize(file.size)}
                         </p>
+                        {/* Download Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadFile(file);
+                          }}
+                          className={`w-full px-2 py-1 rounded text-xs font-medium transition-all ${
+                            isStarkMode
+                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                          }`}
+                          title="Download"
+                        >
+                          ⬇️ Download
+                        </button>
                       </div>
                     </div>
                   ))}

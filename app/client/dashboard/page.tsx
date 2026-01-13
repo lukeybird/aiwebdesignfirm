@@ -635,7 +635,7 @@ export default function ClientDashboard() {
                         <div className={`px-3 py-1 rounded text-xs font-medium ${
                           isStarkMode ? 'bg-cyan-500 text-black' : 'bg-white text-gray-900'
                         }`}>
-                          Click to View
+                          {isImageFile(file.type) ? 'Click to Download' : 'Click to View'}
                         </div>
                       </div>
                     </div>
