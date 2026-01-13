@@ -221,39 +221,43 @@ export default function LeadsPage() {
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className={`text-lg font-bold mb-1 ${
-                            isStarkMode ? 'text-white' : 'text-gray-900'
-                          }`}>
-                            {lead.businessName || 'Unnamed Business'}
-                          </h3>
-                          {lastNote && (
-                            <div className="mt-2">
-                              <p className={`text-sm truncate ${
-                                isStarkMode ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
-                                {lastNote.text}
-                              </p>
-                              <p className={`text-xs mt-1 ${
-                                isStarkMode ? 'text-gray-500' : 'text-gray-500'
-                              }`}>
-                                {new Date(lastNote.createdAt).toLocaleString()}
-                              </p>
-                            </div>
-                          )}
-                          {hasLegacyNote && (
-                            <div className="mt-2">
-                              <p className={`text-sm truncate ${
-                                isStarkMode ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
-                                {lead.customNotes}
-                              </p>
-                              <p className={`text-xs mt-1 ${
-                                isStarkMode ? 'text-gray-500' : 'text-gray-500'
-                              }`}>
-                                Legacy note
-                              </p>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h3 className={`text-lg font-bold ${
+                              isStarkMode ? 'text-white' : 'text-gray-900'
+                            }`}>
+                              {lead.businessName || 'Unnamed Business'}
+                            </h3>
+                            {lastNote && (
+                              <>
+                                <span className={`${isStarkMode ? 'text-gray-600' : 'text-gray-400'}`}>|</span>
+                                <span className={`text-sm ${
+                                  isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {lastNote.text}
+                                </span>
+                                <span className={`text-sm italic ${
+                                  isStarkMode ? 'text-gray-500' : 'text-gray-500'
+                                }`}>
+                                  ({new Date(lastNote.createdAt).toLocaleString()})
+                                </span>
+                              </>
+                            )}
+                            {hasLegacyNote && (
+                              <>
+                                <span className={`${isStarkMode ? 'text-gray-600' : 'text-gray-400'}`}>|</span>
+                                <span className={`text-sm ${
+                                  isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {lead.customNotes}
+                                </span>
+                                <span className={`text-sm italic ${
+                                  isStarkMode ? 'text-gray-500' : 'text-gray-500'
+                                }`}>
+                                  (Legacy note)
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                         <Link
                           href={`/developer/leads/${lead.id}`}
