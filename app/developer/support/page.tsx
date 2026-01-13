@@ -123,8 +123,16 @@ export default function SupportPage() {
 
       // Add message to local state
       if (selectedConversation) {
-        selectedConversation.messages.push(data.message);
-        selectedConversation.lastMessageAt = data.message.created_at || data.message.createdAt;
+        // Normalize message structure
+        const normalizedMessage = {
+          id: data.message.id,
+          sender_type: data.message.sender_type || data.message.senderType,
+          message_text: data.message.message_text || data.message.messageText,
+          is_read: data.message.is_read !== undefined ? data.message.is_read : data.message.isRead,
+          created_at: data.message.created_at || data.message.createdAt
+        };
+        selectedConversation.messages.push(normalizedMessage);
+        selectedConversation.lastMessageAt = normalizedMessage.created_at;
         setSelectedConversation({ ...selectedConversation });
         setNewMessage('');
         
