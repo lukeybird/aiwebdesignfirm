@@ -22,14 +22,14 @@ export async function POST(request: NextRequest) {
       WHERE email = ${email}
     `;
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'Account not found. Please create an account first.' },
         { status: 404 }
       );
     }
 
-    const client = result.rows[0];
+    const client = result[0];
 
     // Verify password
     const isValid = await bcrypt.compare(password, client.password_hash);

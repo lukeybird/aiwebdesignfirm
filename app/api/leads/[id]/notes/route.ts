@@ -28,9 +28,9 @@ export async function POST(
     return NextResponse.json({
       success: true,
       note: {
-        id: `note-${result.rows[0].id}`,
-        text: result.rows[0].text,
-        createdAt: result.rows[0].created_at
+        id: `note-${result[0].id}`,
+        text: result[0].text,
+        createdAt: result[0].created_at
       }
     });
   } catch (error: any) {

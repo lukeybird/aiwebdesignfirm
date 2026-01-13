@@ -14,14 +14,14 @@ export async function GET(
       SELECT * FROM leads WHERE id = ${leadId}
     `;
 
-    if (leadResult.rows.length === 0) {
+    if (leadResult.length === 0) {
       return NextResponse.json(
         { error: 'Lead not found' },
         { status: 404 }
       );
     }
 
-    const lead = leadResult.rows[0];
+    const lead = leadResult[0];
 
     // Get notes
     const notesResult = await sql`
@@ -31,7 +31,7 @@ export async function GET(
       ORDER BY created_at DESC
     `;
 
-    const notes = notesResult.rows.map(note => ({
+    const notes = notesResult.map(note => ({
       id: `note-${note.id}`,
       text: note.text,
       createdAt: note.created_at

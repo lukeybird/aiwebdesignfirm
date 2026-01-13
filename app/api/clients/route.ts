@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       ORDER BY created_at DESC
     `;
     
-    return NextResponse.json({ clients: clients.rows });
+    return NextResponse.json({ clients });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message },
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       SELECT id FROM clients WHERE email = ${email}
     `;
 
-    if (existing.rows.length > 0) {
+    if (existing.length > 0) {
       return NextResponse.json(
         { error: 'An account with this email already exists' },
         { status: 400 }
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      client: result.rows[0] 
+      client: result[0] 
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -92,7 +92,7 @@ export async function PUT(request: NextRequest) {
       RETURNING id, email, full_name, phone, business_name, business_address, business_website
     `;
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'Client not found' },
         { status: 404 }
@@ -101,7 +101,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      client: result.rows[0] 
+      client: result[0] 
     });
   } catch (error: any) {
     return NextResponse.json(

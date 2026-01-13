@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       ORDER BY uploaded_at DESC
     `;
 
-    return NextResponse.json({ files: files.rows });
+    return NextResponse.json({ files });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message },
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      file: result.rows[0] 
+      file: result[0] 
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -87,7 +87,7 @@ export async function DELETE(request: NextRequest) {
       SELECT blob_url FROM client_files WHERE id = ${fileId} AND client_id = ${clientId}
     `;
 
-    if (fileResult.rows.length === 0) {
+    if (fileResult.length === 0) {
       return NextResponse.json(
         { error: 'File not found' },
         { status: 404 }
@@ -128,7 +128,7 @@ export async function PUT(request: NextRequest) {
       RETURNING id, file_name
     `;
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'File not found' },
         { status: 404 }
@@ -137,7 +137,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      file: result.rows[0] 
+      file: result[0] 
     });
   } catch (error: any) {
     return NextResponse.json(

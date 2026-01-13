@@ -25,7 +25,7 @@ export async function GET() {
     `;
 
     // Transform notes from array to proper format
-    const formattedLeads = leads.rows.map(lead => ({
+    const formattedLeads = leads.map(lead => ({
       id: lead.id.toString(),
       listingLink: lead.listing_link,
       businessPhone: lead.business_phone,
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
                 has_good_photos, created_at
     `;
 
-    const lead = result.rows[0];
+    const lead = result[0];
 
     // If there's a legacy customNotes, create a note
     if (customNotes) {
