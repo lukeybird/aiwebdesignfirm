@@ -679,6 +679,7 @@ export default function ClientDashboard() {
                 <input
                   type="file"
                   multiple
+                  accept="image/*,.heic,.heif"
                   onChange={handleFileUpload}
                   disabled={isUploading}
                   className="hidden"
