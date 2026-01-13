@@ -427,29 +427,29 @@ export default function LeadProfilePage() {
               <h2 className={`text-2xl font-black ${
                 isStarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                Notes
+                Notes ({notes.length})
               </h2>
-              {!isEditingNotes && (
+              {!isAddingNote && (
                 <button
-                  onClick={() => setIsEditingNotes(true)}
+                  onClick={() => setIsAddingNote(true)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 ${
                     isStarkMode
                       ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
                       : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
                   }`}
                 >
-                  {lead.customNotes ? 'Edit Notes' : 'Add Notes'}
+                  Add Note
                 </button>
               )}
             </div>
 
-            {isEditingNotes ? (
-              <div className="space-y-4">
+            {isAddingNote && (
+              <div className="mb-6 space-y-3">
                 <textarea
-                  value={notesText}
-                  onChange={(e) => setNotesText(e.target.value)}
-                  placeholder="Add notes about this lead..."
-                  rows={8}
+                  value={newNoteText}
+                  onChange={(e) => setNewNoteText(e.target.value)}
+                  placeholder="Add a new note..."
+                  rows={4}
                   className={`w-full p-4 rounded-lg border resize-none focus:outline-none focus:ring-2 ${
                     isStarkMode
                       ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
@@ -458,17 +458,17 @@ export default function LeadProfilePage() {
                 />
                 <div className="flex gap-3">
                   <button
-                    onClick={handleSaveNotes}
+                    onClick={handleAddNote}
                     className={`px-6 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 ${
                       isStarkMode
                         ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
                         : 'bg-cyan-600 text-white hover:bg-cyan-700'
                     }`}
                   >
-                    Save Notes
+                    Add Note
                   </button>
                   <button
-                    onClick={handleCancelEdit}
+                    onClick={handleCancelAdd}
                     className={`px-6 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 ${
                       isStarkMode
                         ? 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
@@ -479,19 +479,54 @@ export default function LeadProfilePage() {
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className={`p-4 rounded-lg ${
+            )}
+
+            {/* Notes List */}
+            {notes.length === 0 ? (
+              <div className={`p-4 rounded-lg text-center ${
                 isStarkMode ? 'bg-gray-900' : 'bg-gray-50'
               }`}>
-                <p className={`whitespace-pre-wrap ${
-                  isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                }`}>
-                  {lead.customNotes || (
-                    <span className={`italic ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                      No notes added yet. Click "Add Notes" to add notes about this lead.
-                    </span>
-                  )}
+                <p className={`italic ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                  No notes added yet. Click "Add Note" to add your first note.
                 </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`p-4 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/20'
+                        : 'bg-gray-50 border-gray-300/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className={`whitespace-pre-wrap ${
+                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
+                        }`}>
+                          {note.text}
+                        </p>
+                        <p className={`text-xs mt-2 ${
+                          isStarkMode ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          {new Date(note.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteNote(note.id)}
+                        className={`px-3 py-1 rounded text-xs font-medium transition-all hover:scale-105 flex-shrink-0 ${
+                          isStarkMode
+                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
+                            : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                        }`}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
