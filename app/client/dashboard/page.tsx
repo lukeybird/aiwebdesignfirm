@@ -292,6 +292,16 @@ export default function ClientDashboard() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  // Storage limit: 0.1GB = 100MB
+  const STORAGE_LIMIT = 100 * 1024 * 1024; // 100MB in bytes
+
+  // Calculate total storage used
+  const totalStorageUsed = files.reduce((sum, file) => sum + file.size, 0);
+  const storageUsedMB = totalStorageUsed / (1024 * 1024);
+  const storageLimitMB = STORAGE_LIMIT / (1024 * 1024);
+  const storagePercentage = (totalStorageUsed / STORAGE_LIMIT) * 100;
+  const storageRemaining = STORAGE_LIMIT - totalStorageUsed;
+
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('clientAuth');
@@ -612,9 +622,70 @@ export default function ClientDashboard() {
               ? 'bg-gray-800 border border-cyan-500/20' 
               : 'bg-white border-2 border-gray-300/60'
           }`}>
-            <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Your Files ({files.length})
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-2xl font-black ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Your Files ({files.length})
+              </h2>
+              {/* Storage Usage */}
+              <div className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <div className="flex items-center gap-2">
+                  <span>Storage:</span>
+                  <span className={`font-medium ${
+                    storagePercentage >= 90 
+                      ? 'text-red-400' 
+                      : storagePercentage >= 75 
+                        ? 'text-yellow-400' 
+                        : isStarkMode 
+                          ? 'text-cyan-400' 
+                          : 'text-gray-900'
+                  }`}>
+                    {storageUsedMB.toFixed(2)} MB / {storageLimitMB} MB
+                  </span>
+                  <span className="text-xs">
+                    ({storagePercentage.toFixed(1)}%)
+                  </span>
+                </div>
+                {/* Storage Bar */}
+                <div className={`w-48 h-2 rounded-full mt-1 ${
+                  isStarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                }`}>
+                  <div 
+                    className={`h-full rounded-full transition-all ${
+                      storagePercentage >= 90 
+                        ? 'bg-red-500' 
+                        : storagePercentage >= 75 
+                          ? 'bg-yellow-500' 
+                          : 'bg-cyan-500'
+                    }`}
+                    style={{ width: `${Math.min(storagePercentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {storagePercentage >= 100 && (
+              <div className={`mb-4 p-3 rounded-lg ${
+                isStarkMode 
+                  ? 'bg-red-500/20 border border-red-500/40 text-red-400' 
+                  : 'bg-red-50 border border-red-200 text-red-600'
+              }`}>
+                <p className="text-sm font-medium">
+                  ⚠️ Storage limit reached. Please delete some files to upload new ones.
+                </p>
+              </div>
+            )}
+            
+            {storagePercentage >= 90 && storagePercentage < 100 && (
+              <div className={`mb-4 p-3 rounded-lg ${
+                isStarkMode 
+                  ? 'bg-yellow-500/20 border border-yellow-500/40 text-yellow-400' 
+                  : 'bg-yellow-50 border border-yellow-200 text-yellow-600'
+              }`}>
+                <p className="text-sm font-medium">
+                  ⚠️ Storage almost full ({storagePercentage.toFixed(1)}%). Consider deleting unused files.
+                </p>
+              </div>
+            )}
 
             {files.length === 0 ? (
               <div className={`text-center py-12 ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
