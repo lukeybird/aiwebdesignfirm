@@ -149,9 +149,12 @@ export default function ClientDashboard() {
         let file = fileList[i];
         let fileName = file.name;
         
-        // Convert HEIC files to JPEG
-        if (file.type === 'image/heic' || file.type === 'image/heif' || fileName.toLowerCase().endsWith('.heic') || fileName.toLowerCase().endsWith('.heif')) {
+        // Convert HEIC files to JPEG (only on client side)
+        if (typeof window !== 'undefined' && (file.type === 'image/heic' || file.type === 'image/heif' || fileName.toLowerCase().endsWith('.heic') || fileName.toLowerCase().endsWith('.heif'))) {
           try {
+            // Dynamically import heic2any only when needed and only on client
+            const heic2any = (await import('heic2any')).default;
+            
             const convertedBlob = await heic2any({
               blob: file,
               toType: 'image/jpeg',
