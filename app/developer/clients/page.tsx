@@ -792,7 +792,7 @@ export default function ClientsPage() {
                           }`}
                           title="Copy"
                         >
-                          📋
+                          📄📄
                         </button>
                       </div>
                       <div className="flex items-center justify-between">
@@ -818,7 +818,7 @@ export default function ClientsPage() {
                           }`}
                           title="Copy"
                         >
-                          📋
+                          📄📄
                         </button>
                       </div>
                       <div className="flex items-center justify-between">
@@ -858,7 +858,7 @@ export default function ClientsPage() {
                           }`}
                           title="Copy"
                         >
-                          📋
+                          📄📄
                         </button>
                       </div>
                       <div className="flex items-center justify-between">
@@ -885,7 +885,7 @@ export default function ClientsPage() {
                           }`}
                           title="Copy"
                         >
-                          📋
+                          📄📄
                         </button>
                       </div>
                       <div className="md:col-span-2 flex items-center justify-between">
@@ -912,7 +912,7 @@ export default function ClientsPage() {
                           }`}
                           title="Copy"
                         >
-                          📋
+                          📄📄
                         </button>
                       </div>
                       <div className="md:col-span-2 flex items-center justify-between">
@@ -952,7 +952,7 @@ export default function ClientsPage() {
                           }`}
                           title="Copy"
                         >
-                          📋
+                          📄📄
                         </button>
                       </div>
                       <div>
