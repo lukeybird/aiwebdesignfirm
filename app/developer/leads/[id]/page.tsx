@@ -173,6 +173,41 @@ export default function LeadProfilePage() {
     setIsAddingNote(false);
   };
 
+  // Format phone number: +18139150092 -> +1 (813) 915-0092
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return phone;
+    
+    // Remove all non-digit characters except the leading +
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // Check if it starts with +1 (US format)
+    if (cleaned.startsWith('+1') && cleaned.length === 12) {
+      const areaCode = cleaned.substring(2, 5);
+      const firstPart = cleaned.substring(5, 8);
+      const secondPart = cleaned.substring(8, 12);
+      return `+1 (${areaCode}) ${firstPart}-${secondPart}`;
+    }
+    
+    // If it's 11 digits starting with 1 (without +)
+    if (cleaned.startsWith('1') && cleaned.length === 11) {
+      const areaCode = cleaned.substring(1, 4);
+      const firstPart = cleaned.substring(4, 7);
+      const secondPart = cleaned.substring(7, 11);
+      return `+1 (${areaCode}) ${firstPart}-${secondPart}`;
+    }
+    
+    // If it's 10 digits (assume US number without country code)
+    if (cleaned.length === 10) {
+      const areaCode = cleaned.substring(0, 3);
+      const firstPart = cleaned.substring(3, 6);
+      const secondPart = cleaned.substring(6, 10);
+      return `(${areaCode}) ${firstPart}-${secondPart}`;
+    }
+    
+    // Return original if it doesn't match expected formats
+    return phone;
+  };
+
   if (!lead) {
     return (
       <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
@@ -338,7 +373,7 @@ export default function LeadProfilePage() {
                     Business Phone:
                   </span>
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {lead.businessPhone}
+                    {formatPhoneNumber(lead.businessPhone)}
                   </span>
                 </div>
               )}
@@ -386,7 +421,7 @@ export default function LeadProfilePage() {
                     Owner Phone:
                   </span>
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {lead.ownerPhone}
+                    {formatPhoneNumber(lead.ownerPhone)}
                   </span>
                 </div>
               )}
