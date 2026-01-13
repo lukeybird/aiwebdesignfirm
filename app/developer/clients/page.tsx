@@ -40,6 +40,7 @@ export default function ClientsPage() {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [editingFileName, setEditingFileName] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -343,6 +344,14 @@ export default function ClientsPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [galleryOpen, galleryIndex, imageFiles.length]);
+
+  // Toast notification handler
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2000);
+  };
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
@@ -774,7 +783,7 @@ export default function ClientsPage() {
                           onClick={() => {
                             const text = selectedClient.fullName || 'Not provided';
                             navigator.clipboard.writeText(text);
-                            alert('Copied to clipboard!');
+                            showToast('Copied to clipboard');
                           }}
                           className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
                             isStarkMode
@@ -800,7 +809,7 @@ export default function ClientsPage() {
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(selectedClient.email);
-                            alert('Copied to clipboard!');
+                            showToast('Copied to clipboard');
                           }}
                           className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
                             isStarkMode
@@ -840,7 +849,7 @@ export default function ClientsPage() {
                               ? formatPhoneNumber((selectedClient as any).phone)
                               : 'Not provided';
                             navigator.clipboard.writeText(text);
-                            alert('Copied to clipboard!');
+                            showToast('Copied to clipboard');
                           }}
                           className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
                             isStarkMode
@@ -867,7 +876,7 @@ export default function ClientsPage() {
                           onClick={() => {
                             const text = (selectedClient as any).businessName || 'Not provided';
                             navigator.clipboard.writeText(text);
-                            alert('Copied to clipboard!');
+                            showToast('Copied to clipboard');
                           }}
                           className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
                             isStarkMode
@@ -894,7 +903,7 @@ export default function ClientsPage() {
                           onClick={() => {
                             const text = (selectedClient as any).businessAddress || 'Not provided';
                             navigator.clipboard.writeText(text);
-                            alert('Copied to clipboard!');
+                            showToast('Copied to clipboard');
                           }}
                           className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
                             isStarkMode
@@ -934,7 +943,7 @@ export default function ClientsPage() {
                           onClick={() => {
                             const text = (selectedClient as any).businessWebsite || 'Not provided';
                             navigator.clipboard.writeText(text);
-                            alert('Copied to clipboard!');
+                            showToast('Copied to clipboard');
                           }}
                           className={`ml-4 px-2 py-1 rounded text-xs font-medium transition-all ${
                             isStarkMode
