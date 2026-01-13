@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
       const { data, error } = await resend.emails.send({
         from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
-        to: process.env.TO_EMAIL || 'your-email@example.com',
+        to: process.env.TO_EMAIL || 'contact@aiwebdesignfirm.com',
         subject: `New Demo Request from ${fullName}`,
         text: emailContent,
         html: `

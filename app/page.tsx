@@ -607,7 +607,7 @@ export default function Home() {
 
                     if (response.ok) {
                       // Success - show success message and reset form
-                      alert('Thank you! Your demo request has been submitted successfully.');
+                      alert('Thank you! Your demo request has been submitted successfully. We\'ll be in touch soon!');
                       setFormData({
                         fullName: '',
                         phone: '',
