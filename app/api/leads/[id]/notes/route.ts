@@ -4,10 +4,11 @@ import { sql } from '@/lib/db';
 // POST - Add note to lead
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const leadId = params.id;
+    const { id } = await params;
+    const leadId = id;
     const body = await request.json();
     const { text } = body;
 

@@ -4,10 +4,11 @@ import { sql } from '@/lib/db';
 // GET - Get single lead with notes
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const leadId = params.id;
+    const { id } = await params;
+    const leadId = id;
 
     const leadResult = await sql`
       SELECT * FROM leads WHERE id = ${leadId}
