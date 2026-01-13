@@ -225,8 +225,9 @@ export default function DeveloperDashboard() {
           ? 'bg-black/90 border-cyan-500/20' 
           : 'bg-white/98 border-gray-300/60 shadow-lg shadow-gray-900/5'
       }`}>
-        <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-4">
-          <div className="flex items-center justify-between max-w-[2400px] mx-auto">
+        <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+          {/* First Section: Logo and Logout */}
+          <div className="flex items-center justify-between max-w-[2400px] mx-auto py-4 border-b border-opacity-20 border-current">
             <Link href="/" className="flex items-center gap-3 transition-colors hover:opacity-80">
               <img 
                 src="/blueBall.png" 
@@ -239,58 +240,56 @@ export default function DeveloperDashboard() {
                 AI Web Design Firm
               </div>
             </Link>
-            
-            {/* Developer Menu */}
-            <div className="flex items-center gap-4">
-              <Link
-                href="/developer/dashboard"
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                  isStarkMode
-                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
-                }`}
-              >
-                New Leads
-              </Link>
-              <Link
-                href="/developer/leads"
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                  isStarkMode
-                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
-                }`}
-              >
-                Lead List
-              </Link>
-              <Link
-                href="/developer/clients"
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                  isStarkMode
-                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
-                }`}
-              >
-                Clients
-              </Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleLogout}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                  isStarkMode
-                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
-                }`}
-              >
-                Logout
-              </button>
-            </div>
+            <button
+              onClick={handleLogout}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                isStarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+              }`}
+            >
+              Logout
+            </button>
+          </div>
+          
+          {/* Second Section: Developer Menu */}
+          <div className="flex items-center justify-center max-w-[2400px] mx-auto py-3 gap-4">
+            <Link
+              href="/developer/dashboard"
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                isStarkMode
+                  ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                  : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+              }`}
+            >
+              New Leads
+            </Link>
+            <Link
+              href="/developer/leads"
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                isStarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+              }`}
+            >
+              Lead List
+            </Link>
+            <Link
+              href="/developer/clients"
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                isStarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+              }`}
+            >
+              Clients
+            </Link>
           </div>
         </div>
       </nav>
 
       {/* Dashboard Content */}
-      <section className={`pt-32 pb-24 px-6 sm:px-8 lg:px-12 transition-colors duration-300 ${
+      <section className={`pt-40 pb-24 px-6 sm:px-8 lg:px-12 transition-colors duration-300 ${
         isStarkMode 
           ? 'bg-gradient-to-b from-black via-gray-900 to-black' 
           : 'bg-gradient-to-b from-white via-gray-50/50 to-white'
