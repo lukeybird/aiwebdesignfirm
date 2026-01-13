@@ -364,7 +364,7 @@ export default function SupportPage() {
                     {selectedConversation.messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`flex ${msg.senderType === 'developer' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${msg.sender_type === 'developer' ? 'justify-end' : 'justify-start'}`}
                       >
                       <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
                         msg.sender_type === 'developer'
