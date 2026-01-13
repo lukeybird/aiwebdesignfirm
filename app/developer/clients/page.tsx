@@ -36,6 +36,10 @@ export default function ClientsPage() {
     businessAddress: '',
     businessWebsite: '',
   });
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [editingFileId, setEditingFileId] = useState<string | null>(null);
+  const [editingFileName, setEditingFileName] = useState('');
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -231,6 +235,114 @@ export default function ClientsPage() {
     link.click();
     document.body.removeChild(link);
   };
+
+  // Get only image files for gallery
+  const imageFiles = clientFiles.filter(file => isImageFile(file.type));
+
+  const openGallery = (fileId: string) => {
+    const imageIndex = imageFiles.findIndex(f => f.id === fileId);
+    if (imageIndex !== -1) {
+      setGalleryIndex(imageIndex);
+      setGalleryOpen(true);
+    }
+  };
+
+  const closeGallery = () => {
+    setGalleryOpen(false);
+  };
+
+  const nextImage = () => {
+    setGalleryIndex((prev) => (prev + 1) % imageFiles.length);
+  };
+
+  const prevImage = () => {
+    setGalleryIndex((prev) => (prev - 1 + imageFiles.length) % imageFiles.length);
+  };
+
+  const handleStartRename = (file: ClientFile) => {
+    setEditingFileId(file.id);
+    setEditingFileName(file.name);
+  };
+
+  const handleSaveRename = async (fileId: string) => {
+    if (!editingFileName.trim() || !selectedClient) {
+      alert('File name cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/clients/files', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId, clientId: selectedClient.id, newName: editingFileName.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Rename failed');
+      }
+
+      // Update local state
+      const updatedFiles = clientFiles.map(f => 
+        f.id === fileId ? { ...f, name: editingFileName.trim() } : f
+      );
+      setClientFiles(updatedFiles);
+      setEditingFileId(null);
+      setEditingFileName('');
+    } catch (error: any) {
+      console.error('Error renaming file:', error);
+      alert(error.message || 'Error renaming file. Please try again.');
+    }
+  };
+
+  const handleCancelRename = () => {
+    setEditingFileId(null);
+    setEditingFileName('');
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (!selectedClient || !confirm('Are you sure you want to delete this file?')) return;
+
+    try {
+      const response = await fetch('/api/clients/files', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId, clientId: selectedClient.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Delete failed');
+      }
+
+      // Update local state
+      const updatedFiles = clientFiles.filter(f => f.id !== fileId);
+      setClientFiles(updatedFiles);
+    } catch (error: any) {
+      console.error('Error deleting file:', error);
+      alert(error.message || 'Error deleting file. Please try again.');
+    }
+  };
+
+  // Keyboard navigation for gallery
+  useEffect(() => {
+    if (!galleryOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        nextImage();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      } else if (e.key === 'Escape') {
+        closeGallery();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [galleryOpen, galleryIndex, imageFiles.length]);
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
@@ -770,8 +882,14 @@ export default function ClientsPage() {
                     >
                       {/* File Preview */}
                       <div 
-                        className="aspect-square relative bg-gray-800 cursor-pointer"
-                        onClick={() => handleDownloadFile(file)}
+                        className={`aspect-square relative bg-gray-800 ${
+                          isImageFile(file.type) ? 'cursor-pointer' : ''
+                        }`}
+                        onClick={() => {
+                          if (isImageFile(file.type)) {
+                            openGallery(file.id);
+                          }
+                        }}
                       >
                         {isImageFile(file.type) ? (
                           <img
@@ -784,43 +902,107 @@ export default function ClientsPage() {
                             <div className="text-4xl">📄</div>
                           </div>
                         )}
-                        
-                        {/* Overlay on hover */}
-                        <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
-                          <div className={`px-3 py-1 rounded text-xs font-medium ${
-                            isStarkMode ? 'bg-cyan-500 text-black' : 'bg-white text-gray-900'
-                          }`}>
-                            Download
-                          </div>
-                        </div>
                       </div>
                       
                       {/* File Info */}
                       <div className="p-2">
-                        <h3 
-                          className={`font-medium text-xs truncate mb-1 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}
-                          title={file.name}
-                        >
-                          {file.name}
-                        </h3>
-                        <p className={`text-xs mb-2 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          {formatFileSize(file.size)}
-                        </p>
-                        {/* Download Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadFile(file);
-                          }}
-                          className={`w-full px-2 py-1 rounded text-xs font-medium transition-all ${
-                            isStarkMode
-                              ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
-                              : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
-                          }`}
-                          title="Download"
-                        >
-                          ⬇️ Download
-                        </button>
+                        {editingFileId === file.id ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={editingFileName}
+                              onChange={(e) => setEditingFileName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveRename(file.id);
+                                if (e.key === 'Escape') handleCancelRename();
+                              }}
+                              autoFocus
+                              className={`w-full px-2 py-1 text-xs rounded border-2 focus:outline-none ${
+                                isStarkMode
+                                  ? 'bg-gray-800 border-cyan-500/40 text-white focus:border-cyan-500'
+                                  : 'bg-white border-gray-400 text-gray-900 focus:border-gray-900'
+                              }`}
+                            />
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleSaveRename(file.id)}
+                                className={`flex-1 px-2 py-1 text-xs rounded font-medium ${
+                                  isStarkMode
+                                    ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                                }`}
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={handleCancelRename}
+                                className={`px-2 py-1 text-xs rounded font-medium ${
+                                  isStarkMode
+                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <h3 
+                              className={`font-medium text-xs truncate mb-1 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}
+                              title={file.name}
+                            >
+                              {file.name}
+                            </h3>
+                            <p className={`text-xs mb-2 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                              {formatFileSize(file.size)}
+                            </p>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartRename(file);
+                                }}
+                                className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-all ${
+                                  isStarkMode
+                                    ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                                    : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                                }`}
+                                title="Rename"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadFile(file);
+                                }}
+                                className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                                  isStarkMode
+                                    ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                                    : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                                }`}
+                                title="Download"
+                              >
+                                ⬇️
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteFile(file.id);
+                                }}
+                                className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                                  isStarkMode
+                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                                }`}
+                                title="Delete"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
