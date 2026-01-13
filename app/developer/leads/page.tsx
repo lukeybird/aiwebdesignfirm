@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface Note {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 interface Lead {
   id: string;
   listingLink: string;
@@ -15,7 +21,8 @@ interface Lead {
   ownerPhone?: string;
   hasLogo?: number;
   hasGoodPhotos?: number;
-  customNotes?: string;
+  customNotes?: string; // Legacy field
+  notes?: Note[]; // New array of notes
   createdAt: string;
 }
 
