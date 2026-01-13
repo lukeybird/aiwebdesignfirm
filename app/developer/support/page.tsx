@@ -59,6 +59,18 @@ export default function SupportPage() {
     loadConversations();
   }, []);
 
+  // Poll for new messages when a conversation is selected
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    const interval = setInterval(() => {
+      loadConversationMessages(selectedConversation.clientId);
+      loadConversations(); // Also refresh the conversation list to update unread counts
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedConversation]);
+
   const loadConversations = async () => {
     try {
       setIsLoading(true);
@@ -131,10 +143,22 @@ export default function SupportPage() {
           is_read: data.message.is_read !== undefined ? data.message.is_read : data.message.isRead,
           created_at: data.message.created_at || data.message.createdAt
         };
-        selectedConversation.messages.push(normalizedMessage);
-        selectedConversation.lastMessageAt = normalizedMessage.created_at;
-        setSelectedConversation({ ...selectedConversation });
+        
+        const updatedConversation = {
+          ...selectedConversation,
+          messages: [...selectedConversation.messages, normalizedMessage],
+          lastMessageAt: normalizedMessage.created_at
+        };
+        
+        setSelectedConversation(updatedConversation);
         setNewMessage('');
+        
+        // Update conversations list
+        setConversations(prev => prev.map(conv => 
+          conv.clientId === selectedConversation.clientId 
+            ? updatedConversation
+            : conv
+        ));
         
         // Reload conversations to update order
         loadConversations();
@@ -146,6 +170,11 @@ export default function SupportPage() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
           }
         }, 100);
+        
+        // Reload messages to ensure we have the latest
+        setTimeout(() => {
+          loadConversationMessages(selectedConversation.clientId);
+        }, 500);
       }
     } catch (error: any) {
       console.error('Error sending message:', error);
@@ -307,6 +336,7 @@ export default function SupportPage() {
                       key={conv.clientId}
                       onClick={() => {
                         setSelectedConversation(conv);
+                        // Load messages immediately when selecting a conversation
                         loadConversationMessages(conv.clientId);
                       }}
                       className={`w-full text-left p-4 rounded-lg transition-all ${
