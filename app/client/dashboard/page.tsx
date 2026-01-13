@@ -936,13 +936,13 @@ export default function ClientDashboard() {
 
           {/* Image Display - Made larger */}
           <div 
-            className="w-full h-full flex items-center justify-center p-8"
+            className="w-full h-full flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <img
               src={imageFiles[galleryIndex].url}
               alt={imageFiles[galleryIndex].name}
-              className="max-w-[95vw] max-h-[95vh] w-auto h-auto object-contain"
+              className="max-w-[98vw] max-h-[98vh] w-auto h-auto object-contain"
             />
           </div>
 
