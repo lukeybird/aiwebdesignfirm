@@ -88,6 +88,7 @@ export default function LoginPage() {
 
             {/* Client Login Button */}
             <button
+              onClick={() => router.push('/login/client')}
               className={`rounded-xl p-12 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
                 isStarkMode 
                   ? 'bg-gray-800 border border-cyan-500/20 hover:border-cyan-500/40 hover:shadow-cyan-500/20'

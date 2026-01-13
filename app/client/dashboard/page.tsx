@@ -1,0 +1,327 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  uploadedAt: string;
+  url: string; // Base64 or blob URL
+}
+
+export default function ClientDashboard() {
+  const router = useRouter();
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Always use dark mode
+  const [isStarkMode] = useState(true);
+
+  // Set theme to dark mode in localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', 'stark');
+    }
+  }, []);
+
+  // Check authentication
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const auth = localStorage.getItem('clientAuth');
+      const authTime = localStorage.getItem('clientAuthTime');
+      const email = localStorage.getItem('clientAuthEmail');
+      
+      // Check if authenticated and session is valid (30 days)
+      if (!auth || !authTime || !email || Date.now() - parseInt(authTime) > 30 * 24 * 60 * 60 * 1000) {
+        localStorage.removeItem('clientAuth');
+        localStorage.removeItem('clientAuthEmail');
+        localStorage.removeItem('clientAuthTime');
+        router.push('/login/client');
+        return;
+      }
+
+      setClientEmail(email);
+      
+      // Get client info
+      const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+      const client = clients.find((c: any) => c.email === email);
+      if (client) {
+        setClientName(client.fullName);
+      }
+
+      // Load files for this client
+      loadFiles(email);
+    }
+  }, [router]);
+
+  const loadFiles = (email: string) => {
+    if (typeof window !== 'undefined') {
+      const clientFiles = localStorage.getItem(`clientFiles_${email}`);
+      if (clientFiles) {
+        setFiles(JSON.parse(clientFiles));
+      }
+    }
+  };
+
+  const saveFiles = (email: string, filesList: UploadedFile[]) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`clientFiles_${email}`, JSON.stringify(filesList));
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    setIsUploading(true);
+
+    try {
+      const newFiles: UploadedFile[] = [];
+
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        
+        // Convert file to base64 for storage
+        const reader = new FileReader();
+        
+        await new Promise<void>((resolve, reject) => {
+          reader.onload = (event) => {
+            const base64 = event.target?.result as string;
+            
+            const uploadedFile: UploadedFile = {
+              id: Date.now().toString() + i,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              uploadedAt: new Date().toISOString(),
+              url: base64,
+            };
+            
+            newFiles.push(uploadedFile);
+            resolve();
+          };
+          
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const updatedFiles = [...files, ...newFiles];
+      setFiles(updatedFiles);
+      saveFiles(clientEmail, updatedFiles);
+      
+      // Reset input
+      e.target.value = '';
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Error uploading files. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteFile = (fileId: string) => {
+    if (confirm('Are you sure you want to delete this file?')) {
+      const updatedFiles = files.filter(f => f.id !== fileId);
+      setFiles(updatedFiles);
+      saveFiles(clientEmail, updatedFiles);
+    }
+  };
+
+  const handleDownloadFile = (file: UploadedFile) => {
+    const link = document.createElement('a');
+    link.href = file.url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('clientAuth');
+      localStorage.removeItem('clientAuthEmail');
+      localStorage.removeItem('clientAuthTime');
+    }
+    router.push('/login/client');
+  };
+
+  return (
+    <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
+      {/* Navigation */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-colors duration-300 ${
+        isStarkMode 
+          ? 'bg-black/90 border-cyan-500/20' 
+          : 'bg-white/98 border-gray-300/60 shadow-lg shadow-gray-900/5'
+      }`}>
+        <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-4">
+          <div className="flex items-center justify-between max-w-[2400px] mx-auto">
+            <Link href="/" className="flex items-center gap-3 transition-colors hover:opacity-80">
+              <img 
+                src="/blueBall.png" 
+                alt="Logo" 
+                className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 object-contain"
+              />
+              <div className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter ${
+                isStarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                AI Web Design Firm
+              </div>
+            </Link>
+            <div className="flex items-center gap-4">
+              <div className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                {clientName || clientEmail}
+              </div>
+              <button
+                onClick={handleLogout}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                  isStarkMode
+                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+                }`}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Dashboard Content */}
+      <section className={`pt-32 pb-24 px-6 sm:px-8 lg:px-12 transition-colors duration-300 ${
+        isStarkMode 
+          ? 'bg-gradient-to-b from-black via-gray-900 to-black' 
+          : 'bg-gradient-to-b from-white via-gray-50/50 to-white'
+      }`}>
+        <div className="max-w-7xl mx-auto">
+          {/* Welcome Section */}
+          <div className="mb-12">
+            <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-black mb-4 tracking-tight ${
+              isStarkMode 
+                ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
+                : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
+            }`}>
+              Welcome, {clientName || 'Client'}
+            </h1>
+            <p className={`text-xl font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Manage your project files and assets
+            </p>
+          </div>
+
+          {/* File Upload Section */}
+          <div className={`mb-8 rounded-xl p-8 ${
+            isStarkMode 
+              ? 'bg-gray-800 border border-cyan-500/20' 
+              : 'bg-white border-2 border-gray-300/60'
+          }`}>
+            <h2 className={`text-2xl font-black mb-4 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Upload Files
+            </h2>
+            <div className="flex items-center gap-4">
+              <label
+                className={`px-6 py-3 rounded-full font-bold transition-all duration-200 hover:scale-105 cursor-pointer ${
+                  isStarkMode
+                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isUploading ? 'Uploading...' : 'Choose Files'}
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+              </label>
+              <p className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Select one or multiple files to upload
+              </p>
+            </div>
+          </div>
+
+          {/* Files List */}
+          <div className={`rounded-xl p-8 ${
+            isStarkMode 
+              ? 'bg-gray-800 border border-cyan-500/20' 
+              : 'bg-white border-2 border-gray-300/60'
+          }`}>
+            <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Your Files ({files.length})
+            </h2>
+
+            {files.length === 0 ? (
+              <div className={`text-center py-12 ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                <div className="text-6xl mb-4">📁</div>
+                <p className="text-lg">No files uploaded yet</p>
+                <p className="text-sm mt-2">Upload files to get started</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {files.map((file) => (
+                  <div
+                    key={file.id}
+                    className={`p-4 rounded-lg border transition-all hover:scale-[1.02] ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/20 hover:border-cyan-500/40'
+                        : 'bg-gray-50 border-gray-300/60 hover:border-gray-400/80'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`font-bold text-sm truncate ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {file.name}
+                        </h3>
+                        <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                          {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={() => handleDownloadFile(file)}
+                        className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-all ${
+                          isStarkMode
+                            ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                            : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                        }`}
+                      >
+                        Download
+                      </button>
+                      <button
+                        onClick={() => handleDeleteFile(file.id)}
+                        className={`px-3 py-2 rounded text-xs font-medium transition-all ${
+                          isStarkMode
+                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                            : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                        }`}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
