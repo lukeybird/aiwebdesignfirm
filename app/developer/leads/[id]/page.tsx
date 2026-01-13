@@ -61,44 +61,28 @@ export default function LeadProfilePage() {
     }
   }, [router]);
 
-  // Load lead data
+  // Load lead data from API
   useEffect(() => {
-    if (typeof window !== 'undefined' && leadId) {
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        try {
-          const parsedLeads = JSON.parse(storedLeads);
-          const foundLead = parsedLeads.find((l: Lead) => l.id === leadId);
-          if (foundLead) {
-            // Migrate legacy customNotes to notes array if needed
-            if (foundLead.customNotes && !foundLead.notes) {
-              foundLead.notes = [{
-                id: `note-${Date.now()}`,
-                text: foundLead.customNotes,
-                createdAt: new Date().toISOString()
-              }];
-              // Remove legacy field
-              delete foundLead.customNotes;
-              // Update in localStorage
-              const updatedLeads = parsedLeads.map((l: Lead) => 
-                l.id === leadId ? foundLead : l
-              );
-              localStorage.setItem('leads', JSON.stringify(updatedLeads));
-            }
-            setLead(foundLead);
-            setNotes(foundLead.notes || []);
-          } else {
-            // Lead not found, redirect to leads list
-            router.push('/developer/leads');
-          }
-        } catch (error) {
-          console.error('Error parsing leads:', error);
+    const loadLead = async () => {
+      if (!leadId) return;
+
+      try {
+        const response = await fetch(`/api/leads/${leadId}`);
+        const data = await response.json();
+
+        if (data.lead) {
+          setLead(data.lead);
+          setNotes(data.lead.notes || []);
+        } else {
           router.push('/developer/leads');
         }
-      } else {
+      } catch (error) {
+        console.error('Error loading lead:', error);
         router.push('/developer/leads');
       }
-    }
+    };
+
+    loadLead();
   }, [leadId, router]);
 
   const handleLogout = () => {
@@ -109,62 +93,74 @@ export default function LeadProfilePage() {
     router.push('/login/developer');
   };
 
-  const handleDeleteLead = () => {
-    if (typeof window !== 'undefined' && lead && confirm('Are you sure you want to delete this lead?')) {
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        const parsedLeads = JSON.parse(storedLeads);
-        const updatedLeads = parsedLeads.filter((l: Lead) => l.id !== lead.id);
-        localStorage.setItem('leads', JSON.stringify(updatedLeads));
-        router.push('/developer/leads');
+  const handleDeleteLead = async () => {
+    if (!lead || !confirm('Are you sure you want to delete this lead?')) return;
+
+    try {
+      const response = await fetch(`/api/leads?leadId=${lead.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete lead');
       }
+
+      router.push('/developer/leads');
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      alert('Error deleting lead. Please try again.');
     }
   };
 
-  const handleAddNote = () => {
-    if (typeof window !== 'undefined' && lead && newNoteText.trim()) {
-      const newNote: Note = {
-        id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        text: newNoteText.trim(),
-        createdAt: new Date().toISOString()
-      };
-      
-      const updatedNotes = [...notes, newNote];
-      setNotes(updatedNotes);
-      
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        const parsedLeads = JSON.parse(storedLeads);
-        const updatedLeads = parsedLeads.map((l: Lead) => 
-          l.id === lead.id 
-            ? { ...l, notes: updatedNotes }
-            : l
-        );
-        localStorage.setItem('leads', JSON.stringify(updatedLeads));
-        setLead({ ...lead, notes: updatedNotes });
+  const handleAddNote = async () => {
+    if (!lead || !newNoteText.trim()) return;
+
+    try {
+      const response = await fetch(`/api/leads/${lead.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newNoteText.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add note');
       }
+
+      // Add note to local state
+      const newNote = data.note;
+      const updatedNotes = [newNote, ...notes];
+      setNotes(updatedNotes);
+      setLead({ ...lead, notes: updatedNotes });
       
       setNewNoteText('');
       setIsAddingNote(false);
+    } catch (error: any) {
+      console.error('Error adding note:', error);
+      alert(error.message || 'Error adding note. Please try again.');
     }
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    if (typeof window !== 'undefined' && lead && confirm('Are you sure you want to delete this note?')) {
+  const handleDeleteNote = async (noteId: string) => {
+    if (!lead || !confirm('Are you sure you want to delete this note?')) return;
+
+    try {
+      const response = await fetch(`/api/leads/${lead.id}/notes?noteId=${noteId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete note');
+      }
+
+      // Update local state
       const updatedNotes = notes.filter(note => note.id !== noteId);
       setNotes(updatedNotes);
-      
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        const parsedLeads = JSON.parse(storedLeads);
-        const updatedLeads = parsedLeads.map((l: Lead) => 
-          l.id === lead.id 
-            ? { ...l, notes: updatedNotes }
-            : l
-        );
-        localStorage.setItem('leads', JSON.stringify(updatedLeads));
-        setLead({ ...lead, notes: updatedNotes });
-      }
+      setLead({ ...lead, notes: updatedNotes });
+    } catch (error: any) {
+      console.error('Error deleting note:', error);
+      alert(error.message || 'Error deleting note. Please try again.');
     }
   };
 

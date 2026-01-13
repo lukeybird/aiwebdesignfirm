@@ -62,24 +62,34 @@ export default function ClientsPage() {
     }
   }, [router]);
 
-  // Load clients from localStorage
+  // Load clients from API
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedClients = localStorage.getItem('clients');
-      if (storedClients) {
-        try {
-          const parsedClients = JSON.parse(storedClients);
-          // Sort by creation date, newest first
-          parsedClients.sort((a: Client, b: Client) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          setAllClients(parsedClients);
-          setClients(parsedClients);
-        } catch (error) {
-          console.error('Error parsing clients:', error);
+    const loadClients = async () => {
+      try {
+        const response = await fetch('/api/clients');
+        const data = await response.json();
+        
+        if (data.clients) {
+          const formattedClients = data.clients.map((c: any) => ({
+            id: c.id.toString(),
+            email: c.email,
+            fullName: c.full_name,
+            phone: c.phone,
+            businessName: c.business_name,
+            businessAddress: c.business_address,
+            businessWebsite: c.business_website,
+            createdAt: c.created_at,
+          }));
+          
+          setAllClients(formattedClients);
+          setClients(formattedClients);
         }
+      } catch (error) {
+        console.error('Error loading clients:', error);
       }
-    }
+    };
+
+    loadClients();
   }, []);
 
   // Filter clients based on search query
@@ -100,16 +110,31 @@ export default function ClientsPage() {
 
   // Load files for selected client
   useEffect(() => {
-    if (selectedClient && typeof window !== 'undefined') {
-      const files = localStorage.getItem(`clientFiles_${selectedClient.email}`);
-      if (files) {
-        try {
-          setClientFiles(JSON.parse(files));
-        } catch (error) {
-          console.error('Error parsing client files:', error);
+    const loadClientFiles = async () => {
+      if (!selectedClient) {
+        setClientFiles([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/clients/files?clientId=${selectedClient.id}`);
+        const data = await response.json();
+        
+        if (data.files) {
+          const formattedFiles = data.files.map((file: any) => ({
+            id: file.id.toString(),
+            name: file.file_name,
+            size: parseInt(file.file_size),
+            type: file.file_type,
+            uploadedAt: file.uploaded_at,
+            url: file.blob_url,
+          }));
+          setClientFiles(formattedFiles);
+        } else {
           setClientFiles([]);
         }
-      } else {
+      } catch (error) {
+        console.error('Error loading client files:', error);
         setClientFiles([]);
       }
 
@@ -122,7 +147,9 @@ export default function ClientsPage() {
         businessWebsite: (selectedClient as any).businessWebsite || '',
       });
       setIsEditingAccount(false);
-    }
+    };
+
+    loadClientFiles();
   }, [selectedClient]);
 
   const handleLogout = () => {
@@ -414,32 +441,52 @@ export default function ClientsPage() {
 
                   {isEditingAccount ? (
                     <form
-                      onSubmit={(e) => {
+                      onSubmit={async (e) => {
                         e.preventDefault();
-                        if (typeof window !== 'undefined' && selectedClient) {
-                          const clients = JSON.parse(localStorage.getItem('clients') || '[]');
-                          const updatedClients = clients.map((c: any) => 
-                            c.email === selectedClient.email
-                              ? {
-                                  ...c,
-                                  fullName: editedAccountInfo.fullName,
-                                  phone: editedAccountInfo.phone,
-                                  businessName: editedAccountInfo.businessName,
-                                  businessAddress: editedAccountInfo.businessAddress,
-                                  businessWebsite: editedAccountInfo.businessWebsite,
-                                }
-                              : c
-                          );
-                          localStorage.setItem('clients', JSON.stringify(updatedClients));
-                          
+                        if (!selectedClient) return;
+
+                        try {
+                          const response = await fetch('/api/clients', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              email: selectedClient.email,
+                              fullName: editedAccountInfo.fullName,
+                              phone: editedAccountInfo.phone,
+                              businessName: editedAccountInfo.businessName,
+                              businessAddress: editedAccountInfo.businessAddress,
+                              businessWebsite: editedAccountInfo.businessWebsite,
+                            }),
+                          });
+
+                          const data = await response.json();
+
+                          if (!response.ok) {
+                            throw new Error(data.error || 'Update failed');
+                          }
+
                           // Update the selected client and all clients lists
-                          const updatedClient = updatedClients.find((c: any) => c.email === selectedClient.email);
+                          const updatedClient = {
+                            ...selectedClient,
+                            fullName: editedAccountInfo.fullName,
+                            phone: editedAccountInfo.phone,
+                            businessName: editedAccountInfo.businessName,
+                            businessAddress: editedAccountInfo.businessAddress,
+                            businessWebsite: editedAccountInfo.businessWebsite,
+                          };
+                          
                           setSelectedClient(updatedClient);
-                          setAllClients(updatedClients);
-                          setClients(updatedClients);
+                          const updatedAllClients = allClients.map((c: Client) => 
+                            c.id === selectedClient.id ? updatedClient : c
+                          );
+                          setAllClients(updatedAllClients);
+                          setClients(updatedAllClients);
                           
                           setIsEditingAccount(false);
                           alert('Account information updated successfully!');
+                        } catch (error: any) {
+                          console.error('Error updating account:', error);
+                          alert(error.message || 'Error updating account. Please try again.');
                         }
                       }}
                       className="space-y-4"

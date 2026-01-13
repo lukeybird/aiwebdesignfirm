@@ -60,24 +60,26 @@ export default function LeadsPage() {
   }, [isStarkMode]);
 
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load leads from localStorage
+  // Load leads from API
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedLeads = localStorage.getItem('leads');
-      if (storedLeads) {
-        try {
-          const parsedLeads = JSON.parse(storedLeads);
-          // Sort by creation date, newest first
-          parsedLeads.sort((a: Lead, b: Lead) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          setLeads(parsedLeads);
-        } catch (error) {
-          console.error('Error parsing leads:', error);
+    const loadLeads = async () => {
+      try {
+        const response = await fetch('/api/leads');
+        const data = await response.json();
+        
+        if (data.leads) {
+          setLeads(data.leads);
         }
+      } catch (error) {
+        console.error('Error loading leads:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    loadLeads();
   }, []);
 
   const handleLogout = () => {

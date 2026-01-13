@@ -134,56 +134,61 @@ export default function DeveloperDashboard() {
     setIsSubmitting(true);
     setSubmitSuccess(false);
 
-    // Create lead object
-    const newLead: Lead = {
-      id: Date.now().toString(),
-      listingLink: formData.listingLink,
-      businessPhone: formData.businessPhone || undefined,
-      businessName: formData.businessName || undefined,
-      businessEmail: formData.businessEmail || undefined,
-      businessAddress: formData.businessAddress || undefined,
-      ownerFirstName: showOwnerName ? additionalFields.ownerFirstName : undefined,
-      ownerPhone: showOwnerPhone ? additionalFields.ownerPhone : undefined,
-      hasLogo: showLogoRating ? additionalFields.hasLogo : undefined,
-      hasGoodPhotos: showPhotosRating ? additionalFields.hasGoodPhotos : undefined,
-      customNotes: showNotes ? additionalFields.customNotes : undefined,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingLink: formData.listingLink,
+          businessPhone: formData.businessPhone || undefined,
+          businessName: formData.businessName || undefined,
+          businessEmail: formData.businessEmail || undefined,
+          businessAddress: formData.businessAddress || undefined,
+          ownerFirstName: showOwnerName ? additionalFields.ownerFirstName : undefined,
+          ownerPhone: showOwnerPhone ? additionalFields.ownerPhone : undefined,
+          hasLogo: showLogoRating ? additionalFields.hasLogo : undefined,
+          hasGoodPhotos: showPhotosRating ? additionalFields.hasGoodPhotos : undefined,
+          customNotes: showNotes ? additionalFields.customNotes : undefined,
+        }),
+      });
 
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      const existingLeads = localStorage.getItem('leads');
-      const leads: Lead[] = existingLeads ? JSON.parse(existingLeads) : [];
-      leads.push(newLead);
-      localStorage.setItem('leads', JSON.stringify(leads));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create lead');
+      }
+
+      // Reset form
+      setFormData({
+        listingLink: '',
+        businessPhone: '',
+        businessName: '',
+        businessEmail: '',
+        businessAddress: '',
+      });
+      setAdditionalFields({
+        ownerFirstName: '',
+        ownerPhone: '',
+        hasLogo: 1,
+        hasGoodPhotos: 1,
+        customNotes: '',
+      });
+      setShowOwnerName(false);
+      setShowOwnerPhone(false);
+      setShowLogoRating(false);
+      setShowPhotosRating(false);
+      setShowNotes(false);
+
+      setIsSubmitting(false);
+      setSubmitSuccess(true);
+
+      // Hide success message after 3 seconds
+      setTimeout(() => setSubmitSuccess(false), 3000);
+    } catch (error: any) {
+      console.error('Error creating lead:', error);
+      alert(error.message || 'Error creating lead. Please try again.');
+      setIsSubmitting(false);
     }
-
-    // Reset form
-    setFormData({
-      listingLink: '',
-      businessPhone: '',
-      businessName: '',
-      businessEmail: '',
-      businessAddress: '',
-    });
-    setAdditionalFields({
-      ownerFirstName: '',
-      ownerPhone: '',
-      hasLogo: 1,
-      hasGoodPhotos: 1,
-      customNotes: '',
-    });
-    setShowOwnerName(false);
-    setShowOwnerPhone(false);
-    setShowLogoRating(false);
-    setShowPhotosRating(false);
-    setShowNotes(false);
-
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
-
-    // Hide success message after 3 seconds
-    setTimeout(() => setSubmitSuccess(false), 3000);
   };
 
   const handleLogout = () => {

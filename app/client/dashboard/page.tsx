@@ -42,57 +42,75 @@ export default function ClientDashboard() {
     }
   }, []);
 
-  // Check authentication
+  // Check authentication and load client data
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const auth = localStorage.getItem('clientAuth');
-      const authTime = localStorage.getItem('clientAuthTime');
-      const email = localStorage.getItem('clientAuthEmail');
-      
-      // Check if authenticated and session is valid (30 days)
-      if (!auth || !authTime || !email || Date.now() - parseInt(authTime) > 30 * 24 * 60 * 60 * 1000) {
-        localStorage.removeItem('clientAuth');
-        localStorage.removeItem('clientAuthEmail');
-        localStorage.removeItem('clientAuthTime');
-        router.push('/login/client');
-        return;
-      }
+    const loadClientData = async () => {
+      if (typeof window !== 'undefined') {
+        const auth = localStorage.getItem('clientAuth');
+        const authTime = localStorage.getItem('clientAuthTime');
+        const email = localStorage.getItem('clientAuthEmail');
+        const clientId = localStorage.getItem('clientId');
+        
+        // Check if authenticated and session is valid (30 days)
+        if (!auth || !authTime || !email || !clientId || Date.now() - parseInt(authTime) > 30 * 24 * 60 * 60 * 1000) {
+          localStorage.removeItem('clientAuth');
+          localStorage.removeItem('clientAuthEmail');
+          localStorage.removeItem('clientAuthTime');
+          localStorage.removeItem('clientId');
+          router.push('/login/client');
+          return;
+        }
 
-      setClientEmail(email);
-      
-      // Get client info
-      const clients = JSON.parse(localStorage.getItem('clients') || '[]');
-      const client = clients.find((c: any) => c.email === email);
-      if (client) {
-        setClientName(client.fullName);
-        // Load account info
-        setAccountInfo({
-          fullName: client.fullName || '',
-          email: client.email || '',
-          phone: client.phone || '',
-          businessName: client.businessName || '',
-          businessAddress: client.businessAddress || '',
-          businessWebsite: client.businessWebsite || '',
-        });
-      }
+        setClientEmail(email);
 
-      // Load files for this client
-      loadFiles(email);
-    }
+        try {
+          // Get client info from API
+          const clientsResponse = await fetch('/api/clients');
+          const clientsData = await clientsResponse.json();
+          const client = clientsData.clients.find((c: any) => c.email === email);
+          
+          if (client) {
+            setClientName(client.full_name);
+            // Load account info
+            setAccountInfo({
+              fullName: client.full_name || '',
+              email: client.email || '',
+              phone: client.phone || '',
+              businessName: client.business_name || '',
+              businessAddress: client.business_address || '',
+              businessWebsite: client.business_website || '',
+            });
+          }
+
+          // Load files for this client
+          await loadFiles(clientId);
+        } catch (error) {
+          console.error('Error loading client data:', error);
+        }
+      }
+    };
+
+    loadClientData();
   }, [router]);
 
-  const loadFiles = (email: string) => {
-    if (typeof window !== 'undefined') {
-      const clientFiles = localStorage.getItem(`clientFiles_${email}`);
-      if (clientFiles) {
-        setFiles(JSON.parse(clientFiles));
+  const loadFiles = async (clientId: string) => {
+    try {
+      const response = await fetch(`/api/clients/files?clientId=${clientId}`);
+      const data = await response.json();
+      
+      if (data.files) {
+        const formattedFiles = data.files.map((file: any) => ({
+          id: file.id.toString(),
+          name: file.file_name,
+          size: parseInt(file.file_size),
+          type: file.file_type,
+          uploadedAt: file.uploaded_at,
+          url: file.blob_url, // Use blob URL instead of base64
+        }));
+        setFiles(formattedFiles);
       }
-    }
-  };
-
-  const saveFiles = (email: string, filesList: UploadedFile[]) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`clientFiles_${email}`, JSON.stringify(filesList));
+    } catch (error) {
+      console.error('Error loading files:', error);
     }
   };
 
@@ -147,11 +165,35 @@ export default function ClientDashboard() {
     }
   };
 
-  const handleDeleteFile = (fileId: string) => {
-    if (confirm('Are you sure you want to delete this file?')) {
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+
+    const clientId = localStorage.getItem('clientId');
+    if (!clientId) {
+      alert('Please log in again');
+      router.push('/login/client');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/clients/files', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId, clientId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Delete failed');
+      }
+
+      // Update local state
       const updatedFiles = files.filter(f => f.id !== fileId);
       setFiles(updatedFiles);
-      saveFiles(clientEmail, updatedFiles);
+    } catch (error: any) {
+      console.error('Error deleting file:', error);
+      alert(error.message || 'Error deleting file. Please try again.');
     }
   };
 
@@ -160,19 +202,43 @@ export default function ClientDashboard() {
     setEditingFileName(file.name);
   };
 
-  const handleSaveRename = (fileId: string) => {
+  const handleSaveRename = async (fileId: string) => {
     if (!editingFileName.trim()) {
       alert('File name cannot be empty');
       return;
     }
 
-    const updatedFiles = files.map(f => 
-      f.id === fileId ? { ...f, name: editingFileName.trim() } : f
-    );
-    setFiles(updatedFiles);
-    saveFiles(clientEmail, updatedFiles);
-    setEditingFileId(null);
-    setEditingFileName('');
+    const clientId = localStorage.getItem('clientId');
+    if (!clientId) {
+      alert('Please log in again');
+      router.push('/login/client');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/clients/files', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId, clientId, newName: editingFileName.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Rename failed');
+      }
+
+      // Update local state
+      const updatedFiles = files.map(f => 
+        f.id === fileId ? { ...f, name: editingFileName.trim() } : f
+      );
+      setFiles(updatedFiles);
+      setEditingFileId(null);
+      setEditingFileName('');
+    } catch (error: any) {
+      console.error('Error renaming file:', error);
+      alert(error.message || 'Error renaming file. Please try again.');
+    }
   };
 
   const handleCancelRename = () => {
@@ -306,24 +372,33 @@ export default function ClientDashboard() {
                   e.preventDefault();
                   setIsSavingAccount(true);
                   
-                  if (typeof window !== 'undefined') {
-                    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
-                    const updatedClients = clients.map((c: any) => 
-                      c.email === clientEmail
-                        ? {
-                            ...c,
-                            fullName: accountInfo.fullName,
-                            phone: accountInfo.phone,
-                            businessName: accountInfo.businessName,
-                            businessAddress: accountInfo.businessAddress,
-                            businessWebsite: accountInfo.businessWebsite,
-                          }
-                        : c
-                    );
-                    localStorage.setItem('clients', JSON.stringify(updatedClients));
+                  try {
+                    const response = await fetch('/api/clients', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        email: clientEmail,
+                        fullName: accountInfo.fullName,
+                        phone: accountInfo.phone,
+                        businessName: accountInfo.businessName,
+                        businessAddress: accountInfo.businessAddress,
+                        businessWebsite: accountInfo.businessWebsite,
+                      }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                      throw new Error(data.error || 'Update failed');
+                    }
+
                     setClientName(accountInfo.fullName);
                     setIsSavingAccount(false);
                     alert('Account information updated successfully!');
+                  } catch (error: any) {
+                    console.error('Error updating account:', error);
+                    alert(error.message || 'Error updating account. Please try again.');
+                    setIsSavingAccount(false);
                   }
                 }}
                 className="space-y-6"

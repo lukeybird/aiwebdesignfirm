@@ -24,50 +24,39 @@ export default function ClientLogin() {
     }
   }, []);
 
-  // Get clients from localStorage
-  const getClients = () => {
-    if (typeof window !== 'undefined') {
-      const clients = localStorage.getItem('clients');
-      return clients ? JSON.parse(clients) : [];
-    }
-    return [];
-  };
-
-  // Save clients to localStorage
-  const saveClients = (clients: any[]) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('clients', JSON.stringify(clients));
-    }
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    const clients = getClients();
-    const client = clients.find((c: any) => c.email === email);
+    try {
+      const response = await fetch('/api/clients/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!client) {
-      setError('Account not found. Please create an account first.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Login failed');
+        setIsLoading(false);
+        return;
+      }
+
+      // Store authentication in localStorage (session management)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('clientAuth', 'authenticated');
+        localStorage.setItem('clientAuthEmail', email);
+        localStorage.setItem('clientAuthTime', Date.now().toString());
+        localStorage.setItem('clientId', data.client.id.toString());
+      }
+      
+      router.push('/client/dashboard');
+    } catch (error: any) {
+      setError('An error occurred. Please try again.');
       setIsLoading(false);
-      return;
     }
-
-    if (client.password !== password) {
-      setError('Invalid password');
-      setIsLoading(false);
-      return;
-    }
-
-    // Store authentication in localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('clientAuth', 'authenticated');
-      localStorage.setItem('clientAuthEmail', email);
-      localStorage.setItem('clientAuthTime', Date.now().toString());
-    }
-    
-    router.push('/client/dashboard');
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -99,35 +88,34 @@ export default function ClientLogin() {
 
     setIsLoading(true);
 
-    const clients = getClients();
-    
-    // Check if email already exists
-    if (clients.find((c: any) => c.email === email)) {
-      setError('An account with this email already exists');
+    try {
+      const response = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Signup failed');
+        setIsLoading(false);
+        return;
+      }
+
+      // Auto-login after signup
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('clientAuth', 'authenticated');
+        localStorage.setItem('clientAuthEmail', email);
+        localStorage.setItem('clientAuthTime', Date.now().toString());
+        localStorage.setItem('clientId', data.client.id.toString());
+      }
+
+      router.push('/client/dashboard');
+    } catch (error: any) {
+      setError('An error occurred. Please try again.');
       setIsLoading(false);
-      return;
     }
-
-    // Create new client account
-    const newClient = {
-      id: Date.now().toString(),
-      email,
-      password, // In production, this should be hashed
-      fullName,
-      createdAt: new Date().toISOString(),
-    };
-
-    clients.push(newClient);
-    saveClients(clients);
-
-    // Auto-login after signup
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('clientAuth', 'authenticated');
-      localStorage.setItem('clientAuthEmail', email);
-      localStorage.setItem('clientAuthTime', Date.now().toString());
-    }
-
-    router.push('/client/dashboard');
   };
 
   return (
