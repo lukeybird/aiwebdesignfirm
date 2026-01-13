@@ -82,13 +82,13 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className={`min-h-screen sm:h-[600px] md:h-[650px] lg:h-[700px] xl:h-[600px] 2xl:h-[550px] flex items-center pt-32 pb-24 sm:pt-20 sm:pb-0 md:pt-20 lg:pt-20 xl:pt-20 2xl:pt-20 px-6 sm:px-8 lg:px-12 transition-colors duration-300 relative overflow-hidden ${
+      <section className={`min-h-screen sm:h-[600px] md:h-[650px] lg:h-[700px] xl:h-[600px] 2xl:h-[550px] flex items-center pt-32 pb-24 sm:pt-20 sm:pb-0 md:pt-20 lg:pt-20 xl:pt-20 2xl:pt-20 px-4 sm:px-6 md:px-8 lg:px-12 transition-colors duration-300 relative overflow-hidden ${
         isStarkMode 
           ? 'bg-gradient-to-b from-black via-gray-900 to-black' 
           : 'bg-gradient-to-b from-white via-gray-50/50 to-white'
       }`}>
         <div className="max-w-7xl mx-auto w-full">
-          <div className="text-center mb-12 sm:mb-16 md:mb-18 lg:mb-20 xl:mb-16 2xl:mb-12 relative">
+          <div className="text-center mb-12 sm:mb-16 md:mb-18 lg:mb-20 xl:mb-16 2xl:mb-12 relative mx-auto">
             {/* Gradient Background */}
             <div className={`absolute inset-0 -z-10 blur-3xl opacity-30 ${
               isStarkMode
@@ -101,19 +101,19 @@ export default function Home() {
               bottom: '10%',
             }}></div>
             
-            <h1 className={`text-8xl sm:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[-0.04em] mb-2 sm:mb-3 md:mb-4 lg:mb-3 xl:mb-2 2xl:mb-2 leading-none relative z-10 ${
+            <h1 className={`text-8xl sm:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[-0.04em] mb-2 sm:mb-3 md:mb-4 lg:mb-3 xl:mb-2 2xl:mb-2 leading-none relative z-10 text-center ${
               isStarkMode 
                 ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500' 
                 : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)]'
             }`}>
               BUILD
             </h1>
-            <h2 className={`text-8xl sm:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[-0.04em] mb-2 sm:mb-3 md:mb-4 lg:mb-3 xl:mb-2 2xl:mb-2 leading-none relative z-10 ${
+            <h2 className={`text-8xl sm:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[-0.04em] mb-2 sm:mb-3 md:mb-4 lg:mb-3 xl:mb-2 2xl:mb-2 leading-none relative z-10 text-center ${
               isStarkMode ? 'text-gray-500' : 'text-gray-400'
             }`}>
               LAUNCH
             </h2>
-            <h3 className={`text-8xl sm:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[-0.04em] mb-8 sm:mb-10 md:mb-12 lg:mb-10 xl:mb-8 2xl:mb-6 leading-none relative z-10 ${
+            <h3 className={`text-8xl sm:text-9xl lg:text-[12rem] xl:text-[14rem] font-black tracking-[-0.04em] mb-8 sm:mb-10 md:mb-12 lg:mb-10 xl:mb-8 2xl:mb-6 leading-none relative z-10 text-center ${
               isStarkMode ? 'text-white' : 'text-gray-900'
             }`}>
               MAINTAIN
