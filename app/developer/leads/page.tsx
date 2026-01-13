@@ -53,8 +53,6 @@ export default function LeadsPage() {
   }, [isStarkMode]);
 
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
-  const [notesText, setNotesText] = useState<string>('');
 
   // Load leads from localStorage
   useEffect(() => {
@@ -81,38 +79,6 @@ export default function LeadsPage() {
       localStorage.removeItem('devAuthTime');
     }
     router.push('/login/developer');
-  };
-
-  const handleDeleteLead = (leadId: string) => {
-    if (typeof window !== 'undefined' && confirm('Are you sure you want to delete this lead?')) {
-      const updatedLeads = leads.filter(lead => lead.id !== leadId);
-      localStorage.setItem('leads', JSON.stringify(updatedLeads));
-      setLeads(updatedLeads);
-    }
-  };
-
-  const handleEditNotes = (lead: Lead) => {
-    setEditingNotesId(lead.id);
-    setNotesText(lead.customNotes || '');
-  };
-
-  const handleSaveNotes = (leadId: string) => {
-    if (typeof window !== 'undefined') {
-      const updatedLeads = leads.map(lead => 
-        lead.id === leadId 
-          ? { ...lead, customNotes: notesText }
-          : lead
-      );
-      localStorage.setItem('leads', JSON.stringify(updatedLeads));
-      setLeads(updatedLeads);
-      setEditingNotesId(null);
-      setNotesText('');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingNotesId(null);
-    setNotesText('');
   };
 
   return (
@@ -220,232 +186,41 @@ export default function LeadsPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {leads.map((lead) => (
-                <div
-                  key={lead.id}
-                  className={`p-6 rounded-lg border transition-all hover:shadow-lg ${
-                    isStarkMode
-                      ? 'bg-gray-800/50 border-cyan-500/20 hover:border-cyan-500/40'
-                      : 'bg-white border-gray-300/60 hover:border-gray-400/80 shadow-lg'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-4">
+            <div className={`rounded-xl ${
+              isStarkMode 
+                ? 'bg-gray-800 border border-cyan-500/20' 
+                : 'bg-white border-2 border-gray-300/60'
+            }`}>
+              <div className="divide-y divide-opacity-20 divide-current">
+                {leads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className={`p-4 flex items-center justify-between transition-all hover:bg-opacity-50 ${
+                      isStarkMode
+                        ? 'hover:bg-gray-700/50'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
                     <div className="flex-1">
-                      <h3 className={`text-xl font-bold mb-2 ${
+                      <h3 className={`text-lg font-bold ${
                         isStarkMode ? 'text-white' : 'text-gray-900'
                       }`}>
                         {lead.businessName || 'Unnamed Business'}
                       </h3>
-                      <p className={`text-xs mb-3 ${
-                        isStarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        Created: {new Date(lead.createdAt).toLocaleString()}
-                      </p>
                     </div>
-                    <button
-                      onClick={() => handleDeleteLead(lead.id)}
-                      className={`ml-4 px-3 py-1.5 rounded text-sm font-medium transition-all hover:scale-105 ${
+                    <Link
+                      href={`/developer/leads/${lead.id}`}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
                         isStarkMode
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
-                          : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                          ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                          : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
                       }`}
                     >
-                      Delete
-                    </button>
+                      More Info
+                    </Link>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    {lead.listingLink && (
-                      <div>
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Listing Link:
-                        </span>
-                        <a
-                          href={lead.listingLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`ml-2 underline hover:opacity-80 ${
-                            isStarkMode ? 'text-cyan-300' : 'text-blue-600'
-                          }`}
-                        >
-                          View Link
-                        </a>
-                      </div>
-                    )}
-                    {lead.businessPhone && (
-                      <div>
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Phone:
-                        </span>
-                        <span className={`ml-2 ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.businessPhone}
-                        </span>
-                      </div>
-                    )}
-                    {lead.businessEmail && (
-                      <div>
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Email:
-                        </span>
-                        <span className={`ml-2 ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.businessEmail}
-                        </span>
-                      </div>
-                    )}
-                    {lead.businessAddress && (
-                      <div className="md:col-span-2">
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Address:
-                        </span>
-                        <span className={`ml-2 ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.businessAddress}
-                        </span>
-                      </div>
-                    )}
-                    {lead.ownerFirstName && (
-                      <div>
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Owner Name:
-                        </span>
-                        <span className={`ml-2 ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.ownerFirstName}
-                        </span>
-                      </div>
-                    )}
-                    {lead.ownerPhone && (
-                      <div>
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Owner Phone:
-                        </span>
-                        <span className={`ml-2 ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.ownerPhone}
-                        </span>
-                      </div>
-                    )}
-                    {lead.hasLogo !== undefined && (
-                      <div>
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Has Logo:
-                        </span>
-                        <span className={`ml-2 ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.hasLogo}/5
-                        </span>
-                      </div>
-                    )}
-                    {lead.hasGoodPhotos !== undefined && (
-                      <div>
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Has Good Photos:
-                        </span>
-                        <span className={`ml-2 ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.hasGoodPhotos}/5
-                        </span>
-                      </div>
-                    )}
-                    {/* Notes Section */}
-                    <div className="md:col-span-2">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`font-medium ${
-                          isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                        }`}>
-                          Notes:
-                        </span>
-                        {editingNotesId !== lead.id && (
-                          <button
-                            onClick={() => handleEditNotes(lead)}
-                            className={`px-3 py-1 rounded text-xs font-medium transition-all hover:scale-105 ${
-                              isStarkMode
-                                ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/40'
-                                : 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100 border border-cyan-200'
-                            }`}
-                          >
-                            {lead.customNotes ? 'Edit Notes' : 'Add Notes'}
-                          </button>
-                        )}
-                      </div>
-                      
-                      {editingNotesId === lead.id ? (
-                        <div className="space-y-2">
-                          <textarea
-                            value={notesText}
-                            onChange={(e) => setNotesText(e.target.value)}
-                            placeholder="Add notes about this lead..."
-                            rows={4}
-                            className={`w-full p-3 rounded-lg border resize-none focus:outline-none focus:ring-2 ${
-                              isStarkMode
-                                ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
-                                : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
-                            }`}
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleSaveNotes(lead.id)}
-                              className={`px-4 py-2 rounded text-sm font-medium transition-all hover:scale-105 ${
-                                isStarkMode
-                                  ? 'bg-cyan-500 text-black hover:bg-cyan-400'
-                                  : 'bg-cyan-600 text-white hover:bg-cyan-700'
-                              }`}
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              className={`px-4 py-2 rounded text-sm font-medium transition-all hover:scale-105 ${
-                                isStarkMode
-                                  ? 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
-                                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                              }`}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className={`mt-1 whitespace-pre-wrap ${
-                          isStarkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {lead.customNotes || (
-                            <span className={`italic ${isStarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                              No notes added yet
-                            </span>
-                          )}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
