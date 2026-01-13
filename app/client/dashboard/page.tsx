@@ -118,48 +118,53 @@ export default function ClientDashboard() {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
+    const clientId = localStorage.getItem('clientId');
+    if (!clientId) {
+      alert('Please log in again');
+      router.push('/login/client');
+      return;
+    }
+
     setIsUploading(true);
 
     try {
-      const newFiles: UploadedFile[] = [];
-
+      // Upload each file to Vercel Blob via API
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
         
-        // Convert file to base64 for storage
-        const reader = new FileReader();
-        
-        await new Promise<void>((resolve, reject) => {
-          reader.onload = (event) => {
-            const base64 = event.target?.result as string;
-            
-            const uploadedFile: UploadedFile = {
-              id: Date.now().toString() + i,
-              name: file.name,
-              size: file.size,
-              type: file.type,
-              uploadedAt: new Date().toISOString(),
-              url: base64,
-            };
-            
-            newFiles.push(uploadedFile);
-            resolve();
-          };
-          
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('clientId', clientId);
 
-      const updatedFiles = [...files, ...newFiles];
-      setFiles(updatedFiles);
-      saveFiles(clientEmail, updatedFiles);
+        const response = await fetch('/api/clients/files', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Upload failed');
+        }
+
+        // Add to files list
+        const uploadedFile: UploadedFile = {
+          id: data.file.id.toString(),
+          name: data.file.file_name,
+          size: parseInt(data.file.file_size),
+          type: data.file.file_type,
+          uploadedAt: data.file.uploaded_at,
+          url: data.file.blob_url,
+        };
+
+        setFiles(prev => [...prev, uploadedFile]);
+      }
       
       // Reset input
       e.target.value = '';
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading files:', error);
-      alert('Error uploading files. Please try again.');
+      alert(error.message || 'Error uploading files. Please try again.');
     } finally {
       setIsUploading(false);
     }
