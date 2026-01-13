@@ -199,34 +199,76 @@ export default function LeadsPage() {
                 : 'bg-white border-2 border-gray-300/60'
             }`}>
               <div className="divide-y divide-opacity-20 divide-current">
-                {leads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className={`p-4 flex items-center justify-between transition-all hover:bg-opacity-50 ${
-                      isStarkMode
-                        ? 'hover:bg-gray-700/50'
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <h3 className={`text-lg font-bold ${
-                        isStarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {lead.businessName || 'Unnamed Business'}
-                      </h3>
-                    </div>
-                    <Link
-                      href={`/developer/leads/${lead.id}`}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                {leads.map((lead) => {
+                  // Get the last note (most recent)
+                  const lastNote = lead.notes && lead.notes.length > 0 
+                    ? lead.notes.sort((a, b) => 
+                        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                      )[0]
+                    : null;
+                  
+                  // Fallback to legacy customNotes if no notes array exists
+                  const hasLegacyNote = !lastNote && lead.customNotes;
+                  
+                  return (
+                    <div
+                      key={lead.id}
+                      className={`p-4 transition-all hover:bg-opacity-50 ${
                         isStarkMode
-                          ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                          : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                          ? 'hover:bg-gray-700/50'
+                          : 'hover:bg-gray-50'
                       }`}
                     >
-                      More Info
-                    </Link>
-                  </div>
-                ))}
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`text-lg font-bold mb-1 ${
+                            isStarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {lead.businessName || 'Unnamed Business'}
+                          </h3>
+                          {lastNote && (
+                            <div className="mt-2">
+                              <p className={`text-sm truncate ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                {lastNote.text}
+                              </p>
+                              <p className={`text-xs mt-1 ${
+                                isStarkMode ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                {new Date(lastNote.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                          )}
+                          {hasLegacyNote && (
+                            <div className="mt-2">
+                              <p className={`text-sm truncate ${
+                                isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                {lead.customNotes}
+                              </p>
+                              <p className={`text-xs mt-1 ${
+                                isStarkMode ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                Legacy note
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <Link
+                          href={`/developer/leads/${lead.id}`}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 flex-shrink-0 ${
+                            isStarkMode
+                              ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                          }`}
+                        >
+                          More Info
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
