@@ -874,7 +874,18 @@ export default function ClientDashboard() {
       {/* Gallery Modal */}
       {galleryOpen && imageFiles.length > 0 && (
         <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+              linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+              linear-gradient(-45deg, transparent 75%, #2a2a2a 75%)
+            `,
+            backgroundSize: '40px 40px',
+            backgroundPosition: '0 0, 0 20px, 20px -20px, -20px 0px',
+            backgroundColor: '#1f1f1f'
+          }}
           onClick={closeGallery}
         >
           {/* Close Button */}
