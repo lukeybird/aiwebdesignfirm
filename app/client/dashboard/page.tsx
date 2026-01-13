@@ -19,6 +19,8 @@ export default function ClientDashboard() {
   const [clientName, setClientName] = useState('');
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [editingFileId, setEditingFileId] = useState<string | null>(null);
+  const [editingFileName, setEditingFileName] = useState('');
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -132,6 +134,35 @@ export default function ClientDashboard() {
       setFiles(updatedFiles);
       saveFiles(clientEmail, updatedFiles);
     }
+  };
+
+  const handleStartRename = (file: UploadedFile) => {
+    setEditingFileId(file.id);
+    setEditingFileName(file.name);
+  };
+
+  const handleSaveRename = (fileId: string) => {
+    if (!editingFileName.trim()) {
+      alert('File name cannot be empty');
+      return;
+    }
+
+    const updatedFiles = files.map(f => 
+      f.id === fileId ? { ...f, name: editingFileName.trim() } : f
+    );
+    setFiles(updatedFiles);
+    saveFiles(clientEmail, updatedFiles);
+    setEditingFileId(null);
+    setEditingFileName('');
+  };
+
+  const handleCancelRename = () => {
+    setEditingFileId(null);
+    setEditingFileName('');
+  };
+
+  const isImageFile = (fileType: string) => {
+    return fileType.startsWith('image/');
   };
 
   const handleDownloadFile = (file: UploadedFile) => {
@@ -271,48 +302,133 @@ export default function ClientDashboard() {
                 <p className="text-sm mt-2">Upload files to get started</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {files.map((file) => (
                   <div
                     key={file.id}
-                    className={`p-4 rounded-lg border transition-all hover:scale-[1.02] ${
+                    className={`rounded-lg border transition-all hover:scale-[1.02] overflow-hidden ${
                       isStarkMode
                         ? 'bg-gray-900 border-cyan-500/20 hover:border-cyan-500/40'
                         : 'bg-gray-50 border-gray-300/60 hover:border-gray-400/80'
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className={`font-bold text-sm truncate ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {file.name}
-                        </h3>
-                        <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
-                        </p>
+                    {/* Image Preview or File Icon */}
+                    <div 
+                      className="aspect-square relative bg-gray-800 cursor-pointer"
+                      onClick={() => handleDownloadFile(file)}
+                    >
+                      {isImageFile(file.type) ? (
+                        <img
+                          src={file.url}
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="text-4xl">📄</div>
+                        </div>
+                      )}
+                      
+                      {/* Overlay on hover */}
+                      <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
+                        <div className={`px-3 py-1 rounded text-xs font-medium ${
+                          isStarkMode ? 'bg-cyan-500 text-black' : 'bg-white text-gray-900'
+                        }`}>
+                          Click to View
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() => handleDownloadFile(file)}
-                        className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-all ${
-                          isStarkMode
-                            ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
-                            : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
-                        }`}
-                      >
-                        Download
-                      </button>
-                      <button
-                        onClick={() => handleDeleteFile(file.id)}
-                        className={`px-3 py-2 rounded text-xs font-medium transition-all ${
-                          isStarkMode
-                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                            : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                        }`}
-                      >
-                        Delete
-                      </button>
+                    {/* File Name and Actions */}
+                    <div className="p-3">
+                      {editingFileId === file.id ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editingFileName}
+                            onChange={(e) => setEditingFileName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveRename(file.id);
+                              if (e.key === 'Escape') handleCancelRename();
+                            }}
+                            autoFocus
+                            className={`w-full px-2 py-1 text-xs rounded border-2 focus:outline-none ${
+                              isStarkMode
+                                ? 'bg-gray-800 border-cyan-500/40 text-white focus:border-cyan-500'
+                                : 'bg-white border-gray-400 text-gray-900 focus:border-gray-900'
+                            }`}
+                          />
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleSaveRename(file.id)}
+                              className={`flex-1 px-2 py-1 text-xs rounded font-medium ${
+                                isStarkMode
+                                  ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                                  : 'bg-gray-900 text-white hover:bg-gray-800'
+                              }`}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelRename}
+                              className={`px-2 py-1 text-xs rounded font-medium ${
+                                isStarkMode
+                                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <h3 
+                            className={`font-medium text-xs truncate mb-1 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}
+                            title={file.name}
+                          >
+                            {file.name}
+                          </h3>
+                          <p className={`text-xs mb-2 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                            {formatFileSize(file.size)}
+                          </p>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleStartRename(file)}
+                              className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-all ${
+                                isStarkMode
+                                  ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                              }`}
+                              title="Rename"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDownloadFile(file)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                                isStarkMode
+                                  ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                              }`}
+                              title="Download"
+                            >
+                              ⬇️
+                            </button>
+                            <button
+                              onClick={() => handleDeleteFile(file.id)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                                isStarkMode
+                                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                                  : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                              }`}
+                              title="Delete"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
