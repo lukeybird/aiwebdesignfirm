@@ -91,20 +91,39 @@ export default function SupportPage() {
       const response = await fetch(`/api/messages/${clientId}`);
       const data = await response.json();
       if (data.messages) {
-        const conversation = conversations.find(c => c.clientId === clientId);
-        if (conversation) {
-          // Update messages with proper structure
-          conversation.messages = data.messages.map((msg: any) => ({
-            id: msg.id,
-            sender_type: msg.sender_type,
-            message_text: msg.message_text,
-            is_read: msg.is_read,
-            created_at: msg.created_at
-          }));
-          conversation.unreadCount = 0;
-          setSelectedConversation({ ...conversation });
-          setConversations([...conversations]);
+        // Normalize message structure
+        const normalizedMessages = data.messages.map((msg: any) => ({
+          id: msg.id,
+          sender_type: msg.sender_type || msg.senderType,
+          message_text: msg.message_text || msg.messageText,
+          is_read: msg.is_read !== undefined ? msg.is_read : msg.isRead,
+          created_at: msg.created_at || msg.createdAt
+        }));
+
+        // Update selected conversation
+        if (selectedConversation && selectedConversation.clientId === clientId) {
+          const updatedConversation = {
+            ...selectedConversation,
+            messages: normalizedMessages,
+            unreadCount: 0
+          };
+          setSelectedConversation(updatedConversation);
         }
+
+        // Update conversations list
+        setConversations(prev => prev.map(conv => 
+          conv.clientId === clientId 
+            ? { ...conv, messages: normalizedMessages, unreadCount: 0 }
+            : conv
+        ));
+
+        // Auto-scroll to bottom when new messages arrive
+        setTimeout(() => {
+          const chatMessages = document.getElementById('chat-messages');
+          if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
