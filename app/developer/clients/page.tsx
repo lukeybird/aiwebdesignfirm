@@ -1225,7 +1225,7 @@ export default function ClientsPage() {
       {/* Toast Notification */}
       {toastMessage && (
         <div 
-          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-in slide-in-from-right fade-in duration-300 ${
+          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
             isStarkMode
               ? 'bg-gray-800 border border-cyan-500/40 text-white'
               : 'bg-white border-2 border-gray-300 text-gray-900'
