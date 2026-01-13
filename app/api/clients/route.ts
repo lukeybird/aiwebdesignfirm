@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { sql } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 // GET - Get all clients (for developer)

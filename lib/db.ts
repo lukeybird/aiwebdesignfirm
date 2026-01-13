@@ -1,4 +1,16 @@
-import { sql } from '@vercel/postgres';
+import postgres from 'postgres';
+
+// Get connection string from environment variable
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('POSTGRES_URL or DATABASE_URL environment variable is required');
+}
+
+// Create postgres client
+export const sql = postgres(connectionString, {
+  ssl: 'require',
+});
 
 // Initialize database tables
 export async function initDatabase() {

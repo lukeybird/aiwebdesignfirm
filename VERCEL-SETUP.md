@@ -1,34 +1,51 @@
 # Vercel Database Setup Guide
 
-This guide will help you set up Vercel Postgres and Blob storage for your application.
+This guide will help you set up Neon Postgres (via Vercel Marketplace) and Vercel Blob storage for your application.
 
-## Step 1: Create Vercel Postgres Database
+## Step 1: Create Neon Postgres Database
 
 1. Go to your Vercel dashboard: https://vercel.com/dashboard
 2. Select your project
 3. Go to the **Storage** tab
-4. Click **Create Database**
-5. Select **Postgres**
-6. Choose a name for your database (e.g., `aiwebdesignfirm-db`)
-7. Select a region closest to your users
-8. Click **Create**
+4. Click on **Marketplace Database Providers**
+5. Select **Neon** (Serverless Postgres)
+6. Follow the setup wizard to create your Neon database
+7. Note your database name (e.g., `thedatabase` or `neondb`)
 
-## Step 2: Create Vercel Blob Storage
+## Step 2: Get Neon Connection String
 
-1. In the same **Storage** tab
-2. Click **Create Database** again
+1. After creating the Neon database, you'll get connection details
+2. Copy the **POSTGRES_URL** connection string
+   - It looks like: `postgresql://user:password@host/database?sslmode=require`
+   - Use the **pooled** connection string (with `-pooler` in the hostname) for better performance
+
+## Step 3: Add Environment Variable to Vercel
+
+1. In Vercel dashboard, go to your project
+2. Go to **Settings** → **Environment Variables**
+3. Add a new variable:
+   - **Name**: `POSTGRES_URL`
+   - **Value**: (paste your Neon connection string)
+   - **Environment**: Production, Preview, Development (select all)
+4. Click **Save**
+
+## Step 4: Create Vercel Blob Storage
+
+1. In the **Storage** tab
+2. Click **Create Database**
 3. Select **Blob**
 4. Choose a name (e.g., `aiwebdesignfirm-blob`)
 5. Click **Create**
 
-## Step 3: Initialize the Database
+## Step 5: Initialize the Database
 
-After creating the Postgres database, you need to initialize the tables:
+After setting up the connection string, you need to initialize the tables:
 
-1. In Vercel dashboard, go to your project's **Storage** tab
-2. Click on your Postgres database
-3. Go to the **Query** tab
-4. Run the following SQL to create the tables:
+1. Deploy your application to Vercel
+2. Visit `https://your-domain.com/api/db/init` in your browser
+3. This will automatically create all the required tables
+
+Alternatively, you can run the SQL manually in the Neon dashboard:
 
 ```sql
 -- Create clients table
@@ -81,18 +98,16 @@ CREATE TABLE IF NOT EXISTS client_files (
 
 Alternatively, you can visit `/api/db/init` in your browser after deployment to automatically initialize the database.
 
-## Step 4: Environment Variables
+## Step 6: Environment Variables
 
-Vercel automatically sets up environment variables for your Postgres and Blob storage. These are automatically available in your API routes:
+You need to manually add the Neon connection string:
 
-- `POSTGRES_URL` - Connection string for Postgres
-- `POSTGRES_PRISMA_URL` - Prisma connection string
-- `POSTGRES_URL_NON_POOLING` - Non-pooling connection string
-- `BLOB_READ_WRITE_TOKEN` - Token for Blob storage
+- `POSTGRES_URL` - Your Neon connection string (you added this in Step 3)
+- `BLOB_READ_WRITE_TOKEN` - Automatically set by Vercel when you create Blob storage
 
-**No manual configuration needed!** Vercel automatically injects these when you create the storage resources.
+**Important**: Make sure `POSTGRES_URL` is set in all environments (Production, Preview, Development).
 
-## Step 5: Deploy
+## Step 7: Deploy
 
 1. Push your changes to GitHub
 2. Vercel will automatically deploy
@@ -100,10 +115,10 @@ Vercel automatically sets up environment variables for your Postgres and Blob st
 
 ## Migration from localStorage
 
-All data is now stored on Vercel's servers:
-- **Client accounts** → Vercel Postgres
-- **Leads and notes** → Vercel Postgres  
-- **Client files** → Vercel Blob (with metadata in Postgres)
+All data is now stored on Neon's servers (via Vercel):
+- **Client accounts** → Neon Postgres
+- **Leads and notes** → Neon Postgres  
+- **Client files** → Vercel Blob (with metadata in Neon Postgres)
 
 Your existing localStorage data will not be automatically migrated. You'll need to:
 1. Create new client accounts (they'll be stored in Postgres)
@@ -113,9 +128,10 @@ Your existing localStorage data will not be automatically migrated. You'll need 
 ## Troubleshooting
 
 ### Database connection errors
-- Make sure you've created the Postgres database in Vercel
-- Check that environment variables are set (they should be automatic)
-- Verify the database region matches your deployment region
+- Make sure you've created the Neon database via Vercel Marketplace
+- Check that `POSTGRES_URL` environment variable is set in Vercel
+- Verify the connection string includes `?sslmode=require` at the end
+- Make sure you're using the pooled connection string (with `-pooler` in hostname)
 
 ### Blob upload errors
 - Make sure you've created the Blob storage in Vercel
