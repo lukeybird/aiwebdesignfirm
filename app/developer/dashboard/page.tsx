@@ -425,7 +425,106 @@ export default function DeveloperDashboard() {
             <p className={`text-lg font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Add a new lead to the database
             </p>
+            
+            {/* CSV Upload Toggle */}
+            <div className="mt-6 flex gap-4">
+              <button
+                type="button"
+                onClick={() => setShowCsvUpload(!showCsvUpload)}
+                className={`px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 ${
+                  showCsvUpload
+                    ? isStarkMode
+                      ? 'bg-cyan-500 text-black'
+                      : 'bg-gray-900 text-white'
+                    : isStarkMode
+                      ? 'bg-gray-800 text-white border border-cyan-500/20 hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-900 border border-gray-300/60 hover:bg-gray-200'
+                }`}
+              >
+                {showCsvUpload ? 'Hide CSV Upload' : 'Upload CSV File'}
+              </button>
+            </div>
           </div>
+
+          {/* CSV Upload Section */}
+          {showCsvUpload && (
+            <div className={`mb-8 rounded-xl p-8 shadow-2xl ${
+              isStarkMode 
+                ? 'bg-gray-800 border border-cyan-500/20' 
+                : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
+            }`}>
+              <h2 className={`text-2xl font-black mb-4 ${
+                isStarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Bulk Import Leads from CSV
+              </h2>
+              <p className={`text-sm mb-6 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Upload a CSV file with business information. The system will automatically extract business name, phone, address, and Google Maps links.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-3 ${
+                    isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Select CSV File
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                    disabled={isProcessingCsv}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
+                        : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
+                    }`}
+                  />
+                </div>
+
+                {isProcessingCsv && (
+                  <div className={`p-4 rounded-lg ${
+                    isStarkMode ? 'bg-gray-900 border border-cyan-500/20' : 'bg-gray-50 border border-gray-300'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Processing CSV...
+                      </span>
+                      <span className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {csvProgress.processed} / {csvProgress.total}
+                      </span>
+                    </div>
+                    <div className={`w-full h-2 rounded-full overflow-hidden ${
+                      isStarkMode ? 'bg-gray-800' : 'bg-gray-200'
+                    }`}>
+                      <div
+                        className={`h-full transition-all ${
+                          isStarkMode ? 'bg-cyan-500' : 'bg-gray-900'
+                        }`}
+                        style={{ width: `${csvProgress.total > 0 ? (csvProgress.processed / csvProgress.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <div className={`mt-2 text-xs ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Success: {csvProgress.success} | Errors: {csvProgress.errors}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleCsvUpload}
+                  disabled={!csvFile || isProcessingCsv}
+                  className={`w-full px-6 py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isStarkMode
+                      ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  {isProcessingCsv ? 'Processing...' : 'Upload and Process CSV'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Success Message */}
           {submitSuccess && (
