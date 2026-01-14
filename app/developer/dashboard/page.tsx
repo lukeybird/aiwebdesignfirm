@@ -86,6 +86,10 @@ export default function DeveloperDashboard() {
   // const [lastFetchedUrl, setLastFetchedUrl] = useState('');
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [fieldSearchQuery, setFieldSearchQuery] = useState('');
+  const [showCsvUpload, setShowCsvUpload] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isProcessingCsv, setIsProcessingCsv] = useState(false);
+  const [csvProgress, setCsvProgress] = useState({ processed: 0, total: 0, success: 0, errors: 0 });
 
   // Available fields to add
   const availableFields = [
