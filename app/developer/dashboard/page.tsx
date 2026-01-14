@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Papa from 'papaparse';
 
 interface Lead {
   id: string;
@@ -127,6 +128,109 @@ export default function DeveloperDashboard() {
     }
     setShowAddFieldModal(false);
     setFieldSearchQuery('');
+  };
+
+  const handleCsvUpload = async () => {
+    if (!csvFile) return;
+
+    setIsProcessingCsv(true);
+    setCsvProgress({ processed: 0, total: 0, success: 0, errors: 0 });
+
+    Papa.parse(csvFile, {
+      header: false,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rows = results.data as string[][];
+        // Skip header row
+        const dataRows = rows.slice(1).filter(row => row[0] && row[0].trim() !== '');
+        
+        setCsvProgress(prev => ({ ...prev, total: dataRows.length }));
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (let i = 0; i < dataRows.length; i++) {
+          const row = dataRows[i];
+          
+          try {
+            // Extract data from CSV row
+            // Column 0: Business Name
+            // Column 5: Phone (format: "· (813) 548-0240")
+            // Column 4: Location info (contains address)
+            // Column 11: Google Maps Directions link
+            const businessName = row[0]?.trim() || '';
+            const phoneRaw = row[5]?.trim() || '';
+            const locationInfo = row[4]?.trim() || '';
+            const mapsLink = row[11]?.trim() || row[12]?.trim() || ''; // Try column 11 or 12
+            
+            // Extract phone number (remove "· " prefix)
+            const businessPhone = phoneRaw.replace(/^·\s*/, '').trim() || undefined;
+            
+            // Extract address from location info (everything after "· ")
+            const addressMatch = locationInfo.match(/·\s*(.+)$/);
+            const businessAddress = addressMatch ? addressMatch[1].trim() : locationInfo || undefined;
+            
+            // Use Google Maps link as listing link, or construct from business name if not available
+            let listingLink = mapsLink || '';
+            if (!listingLink && businessName) {
+              // Try to construct a basic Google Maps search URL
+              listingLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessName + ' ' + (businessAddress || ''))}`;
+            }
+
+            if (!listingLink) {
+              errorCount++;
+              setCsvProgress(prev => ({ ...prev, processed: prev.processed + 1, errors: prev.errors + 1 }));
+              continue;
+            }
+
+            // Create lead
+            const response = await fetch('/api/leads', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                listingLink,
+                businessPhone,
+                businessName: businessName || undefined,
+                businessAddress,
+              }),
+            });
+
+            if (response.ok) {
+              successCount++;
+            } else {
+              errorCount++;
+            }
+
+            setCsvProgress(prev => ({ 
+              ...prev, 
+              processed: prev.processed + 1,
+              success: successCount,
+              errors: errorCount
+            }));
+
+            // Small delay to avoid overwhelming the API
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } catch (error) {
+            errorCount++;
+            setCsvProgress(prev => ({ 
+              ...prev, 
+              processed: prev.processed + 1,
+              errors: prev.errors + 1
+            }));
+          }
+        }
+
+        setIsProcessingCsv(false);
+        setCsvFile(null);
+        alert(`CSV processing complete!\nSuccess: ${successCount}\nErrors: ${errorCount}`);
+        setShowCsvUpload(false);
+      },
+      error: (error) => {
+        console.error('CSV parsing error:', error);
+        alert('Error parsing CSV file. Please check the file format.');
+        setIsProcessingCsv(false);
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
