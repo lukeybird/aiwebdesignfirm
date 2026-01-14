@@ -498,13 +498,29 @@ export default function ClientDashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [galleryOpen, galleryIndex, imageFiles.length]);
 
-  const handleDownloadFile = (file: UploadedFile) => {
-    const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadFile = async (file: UploadedFile) => {
+    try {
+      // Fetch the file as a blob
+      const response = await fetch(file.url);
+      const blob = await response.blob();
+      
+      // Create a temporary object URL
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download file. Please try again.');
+    }
   };
 
   const formatFileSize = (bytes: number) => {
