@@ -30,11 +30,11 @@ After creating an app, you'll see:
 - **Cluster**: Found in the "Keys" tab (e.g., `us2`, `eu`)
 
 ### 3. Add to Local Environment
-Create or update `.env.local`:
+✅ **Already configured in `.env.local`** with your credentials:
 ```env
-PUSHER_APP_ID=your_app_id_here
-PUSHER_SECRET=your_secret_here
-NEXT_PUBLIC_PUSHER_KEY=your_key_here
+PUSHER_APP_ID=2102232
+PUSHER_SECRET=c7e9f18f7cf1a977873b
+NEXT_PUBLIC_PUSHER_KEY=930f7c1420bd00b25f4d
 NEXT_PUBLIC_PUSHER_CLUSTER=us2
 ```
 
