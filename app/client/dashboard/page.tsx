@@ -160,8 +160,23 @@ export default function ClientDashboard() {
         throw new Error(data.error || 'Failed to send message');
       }
 
-      // Add message to local state
-      setMessages(prev => [...prev, data.message]);
+      // Normalize message structure
+      const normalizedMessage = {
+        id: data.message.id,
+        sender_type: data.message.sender_type || data.message.senderType,
+        message_text: data.message.message_text || data.message.messageText,
+        is_read: data.message.is_read !== undefined ? data.message.is_read : data.message.isRead,
+        created_at: data.message.created_at || data.message.createdAt
+      };
+
+      // Add message to local state (Pusher will also send it, but duplicate check will prevent it)
+      setMessages(prev => {
+        // Check if message already exists (avoid duplicates from Pusher)
+        if (prev.some(msg => msg.id === normalizedMessage.id)) {
+          return prev;
+        }
+        return [...prev, normalizedMessage];
+      });
       setNewMessage('');
       
       // Scroll to bottom
