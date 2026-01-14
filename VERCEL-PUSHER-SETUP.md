@@ -4,7 +4,36 @@
 
 Your Pusher credentials are already configured locally. Now add them to Vercel for production:
 
-### Steps:
+## Option 1: Using Vercel CLI (Recommended)
+
+If you have Vercel CLI installed and are logged in:
+
+```bash
+# First, make sure you're logged in
+vercel login
+
+# Then run the setup script
+./setup-vercel-pusher.sh
+```
+
+Or manually add each variable:
+```bash
+vercel env add PUSHER_APP_ID production
+# Enter: 2102232
+
+vercel env add PUSHER_SECRET production
+# Enter: c7e9f18f7cf1a977873b
+
+vercel env add NEXT_PUBLIC_PUSHER_KEY production
+# Enter: 930f7c1420bd00b25f4d
+
+vercel env add NEXT_PUBLIC_PUSHER_CLUSTER production
+# Enter: us2
+```
+
+Repeat for `preview` and `development` environments if needed.
+
+## Option 2: Using Vercel Dashboard
 
 1. Go to your Vercel project: https://vercel.com/dashboard
 2. Select your project (`aiwebdesignfirm`)
