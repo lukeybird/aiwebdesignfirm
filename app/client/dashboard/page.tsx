@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Pusher from 'pusher-js';
 import Link from 'next/link';
 
 interface UploadedFile {
@@ -178,7 +179,7 @@ export default function ClientDashboard() {
     }
   };
 
-  // Poll for new messages when chat is open
+  // Set up Pusher for real-time updates
   useEffect(() => {
     if (!chatOpen) return;
 
@@ -188,11 +189,57 @@ export default function ClientDashboard() {
     // Load messages immediately
     loadMessages(clientId);
 
-    const interval = setInterval(() => {
-      loadMessages(clientId);
-    }, 2000); // Poll every 2 seconds
+    // Initialize Pusher
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'us2';
 
-    return () => clearInterval(interval);
+    if (!pusherKey) {
+      console.error('Pusher key not configured');
+      return;
+    }
+
+    const pusher = new Pusher(pusherKey, {
+      cluster: pusherCluster,
+    });
+
+    // Subscribe to client-specific channel
+    const channel = pusher.subscribe(`client-${clientId}`);
+    
+    // Listen for new messages
+    channel.bind('new-message', (data: any) => {
+      if (data.message) {
+        const normalizedMessage = {
+          id: data.message.id,
+          sender_type: data.message.sender_type || data.message.senderType,
+          message_text: data.message.message_text || data.message.messageText,
+          is_read: data.message.is_read !== undefined ? data.message.is_read : data.message.isRead,
+          created_at: data.message.created_at || data.message.createdAt
+        };
+        
+        setMessages(prev => {
+          // Check if message already exists (avoid duplicates)
+          if (prev.some(msg => msg.id === normalizedMessage.id)) {
+            return prev;
+          }
+          return [...prev, normalizedMessage];
+        });
+        
+        // Auto-scroll to bottom
+        setTimeout(() => {
+          const chatMessages = document.getElementById('chat-messages');
+          if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+          }
+        }, 100);
+      }
+    });
+
+    // Cleanup
+    return () => {
+      channel.unbind_all();
+      channel.unsubscribe();
+      pusher.disconnect();
+    };
   }, [chatOpen, clientEmail]);
 
   const loadFiles = async (clientId: string) => {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Pusher from 'pusher-js';
 
 interface Message {
   id: number;
@@ -206,8 +207,12 @@ export default function SupportPage() {
             : conv
         ));
         
-        // Reload conversations to update order
-        loadConversations();
+        // Update conversations list
+        setConversations(prev => prev.map(conv => 
+          conv.clientId === selectedConversation.clientId 
+            ? updatedConversation
+            : conv
+        ));
         
         // Scroll to bottom
         setTimeout(() => {
@@ -216,11 +221,6 @@ export default function SupportPage() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
           }
         }, 100);
-        
-        // Reload messages to ensure we have the latest
-        setTimeout(() => {
-          loadConversationMessages(selectedConversation.clientId);
-        }, 500);
       }
     } catch (error: any) {
       console.error('Error sending message:', error);

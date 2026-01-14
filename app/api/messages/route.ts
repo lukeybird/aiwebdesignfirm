@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { pusher } from '@/lib/pusher';
 
 // GET - Get messages for a client or all messages for developer
 export async function GET(request: NextRequest) {
@@ -103,9 +104,26 @@ export async function POST(request: NextRequest) {
       RETURNING id, client_id, sender_type, message_text, is_read, created_at
     `;
 
+    const newMessage = result[0];
+
+    // Trigger Pusher event for real-time updates
+    try {
+      await pusher.trigger(`client-${clientId}`, 'new-message', {
+        message: newMessage
+      });
+      
+      // Also trigger for developer inbox updates
+      await pusher.trigger('developer-inbox', 'conversation-updated', {
+        clientId: clientId
+      });
+    } catch (error) {
+      console.error('Pusher error:', error);
+      // Don't fail the request if Pusher fails
+    }
+
     return NextResponse.json({
       success: true,
-      message: result[0]
+      message: newMessage
     });
   } catch (error: any) {
     return NextResponse.json(
