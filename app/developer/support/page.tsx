@@ -207,13 +207,6 @@ export default function SupportPage() {
             : conv
         ));
         
-        // Update conversations list
-        setConversations(prev => prev.map(conv => 
-          conv.clientId === selectedConversation.clientId 
-            ? updatedConversation
-            : conv
-        ));
-        
         // Scroll to bottom
         setTimeout(() => {
           const chatMessages = document.getElementById('chat-messages');
