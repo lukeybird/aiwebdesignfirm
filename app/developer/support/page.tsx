@@ -60,28 +60,102 @@ export default function SupportPage() {
     loadConversations(true); // Show loading on initial load
   }, []);
 
-  // Poll for new conversations/messages every 5 seconds (when no conversation is selected)
+  // Set up Pusher for real-time updates
   useEffect(() => {
-    if (selectedConversation) return; // Don't poll if a conversation is selected (handled by separate effect)
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'us2';
 
-    const interval = setInterval(() => {
-      loadConversations(); // Refresh conversations list to update unread counts
-    }, 5000); // Poll every 5 seconds
+    if (!pusherKey) {
+      console.error('Pusher key not configured');
+      return;
+    }
 
-    return () => clearInterval(interval);
-  }, [selectedConversation]);
+    const pusher = new Pusher(pusherKey, {
+      cluster: pusherCluster,
+    });
 
-  // Poll for new messages when a conversation is selected
-  useEffect(() => {
-    if (!selectedConversation) return;
+    // Subscribe to developer inbox channel
+    const inboxChannel = pusher.subscribe('developer-inbox');
+    
+    // Listen for conversation updates
+    inboxChannel.bind('conversation-updated', () => {
+      // Reload conversations list to update unread counts
+      loadConversations();
+    });
 
-    const interval = setInterval(() => {
-      loadConversationMessages(selectedConversation.clientId);
-      // Only refresh conversations list (not the selected conversation messages)
-      loadConversations(); 
-    }, 2000); // Poll every 2 seconds
+    // If a conversation is selected, also listen to that client's channel
+    let clientChannel: any = null;
+    if (selectedConversation) {
+      clientChannel = pusher.subscribe(`client-${selectedConversation.clientId}`);
+      
+      clientChannel.bind('new-message', (data: any) => {
+        if (data.message) {
+          const normalizedMessage = {
+            id: data.message.id,
+            sender_type: data.message.sender_type || data.message.senderType,
+            message_text: data.message.message_text || data.message.messageText,
+            is_read: data.message.is_read !== undefined ? data.message.is_read : data.message.isRead,
+            created_at: data.message.created_at || data.message.createdAt
+          };
 
-    return () => clearInterval(interval);
+          // Update selected conversation
+          if (selectedConversation && selectedConversation.clientId === data.message.client_id) {
+            setSelectedConversation(prev => {
+              if (!prev) return prev;
+              // Check if message already exists (avoid duplicates)
+              if (prev.messages.some(msg => msg.id === normalizedMessage.id)) {
+                return prev;
+              }
+              return {
+                ...prev,
+                messages: [...prev.messages, normalizedMessage],
+                unreadCount: normalizedMessage.sender_type === 'client' && !normalizedMessage.is_read 
+                  ? prev.unreadCount + 1 
+                  : prev.unreadCount
+              };
+            });
+          }
+
+          // Update conversations list
+          setConversations(prev => prev.map(conv => {
+            if (conv.clientId === data.message.client_id) {
+              // Check if message already exists
+              if (conv.messages.some(msg => msg.id === normalizedMessage.id)) {
+                return conv;
+              }
+              return {
+                ...conv,
+                messages: [...conv.messages, normalizedMessage],
+                lastMessageAt: normalizedMessage.created_at,
+                unreadCount: normalizedMessage.sender_type === 'client' && !normalizedMessage.is_read
+                  ? conv.unreadCount + 1
+                  : conv.unreadCount
+              };
+            }
+            return conv;
+          }));
+
+          // Auto-scroll to bottom
+          setTimeout(() => {
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+          }, 100);
+        }
+      });
+    }
+
+    // Cleanup
+    return () => {
+      inboxChannel.unbind_all();
+      inboxChannel.unsubscribe();
+      if (clientChannel) {
+        clientChannel.unbind_all();
+        clientChannel.unsubscribe();
+      }
+      pusher.disconnect();
+    };
   }, [selectedConversation]);
 
   const loadConversations = async (showLoading = false) => {
