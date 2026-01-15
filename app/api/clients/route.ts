@@ -372,3 +372,43 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// DELETE - Delete client account
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('clientId');
+
+    if (!clientId) {
+      return NextResponse.json(
+        { error: 'Client ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Delete client (cascade will delete related files and messages)
+    const result = await sql`
+      DELETE FROM clients
+      WHERE id = ${clientId}
+      RETURNING id, email
+    `;
+
+    if (result.length === 0) {
+      return NextResponse.json(
+        { error: 'Client not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Client account deleted successfully',
+      deletedClient: result[0]
+    });
+  } catch (error: any) {
+    console.error('Error deleting client:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to delete client' },
+      { status: 500 }
+    );
+  }
+}
