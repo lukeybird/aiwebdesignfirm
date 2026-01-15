@@ -12,6 +12,7 @@ interface Client {
   instruction1Completed?: boolean;
   instruction2Completed?: boolean;
   instruction3Completed?: boolean;
+  websiteNotes?: string;
 }
 
 interface ClientFile {
@@ -89,6 +90,7 @@ export default function ClientsPage() {
             instruction1Completed: c.instruction_1_completed || false,
             instruction2Completed: c.instruction_2_completed || false,
             instruction3Completed: c.instruction_3_completed || false,
+            websiteNotes: c.website_notes || '',
             createdAt: c.created_at,
           }));
           
@@ -1107,6 +1109,48 @@ export default function ClientsPage() {
                         <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
                           {new Date(selectedClient.createdAt).toLocaleString()}
                         </span>
+                      </div>
+                    </div>
+                    
+                    {/* Website Notes Section */}
+                    <div className={`mt-6 pt-6 border-t ${
+                      isStarkMode ? 'border-cyan-500/20' : 'border-gray-300/60'
+                    }`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className={`text-lg font-bold ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          Website Notes
+                        </h4>
+                        {selectedClient.websiteNotes && (
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedClient.websiteNotes || '');
+                              showToast('Notes copied to clipboard');
+                            }}
+                            className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
+                              isStarkMode
+                                ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30'
+                                : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300'
+                            }`}
+                            title="Copy Notes"
+                          >
+                            📋 Copy Notes
+                          </button>
+                        )}
+                      </div>
+                      <div className={`p-4 rounded-lg ${
+                        isStarkMode 
+                          ? 'bg-gray-800 border border-cyan-500/20' 
+                          : 'bg-gray-100 border border-gray-300/60'
+                      }`}>
+                        {selectedClient.websiteNotes ? (
+                          <p className={`whitespace-pre-wrap ${isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                            {selectedClient.websiteNotes}
+                          </p>
+                        ) : (
+                          <p className={`italic ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                            No notes provided yet.
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
