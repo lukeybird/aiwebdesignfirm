@@ -1,12 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+// Helper function to ensure website_link column exists
+async function ensureWebsiteLinkColumn() {
+  try {
+    await sql`ALTER TABLE leads ADD COLUMN website_link TEXT`;
+    console.log('✓ Added website_link column to leads table');
+  } catch (error: any) {
+    if (error.message && (
+      error.message.includes('already exists') || 
+      error.message.includes('duplicate column') ||
+      error.code === '42701'
+    )) {
+      // Column already exists - that's fine
+    } else if (error.message && error.message.includes('does not exist')) {
+      throw error;
+    } else {
+      console.error('Error ensuring website_link column:', error.message);
+    }
+  }
+}
+
 // GET - Get single lead with notes
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Ensure website_link column exists before proceeding
+    await ensureWebsiteLinkColumn();
+
     const { id } = await params;
     const leadId = id;
 
