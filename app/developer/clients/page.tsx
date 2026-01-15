@@ -1239,7 +1239,7 @@ export default function ClientsPage() {
 
           {/* Image Display - Made larger */}
           <div 
-            className="w-full h-full flex items-center justify-center p-4"
+            className="w-full h-full flex items-center justify-center p-4 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <img
@@ -1247,6 +1247,14 @@ export default function ClientsPage() {
               alt={imageFiles[galleryIndex].name}
               className="max-w-[98vw] max-h-[98vh] w-auto h-auto object-contain"
             />
+            {/* File Type Badge - Bottom Right */}
+            <div className={`absolute bottom-8 right-8 px-3 py-1.5 rounded text-sm font-medium ${
+              isStarkMode
+                ? 'bg-black/70 text-white backdrop-blur-sm'
+                : 'bg-white/90 text-gray-900 backdrop-blur-sm'
+            }`}>
+              {getFileType(imageFiles[galleryIndex].name, imageFiles[galleryIndex].type)}
+            </div>
           </div>
 
           {/* Image Counter */}
