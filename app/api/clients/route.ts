@@ -64,6 +64,14 @@ export async function POST(request: NextRequest) {
         const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
         const toEmail = email;
 
+        // Log configuration (without exposing full API key)
+        console.log('Welcome email configuration:', {
+          hasApiKey: !!process.env.RESEND_API_KEY,
+          apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) + '...',
+          fromEmail,
+          toEmail,
+        });
+
         const emailContent = `
 Welcome ${fullName},
 
@@ -81,7 +89,7 @@ Your password is: ${password}
 After that you will have a fully custom site up and running in less than 24 hours.
         `;
 
-        await resend.emails.send({
+        const emailResult = await resend.emails.send({
           from: fromEmail,
           to: toEmail,
           subject: 'Welcome to AI Web Design Firm',
@@ -156,11 +164,24 @@ After that you will have a fully custom site up and running in less than 24 hour
           `,
         });
 
-        console.log('Welcome email sent successfully to:', email);
+        if (emailResult.error) {
+          console.error('Resend API error when sending welcome email:', JSON.stringify(emailResult.error, null, 2));
+          console.error('Failed to send welcome email to:', email);
+        } else {
+          console.log('Welcome email sent successfully to:', email);
+          console.log('Email result:', emailResult.data);
+        }
       } catch (emailError: any) {
         // Log error but don't fail the signup if email fails
-        console.error('Failed to send welcome email:', emailError);
+        console.error('Error sending welcome email:', emailError);
+        console.error('Error details:', {
+          message: emailError?.message,
+          stack: emailError?.stack,
+          email: email,
+        });
       }
+    } else {
+      console.warn('RESEND_API_KEY not configured - welcome email not sent to:', email);
     }
 
     return NextResponse.json({ 
