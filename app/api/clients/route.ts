@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
     } else {
       // Get all clients (for developer)
       const clients = await sql`
-        SELECT id, email, full_name, phone, business_name, business_address, business_website, created_at
+        SELECT id, email, full_name, phone, business_name, business_address, business_website, 
+               instruction_1_completed, instruction_2_completed, instruction_3_completed, created_at
         FROM clients
         ORDER BY created_at DESC
       `;

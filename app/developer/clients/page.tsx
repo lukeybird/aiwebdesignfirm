@@ -9,6 +9,9 @@ interface Client {
   email: string;
   fullName: string;
   createdAt: string;
+  instruction1Completed?: boolean;
+  instruction2Completed?: boolean;
+  instruction3Completed?: boolean;
 }
 
 interface ClientFile {
@@ -83,6 +86,9 @@ export default function ClientsPage() {
             businessName: c.business_name,
             businessAddress: c.business_address,
             businessWebsite: c.business_website,
+            instruction1Completed: c.instruction_1_completed || false,
+            instruction2Completed: c.instruction_2_completed || false,
+            instruction3Completed: c.instruction_3_completed || false,
             createdAt: c.created_at,
           }));
           
@@ -529,35 +535,48 @@ export default function ClientsPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {clients.map((client) => (
-                    <div
-                      key={client.id}
-                      className={`w-full p-4 rounded-lg border transition-all hover:scale-[1.02] ${
-                        selectedClient?.id === client.id
-                          ? isStarkMode
-                            ? 'bg-cyan-500/20 border-cyan-500/40'
-                            : 'bg-cyan-50 border-cyan-500/40'
-                          : isStarkMode
-                            ? 'bg-gray-900 border-cyan-500/20 hover:border-cyan-500/40'
-                            : 'bg-gray-50 border-gray-300/60 hover:border-gray-400/80'
-                      }`}
-                    >
-                      <button
-                        onClick={() => setSelectedClient(client)}
-                        className="w-full text-left"
+                  {clients.map((client) => {
+                    // Determine status: red if not all checked, yellow if all checked
+                    const allChecked = client.instruction1Completed && client.instruction2Completed && client.instruction3Completed;
+                    const statusColor = allChecked ? 'yellow' : 'red';
+                    
+                    return (
+                      <div
+                        key={client.id}
+                        className={`w-full p-4 rounded-lg border transition-all hover:scale-[1.02] relative ${
+                          selectedClient?.id === client.id
+                            ? isStarkMode
+                              ? 'bg-cyan-500/20 border-cyan-500/40'
+                              : 'bg-cyan-50 border-cyan-500/40'
+                            : isStarkMode
+                              ? 'bg-gray-900 border-cyan-500/20 hover:border-cyan-500/40'
+                              : 'bg-gray-50 border-gray-300/60 hover:border-gray-400/80'
+                        }`}
                       >
-                        <h3 className={`font-bold text-lg mb-1 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {client.fullName}
-                        </h3>
-                        <p className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {client.email}
-                        </p>
-                        <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          Joined: {new Date(client.createdAt).toLocaleDateString()}
-                        </p>
-                      </button>
-                    </div>
-                  ))}
+                        {/* Status indicator light */}
+                        <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${
+                          statusColor === 'red' 
+                            ? 'bg-red-500 shadow-lg shadow-red-500/50' 
+                            : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'
+                        }`} />
+                        
+                        <button
+                          onClick={() => setSelectedClient(client)}
+                          className="w-full text-left"
+                        >
+                          <h3 className={`font-bold text-lg mb-1 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {client.fullName}
+                          </h3>
+                          <p className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {client.email}
+                          </p>
+                          <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                            Joined: {new Date(client.createdAt).toLocaleDateString()}
+                          </p>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -698,11 +717,34 @@ export default function ClientsPage() {
                           };
                           
                           setSelectedClient(updatedClient);
-                          const updatedAllClients = allClients.map((c: Client) => 
-                            c.id === selectedClient.id ? updatedClient : c
-                          );
-                          setAllClients(updatedAllClients);
-                          setClients(updatedAllClients);
+                          // Reload clients to get updated instruction status
+                          const refreshResponse = await fetch('/api/clients');
+                          const refreshData = await refreshResponse.json();
+                          
+                          if (refreshData.clients) {
+                            const formattedClients = refreshData.clients.map((c: any) => ({
+                              id: c.id.toString(),
+                              email: c.email,
+                              fullName: c.full_name,
+                              phone: c.phone,
+                              businessName: c.business_name,
+                              businessAddress: c.business_address,
+                              businessWebsite: c.business_website,
+                              instruction1Completed: c.instruction_1_completed || false,
+                              instruction2Completed: c.instruction_2_completed || false,
+                              instruction3Completed: c.instruction_3_completed || false,
+                              createdAt: c.created_at,
+                            }));
+                            
+                            setAllClients(formattedClients);
+                            setClients(formattedClients);
+                            
+                            // Update selected client with fresh data
+                            const updatedSelectedClient = formattedClients.find((c: Client) => c.id === selectedClient.id);
+                            if (updatedSelectedClient) {
+                              setSelectedClient(updatedSelectedClient);
+                            }
+                          }
                           
                           setIsEditingAccount(false);
                           alert('Account information updated successfully!');
