@@ -520,10 +520,9 @@ export default function ClientsPage() {
               ) : (
                 <div className="space-y-3">
                   {clients.map((client) => (
-                    <button
+                    <div
                       key={client.id}
-                      onClick={() => setSelectedClient(client)}
-                      className={`w-full p-4 rounded-lg border text-left transition-all hover:scale-[1.02] ${
+                      className={`w-full p-4 rounded-lg border transition-all hover:scale-[1.02] ${
                         selectedClient?.id === client.id
                           ? isStarkMode
                             ? 'bg-cyan-500/20 border-cyan-500/40'
@@ -533,16 +532,67 @@ export default function ClientsPage() {
                             : 'bg-gray-50 border-gray-300/60 hover:border-gray-400/80'
                       }`}
                     >
-                      <h3 className={`font-bold text-lg mb-1 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {client.fullName}
-                      </h3>
-                      <p className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {client.email}
-                      </p>
-                      <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                        Joined: {new Date(client.createdAt).toLocaleDateString()}
-                      </p>
-                    </button>
+                      <button
+                        onClick={() => setSelectedClient(client)}
+                        className="w-full text-left"
+                      >
+                        <h3 className={`font-bold text-lg mb-1 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {client.fullName}
+                        </h3>
+                        <p className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {client.email}
+                        </p>
+                        <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                          Joined: {new Date(client.createdAt).toLocaleDateString()}
+                        </p>
+                      </button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`Are you sure you want to delete ${client.fullName}'s account? This will also delete all their files and messages. This action cannot be undone.`)) {
+                            return;
+                          }
+                          
+                          try {
+                            const response = await fetch(`/api/clients?clientId=${client.id}`, {
+                              method: 'DELETE',
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (!response.ok) {
+                              throw new Error(data.error || 'Failed to delete client');
+                            }
+                            
+                            // Remove from local state
+                            const updatedClients = clients.filter(c => c.id !== client.id);
+                            const updatedAllClients = allClients.filter(c => c.id !== client.id);
+                            setClients(updatedClients);
+                            setAllClients(updatedAllClients);
+                            
+                            // Clear selection if deleted client was selected
+                            if (selectedClient?.id === client.id) {
+                              setSelectedClient(null);
+                              setClientFiles([]);
+                              setShowAccountInfo(false);
+                            }
+                            
+                            alert('Client account deleted successfully');
+                          } catch (error: any) {
+                            console.error('Error deleting client:', error);
+                            alert(error.message || 'Error deleting client. Please try again.');
+                          }
+                        }}
+                        className={`mt-2 px-3 py-1.5 rounded text-xs font-medium transition-all hover:scale-105 ${
+                          isStarkMode
+                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
+                            : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                        }`}
+                        title="Delete Client Account"
+                      >
+                        🗑️ Delete Account
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
