@@ -948,7 +948,7 @@ export default function ClientDashboard() {
                   </div>
                 </div>
                 <span className={`text-lg flex-1 pt-0.5 ${instructions.instruction1 ? 'line-through opacity-60' : isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                  Upload your best pictures you want to see on your website.
+                  <span className="font-bold mr-2">1.</span> Upload your best pictures you want to see on your website.
                 </span>
               </label>
               
@@ -1010,7 +1010,7 @@ export default function ClientDashboard() {
                   </div>
                 </div>
                 <span className={`text-lg flex-1 pt-0.5 ${instructions.instruction2 ? 'line-through opacity-60' : isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                  Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
+                  <span className="font-bold mr-2">2.</span> Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
                 </span>
               </label>
               
