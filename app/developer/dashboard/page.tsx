@@ -306,9 +306,10 @@ export default function DeveloperDashboard() {
           const addressMatch = locationInfo.match(/·\s*(.+)$/);
           const businessAddress = addressMatch ? addressMatch[1].trim() : locationInfo || undefined;
           
-          // Handle website link - set to undefined if empty or if it's a booksy.com link (social network, not a website)
+          // Handle website link - set to undefined if empty, if it's "Directions", or if it's a booksy.com link
           const websiteLink = websiteLinkRaw && 
                               websiteLinkRaw.trim() !== '' && 
+                              websiteLinkRaw.trim().toLowerCase() !== 'directions' &&
                               !websiteLinkRaw.toLowerCase().includes('booksy.com')
                               ? websiteLinkRaw.trim() 
                               : undefined;
