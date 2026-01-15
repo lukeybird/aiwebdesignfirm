@@ -889,123 +889,189 @@ export default function ClientDashboard() {
             <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
               Instructions Checklist
             </h2>
-            <div className="space-y-4">
-              <label className={`flex items-start gap-4 cursor-pointer group ${
-                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+            <div className="space-y-5">
+              <label className={`flex items-start gap-4 cursor-pointer group p-4 rounded-lg transition-all ${
+                isStarkMode 
+                  ? instructions.instruction1
+                    ? 'bg-cyan-500/10 border border-cyan-500/30'
+                    : 'bg-gray-900/50 border border-cyan-500/20 hover:border-cyan-500/40'
+                  : instructions.instruction1
+                    ? 'bg-cyan-50 border border-cyan-200'
+                    : 'bg-gray-50 border border-gray-300 hover:border-gray-400'
               }`}>
-                <input
-                  type="checkbox"
-                  checked={instructions.instruction1}
-                  onChange={async (e) => {
-                    const newInstructions = { ...instructions, instruction1: e.target.checked };
-                    setInstructions(newInstructions);
-                    setIsSavingInstructions(true);
-                    try {
-                      await fetch('/api/clients', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          email: clientEmail,
-                          instruction1Completed: e.target.checked,
-                        }),
-                      });
-                    } catch (error) {
-                      console.error('Error saving instruction:', error);
-                    } finally {
-                      setIsSavingInstructions(false);
-                    }
-                  }}
-                  className={`mt-1 w-6 h-6 rounded border-2 transition-all ${
+                <div className="relative flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={instructions.instruction1}
+                    onChange={async (e) => {
+                      const newInstructions = { ...instructions, instruction1: e.target.checked };
+                      setInstructions(newInstructions);
+                      setIsSavingInstructions(true);
+                      try {
+                        const response = await fetch('/api/clients', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            email: clientEmail,
+                            instruction1Completed: e.target.checked,
+                          }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok) {
+                          throw new Error(data.error || 'Failed to save');
+                        }
+                      } catch (error) {
+                        console.error('Error saving instruction:', error);
+                        alert('Failed to save. Please try again.');
+                        // Revert on error
+                        setInstructions({ ...instructions, instruction1: !e.target.checked });
+                      } finally {
+                        setIsSavingInstructions(false);
+                      }
+                    }}
+                    className="sr-only"
+                  />
+                  <div className={`w-7 h-7 rounded border-2 transition-all flex items-center justify-center ${
                     instructions.instruction1
                       ? isStarkMode
-                        ? 'bg-cyan-500 border-cyan-500'
+                        ? 'bg-cyan-500 border-cyan-500 shadow-lg shadow-cyan-500/50'
                         : 'bg-gray-900 border-gray-900'
                       : isStarkMode
-                        ? 'border-cyan-500/40 bg-transparent'
-                        : 'border-gray-400 bg-transparent'
-                  }`}
-                />
-                <span className={`text-lg flex-1 ${instructions.instruction1 ? 'line-through opacity-60' : ''}`}>
+                        ? 'border-cyan-500/40 bg-transparent group-hover:border-cyan-500/60'
+                        : 'border-gray-400 bg-transparent group-hover:border-gray-500'
+                  }`}>
+                    {instructions.instruction1 && (
+                      <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className={`text-lg flex-1 pt-0.5 ${instructions.instruction1 ? 'line-through opacity-60' : isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                   Upload your best pictures you want to see on your website.
                 </span>
               </label>
               
-              <label className={`flex items-start gap-4 cursor-pointer group ${
-                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+              <label className={`flex items-start gap-4 cursor-pointer group p-4 rounded-lg transition-all ${
+                isStarkMode 
+                  ? instructions.instruction2
+                    ? 'bg-cyan-500/10 border border-cyan-500/30'
+                    : 'bg-gray-900/50 border border-cyan-500/20 hover:border-cyan-500/40'
+                  : instructions.instruction2
+                    ? 'bg-cyan-50 border border-cyan-200'
+                    : 'bg-gray-50 border border-gray-300 hover:border-gray-400'
               }`}>
-                <input
-                  type="checkbox"
-                  checked={instructions.instruction2}
-                  onChange={async (e) => {
-                    const newInstructions = { ...instructions, instruction2: e.target.checked };
-                    setInstructions(newInstructions);
-                    setIsSavingInstructions(true);
-                    try {
-                      await fetch('/api/clients', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          email: clientEmail,
-                          instruction2Completed: e.target.checked,
-                        }),
-                      });
-                    } catch (error) {
-                      console.error('Error saving instruction:', error);
-                    } finally {
-                      setIsSavingInstructions(false);
-                    }
-                  }}
-                  className={`mt-1 w-6 h-6 rounded border-2 transition-all ${
+                <div className="relative flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={instructions.instruction2}
+                    onChange={async (e) => {
+                      const newInstructions = { ...instructions, instruction2: e.target.checked };
+                      setInstructions(newInstructions);
+                      setIsSavingInstructions(true);
+                      try {
+                        const response = await fetch('/api/clients', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            email: clientEmail,
+                            instruction2Completed: e.target.checked,
+                          }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok) {
+                          throw new Error(data.error || 'Failed to save');
+                        }
+                      } catch (error) {
+                        console.error('Error saving instruction:', error);
+                        alert('Failed to save. Please try again.');
+                        // Revert on error
+                        setInstructions({ ...instructions, instruction2: !e.target.checked });
+                      } finally {
+                        setIsSavingInstructions(false);
+                      }
+                    }}
+                    className="sr-only"
+                  />
+                  <div className={`w-7 h-7 rounded border-2 transition-all flex items-center justify-center ${
                     instructions.instruction2
                       ? isStarkMode
-                        ? 'bg-cyan-500 border-cyan-500'
+                        ? 'bg-cyan-500 border-cyan-500 shadow-lg shadow-cyan-500/50'
                         : 'bg-gray-900 border-gray-900'
                       : isStarkMode
-                        ? 'border-cyan-500/40 bg-transparent'
-                        : 'border-gray-400 bg-transparent'
-                  }`}
-                />
-                <span className={`text-lg flex-1 ${instructions.instruction2 ? 'line-through opacity-60' : ''}`}>
+                        ? 'border-cyan-500/40 bg-transparent group-hover:border-cyan-500/60'
+                        : 'border-gray-400 bg-transparent group-hover:border-gray-500'
+                  }`}>
+                    {instructions.instruction2 && (
+                      <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className={`text-lg flex-1 pt-0.5 ${instructions.instruction2 ? 'line-through opacity-60' : isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                   Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
                 </span>
               </label>
               
-              <label className={`flex items-start gap-4 cursor-pointer group ${
-                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+              <label className={`flex items-start gap-4 cursor-pointer group p-4 rounded-lg transition-all ${
+                isStarkMode 
+                  ? instructions.instruction3
+                    ? 'bg-cyan-500/10 border border-cyan-500/30'
+                    : 'bg-gray-900/50 border border-cyan-500/20 hover:border-cyan-500/40'
+                  : instructions.instruction3
+                    ? 'bg-cyan-50 border border-cyan-200'
+                    : 'bg-gray-50 border border-gray-300 hover:border-gray-400'
               }`}>
-                <input
-                  type="checkbox"
-                  checked={instructions.instruction3}
-                  onChange={async (e) => {
-                    const newInstructions = { ...instructions, instruction3: e.target.checked };
-                    setInstructions(newInstructions);
-                    setIsSavingInstructions(true);
-                    try {
-                      await fetch('/api/clients', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          email: clientEmail,
-                          instruction3Completed: e.target.checked,
-                        }),
-                      });
-                    } catch (error) {
-                      console.error('Error saving instruction:', error);
-                    } finally {
-                      setIsSavingInstructions(false);
-                    }
-                  }}
-                  className={`mt-1 w-6 h-6 rounded border-2 transition-all ${
+                <div className="relative flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={instructions.instruction3}
+                    onChange={async (e) => {
+                      const newInstructions = { ...instructions, instruction3: e.target.checked };
+                      setInstructions(newInstructions);
+                      setIsSavingInstructions(true);
+                      try {
+                        const response = await fetch('/api/clients', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            email: clientEmail,
+                            instruction3Completed: e.target.checked,
+                          }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok) {
+                          throw new Error(data.error || 'Failed to save');
+                        }
+                      } catch (error) {
+                        console.error('Error saving instruction:', error);
+                        alert('Failed to save. Please try again.');
+                        // Revert on error
+                        setInstructions({ ...instructions, instruction3: !e.target.checked });
+                      } finally {
+                        setIsSavingInstructions(false);
+                      }
+                    }}
+                    className="sr-only"
+                  />
+                  <div className={`w-7 h-7 rounded border-2 transition-all flex items-center justify-center ${
                     instructions.instruction3
                       ? isStarkMode
-                        ? 'bg-cyan-500 border-cyan-500'
+                        ? 'bg-cyan-500 border-cyan-500 shadow-lg shadow-cyan-500/50'
                         : 'bg-gray-900 border-gray-900'
                       : isStarkMode
-                        ? 'border-cyan-500/40 bg-transparent'
-                        : 'border-gray-400 bg-transparent'
-                  }`}
-                />
-                <span className={`text-lg flex-1 ${instructions.instruction3 ? 'line-through opacity-60' : ''}`}>
+                        ? 'border-cyan-500/40 bg-transparent group-hover:border-cyan-500/60'
+                        : 'border-gray-400 bg-transparent group-hover:border-gray-500'
+                  }`}>
+                    {instructions.instruction3 && (
+                      <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className={`text-lg flex-1 pt-0.5 ${instructions.instruction3 ? 'line-through opacity-60' : isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                   Click the ready button in your account.
                 </span>
               </label>
