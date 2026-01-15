@@ -311,38 +311,47 @@ export default function LeadsPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className={`mt-8 flex items-center justify-center gap-4 ${
-              isStarkMode ? 'text-white' : 'text-gray-900'
+          {/* Pagination - Always show if there are leads */}
+          {totalLeads > 0 && (
+            <div className={`mt-8 p-6 rounded-xl ${
+              isStarkMode 
+                ? 'bg-gray-800 border border-cyan-500/20' 
+                : 'bg-white border-2 border-gray-300/60'
             }`}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isStarkMode
-                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
-                }`}
-              >
-                Previous
-              </button>
-              
-              <span className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Page {currentPage} of {totalPages}
-              </span>
-              
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isStarkMode
-                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
-                }`}
-              >
-                Next
-              </button>
+              <div className="flex items-center justify-center gap-6 flex-wrap">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                  className={`px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isStarkMode
+                      ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50 disabled:bg-gray-700 disabled:text-gray-400'
+                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20 disabled:bg-gray-300 disabled:text-gray-500'
+                  }`}
+                >
+                  ← Previous
+                </button>
+                
+                <div className={`text-center ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <div className={`text-lg font-bold ${isStarkMode ? 'text-cyan-400' : 'text-gray-900'}`}>
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className={`text-sm mt-1 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Showing {leads.length > 0 ? ((currentPage - 1) * leadsPerPage + 1) : 0} - {Math.min(currentPage * leadsPerPage, totalLeads)} of {totalLeads} leads
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || isLoading}
+                  className={`px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isStarkMode
+                      ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50 disabled:bg-gray-700 disabled:text-gray-400'
+                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20 disabled:bg-gray-300 disabled:text-gray-500'
+                  }`}
+                >
+                  Next →
+                </button>
+              </div>
             </div>
           )}
         </div>
