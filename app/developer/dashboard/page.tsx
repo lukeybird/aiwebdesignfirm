@@ -592,6 +592,29 @@ export default function DeveloperDashboard() {
                 />
               </div>
 
+              {/* Website Link - Business Website (Optional) */}
+              <div>
+                <label className={`block text-sm font-medium mb-3 ${
+                  isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Website Link
+                  <span className={`ml-2 text-xs font-normal ${isStarkMode ? 'text-cyan-400' : 'text-gray-500'}`}>
+                    Enter the business website URL (optional)
+                  </span>
+                </label>
+                <input
+                  type="url"
+                  value={formData.websiteLink}
+                  onChange={(e) => setFormData({ ...formData, websiteLink: e.target.value })}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    isStarkMode
+                      ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
+                      : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
+                  }`}
+                  placeholder="https://www.businesswebsite.com"
+                />
+              </div>
+
               {/* Business Phone */}
               <div>
                 <label className={`block text-sm font-medium mb-3 ${
