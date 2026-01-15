@@ -41,7 +41,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                       <tr>
                         <td style="padding: 50px 40px 40px; text-align: center; border-bottom: 2px solid rgba(34, 211, 238, 0.3); position: relative;">
                           <div style="position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #22d3ee, transparent);"></div>
-                          <h1 style="margin: 30px 0 0 0; font-size: 52px; font-weight: 900; color: #06b6d4; background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; text-shadow: 0 0 50px rgba(34, 211, 238, 1); position: relative;">
+                          <h1 style="margin: 30px 0 0 0; font-size: 42px; font-weight: 900; color: #06b6d4; background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; text-shadow: 0 0 50px rgba(34, 211, 238, 1); position: relative;">
                             Welcome ${fullName}
                           </h1>
                           <div style="margin-top: 15px; width: 60px; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, transparent); margin-left: auto; margin-right: auto;"></div>
@@ -51,9 +51,16 @@ After that you will have a fully custom site up and running in less than 24 hour
                       <!-- Content -->
                       <tr>
                         <td style="padding: 45px 40px; position: relative;">
-                          <p style="margin: 0 0 35px 0; color: #e5e7eb; font-size: 28px; line-height: 2; font-weight: 400; letter-spacing: 0.3px;">
-                            Glad to have your interest, please be sure to follow the following steps in the account.
+                          <p style="margin: 0 0 25px 0; color: #e5e7eb; font-size: 28px; line-height: 2; font-weight: 400; letter-spacing: 0.3px;">
+                            We are excited to build an amazing website for you. We do need you to login to your account now and follow the instructions in your account.
                           </p>
+                          
+                          <!-- Login Button -->
+                          <div style="text-align: center; margin: 30px 0 35px 0;">
+                            <a href="https://aiwebdesignfirm.com/login/client" style="display: inline-block; padding: 18px 40px; background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%); color: #000000; text-decoration: none; font-size: 20px; font-weight: 700; border-radius: 0; box-shadow: 0 0 20px rgba(34, 211, 238, 0.5); transition: all 0.3s ease; letter-spacing: 1px; text-transform: uppercase;">
+                              Login to Your Account
+                            </a>
+                          </div>
                           
                           <!-- Credentials Box - Tech Style -->
                           <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%); border: 2px solid rgba(34, 211, 238, 0.4); border-radius: 0; padding: 35px; margin: 40px 0; box-shadow: 0 0 20px rgba(34, 211, 238, 0.15), inset 0 0 20px rgba(34, 211, 238, 0.05); position: relative; overflow: hidden;">
