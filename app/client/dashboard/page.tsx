@@ -555,6 +555,40 @@ export default function ClientDashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [galleryOpen, galleryIndex, imageFiles.length]);
 
+  // Auto-check instruction 3 when business name and address are filled
+  useEffect(() => {
+    if (accountInfo.businessName.trim() && accountInfo.businessAddress.trim() && !instructions.instruction3 && clientEmail) {
+      const newInstructions = { ...instructions, instruction3: true };
+      setInstructions(newInstructions);
+      setIsSavingInstructions(true);
+      
+      const saveInstruction = async () => {
+        try {
+          const response = await fetch('/api/clients', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: clientEmail,
+              instruction3Completed: true,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to save');
+          }
+        } catch (error) {
+          console.error('Error auto-checking instruction 3:', error);
+          // Revert on error
+          setInstructions({ ...instructions, instruction3: false });
+        } finally {
+          setIsSavingInstructions(false);
+        }
+      };
+      
+      saveInstruction();
+    }
+  }, [accountInfo.businessName, accountInfo.businessAddress, instructions.instruction3, clientEmail]);
+
   const handleDownloadFile = async (file: UploadedFile) => {
     try {
       // Fetch the file as a blob
