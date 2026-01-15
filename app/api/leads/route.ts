@@ -41,10 +41,11 @@ export async function GET(request: NextRequest) {
     `;
 
     // Transform notes from array to proper format
+    // NOTE: Data appears to be swapped in database - website_link contains Google Maps, listing_link contains website
     const formattedLeads = leads.map(lead => ({
       id: lead.id.toString(),
-      listingLink: lead.listing_link,
-      websiteLink: lead.website_link || null,
+      listingLink: lead.website_link || lead.listing_link, // Swap: website_link contains Google Maps
+      websiteLink: lead.listing_link || lead.website_link || null, // Swap: listing_link contains website
       businessPhone: lead.business_phone,
       businessName: lead.business_name,
       businessEmail: lead.business_email,

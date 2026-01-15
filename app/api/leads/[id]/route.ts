@@ -63,8 +63,8 @@ export async function GET(
     return NextResponse.json({
       lead: {
         id: lead.id.toString(),
-        listingLink: lead.listing_link,
-        websiteLink: lead.website_link,
+        listingLink: lead.website_link || lead.listing_link, // Swap: website_link contains Google Maps
+        websiteLink: lead.listing_link || lead.website_link, // Swap: listing_link contains website
         businessPhone: lead.business_phone,
         businessName: lead.business_name,
         businessEmail: lead.business_email,
