@@ -393,8 +393,11 @@ export default function LeadProfilePage() {
                     className={`underline hover:opacity-80 ${
                       isStarkMode ? 'text-cyan-300' : 'text-blue-600'
                     }`}
+                    title={lead.websiteLink}
                   >
-                    {lead.websiteLink}
+                    {lead.websiteLink.length > 10 
+                      ? `${lead.websiteLink.substring(0, 10)}...` 
+                      : lead.websiteLink}
                   </a>
                 ) : (
                   <span className={isStarkMode ? 'text-gray-400' : 'text-gray-500'}>
