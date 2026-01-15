@@ -55,33 +55,8 @@ export async function POST(request: NextRequest) {
       RETURNING id, email, full_name, created_at
     `;
 
-    // Send welcome email
-    // Try SMTP first (Resend SMTP or ProtonMail), then fall back to Resend API
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      // Use ProtonMail SMTP
-      try {
-        const nodemailer = await import('nodemailer');
-        
-        const transporter = nodemailer.default.createTransport({
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_PORT === '465',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        });
-
-        const fromEmail = process.env.FROM_EMAIL || 'support@aiwebdesignfirm.com';
-        const toEmail = email;
-
-        console.log('Sending welcome email via SMTP:', {
-          fromEmail,
-          toEmail,
-          smtpHost: process.env.SMTP_HOST,
-        });
-
-        const emailContent = `
+    // Prepare welcome email content
+    const emailContent = `
 Welcome ${fullName},
 
 Glad to have your interest, please be sure to follow the following steps in the account.
@@ -96,9 +71,9 @@ Your password is: ${password}
 3. Click the ready button in your account.
 
 After that you will have a fully custom site up and running in less than 24 hours.
-        `;
+    `;
 
-        const htmlContent = `
+    const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -196,7 +171,33 @@ After that you will have a fully custom site up and running in less than 24 hour
               </table>
             </body>
             </html>
-        `;
+    `;
+
+    // Send welcome email
+    // Try SMTP first (Resend SMTP or ProtonMail), then fall back to Resend API
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      // Use ProtonMail SMTP
+      try {
+        const nodemailer = await import('nodemailer');
+        
+        const transporter = nodemailer.default.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_PORT === '465',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        const fromEmail = process.env.FROM_EMAIL || 'support@aiwebdesignfirm.com';
+        const toEmail = email;
+
+        console.log('Sending welcome email via SMTP:', {
+          fromEmail,
+          toEmail,
+          smtpHost: process.env.SMTP_HOST,
+        });
 
         // Send via ProtonMail SMTP
         await transporter.sendMail({
