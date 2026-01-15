@@ -387,9 +387,15 @@ export default function LeadsPage() {
                            lead.websiteLink.trim().toLowerCase() !== 'directions' &&
                            lead.websiteLink.trim().toLowerCase() !== 'none' &&
                            !lead.websiteLink.toLowerCase().includes('booksy.com') && (
-                            <span className="text-2xl" title="Has website">
+                            <a
+                              href={lead.websiteLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-2xl hover:opacity-70 transition-opacity cursor-pointer"
+                              title={`Visit ${lead.websiteLink}`}
+                            >
                               🌐
-                            </span>
+                            </a>
                           )}
                           <Link
                             href={`/developer/leads/${lead.id}`}
