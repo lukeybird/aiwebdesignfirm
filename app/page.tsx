@@ -122,12 +122,22 @@ export default function Home() {
             }`} style={{ fontSize: 'clamp(3rem, 18vw, 14rem)' }}>
               MAINTAIN
             </h3>
-            <p className={`text-xl sm:text-2xl max-w-2xl mx-auto font-light leading-relaxed ${
+            <p className={`text-xl sm:text-2xl max-w-2xl mx-auto font-light leading-relaxed mb-8 ${
               isStarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
               Functional websites for specific markets. Fast turnarounds. 
               Detailed and high-quality work. Over 15 years of experience.
             </p>
+            <button 
+              onClick={() => setIsFormOpen(true)}
+              className={`px-12 py-5 rounded-full text-xl font-bold transition-all duration-200 hover:scale-105 ${
+                isStarkMode
+                  ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                  : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+              }`}
+            >
+              Start My Project
+            </button>
           </div>
         </div>
       </section>
