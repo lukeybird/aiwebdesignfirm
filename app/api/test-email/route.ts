@@ -20,7 +20,7 @@ Your password is: ${testPassword}
 
 2. Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
 
-3. Click the ready button in your account.
+3. Fill in all the info for account settings.
 
 After that you will have a fully custom site up and running in less than 24 hours.
     `;
