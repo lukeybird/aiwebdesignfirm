@@ -471,6 +471,21 @@ export default function ClientDashboard() {
     return fileType.startsWith('image/');
   };
 
+  // Get file extension/type for display
+  const getFileType = (fileName: string, fileType: string) => {
+    // Try to get extension from filename first
+    const extension = fileName.split('.').pop()?.toUpperCase() || '';
+    // If no extension, try to extract from MIME type
+    if (!extension && fileType) {
+      const mimeParts = fileType.split('/');
+      if (mimeParts.length > 1) {
+        return mimeParts[1].toUpperCase();
+      }
+      return fileType.toUpperCase();
+    }
+    return extension || 'FILE';
+  };
+
   // Get only image files for gallery
   const imageFiles = files.filter(file => isImageFile(file.type));
 
@@ -859,7 +874,7 @@ export default function ClientDashboard() {
                 <input
                   type="file"
                   multiple
-                  accept="image/*,.heic,.heif"
+                  accept="*/*"
                   onChange={handleFileUpload}
                   disabled={isUploading}
                   className="hidden"
@@ -981,6 +996,14 @@ export default function ClientDashboard() {
                           <div className="text-4xl">📄</div>
                         </div>
                       )}
+                      {/* File Type Badge - Bottom Right */}
+                      <div className={`absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-medium ${
+                        isStarkMode
+                          ? 'bg-black/70 text-white backdrop-blur-sm'
+                          : 'bg-white/90 text-gray-900 backdrop-blur-sm'
+                      }`}>
+                        {getFileType(file.name, file.type)}
+                      </div>
                     </div>
                     
                     {/* File Name and Actions */}
