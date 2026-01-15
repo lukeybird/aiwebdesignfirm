@@ -98,63 +98,36 @@ export async function PUT(
     const leadId = id;
     const body = await request.json();
 
-    // Build update query using template literals
-    const updateParts: string[] = [];
-    const updateValues: any[] = [];
+    const {
+      listingLink,
+      websiteLink,
+      businessPhone,
+      businessName,
+      businessEmail,
+      businessAddress,
+      ownerFirstName,
+      ownerPhone,
+      hasLogo,
+      hasGoodPhotos
+    } = body;
 
-    if (body.listingLink !== undefined) {
-      updateParts.push(`listing_link = $${updateValues.length + 1}`);
-      updateValues.push(body.listingLink);
-    }
-    if (body.websiteLink !== undefined) {
-      updateParts.push(`website_link = $${updateValues.length + 1}`);
-      updateValues.push(body.websiteLink);
-    }
-    if (body.businessPhone !== undefined) {
-      updateParts.push(`business_phone = $${updateValues.length + 1}`);
-      updateValues.push(body.businessPhone);
-    }
-    if (body.businessName !== undefined) {
-      updateParts.push(`business_name = $${updateValues.length + 1}`);
-      updateValues.push(body.businessName);
-    }
-    if (body.businessEmail !== undefined) {
-      updateParts.push(`business_email = $${updateValues.length + 1}`);
-      updateValues.push(body.businessEmail);
-    }
-    if (body.businessAddress !== undefined) {
-      updateParts.push(`business_address = $${updateValues.length + 1}`);
-      updateValues.push(body.businessAddress);
-    }
-    if (body.ownerFirstName !== undefined) {
-      updateParts.push(`owner_first_name = $${updateValues.length + 1}`);
-      updateValues.push(body.ownerFirstName);
-    }
-    if (body.ownerPhone !== undefined) {
-      updateParts.push(`owner_phone = $${updateValues.length + 1}`);
-      updateValues.push(body.ownerPhone);
-    }
-    if (body.hasLogo !== undefined) {
-      updateParts.push(`has_logo = $${updateValues.length + 1}`);
-      updateValues.push(body.hasLogo);
-    }
-    if (body.hasGoodPhotos !== undefined) {
-      updateParts.push(`has_good_photos = $${updateValues.length + 1}`);
-      updateValues.push(body.hasGoodPhotos);
-    }
-
-    if (updateParts.length === 0) {
-      return NextResponse.json(
-        { error: 'No fields to update' },
-        { status: 400 }
-      );
-    }
-
-    updateValues.push(leadId);
-    const updateQuery = `UPDATE leads SET ${updateParts.join(', ')} WHERE id = $${updateValues.length} RETURNING *`;
-
-    // Use sql.unsafe for dynamic queries
-    const result = await sql.unsafe(updateQuery, updateValues);
+    // Update lead using COALESCE to only update provided fields
+    const result = await sql`
+      UPDATE leads
+      SET 
+        listing_link = COALESCE(${listingLink}, listing_link),
+        website_link = COALESCE(${websiteLink}, website_link),
+        business_phone = COALESCE(${businessPhone}, business_phone),
+        business_name = COALESCE(${businessName}, business_name),
+        business_email = COALESCE(${businessEmail}, business_email),
+        business_address = COALESCE(${businessAddress}, business_address),
+        owner_first_name = COALESCE(${ownerFirstName}, owner_first_name),
+        owner_phone = COALESCE(${ownerPhone}, owner_phone),
+        has_logo = COALESCE(${hasLogo}, has_logo),
+        has_good_photos = COALESCE(${hasGoodPhotos}, has_good_photos)
+      WHERE id = ${leadId}
+      RETURNING *
+    `;
 
     if (result.length === 0) {
       return NextResponse.json(
