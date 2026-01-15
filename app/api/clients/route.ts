@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     `;
 
     // Send welcome email
-    // Try ProtonMail SMTP first, then fall back to Resend
+    // Try SMTP first (Resend SMTP or ProtonMail), then fall back to Resend API
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       // Use ProtonMail SMTP
       try {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         const fromEmail = process.env.FROM_EMAIL || 'support@aiwebdesignfirm.com';
         const toEmail = email;
 
-        console.log('Sending welcome email via ProtonMail SMTP:', {
+        console.log('Sending welcome email via SMTP:', {
           fromEmail,
           toEmail,
           smtpHost: process.env.SMTP_HOST,
@@ -176,9 +176,9 @@ After that you will have a fully custom site up and running in less than 24 hour
           html: htmlContent,
         });
 
-        console.log('Welcome email sent successfully via ProtonMail SMTP to:', email);
+        console.log('Welcome email sent successfully via SMTP to:', email);
       } catch (emailError: any) {
-        console.error('Error sending welcome email via ProtonMail SMTP:', emailError);
+        console.error('Error sending welcome email via SMTP:', emailError);
         console.error('Error details:', {
           message: emailError?.message,
           stack: emailError?.stack,
