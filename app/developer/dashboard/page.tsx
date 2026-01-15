@@ -620,6 +620,56 @@ export default function DeveloperDashboard() {
             </div>
           )}
 
+          {/* Duplicate Confirmation Modal */}
+          {showDuplicatePrompt && (
+            <div 
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+              onClick={() => {
+                // Don't close on backdrop click - require explicit choice
+              }}
+            >
+              <div 
+                className={`rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 transition-colors duration-300 ${
+                  isStarkMode 
+                    ? 'bg-gray-800 border border-cyan-500/20' 
+                    : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className={`text-2xl font-black mb-4 ${
+                  isStarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Duplicate Leads Found
+                </h3>
+                <p className={`mb-6 ${isStarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {duplicateCount} of the leads share a phone number with existing leads. Would you like to overwrite the existing leads with the new data?
+                </p>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => handleDuplicateResponse(true)}
+                    className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+                      isStarkMode
+                        ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                    }`}
+                  >
+                    Yes, Overwrite
+                  </button>
+                  <button
+                    onClick={() => handleDuplicateResponse(false)}
+                    className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+                      isStarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300'
+                    }`}
+                  >
+                    No, Skip Duplicates
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Success Message */}
           {submitSuccess && (
             <div className={`mb-6 p-4 rounded-lg ${
