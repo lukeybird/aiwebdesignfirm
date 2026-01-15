@@ -187,7 +187,7 @@ After that you will have a fully custom site up and running in less than 24 hour
         // Don't fail signup if email fails
       }
     } else if (process.env.RESEND_API_KEY) {
-      // Fall back to Resend
+      // Fall back to Resend API
       try {
         const { Resend } = await import('resend');
         const resend = new Resend(process.env.RESEND_API_KEY);
@@ -196,12 +196,29 @@ After that you will have a fully custom site up and running in less than 24 hour
         const toEmail = email;
 
         // Log configuration (without exposing full API key)
-        console.log('Welcome email configuration (Resend):', {
+        console.log('Welcome email configuration (Resend API):', {
           hasApiKey: !!process.env.RESEND_API_KEY,
           apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) + '...',
           fromEmail,
           toEmail,
         });
+
+        const emailContent = `
+Welcome ${fullName},
+
+Glad to have your interest, please be sure to follow the following steps in the account.
+
+Your username is: ${email}
+Your password is: ${password}
+
+1. Upload your best pictures you want to see on your website.
+
+2. Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
+
+3. Click the ready button in your account.
+
+After that you will have a fully custom site up and running in less than 24 hours.
+        `;
 
         const emailResult = await resend.emails.send({
           from: fromEmail,
