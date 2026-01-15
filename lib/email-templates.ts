@@ -24,32 +24,6 @@ After that you will have a fully custom site up and running in less than 24 hour
             <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                @keyframes shine {
-                  0% {
-                    transform: translateX(-100%) translateY(-100%) rotate(45deg);
-                  }
-                  100% {
-                    transform: translateX(200%) translateY(200%) rotate(45deg);
-                  }
-                }
-                .shine-overlay {
-                  position: absolute;
-                  top: -50%;
-                  left: -50%;
-                  width: 200%;
-                  height: 200%;
-                  background: linear-gradient(
-                    45deg,
-                    transparent 30%,
-                    rgba(255, 255, 255, 0.1) 50%,
-                    transparent 70%
-                  );
-                  animation: shine 3s infinite;
-                  pointer-events: none;
-                  z-index: 1;
-                }
-              </style>
             </head>
             <body style="margin: 0; padding: 0; background: #000000; background-image: radial-gradient(circle at 20% 50%, rgba(34, 211, 238, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
               <table width="100%" cellpadding="0" cellspacing="0" style="background: transparent; padding: 40px 20px;">
@@ -59,9 +33,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                       <!-- Tech Pattern Overlay -->
                       <tr>
                         <td style="position: relative; padding: 0;">
-                          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(34, 211, 238, 0.03) 2px, rgba(34, 211, 238, 0.03) 4px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(34, 211, 238, 0.03) 2px, rgba(34, 211, 238, 0.03) 4px); pointer-events: none; z-index: 0;"></div>
-                          <!-- Shine/Glare Animation Overlay -->
-                          <div class="shine-overlay"></div>
+                          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(34, 211, 238, 0.03) 2px, rgba(34, 211, 238, 0.03) 4px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(34, 211, 238, 0.03) 2px, rgba(34, 211, 238, 0.03) 4px); pointer-events: none;"></div>
                         </td>
                       </tr>
                       
