@@ -26,9 +26,38 @@ export async function initDatabase() {
         business_name VARCHAR(255),
         business_address TEXT,
         business_website VARCHAR(255),
+        instruction_1_completed BOOLEAN DEFAULT FALSE,
+        instruction_2_completed BOOLEAN DEFAULT FALSE,
+        instruction_3_completed BOOLEAN DEFAULT FALSE,
+        website_notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
+
+    // Add new columns if they don't exist (for existing databases)
+    try {
+      const columnsToAdd = [
+        { name: 'instruction_1_completed', type: 'BOOLEAN DEFAULT FALSE' },
+        { name: 'instruction_2_completed', type: 'BOOLEAN DEFAULT FALSE' },
+        { name: 'instruction_3_completed', type: 'BOOLEAN DEFAULT FALSE' },
+        { name: 'website_notes', type: 'TEXT' },
+      ];
+
+      for (const column of columnsToAdd) {
+        const columnCheck = await sql`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_schema = 'public' AND table_name = 'clients' AND column_name = ${column.name}
+        `;
+        
+        if (columnCheck.length === 0) {
+          await sql.unsafe(`ALTER TABLE clients ADD COLUMN ${column.name} ${column.type}`);
+          console.log(`✓ Added ${column.name} column to clients table`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error adding columns to clients table:', error);
+    }
 
     // Create leads table
     await sql`

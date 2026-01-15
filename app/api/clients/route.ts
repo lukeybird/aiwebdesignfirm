@@ -2,16 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
-// GET - Get all clients (for developer)
+// GET - Get all clients (for developer) or single client (for client dashboard)
 export async function GET(request: NextRequest) {
   try {
-    const clients = await sql`
-      SELECT id, email, full_name, phone, business_name, business_address, business_website, created_at
-      FROM clients
-      ORDER BY created_at DESC
-    `;
-    
-    return NextResponse.json({ clients });
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('clientId');
+    const email = searchParams.get('email');
+
+    if (clientId) {
+      // Get single client by ID (for client dashboard)
+      const clients = await sql`
+        SELECT id, email, full_name, phone, business_name, business_address, business_website, 
+               instruction_1_completed, instruction_2_completed, instruction_3_completed, website_notes, created_at
+        FROM clients
+        WHERE id = ${clientId}
+      `;
+      
+      return NextResponse.json({ client: clients[0] || null });
+    } else if (email) {
+      // Get single client by email
+      const clients = await sql`
+        SELECT id, email, full_name, phone, business_name, business_address, business_website, 
+               instruction_1_completed, instruction_2_completed, instruction_3_completed, website_notes, created_at
+        FROM clients
+        WHERE email = ${email}
+      `;
+      
+      return NextResponse.json({ client: clients[0] || null });
+    } else {
+      // Get all clients (for developer)
+      const clients = await sql`
+        SELECT id, email, full_name, phone, business_name, business_address, business_website, created_at
+        FROM clients
+        ORDER BY created_at DESC
+      `;
+      
+      return NextResponse.json({ clients });
+    }
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message },
@@ -275,7 +302,18 @@ After that you will have a fully custom site up and running in less than 24 hour
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, fullName, phone, businessName, businessAddress, businessWebsite } = body;
+    const { 
+      email, 
+      fullName, 
+      phone, 
+      businessName, 
+      businessAddress, 
+      businessWebsite,
+      instruction1Completed,
+      instruction2Completed,
+      instruction3Completed,
+      websiteNotes
+    } = body;
 
     if (!email) {
       return NextResponse.json(
@@ -291,9 +329,14 @@ export async function PUT(request: NextRequest) {
         phone = COALESCE(${phone}, phone),
         business_name = COALESCE(${businessName}, business_name),
         business_address = COALESCE(${businessAddress}, business_address),
-        business_website = COALESCE(${businessWebsite}, business_website)
+        business_website = COALESCE(${businessWebsite}, business_website),
+        instruction_1_completed = COALESCE(${instruction1Completed}, instruction_1_completed),
+        instruction_2_completed = COALESCE(${instruction2Completed}, instruction_2_completed),
+        instruction_3_completed = COALESCE(${instruction3Completed}, instruction_3_completed),
+        website_notes = COALESCE(${websiteNotes}, website_notes)
       WHERE email = ${email}
-      RETURNING id, email, full_name, phone, business_name, business_address, business_website
+      RETURNING id, email, full_name, phone, business_name, business_address, business_website,
+                 instruction_1_completed, instruction_2_completed, instruction_3_completed, website_notes
     `;
 
     if (result.length === 0) {

@@ -38,6 +38,13 @@ export default function ClientDashboard() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [instructions, setInstructions] = useState({
+    instruction1: false,
+    instruction2: false,
+    instruction3: false,
+  });
+  const [websiteNotes, setWebsiteNotes] = useState('');
+  const [isSavingInstructions, setIsSavingInstructions] = useState(false);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -87,6 +94,18 @@ export default function ClientDashboard() {
               businessAddress: client.business_address || '',
               businessWebsite: client.business_website || '',
             });
+            
+            // Load instructions and notes
+            const clientResponse = await fetch(`/api/clients?clientId=${clientId}`);
+            const clientData = await clientResponse.json();
+            if (clientData.client) {
+              setInstructions({
+                instruction1: clientData.client.instruction_1_completed || false,
+                instruction2: clientData.client.instruction_2_completed || false,
+                instruction3: clientData.client.instruction_3_completed || false,
+              });
+              setWebsiteNotes(clientData.client.website_notes || '');
+            }
           }
 
           // Load files for this client
