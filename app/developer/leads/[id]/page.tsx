@@ -395,8 +395,8 @@ export default function LeadProfilePage() {
                     }`}
                     title={lead.websiteLink}
                   >
-                    {lead.websiteLink.length > 10 
-                      ? `${lead.websiteLink.substring(0, 10)}...` 
+                    {lead.websiteLink.length > 20 
+                      ? `${lead.websiteLink.substring(0, 20)}...` 
                       : lead.websiteLink}
                   </a>
                 ) : (
