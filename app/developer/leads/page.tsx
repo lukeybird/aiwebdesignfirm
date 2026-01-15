@@ -294,7 +294,9 @@ export default function LeadsPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
-                          {lead.websiteLink && lead.websiteLink.trim() !== '' && (
+                          {lead.websiteLink && 
+                           lead.websiteLink.trim() !== '' && 
+                           !lead.websiteLink.toLowerCase().includes('booksy.com') && (
                             <span className="text-2xl" title="Has website">
                               🌐
                             </span>

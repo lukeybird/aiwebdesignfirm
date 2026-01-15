@@ -306,8 +306,12 @@ export default function DeveloperDashboard() {
           const addressMatch = locationInfo.match(/·\s*(.+)$/);
           const businessAddress = addressMatch ? addressMatch[1].trim() : locationInfo || undefined;
           
-          // Handle website link - set to undefined if empty, otherwise use the value
-          const websiteLink = websiteLinkRaw && websiteLinkRaw.trim() !== '' ? websiteLinkRaw.trim() : undefined;
+          // Handle website link - set to undefined if empty or if it's a booksy.com link (social network, not a website)
+          const websiteLink = websiteLinkRaw && 
+                              websiteLinkRaw.trim() !== '' && 
+                              !websiteLinkRaw.toLowerCase().includes('booksy.com')
+                              ? websiteLinkRaw.trim() 
+                              : undefined;
           
           // Handle Google Maps listing link
           // First try the direct maps link from CSV (now from column 9)
