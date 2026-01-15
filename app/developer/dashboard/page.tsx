@@ -159,11 +159,19 @@ export default function DeveloperDashboard() {
     }
   };
 
+  // Normalize phone number for comparison (remove all non-digit characters except +)
+  const normalizePhone = (phone: string): string => {
+    if (!phone) return '';
+    // Remove all non-digit characters except +
+    return phone.replace(/[^\d+]/g, '');
+  };
+
   const processCsvData = async (dataRows: any[], overwriteDuplicates: boolean = false) => {
     setCsvProgress({ processed: 0, total: dataRows.length, success: 0, errors: 0 });
 
     let successCount = 0;
     let errorCount = 0;
+    const errors: string[] = [];
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
@@ -178,19 +186,24 @@ export default function DeveloperDashboard() {
 
         if (!listingLink) {
           errorCount++;
+          errors.push(`Row ${i + 1}: Missing listing link`);
           setCsvProgress(prev => ({ ...prev, processed: prev.processed + 1, errors: prev.errors + 1 }));
           continue;
         }
 
-        // If overwriting duplicates and phone number exists, delete old lead first
+        // If overwriting duplicates and phone number exists, delete old lead(s) first
         if (overwriteDuplicates && businessPhone) {
           try {
-            await fetch(`/api/leads/delete-by-phone?phone=${encodeURIComponent(businessPhone)}`, {
+            const deleteResponse = await fetch(`/api/leads/delete-by-phone?phone=${encodeURIComponent(businessPhone)}`, {
               method: 'DELETE',
             });
+            if (!deleteResponse.ok) {
+              const deleteError = await deleteResponse.json();
+              console.warn(`Failed to delete duplicate for ${businessPhone}:`, deleteError);
+            }
           } catch (error) {
-            // Continue even if delete fails
             console.error('Error deleting duplicate:', error);
+            // Continue anyway - might be a format mismatch, but we'll try to create
           }
         }
 
@@ -211,6 +224,10 @@ export default function DeveloperDashboard() {
           successCount++;
         } else {
           errorCount++;
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          const errorMsg = `Row ${i + 1} (${businessName || 'Unknown'}): ${errorData.error || 'Failed to create lead'}`;
+          errors.push(errorMsg);
+          console.error('Failed to create lead:', errorMsg);
         }
 
         setCsvProgress(prev => ({ 
@@ -222,8 +239,11 @@ export default function DeveloperDashboard() {
 
         // Small delay to avoid overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
+      } catch (error: any) {
         errorCount++;
+        const errorMsg = `Row ${i + 1}: ${error.message || 'Unexpected error'}`;
+        errors.push(errorMsg);
+        console.error('Error processing row:', errorMsg, error);
         setCsvProgress(prev => ({ 
           ...prev, 
           processed: prev.processed + 1,
@@ -236,7 +256,16 @@ export default function DeveloperDashboard() {
     setCsvFile(null);
     setShowDuplicatePrompt(false);
     setCsvDataToProcess([]);
-    alert(`CSV processing complete!\nSuccess: ${successCount}\nErrors: ${errorCount}`);
+    
+    // Show detailed error message if there are errors
+    let message = `CSV processing complete!\nSuccess: ${successCount}\nErrors: ${errorCount}`;
+    if (errors.length > 0 && errors.length <= 10) {
+      message += `\n\nFirst ${errors.length} errors:\n${errors.slice(0, 10).join('\n')}`;
+    } else if (errors.length > 10) {
+      message += `\n\nFirst 10 errors:\n${errors.slice(0, 10).join('\n')}\n... and ${errors.length - 10} more`;
+    }
+    
+    alert(message);
     setShowCsvUpload(false);
   };
 
