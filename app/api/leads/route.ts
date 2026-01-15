@@ -54,9 +54,36 @@ export async function GET() {
   }
 }
 
+// Helper function to ensure website_link column exists
+async function ensureWebsiteLinkColumn() {
+  try {
+    // Try to add the column - PostgreSQL will error if it already exists, which is fine
+    await sql`ALTER TABLE leads ADD COLUMN website_link TEXT`;
+    console.log('✓ Added website_link column to leads table');
+  } catch (error: any) {
+    // If column already exists, that's fine
+    if (error.message && (
+      error.message.includes('already exists') || 
+      error.message.includes('duplicate column') ||
+      error.code === '42701' // PostgreSQL duplicate column error code
+    )) {
+      // Column already exists - that's what we want
+    } else if (error.message && error.message.includes('does not exist')) {
+      // Table doesn't exist - that's a bigger problem, but initDatabase should handle it
+      throw error;
+    } else {
+      // Some other error - log it but don't fail
+      console.error('Error ensuring website_link column:', error.message);
+    }
+  }
+}
+
 // POST - Create new lead
 export async function POST(request: NextRequest) {
   try {
+    // Ensure website_link column exists before proceeding
+    await ensureWebsiteLinkColumn();
+
     const body = await request.json();
     const {
       listingLink,
