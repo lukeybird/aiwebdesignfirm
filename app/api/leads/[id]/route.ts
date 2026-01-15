@@ -85,3 +85,122 @@ export async function GET(
   }
 }
 
+// PUT - Update lead
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // Ensure website_link column exists before proceeding
+    await ensureWebsiteLinkColumn();
+
+    const { id } = await params;
+    const leadId = id;
+    const body = await request.json();
+
+    // Build update query using template literals
+    const updateParts: string[] = [];
+    const updateValues: any[] = [];
+
+    if (body.listingLink !== undefined) {
+      updateParts.push(`listing_link = $${updateValues.length + 1}`);
+      updateValues.push(body.listingLink);
+    }
+    if (body.websiteLink !== undefined) {
+      updateParts.push(`website_link = $${updateValues.length + 1}`);
+      updateValues.push(body.websiteLink);
+    }
+    if (body.businessPhone !== undefined) {
+      updateParts.push(`business_phone = $${updateValues.length + 1}`);
+      updateValues.push(body.businessPhone);
+    }
+    if (body.businessName !== undefined) {
+      updateParts.push(`business_name = $${updateValues.length + 1}`);
+      updateValues.push(body.businessName);
+    }
+    if (body.businessEmail !== undefined) {
+      updateParts.push(`business_email = $${updateValues.length + 1}`);
+      updateValues.push(body.businessEmail);
+    }
+    if (body.businessAddress !== undefined) {
+      updateParts.push(`business_address = $${updateValues.length + 1}`);
+      updateValues.push(body.businessAddress);
+    }
+    if (body.ownerFirstName !== undefined) {
+      updateParts.push(`owner_first_name = $${updateValues.length + 1}`);
+      updateValues.push(body.ownerFirstName);
+    }
+    if (body.ownerPhone !== undefined) {
+      updateParts.push(`owner_phone = $${updateValues.length + 1}`);
+      updateValues.push(body.ownerPhone);
+    }
+    if (body.hasLogo !== undefined) {
+      updateParts.push(`has_logo = $${updateValues.length + 1}`);
+      updateValues.push(body.hasLogo);
+    }
+    if (body.hasGoodPhotos !== undefined) {
+      updateParts.push(`has_good_photos = $${updateValues.length + 1}`);
+      updateValues.push(body.hasGoodPhotos);
+    }
+
+    if (updateParts.length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
+    updateValues.push(leadId);
+    const updateQuery = `UPDATE leads SET ${updateParts.join(', ')} WHERE id = $${updateValues.length} RETURNING *`;
+
+    // Use sql.unsafe for dynamic queries
+    const result = await sql.unsafe(updateQuery, updateValues);
+
+    if (result.length === 0) {
+      return NextResponse.json(
+        { error: 'Lead not found' },
+        { status: 404 }
+      );
+    }
+
+    const updatedLead = result[0];
+
+    // Get notes
+    const notesResult = await sql`
+      SELECT id, text, created_at
+      FROM lead_notes
+      WHERE lead_id = ${leadId}
+      ORDER BY created_at DESC
+    `;
+
+    const notes = notesResult.map(note => ({
+      id: `note-${note.id}`,
+      text: note.text,
+      createdAt: note.created_at
+    }));
+
+    return NextResponse.json({
+      lead: {
+        id: updatedLead.id.toString(),
+        listingLink: updatedLead.website_link || updatedLead.listing_link,
+        websiteLink: updatedLead.listing_link || updatedLead.website_link,
+        businessPhone: updatedLead.business_phone,
+        businessName: updatedLead.business_name,
+        businessEmail: updatedLead.business_email,
+        businessAddress: updatedLead.business_address,
+        ownerFirstName: updatedLead.owner_first_name,
+        ownerPhone: updatedLead.owner_phone,
+        hasLogo: updatedLead.has_logo,
+        hasGoodPhotos: updatedLead.has_good_photos,
+        notes,
+        createdAt: updatedLead.created_at
+      }
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}
+

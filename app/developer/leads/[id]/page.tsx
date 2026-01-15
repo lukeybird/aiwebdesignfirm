@@ -36,6 +36,9 @@ export default function LeadProfilePage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNoteText, setNewNoteText] = useState<string>('');
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedLead, setEditedLead] = useState<Partial<Lead>>({});
+  const [isSaving, setIsSaving] = useState(false);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -74,6 +77,7 @@ export default function LeadProfilePage() {
         if (data.lead) {
           setLead(data.lead);
           setNotes(data.lead.notes || []);
+          setEditedLead(data.lead);
         } else {
           router.push('/developer/leads');
         }
@@ -168,6 +172,74 @@ export default function LeadProfilePage() {
   const handleCancelAdd = () => {
     setNewNoteText('');
     setIsAddingNote(false);
+  };
+
+  const handleEdit = () => {
+    if (lead) {
+      setEditedLead({
+        listingLink: lead.listingLink,
+        websiteLink: lead.websiteLink,
+        businessPhone: lead.businessPhone,
+        businessName: lead.businessName,
+        businessEmail: lead.businessEmail,
+        businessAddress: lead.businessAddress,
+        ownerFirstName: lead.ownerFirstName,
+        ownerPhone: lead.ownerPhone,
+        hasLogo: lead.hasLogo,
+        hasGoodPhotos: lead.hasGoodPhotos,
+      });
+      setIsEditing(true);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (lead) {
+      setEditedLead({
+        listingLink: lead.listingLink,
+        websiteLink: lead.websiteLink,
+        businessPhone: lead.businessPhone,
+        businessName: lead.businessName,
+        businessEmail: lead.businessEmail,
+        businessAddress: lead.businessAddress,
+        ownerFirstName: lead.ownerFirstName,
+        ownerPhone: lead.ownerPhone,
+        hasLogo: lead.hasLogo,
+        hasGoodPhotos: lead.hasGoodPhotos,
+      });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!lead || isSaving) return;
+
+    try {
+      setIsSaving(true);
+      const response = await fetch(`/api/leads/${lead.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editedLead),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update lead');
+      }
+
+      // Update local state with saved data
+      if (data.lead) {
+        setLead(data.lead);
+        setEditedLead(data.lead);
+        setIsEditing(false);
+        alert('Lead updated successfully!');
+      }
+    } catch (error: any) {
+      console.error('Error updating lead:', error);
+      alert(error.message || 'Error updating lead. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Format phone number: +18139150092 -> +1 (813) 915-0092
@@ -328,18 +400,57 @@ export default function LeadProfilePage() {
                 Created: {new Date(lead.createdAt).toLocaleString()}
               </p>
             </div>
-            <button
-              onClick={handleDeleteLead}
-              className={`px-3 py-2 rounded-full text-lg transition-all hover:scale-105 ${
-                isStarkMode
-                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
-                  : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-              }`}
-              aria-label="Delete Lead"
-              title="Delete Lead"
-            >
-              🗑️
-            </button>
+            <div className="flex items-center gap-3">
+              {!isEditing ? (
+                <button
+                  onClick={handleEdit}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 ${
+                    isStarkMode
+                      ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                  }`}
+                >
+                  Edit Lead
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={isSaving}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isStarkMode
+                        ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                        : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                    }`}
+                  >
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 disabled:opacity-50 ${
+                      isStarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'
+                        : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={handleDeleteLead}
+                className={`px-3 py-2 rounded-full text-lg transition-all hover:scale-105 ${
+                  isStarkMode
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
+                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                }`}
+                aria-label="Delete Lead"
+                title="Delete Lead"
+              >
+                🗑️
+              </button>
+            </div>
           </div>
 
           {/* Lead Information */}
@@ -361,21 +472,35 @@ export default function LeadProfilePage() {
                 }`}>
                   Google Listing Link:
                 </span>
-                {lead.listingLink && lead.listingLink !== 'No Google Maps listing available' ? (
-                  <a
-                    href={lead.listingLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`underline hover:opacity-80 ${
-                      isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedLead.listingLink || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, listingLink: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
                     }`}
-                  >
-                    View Link
-                  </a>
+                    placeholder="Google Maps listing URL"
+                  />
                 ) : (
-                  <span className={isStarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                    None
-                  </span>
+                  lead.listingLink && lead.listingLink !== 'No Google Maps listing available' ? (
+                    <a
+                      href={lead.listingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`underline hover:opacity-80 ${
+                        isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                      }`}
+                    >
+                      View Link
+                    </a>
+                  ) : (
+                    <span className={isStarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                      None
+                    </span>
+                  )
                 )}
               </div>
 
@@ -385,112 +510,252 @@ export default function LeadProfilePage() {
                 }`}>
                   Website Link:
                 </span>
-                {lead.websiteLink && 
-                 lead.websiteLink.trim().toLowerCase() !== 'directions' &&
-                 !lead.websiteLink.toLowerCase().includes('booksy.com') ? (
-                  <a
-                    href={lead.websiteLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`underline hover:opacity-80 ${
-                      isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedLead.websiteLink || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, websiteLink: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
                     }`}
-                    title={lead.websiteLink}
-                  >
-                    {lead.websiteLink.length > 20 
-                      ? `${lead.websiteLink.substring(0, 20)}...` 
-                      : lead.websiteLink}
-                  </a>
+                    placeholder="Website URL"
+                  />
                 ) : (
-                  <span className={isStarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                    None
+                  lead.websiteLink && 
+                  lead.websiteLink.trim().toLowerCase() !== 'directions' &&
+                  !lead.websiteLink.toLowerCase().includes('booksy.com') ? (
+                    <a
+                      href={lead.websiteLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`underline hover:opacity-80 ${
+                        isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                      }`}
+                      title={lead.websiteLink}
+                    >
+                      {lead.websiteLink.length > 20 
+                        ? `${lead.websiteLink.substring(0, 20)}...` 
+                        : lead.websiteLink}
+                    </a>
+                  ) : (
+                    <span className={isStarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                      None
+                    </span>
+                  )
+                )}
+              </div>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Business Name:
+                </span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedLead.businessName || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, businessName: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Business name"
+                  />
+                ) : (
+                  <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                    {lead.businessName || 'Not provided'}
                   </span>
                 )}
               </div>
-              {lead.businessPhone && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Business Phone:
-                  </span>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Business Phone:
+                </span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedLead.businessPhone || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, businessPhone: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Business phone"
+                  />
+                ) : (
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {formatPhoneNumber(lead.businessPhone)}
+                    {lead.businessPhone ? formatPhoneNumber(lead.businessPhone) : 'Not provided'}
                   </span>
-                </div>
-              )}
-              {lead.businessEmail && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Business Email:
-                  </span>
+                )}
+              </div>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Business Email:
+                </span>
+                {isEditing ? (
+                  <input
+                    type="email"
+                    value={editedLead.businessEmail || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, businessEmail: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Business email"
+                  />
+                ) : (
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {lead.businessEmail}
+                    {lead.businessEmail || 'Not provided'}
                   </span>
-                </div>
-              )}
-              {lead.businessAddress && (
-                <div className="md:col-span-2">
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Business Address:
-                  </span>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Business Address:
+                </span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedLead.businessAddress || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, businessAddress: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Business address"
+                  />
+                ) : (
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {lead.businessAddress}
+                    {lead.businessAddress || 'Not provided'}
                   </span>
-                </div>
-              )}
-              {lead.ownerFirstName && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Owner Name:
-                  </span>
+                )}
+              </div>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Owner Name:
+                </span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedLead.ownerFirstName || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, ownerFirstName: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Owner first name"
+                  />
+                ) : (
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {lead.ownerFirstName}
+                    {lead.ownerFirstName || 'Not provided'}
                   </span>
-                </div>
-              )}
-              {lead.ownerPhone && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Owner Phone:
-                  </span>
+                )}
+              </div>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Owner Phone:
+                </span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedLead.ownerPhone || ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, ownerPhone: e.target.value })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Owner phone"
+                  />
+                ) : (
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {formatPhoneNumber(lead.ownerPhone)}
+                    {lead.ownerPhone ? formatPhoneNumber(lead.ownerPhone) : 'Not provided'}
                   </span>
-                </div>
-              )}
-              {lead.hasLogo !== undefined && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Has Logo:
-                  </span>
+                )}
+              </div>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Has Logo (1-5):
+                </span>
+                {isEditing ? (
+                  <select
+                    value={editedLead.hasLogo ?? ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, hasLogo: e.target.value ? parseInt(e.target.value) : undefined })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="">Not set</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                ) : (
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {lead.hasLogo}/5
+                    {lead.hasLogo !== undefined ? `${lead.hasLogo}/5` : 'Not provided'}
                   </span>
-                </div>
-              )}
-              {lead.hasGoodPhotos !== undefined && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Has Good Photos:
-                  </span>
+                )}
+              </div>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Has Good Photos (1-5):
+                </span>
+                {isEditing ? (
+                  <select
+                    value={editedLead.hasGoodPhotos ?? ''}
+                    onChange={(e) => setEditedLead({ ...editedLead, hasGoodPhotos: e.target.value ? parseInt(e.target.value) : undefined })}
+                    className={`w-full p-2 rounded-lg border ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/40 text-white'
+                        : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="">Not set</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                ) : (
                   <span className={isStarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                    {lead.hasGoodPhotos}/5
+                    {lead.hasGoodPhotos !== undefined ? `${lead.hasGoodPhotos}/5` : 'Not provided'}
                   </span>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
