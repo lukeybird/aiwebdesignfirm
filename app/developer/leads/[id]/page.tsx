@@ -355,13 +355,13 @@ export default function LeadProfilePage() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {lead.listingLink && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Google Listing Link:
-                  </span>
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Google Listing Link:
+                </span>
+                {lead.listingLink && lead.listingLink !== 'No Google Maps listing available' ? (
                   <a
                     href={lead.listingLink}
                     target="_blank"
@@ -372,16 +372,20 @@ export default function LeadProfilePage() {
                   >
                     View Link
                   </a>
-                </div>
-              )}
-
-              {lead.websiteLink && (
-                <div>
-                  <span className={`font-medium block mb-1 ${
-                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
-                  }`}>
-                    Website Link:
+                ) : (
+                  <span className={isStarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                    None
                   </span>
+                )}
+              </div>
+
+              <div>
+                <span className={`font-medium block mb-1 ${
+                  isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                }`}>
+                  Website Link:
+                </span>
+                {lead.websiteLink ? (
                   <a
                     href={lead.websiteLink}
                     target="_blank"
@@ -392,8 +396,12 @@ export default function LeadProfilePage() {
                   >
                     {lead.websiteLink}
                   </a>
-                </div>
-              )}
+                ) : (
+                  <span className={isStarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                    None
+                  </span>
+                )}
+              </div>
               {lead.businessPhone && (
                 <div>
                   <span className={`font-medium block mb-1 ${

@@ -180,11 +180,12 @@ export default function DeveloperDashboard() {
         const businessName = row.businessName || '';
         const businessPhone = row.businessPhone;
         const locationInfo = row.locationInfo || '';
-        const websiteLink = row.websiteLink || '';
+        const websiteLink = row.websiteLink; // Already handled as undefined if empty
         const listingLink = row.listingLink;
         const businessAddress = row.businessAddress;
 
-        if (!listingLink) {
+        // Ensure we have at least a listing link (should always be set, even if placeholder)
+        if (!listingLink || listingLink.trim() === '') {
           errorCount++;
           errors.push(`Row ${i + 1}: Missing listing link`);
           setCsvProgress(prev => ({ ...prev, processed: prev.processed + 1, errors: prev.errors + 1 }));
@@ -294,7 +295,7 @@ export default function DeveloperDashboard() {
           const businessName = row[0]?.trim() || '';
           const phoneRaw = row[5]?.trim() || '';
           const locationInfo = row[4]?.trim() || '';
-          const websiteLink = row[9]?.trim() || '';
+          const websiteLinkRaw = row[9]?.trim() || '';
           const mapsLink = row[11]?.trim() || row[12]?.trim() || '';
           
           // Extract phone number (remove "· " prefix)
@@ -304,25 +305,43 @@ export default function DeveloperDashboard() {
           const addressMatch = locationInfo.match(/·\s*(.+)$/);
           const businessAddress = addressMatch ? addressMatch[1].trim() : locationInfo || undefined;
           
-          // Use Google Maps link as listing link, or construct from business name if not available
-          let listingLink = mapsLink || '';
+          // Handle website link - set to undefined if empty, otherwise use the value
+          const websiteLink = websiteLinkRaw && websiteLinkRaw.trim() !== '' ? websiteLinkRaw.trim() : undefined;
+          
+          // Handle Google Maps listing link
+          // First try the direct maps link from CSV
+          let listingLink = mapsLink && mapsLink.trim() !== '' ? mapsLink.trim() : undefined;
+          
+          // If no maps link, try to construct one from business name and address
           if (!listingLink && businessName) {
-            listingLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessName + ' ' + (businessAddress || ''))}`;
+            const searchQuery = businessName + (businessAddress ? ' ' + businessAddress : '');
+            listingLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+          }
+          
+          // If still no listing link, use a placeholder or skip
+          // We'll allow leads without listing links, but mark them appropriately
+          if (!listingLink) {
+            // Use a placeholder that indicates no link was found
+            listingLink = 'No Google Maps listing available';
           }
 
-          if (listingLink) {
-            parsedRows.push({
-              businessName,
-              businessPhone,
-              locationInfo,
-              websiteLink,
-              listingLink,
-              businessAddress,
-            });
+          // Only skip if we have absolutely no identifying information
+          if (!businessName && !businessPhone) {
+            // Skip rows with no business name or phone
+            continue;
+          }
 
-            if (businessPhone) {
-              phoneNumbers.push(businessPhone);
-            }
+          parsedRows.push({
+            businessName: businessName || undefined,
+            businessPhone,
+            locationInfo,
+            websiteLink,
+            listingLink,
+            businessAddress,
+          });
+
+          if (businessPhone) {
+            phoneNumbers.push(businessPhone);
           }
         }
 

@@ -72,12 +72,18 @@ export async function POST(request: NextRequest) {
       customNotes
     } = body;
 
-    if (!listingLink) {
+    // Allow listing link to be a placeholder if no Google Maps link is available
+    if (!listingLink || listingLink.trim() === '') {
       return NextResponse.json(
         { error: 'Listing link is required' },
         { status: 400 }
       );
     }
+    
+    // If listing link is a placeholder, store it as-is (allows tracking leads without Google Maps links)
+    const finalListingLink = listingLink === 'No Google Maps listing available' 
+      ? listingLink 
+      : listingLink;
 
     // Create lead
     const result = await sql`
@@ -86,7 +92,7 @@ export async function POST(request: NextRequest) {
         business_address, owner_first_name, owner_phone, has_logo, has_good_photos
       )
       VALUES (
-        ${listingLink}, ${websiteLink || null}, ${businessPhone || null}, ${businessName || null}, 
+        ${finalListingLink}, ${websiteLink || null}, ${businessPhone || null}, ${businessName || null}, 
         ${businessEmail || null}, ${businessAddress || null}, 
         ${ownerFirstName || null}, ${ownerPhone || null}, 
         ${hasLogo || null}, ${hasGoodPhotos || null}
