@@ -8,6 +8,7 @@ import Papa from 'papaparse';
 interface Lead {
   id: string;
   listingLink: string;
+  websiteLink?: string;
   businessPhone?: string;
   businessName?: string;
   businessEmail?: string;
@@ -57,6 +58,7 @@ export default function DeveloperDashboard() {
   // Form state
   const [formData, setFormData] = useState({
     listingLink: '', // Google Maps link (required)
+    websiteLink: '', // Business website link (optional)
     businessPhone: '',
     businessName: '',
     businessEmail: '',
@@ -161,10 +163,12 @@ export default function DeveloperDashboard() {
             // Column 0: Business Name
             // Column 5: Phone (format: "· (813) 548-0240")
             // Column 4: Location info (contains address)
+            // Column 9: Website URL
             // Column 11: Google Maps Directions link
             const businessName = row[0]?.trim() || '';
             const phoneRaw = row[5]?.trim() || '';
             const locationInfo = row[4]?.trim() || '';
+            const websiteLink = row[9]?.trim() || ''; // Website URL from column 9
             const mapsLink = row[11]?.trim() || row[12]?.trim() || ''; // Try column 11 or 12
             
             // Extract phone number (remove "· " prefix)
@@ -193,6 +197,7 @@ export default function DeveloperDashboard() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 listingLink,
+                websiteLink: websiteLink || undefined,
                 businessPhone,
                 businessName: businessName || undefined,
                 businessAddress,
@@ -248,6 +253,7 @@ export default function DeveloperDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingLink: formData.listingLink,
+          websiteLink: formData.websiteLink || undefined,
           businessPhone: formData.businessPhone || undefined,
           businessName: formData.businessName || undefined,
           businessEmail: formData.businessEmail || undefined,
@@ -269,6 +275,7 @@ export default function DeveloperDashboard() {
       // Reset form
       setFormData({
         listingLink: '',
+        websiteLink: '',
         businessPhone: '',
         businessName: '',
         businessEmail: '',

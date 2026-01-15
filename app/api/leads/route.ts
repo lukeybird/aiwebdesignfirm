@@ -28,6 +28,7 @@ export async function GET() {
     const formattedLeads = leads.map(lead => ({
       id: lead.id.toString(),
       listingLink: lead.listing_link,
+      websiteLink: lead.website_link,
       businessPhone: lead.business_phone,
       businessName: lead.business_name,
       businessEmail: lead.business_email,
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       listingLink,
+      websiteLink,
       businessPhone,
       businessName,
       businessEmail,
@@ -80,16 +82,16 @@ export async function POST(request: NextRequest) {
     // Create lead
     const result = await sql`
       INSERT INTO leads (
-        listing_link, business_phone, business_name, business_email, 
+        listing_link, website_link, business_phone, business_name, business_email, 
         business_address, owner_first_name, owner_phone, has_logo, has_good_photos
       )
       VALUES (
-        ${listingLink}, ${businessPhone || null}, ${businessName || null}, 
+        ${listingLink}, ${websiteLink || null}, ${businessPhone || null}, ${businessName || null}, 
         ${businessEmail || null}, ${businessAddress || null}, 
         ${ownerFirstName || null}, ${ownerPhone || null}, 
         ${hasLogo || null}, ${hasGoodPhotos || null}
       )
-      RETURNING id, listing_link, business_phone, business_name, business_email, 
+      RETURNING id, listing_link, website_link, business_phone, business_name, business_email, 
                 business_address, owner_first_name, owner_phone, has_logo, 
                 has_good_photos, created_at
     `;
@@ -109,6 +111,7 @@ export async function POST(request: NextRequest) {
       lead: {
         id: lead.id.toString(),
         listingLink: lead.listing_link,
+        websiteLink: lead.website_link,
         businessPhone: lead.business_phone,
         businessName: lead.business_name,
         businessEmail: lead.business_email,

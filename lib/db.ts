@@ -35,6 +35,7 @@ export async function initDatabase() {
       CREATE TABLE IF NOT EXISTS leads (
         id SERIAL PRIMARY KEY,
         listing_link TEXT NOT NULL,
+        website_link TEXT,
         business_phone VARCHAR(50),
         business_name VARCHAR(255),
         business_email VARCHAR(255),
@@ -45,6 +46,19 @@ export async function initDatabase() {
         has_good_photos INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `;
+
+    // Add website_link column if it doesn't exist (for existing databases)
+    await sql`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'leads' AND column_name = 'website_link'
+        ) THEN
+          ALTER TABLE leads ADD COLUMN website_link TEXT;
+        END IF;
+      END $$;
     `;
 
     // Create notes table (for leads)

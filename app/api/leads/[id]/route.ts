@@ -41,6 +41,7 @@ export async function GET(
       lead: {
         id: lead.id.toString(),
         listingLink: lead.listing_link,
+        websiteLink: lead.website_link,
         businessPhone: lead.business_phone,
         businessName: lead.business_name,
         businessEmail: lead.business_email,

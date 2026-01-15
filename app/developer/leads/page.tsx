@@ -13,6 +13,7 @@ interface Note {
 interface Lead {
   id: string;
   listingLink: string;
+  websiteLink?: string;
   businessPhone?: string;
   businessName?: string;
   businessEmail?: string;
