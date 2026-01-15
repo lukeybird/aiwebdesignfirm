@@ -42,7 +42,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                         <td style="padding: 50px 40px 40px; text-align: center; border-bottom: 2px solid rgba(34, 211, 238, 0.3); position: relative;">
                           <div style="position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #22d3ee, transparent);"></div>
                           <h1 style="margin: 30px 0 0 0; font-size: 42px; font-weight: 900; color: #06b6d4; background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; text-shadow: 0 0 50px rgba(34, 211, 238, 1); position: relative;">
-                            Welcome ${fullName},
+                            Welcome ${fullName}
                           </h1>
                           <div style="margin-top: 15px; width: 60px; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, transparent); margin-left: auto; margin-right: auto;"></div>
                         </td>
