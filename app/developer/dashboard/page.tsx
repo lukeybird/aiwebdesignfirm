@@ -551,6 +551,16 @@ export default function DeveloperDashboard() {
             >
               Support
             </Link>
+            <Link
+              href="/developer/test"
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                isStarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+              }`}
+            >
+              Test
+            </Link>
           </div>
         </div>
       </nav>

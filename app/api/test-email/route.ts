@@ -1,68 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
-import bcrypt from 'bcryptjs';
 
-// GET - Get all clients (for developer)
-export async function GET(request: NextRequest) {
-  try {
-    const clients = await sql`
-      SELECT id, email, full_name, phone, business_name, business_address, business_website, created_at
-      FROM clients
-      ORDER BY created_at DESC
-    `;
-    
-    return NextResponse.json({ clients });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-// POST - Create new client account
+// POST - Send test welcome email
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password, fullName } = body;
+    const testEmail = 'luke@webstarts.com';
+    const testFullName = 'Luke Barger';
+    const testPassword = 'TestPassword123!';
 
-    if (!email || !password || !fullName) {
-      return NextResponse.json(
-        { error: 'Email, password, and full name are required' },
-        { status: 400 }
-      );
-    }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Check if email already exists
-    const existing = await sql`
-      SELECT id FROM clients WHERE email = ${email}
-    `;
-
-    if (existing.length > 0) {
-      return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 400 }
-      );
-    }
-
-    // Create client
-    const result = await sql`
-      INSERT INTO clients (email, password_hash, full_name)
-      VALUES (${email}, ${passwordHash}, ${fullName})
-      RETURNING id, email, full_name, created_at
-    `;
-
-    // Prepare welcome email content
+    // Prepare email content (same as welcome email)
     const emailContent = `
-Welcome ${fullName},
+Welcome ${testFullName},
 
 Glad to have your interest, please be sure to follow the following steps in the account.
 
-Your username is: ${email}
-Your password is: ${password}
+Your username is: ${testEmail}
+Your password is: ${testPassword}
 
 1. Upload your best pictures you want to see on your website.
 
@@ -97,7 +49,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                         <td style="padding: 50px 40px 40px; text-align: center; border-bottom: 2px solid rgba(34, 211, 238, 0.3); position: relative;">
                           <div style="position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #22d3ee, transparent);"></div>
                           <h1 style="margin: 0; font-size: 42px; font-weight: 900; background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 50%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; text-shadow: 0 0 30px rgba(34, 211, 238, 0.5); position: relative;">
-                            Welcome ${fullName},
+                            Welcome ${testFullName},
                           </h1>
                           <div style="margin-top: 15px; width: 60px; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, transparent); margin-left: auto; margin-right: auto;"></div>
                         </td>
@@ -117,11 +69,11 @@ After that you will have a fully custom site up and running in less than 24 hour
                             <div style="border-top: 1px solid rgba(34, 211, 238, 0.2); padding-top: 25px; margin-top: 25px;">
                               <p style="margin: 22px 0; color: #f3f4f6; font-size: 20px; line-height: 1.8; font-family: 'Courier New', monospace;">
                                 <span style="color: #9ca3af; font-weight: 600; margin-right: 12px;">USERNAME:</span>
-                                <span style="color: #ffffff; font-weight: 500; letter-spacing: 0.5px;">${email}</span>
+                                <span style="color: #ffffff; font-weight: 500; letter-spacing: 0.5px;">${testEmail}</span>
                               </p>
                               <p style="margin: 22px 0; color: #f3f4f6; font-size: 20px; line-height: 1.8; font-family: 'Courier New', monospace;">
                                 <span style="color: #9ca3af; font-weight: 600; margin-right: 12px;">PASSWORD:</span>
-                                <span style="color: #ffffff; font-weight: 500; letter-spacing: 0.5px;">${password}</span>
+                                <span style="color: #ffffff; font-weight: 500; letter-spacing: 0.5px;">${testPassword}</span>
                               </p>
                             </div>
                           </div>
@@ -170,10 +122,8 @@ After that you will have a fully custom site up and running in less than 24 hour
             </html>
     `;
 
-    // Send welcome email
-    // Try SMTP first (Resend SMTP or ProtonMail), then fall back to Resend API
+    // Try SMTP first, then fall back to Resend API
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      // Use ProtonMail SMTP
       try {
         const nodemailer = await import('nodemailer');
         
@@ -188,170 +138,72 @@ After that you will have a fully custom site up and running in less than 24 hour
         });
 
         const fromEmail = process.env.FROM_EMAIL || 'support@aiwebdesignfirm.com';
-        const toEmail = email;
 
-        console.log('Sending welcome email via SMTP:', {
-          fromEmail,
-          toEmail,
-          smtpHost: process.env.SMTP_HOST,
-        });
-
-        // Send via ProtonMail SMTP
         await transporter.sendMail({
           from: fromEmail,
-          to: toEmail,
+          to: testEmail,
           subject: 'Welcome to AI Web Design Firm',
           text: emailContent,
           html: htmlContent,
         });
 
-        console.log('Welcome email sent successfully via SMTP to:', email);
-      } catch (emailError: any) {
-        console.error('Error sending welcome email via SMTP:', emailError);
-        console.error('Error details:', {
-          message: emailError?.message,
-          stack: emailError?.stack,
-          email: email,
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Test email sent successfully via SMTP',
+          to: testEmail
         });
-        // Don't fail signup if email fails
+      } catch (error: any) {
+        console.error('Error sending test email via SMTP:', error);
+        return NextResponse.json(
+          { error: error.message || 'Failed to send test email via SMTP' },
+          { status: 500 }
+        );
       }
     } else if (process.env.RESEND_API_KEY) {
-      // Fall back to Resend API
       try {
         const { Resend } = await import('resend');
         const resend = new Resend(process.env.RESEND_API_KEY);
         
         const fromEmail = process.env.FROM_EMAIL || 'support@aiwebdesignfirm.com';
-        const toEmail = email;
-
-        // Log configuration (without exposing full API key)
-        console.log('Welcome email configuration (Resend API):', {
-          hasApiKey: !!process.env.RESEND_API_KEY,
-          apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) + '...',
-          fromEmail,
-          toEmail,
-        });
 
         const emailResult = await resend.emails.send({
           from: fromEmail,
-          to: toEmail,
+          to: testEmail,
           subject: 'Welcome to AI Web Design Firm',
           text: emailContent,
           html: htmlContent,
         });
 
         if (emailResult.error) {
-          console.error('Resend API error when sending welcome email:', JSON.stringify(emailResult.error, null, 2));
-          console.error('Failed to send welcome email to:', email);
-        } else {
-          console.log('Welcome email sent successfully via Resend to:', email);
-          console.log('Email result:', emailResult.data);
+          return NextResponse.json(
+            { error: emailResult.error.message || 'Failed to send test email' },
+            { status: 500 }
+          );
         }
-      } catch (emailError: any) {
-        console.error('Error sending welcome email via Resend:', emailError);
-        console.error('Error details:', {
-          message: emailError?.message,
-          stack: emailError?.stack,
-          email: email,
+
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Test email sent successfully via Resend',
+          to: testEmail
         });
+      } catch (error: any) {
+        console.error('Error sending test email via Resend:', error);
+        return NextResponse.json(
+          { error: error.message || 'Failed to send test email via Resend' },
+          { status: 500 }
+        );
       }
     } else {
-      console.warn('No email service configured (SMTP or RESEND_API_KEY) - welcome email not sent to:', email);
+      return NextResponse.json(
+        { error: 'No email service configured (SMTP or RESEND_API_KEY)' },
+        { status: 500 }
+      );
     }
-
-    return NextResponse.json({ 
-      success: true, 
-      client: result[0] 
-    });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message || 'Failed to send test email' },
       { status: 500 }
     );
   }
 }
 
-// PUT - Update client account
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { email, fullName, phone, businessName, businessAddress, businessWebsite } = body;
-
-    if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
-    }
-
-    const result = await sql`
-      UPDATE clients
-      SET 
-        full_name = COALESCE(${fullName}, full_name),
-        phone = COALESCE(${phone}, phone),
-        business_name = COALESCE(${businessName}, business_name),
-        business_address = COALESCE(${businessAddress}, business_address),
-        business_website = COALESCE(${businessWebsite}, business_website)
-      WHERE email = ${email}
-      RETURNING id, email, full_name, phone, business_name, business_address, business_website
-    `;
-
-    if (result.length === 0) {
-      return NextResponse.json(
-        { error: 'Client not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      client: result[0] 
-    });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE - Delete client account
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get('clientId');
-
-    if (!clientId) {
-      return NextResponse.json(
-        { error: 'Client ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Delete client (cascade will delete related files and messages)
-    const result = await sql`
-      DELETE FROM clients
-      WHERE id = ${clientId}
-      RETURNING id, email
-    `;
-
-    if (result.length === 0) {
-      return NextResponse.json(
-        { error: 'Client not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Client account deleted successfully',
-      deletedClient: result[0]
-    });
-  } catch (error: any) {
-    console.error('Error deleting client:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete client' },
-      { status: 500 }
-    );
-  }
-}
