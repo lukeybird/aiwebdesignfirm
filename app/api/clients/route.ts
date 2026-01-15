@@ -154,20 +154,20 @@ After that you will have a fully custom site up and running in less than 24 hour
                           <!-- Steps - Tech Style -->
                           <div style="margin: 40px 0;">
                             <p style="margin: 0 0 25px 0; color: #22d3ee; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);">INSTRUCTIONS</p>
-                            <ol style="margin: 0; padding-left: 0; list-style: none; counter-reset: step-counter;">
-                              <li style="margin-bottom: 25px; color: #f3f4f6; font-size: 18px; line-height: 1.8; padding-left: 45px; position: relative; counter-increment: step-counter;">
-                                <span style="position: absolute; left: 0; top: 0; width: 30px; height: 30px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);" counter(step-counter)></span>
+                            <div style="margin: 0; padding-left: 0;">
+                              <div style="margin-bottom: 25px; color: #f3f4f6; font-size: 18px; line-height: 1.8; padding-left: 45px; position: relative;">
+                                <span style="position: absolute; left: 0; top: 0; width: 30px; height: 30px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 14px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 30px;">1</span>
                                 Upload your best pictures you want to see on your website.
-                              </li>
-                              <li style="margin-bottom: 25px; color: #f3f4f6; font-size: 18px; line-height: 1.8; padding-left: 45px; position: relative; counter-increment: step-counter;">
-                                <span style="position: absolute; left: 0; top: 0; width: 30px; height: 30px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);" counter(step-counter)></span>
+                              </div>
+                              <div style="margin-bottom: 25px; color: #f3f4f6; font-size: 18px; line-height: 1.8; padding-left: 45px; position: relative;">
+                                <span style="position: absolute; left: 0; top: 0; width: 30px; height: 30px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 14px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 30px;">2</span>
                                 Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
-                              </li>
-                              <li style="margin-bottom: 25px; color: #f3f4f6; font-size: 18px; line-height: 1.8; padding-left: 45px; position: relative; counter-increment: step-counter;">
-                                <span style="position: absolute; left: 0; top: 0; width: 30px; height: 30px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);" counter(step-counter)></span>
+                              </div>
+                              <div style="margin-bottom: 25px; color: #f3f4f6; font-size: 18px; line-height: 1.8; padding-left: 45px; position: relative;">
+                                <span style="position: absolute; left: 0; top: 0; width: 30px; height: 30px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 14px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 30px;">3</span>
                                 Click the ready button in your account.
-                              </li>
-                            </ol>
+                              </div>
+                            </div>
                           </div>
 
                           <!-- Final Message - Tech Style -->
