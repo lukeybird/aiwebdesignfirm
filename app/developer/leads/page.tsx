@@ -293,16 +293,23 @@ export default function LeadsPage() {
                             )}
                           </div>
                         </div>
-                        <Link
-                          href={`/developer/leads/${lead.id}`}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 flex-shrink-0 ${
-                            isStarkMode
-                              ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
-                          }`}
-                        >
-                          More Info
-                        </Link>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          {lead.websiteLink && lead.websiteLink.trim() !== '' && (
+                            <span className="text-2xl" title="Has website">
+                              🌐
+                            </span>
+                          )}
+                          <Link
+                            href={`/developer/leads/${lead.id}`}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                              isStarkMode
+                                ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                                : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                            }`}
+                          >
+                            More Info
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );
