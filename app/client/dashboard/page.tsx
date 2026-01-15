@@ -725,6 +725,28 @@ export default function ClientDashboard() {
 
                     setClientName(accountInfo.fullName);
                     setIsSavingAccount(false);
+                    
+                    // Auto-check instruction 3 if business name and address are filled
+                    if (accountInfo.businessName.trim() && accountInfo.businessAddress.trim() && !instructions.instruction3) {
+                      const newInstructions = { ...instructions, instruction3: true };
+                      setInstructions(newInstructions);
+                      try {
+                        const instructionResponse = await fetch('/api/clients', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            email: clientEmail,
+                            instruction3Completed: true,
+                          }),
+                        });
+                        if (!instructionResponse.ok) {
+                          console.error('Failed to auto-check instruction 3');
+                        }
+                      } catch (error) {
+                        console.error('Error auto-checking instruction 3:', error);
+                      }
+                    }
+                    
                     alert('Account information updated successfully!');
                   } catch (error: any) {
                     console.error('Error updating account:', error);
