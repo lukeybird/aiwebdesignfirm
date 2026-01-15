@@ -55,12 +55,12 @@ export async function initDatabase() {
       const columnCheck = await sql`
         SELECT column_name 
         FROM information_schema.columns 
-        WHERE table_name = 'leads' AND column_name = 'website_link'
+        WHERE table_schema = 'public' AND table_name = 'leads' AND column_name = 'website_link'
       `;
       
       // If column doesn't exist, add it
       if (columnCheck.length === 0) {
-        await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_link TEXT`;
+        await sql`ALTER TABLE leads ADD COLUMN website_link TEXT`;
         console.log('✓ Added website_link column to leads table');
       } else {
         console.log('✓ website_link column already exists');
@@ -71,7 +71,17 @@ export async function initDatabase() {
         console.log('Leads table does not exist yet, will be created with website_link column');
       } else {
         console.error('Error checking/adding website_link column:', error);
-        // Don't throw - the table creation above should handle it
+        // Try to add it anyway - PostgreSQL will error if it already exists, but that's okay
+        try {
+          await sql`ALTER TABLE leads ADD COLUMN website_link TEXT`;
+          console.log('✓ Added website_link column (retry succeeded)');
+        } catch (retryError: any) {
+          if (retryError.message && retryError.message.includes('already exists')) {
+            console.log('✓ website_link column already exists (caught on retry)');
+          } else {
+            console.error('Error on retry:', retryError);
+          }
+        }
       }
     }
 
