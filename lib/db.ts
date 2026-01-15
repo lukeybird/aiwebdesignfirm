@@ -49,17 +49,20 @@ export async function initDatabase() {
     `;
 
     // Add website_link column if it doesn't exist (for existing databases)
-    await sql`
-      DO $$ 
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name = 'leads' AND column_name = 'website_link'
-        ) THEN
-          ALTER TABLE leads ADD COLUMN website_link TEXT;
-        END IF;
-      END $$;
-    `;
+    try {
+      const columnExists = await sql`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'leads' AND column_name = 'website_link'
+      `;
+      
+      if (columnExists.length === 0) {
+        await sql`ALTER TABLE leads ADD COLUMN website_link TEXT`;
+        console.log('Added website_link column to leads table');
+      }
+    } catch (error) {
+      console.error('Error adding website_link column:', error);
+      // Continue anyway - might already exist or table might not exist yet
+    }
 
     // Create notes table (for leads)
     await sql`
