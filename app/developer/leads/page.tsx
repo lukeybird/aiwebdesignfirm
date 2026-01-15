@@ -66,6 +66,7 @@ export default function LeadsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const leadsPerPage = 25;
+  const [websiteFilter, setWebsiteFilter] = useState<'all' | 'has-website' | 'no-website'>('all');
 
   // Load leads from API
   useEffect(() => {
@@ -81,10 +82,38 @@ export default function LeadsPage() {
         }
         
         if (data.leads) {
-          setLeads(data.leads);
-          if (data.pagination) {
-            setTotalPages(data.pagination.totalPages);
-            setTotalLeads(data.pagination.total);
+          // Filter leads based on website status
+          let filteredLeads = data.leads;
+          
+          if (websiteFilter === 'has-website') {
+            filteredLeads = data.leads.filter(lead => {
+              const hasWebsite = lead.websiteLink && 
+                                lead.websiteLink.trim() !== '' && 
+                                lead.websiteLink.trim().toLowerCase() !== 'directions' &&
+                                !lead.websiteLink.toLowerCase().includes('booksy.com');
+              return hasWebsite;
+            });
+          } else if (websiteFilter === 'no-website') {
+            filteredLeads = data.leads.filter(lead => {
+              const hasWebsite = lead.websiteLink && 
+                                lead.websiteLink.trim() !== '' && 
+                                lead.websiteLink.trim().toLowerCase() !== 'directions' &&
+                                !lead.websiteLink.toLowerCase().includes('booksy.com');
+              return !hasWebsite;
+            });
+          }
+          
+          setLeads(filteredLeads);
+          
+          // Recalculate pagination for filtered results
+          const filteredTotal = filteredLeads.length;
+          const filteredTotalPages = Math.ceil(filteredTotal / leadsPerPage);
+          setTotalPages(filteredTotalPages);
+          setTotalLeads(filteredTotal);
+          
+          // Reset to page 1 when filter changes
+          if (currentPage > filteredTotalPages && filteredTotalPages > 0) {
+            setCurrentPage(1);
           }
         }
       } catch (error) {
@@ -95,7 +124,7 @@ export default function LeadsPage() {
     };
 
     loadLeads();
-  }, [currentPage]);
+  }, [currentPage, websiteFilter]);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -207,6 +236,55 @@ export default function LeadsPage() {
             <p className={`text-lg font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               View and manage all your leads
             </p>
+            
+            {/* Website Filter */}
+            <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
+              <span className={`text-sm font-medium ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Filter by website:
+              </span>
+              <button
+                onClick={() => setWebsiteFilter('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  websiteFilter === 'all'
+                    ? isStarkMode
+                      ? 'bg-cyan-500 text-black'
+                      : 'bg-gray-900 text-white'
+                    : isStarkMode
+                      ? 'bg-gray-800 text-white border border-cyan-500/20 hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-900 border border-gray-300/60 hover:bg-gray-200'
+                }`}
+              >
+                All Leads
+              </button>
+              <button
+                onClick={() => setWebsiteFilter('has-website')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  websiteFilter === 'has-website'
+                    ? isStarkMode
+                      ? 'bg-cyan-500 text-black'
+                      : 'bg-gray-900 text-white'
+                    : isStarkMode
+                      ? 'bg-gray-800 text-white border border-cyan-500/20 hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-900 border border-gray-300/60 hover:bg-gray-200'
+                }`}
+              >
+                Has Website 🌐
+              </button>
+              <button
+                onClick={() => setWebsiteFilter('no-website')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  websiteFilter === 'no-website'
+                    ? isStarkMode
+                      ? 'bg-cyan-500 text-black'
+                      : 'bg-gray-900 text-white'
+                    : isStarkMode
+                      ? 'bg-gray-800 text-white border border-cyan-500/20 hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-900 border border-gray-300/60 hover:bg-gray-200'
+                }`}
+              >
+                No Website
+              </button>
+            </div>
           </div>
 
           {leads.length === 0 ? (
