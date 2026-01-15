@@ -93,7 +93,7 @@ export default function LeadsPage() {
           let filteredLeads = data.leads;
           
           if (websiteFilter === 'has-website') {
-            filteredLeads = data.leads.filter(lead => {
+            filteredLeads = data.leads.filter((lead: Lead) => {
               const hasWebsite = lead.websiteLink && 
                                 lead.websiteLink.trim() !== '' && 
                                 lead.websiteLink.trim().toLowerCase() !== 'directions' &&
@@ -101,7 +101,7 @@ export default function LeadsPage() {
               return hasWebsite;
             });
           } else if (websiteFilter === 'no-website') {
-            filteredLeads = data.leads.filter(lead => {
+            filteredLeads = data.leads.filter((lead: Lead) => {
               const hasWebsite = lead.websiteLink && 
                                 lead.websiteLink.trim() !== '' && 
                                 lead.websiteLink.trim().toLowerCase() !== 'directions' &&
