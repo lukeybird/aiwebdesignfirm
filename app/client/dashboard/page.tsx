@@ -105,6 +105,14 @@ export default function ClientDashboard() {
                 instruction3: clientData.client.instruction_3_completed || false,
               });
               setWebsiteNotes(clientData.client.website_notes || '');
+            } else {
+              // Fallback: try to get from the client object if it has the fields
+              setInstructions({
+                instruction1: (client as any).instruction_1_completed || false,
+                instruction2: (client as any).instruction_2_completed || false,
+                instruction3: (client as any).instruction_3_completed || false,
+              });
+              setWebsiteNotes((client as any).website_notes || '');
             }
           }
 
