@@ -73,7 +73,14 @@ export default function LeadsPage() {
     const loadLeads = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/leads?page=${currentPage}&limit=${leadsPerPage}`);
+        
+        // When filtering, fetch all leads to filter properly
+        // Otherwise, use pagination
+        const shouldFetchAll = websiteFilter !== 'all';
+        const fetchLimit = shouldFetchAll ? 10000 : leadsPerPage;
+        const fetchPage = shouldFetchAll ? 1 : currentPage;
+        
+        const response = await fetch(`/api/leads?page=${fetchPage}&limit=${fetchLimit}`);
         const data = await response.json();
         
         if (data.error) {
@@ -103,7 +110,12 @@ export default function LeadsPage() {
             });
           }
           
-          setLeads(filteredLeads);
+          // Apply pagination to filtered results
+          const startIndex = (currentPage - 1) * leadsPerPage;
+          const endIndex = startIndex + leadsPerPage;
+          const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+          
+          setLeads(paginatedLeads);
           
           // Recalculate pagination for filtered results
           const filteredTotal = filteredLeads.length;
@@ -112,7 +124,7 @@ export default function LeadsPage() {
           setTotalLeads(filteredTotal);
           
           // Reset to page 1 when filter changes
-          if (currentPage > filteredTotalPages && filteredTotalPages > 0) {
+          if (websiteFilter !== 'all' && currentPage > filteredTotalPages && filteredTotalPages > 0) {
             setCurrentPage(1);
           }
         }
