@@ -18,25 +18,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ duplicateCount: 0 });
     }
 
-    // Check which phone numbers already exist in the database
-    const placeholders = validPhones.map((_, i) => `$${i + 1}`).join(', ');
-    const query = `
-      SELECT COUNT(DISTINCT business_phone) as duplicate_count
-      FROM leads
-      WHERE business_phone IN (${placeholders})
-        AND business_phone IS NOT NULL
-        AND business_phone != ''
+    // Normalize phone numbers for comparison (remove all non-digit characters except +)
+    const normalizePhone = (p: string): string => {
+      return p.replace(/[^\d+]/g, '');
+    };
+
+    const normalizedInputPhones = validPhones.map(normalizePhone);
+
+    // Get all leads with phone numbers
+    const allLeads = await sql`
+      SELECT DISTINCT business_phone FROM leads
+      WHERE business_phone IS NOT NULL AND business_phone != ''
     `;
 
-    const result = await sql`
-      SELECT COUNT(DISTINCT business_phone) as duplicate_count
-      FROM leads
-      WHERE business_phone = ANY(${validPhones})
-        AND business_phone IS NOT NULL
-        AND business_phone != ''
-    `;
+    // Count how many normalized phone numbers from input match existing leads
+    const existingNormalized = allLeads
+      .map(lead => normalizePhone(lead.business_phone))
+      .filter(phone => phone !== '');
 
-    const duplicateCount = result[0]?.duplicate_count || 0;
+    const duplicateCount = normalizedInputPhones.filter(phone => 
+      existingNormalized.includes(phone)
+    ).length;
 
     return NextResponse.json({ duplicateCount: Number(duplicateCount) });
   } catch (error: any) {
