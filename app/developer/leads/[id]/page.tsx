@@ -215,10 +215,25 @@ export default function LeadProfilePage() {
 
     try {
       setIsSaving(true);
+      
+      // Prepare data: convert empty strings to null for clearing fields
+      const updateData: any = {};
+      Object.keys(editedLead).forEach(key => {
+        const value = (editedLead as any)[key];
+        // If value is empty string, send null to clear the field
+        // If value is undefined, don't include it (won't update)
+        // Otherwise, send the value
+        if (value === '') {
+          updateData[key] = null;
+        } else if (value !== undefined) {
+          updateData[key] = value;
+        }
+      });
+      
       const response = await fetch(`/api/leads/${lead.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedLead),
+        body: JSON.stringify(updateData),
       });
 
       const data = await response.json();

@@ -98,33 +98,33 @@ export async function PUT(
     const leadId = id;
     const body = await request.json();
 
-    const {
-      listingLink,
-      websiteLink,
-      businessPhone,
-      businessName,
-      businessEmail,
-      businessAddress,
-      ownerFirstName,
-      ownerPhone,
-      hasLogo,
-      hasGoodPhotos
-    } = body;
+    // Convert empty strings to null for clearing fields
+    // Only update fields that are explicitly provided in the body
+    const listingLinkValue = 'listingLink' in body ? (body.listingLink === '' ? null : body.listingLink) : undefined;
+    const websiteLinkValue = 'websiteLink' in body ? (body.websiteLink === '' ? null : body.websiteLink) : undefined;
+    const businessPhoneValue = 'businessPhone' in body ? (body.businessPhone === '' ? null : body.businessPhone) : undefined;
+    const businessNameValue = 'businessName' in body ? (body.businessName === '' ? null : body.businessName) : undefined;
+    const businessEmailValue = 'businessEmail' in body ? (body.businessEmail === '' ? null : body.businessEmail) : undefined;
+    const businessAddressValue = 'businessAddress' in body ? (body.businessAddress === '' ? null : body.businessAddress) : undefined;
+    const ownerFirstNameValue = 'ownerFirstName' in body ? (body.ownerFirstName === '' ? null : body.ownerFirstName) : undefined;
+    const ownerPhoneValue = 'ownerPhone' in body ? (body.ownerPhone === '' ? null : body.ownerPhone) : undefined;
+    const hasLogoValue = 'hasLogo' in body ? (body.hasLogo === '' || body.hasLogo === null ? null : body.hasLogo) : undefined;
+    const hasGoodPhotosValue = 'hasGoodPhotos' in body ? (body.hasGoodPhotos === '' || body.hasGoodPhotos === null ? null : body.hasGoodPhotos) : undefined;
 
-    // Update lead using COALESCE to only update provided fields
+    // Update lead - use provided values or null to clear, undefined to keep existing
     const result = await sql`
       UPDATE leads
       SET 
-        listing_link = COALESCE(${listingLink}, listing_link),
-        website_link = COALESCE(${websiteLink}, website_link),
-        business_phone = COALESCE(${businessPhone}, business_phone),
-        business_name = COALESCE(${businessName}, business_name),
-        business_email = COALESCE(${businessEmail}, business_email),
-        business_address = COALESCE(${businessAddress}, business_address),
-        owner_first_name = COALESCE(${ownerFirstName}, owner_first_name),
-        owner_phone = COALESCE(${ownerPhone}, owner_phone),
-        has_logo = COALESCE(${hasLogo}, has_logo),
-        has_good_photos = COALESCE(${hasGoodPhotos}, has_good_photos)
+        listing_link = ${listingLinkValue !== undefined ? listingLinkValue : sql`listing_link`},
+        website_link = ${websiteLinkValue !== undefined ? websiteLinkValue : sql`website_link`},
+        business_phone = ${businessPhoneValue !== undefined ? businessPhoneValue : sql`business_phone`},
+        business_name = ${businessNameValue !== undefined ? businessNameValue : sql`business_name`},
+        business_email = ${businessEmailValue !== undefined ? businessEmailValue : sql`business_email`},
+        business_address = ${businessAddressValue !== undefined ? businessAddressValue : sql`business_address`},
+        owner_first_name = ${ownerFirstNameValue !== undefined ? ownerFirstNameValue : sql`owner_first_name`},
+        owner_phone = ${ownerPhoneValue !== undefined ? ownerPhoneValue : sql`owner_phone`},
+        has_logo = ${hasLogoValue !== undefined ? hasLogoValue : sql`has_logo`},
+        has_good_photos = ${hasGoodPhotosValue !== undefined ? hasGoodPhotosValue : sql`has_good_photos`}
       WHERE id = ${leadId}
       RETURNING *
     `;
