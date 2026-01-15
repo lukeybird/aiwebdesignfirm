@@ -301,6 +301,15 @@ After that you will have a fully custom site up and running in less than 24 hour
 // PUT - Update client account
 export async function PUT(request: NextRequest) {
   try {
+    // Ensure instruction columns exist
+    try {
+      const { initDatabase } = await import('@/lib/db');
+      await initDatabase();
+    } catch (initError) {
+      console.error('Error initializing database:', initError);
+      // Continue anyway - columns might already exist
+    }
+
     const body = await request.json();
     const { 
       email, 
@@ -321,6 +330,14 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log('Updating client:', {
+      email,
+      instruction1Completed,
+      instruction2Completed,
+      instruction3Completed,
+      websiteNotes: websiteNotes ? 'provided' : 'not provided'
+    });
 
     // Update only fields that are provided (not undefined)
     // Use conditional SQL similar to leads update
@@ -348,13 +365,21 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    console.log('Client updated successfully:', result[0].email);
+
     return NextResponse.json({ 
       success: true, 
       client: result[0] 
     });
   } catch (error: any) {
+    console.error('Error updating client:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message || 'Failed to update client' },
       { status: 500 }
     );
   }
