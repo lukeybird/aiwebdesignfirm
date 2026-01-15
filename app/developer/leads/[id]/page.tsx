@@ -360,7 +360,7 @@ export default function LeadProfilePage() {
                   <span className={`font-medium block mb-1 ${
                     isStarkMode ? 'text-cyan-400' : 'text-gray-700'
                   }`}>
-                    Listing Link:
+                    Google Listing Link:
                   </span>
                   <a
                     href={lead.listingLink}
@@ -371,6 +371,26 @@ export default function LeadProfilePage() {
                     }`}
                   >
                     View Link
+                  </a>
+                </div>
+              )}
+
+              {lead.websiteLink && (
+                <div>
+                  <span className={`font-medium block mb-1 ${
+                    isStarkMode ? 'text-cyan-400' : 'text-gray-700'
+                  }`}>
+                    Website Link:
+                  </span>
+                  <a
+                    href={lead.websiteLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`underline hover:opacity-80 ${
+                      isStarkMode ? 'text-cyan-300' : 'text-blue-600'
+                    }`}
+                  >
+                    {lead.websiteLink}
                   </a>
                 </div>
               )}
