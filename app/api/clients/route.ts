@@ -322,22 +322,75 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const result = await sql`
+    // Build dynamic update query - only update fields that are provided
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (fullName !== undefined) {
+      updates.push(`full_name = $${paramIndex}`);
+      values.push(fullName);
+      paramIndex++;
+    }
+    if (phone !== undefined) {
+      updates.push(`phone = $${paramIndex}`);
+      values.push(phone);
+      paramIndex++;
+    }
+    if (businessName !== undefined) {
+      updates.push(`business_name = $${paramIndex}`);
+      values.push(businessName);
+      paramIndex++;
+    }
+    if (businessAddress !== undefined) {
+      updates.push(`business_address = $${paramIndex}`);
+      values.push(businessAddress);
+      paramIndex++;
+    }
+    if (businessWebsite !== undefined) {
+      updates.push(`business_website = $${paramIndex}`);
+      values.push(businessWebsite);
+      paramIndex++;
+    }
+    if (instruction1Completed !== undefined) {
+      updates.push(`instruction_1_completed = $${paramIndex}`);
+      values.push(instruction1Completed);
+      paramIndex++;
+    }
+    if (instruction2Completed !== undefined) {
+      updates.push(`instruction_2_completed = $${paramIndex}`);
+      values.push(instruction2Completed);
+      paramIndex++;
+    }
+    if (instruction3Completed !== undefined) {
+      updates.push(`instruction_3_completed = $${paramIndex}`);
+      values.push(instruction3Completed);
+      paramIndex++;
+    }
+    if (websiteNotes !== undefined) {
+      updates.push(`website_notes = $${paramIndex}`);
+      values.push(websiteNotes);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
+    // Use parameterized query with sql.unsafe for dynamic updates
+    const updateQuery = `
       UPDATE clients
-      SET 
-        full_name = COALESCE(${fullName}, full_name),
-        phone = COALESCE(${phone}, phone),
-        business_name = COALESCE(${businessName}, business_name),
-        business_address = COALESCE(${businessAddress}, business_address),
-        business_website = COALESCE(${businessWebsite}, business_website),
-        instruction_1_completed = COALESCE(${instruction1Completed}, instruction_1_completed),
-        instruction_2_completed = COALESCE(${instruction2Completed}, instruction_2_completed),
-        instruction_3_completed = COALESCE(${instruction3Completed}, instruction_3_completed),
-        website_notes = COALESCE(${websiteNotes}, website_notes)
-      WHERE email = ${email}
+      SET ${updates.join(', ')}
+      WHERE email = $${paramIndex}
       RETURNING id, email, full_name, phone, business_name, business_address, business_website,
                  instruction_1_completed, instruction_2_completed, instruction_3_completed, website_notes
     `;
+    values.push(email);
+
+    const result = await sql.unsafe(updateQuery, values);
 
     if (result.length === 0) {
       return NextResponse.json(
