@@ -53,11 +53,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fullName } = body;
+    const { email, password, fullName, phone } = body;
 
-    if (!email || !password || !fullName) {
+    if (!email || !password || !fullName || !phone) {
       return NextResponse.json(
-        { error: 'Email, password, and full name are required' },
+        { error: 'Email, password, full name, and phone number are required' },
         { status: 400 }
       );
     }
@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
 
     // Create client
     const result = await sql`
-      INSERT INTO clients (email, password_hash, full_name)
-      VALUES (${email}, ${passwordHash}, ${fullName})
+      INSERT INTO clients (email, password_hash, full_name, phone)
+      VALUES (${email}, ${passwordHash}, ${fullName}, ${phone})
       RETURNING id, email, full_name, created_at
     `;
 

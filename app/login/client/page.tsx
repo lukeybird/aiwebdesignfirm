@@ -10,6 +10,7 @@ export default function ClientLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +65,7 @@ export default function ClientLogin() {
     setError('');
 
     // Validation
-    if (!fullName || !email || !password || !confirmPassword) {
+    if (!fullName || !email || !password || !confirmPassword || !phone) {
       setError('All fields are required');
       return;
     }
@@ -92,7 +93,7 @@ export default function ClientLogin() {
       const response = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName }),
+        body: JSON.stringify({ email, password, fullName, phone }),
       });
 
       const data = await response.json();
@@ -187,6 +188,7 @@ export default function ClientLogin() {
                 setEmail('');
                 setPassword('');
                 setFullName('');
+                setPhone('');
                 setConfirmPassword('');
               }}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
@@ -208,6 +210,7 @@ export default function ClientLogin() {
                 setEmail('');
                 setPassword('');
                 setFullName('');
+                setPhone('');
                 setConfirmPassword('');
               }}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
@@ -259,6 +262,29 @@ export default function ClientLogin() {
                         : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
                     }`}
                     placeholder="John Doe"
+                  />
+                </div>
+              )}
+
+              {!isLoginMode && (
+                <div>
+                  <label htmlFor="phone" className={`block text-sm font-medium mb-2 ${
+                    isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                      isStarkMode
+                        ? 'bg-gray-900 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
+                        : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
+                    }`}
+                    placeholder="(555) 123-4567"
                   />
                 </div>
               )}
