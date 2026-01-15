@@ -41,7 +41,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                       <tr>
                         <td style="padding: 50px 40px 40px; text-align: center; border-bottom: 2px solid rgba(34, 211, 238, 0.3); position: relative;">
                           <div style="position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #22d3ee, transparent);"></div>
-                          <h1 style="margin: 30px 0 0 0; font-size: 42px; font-weight: 900; color: #06b6d4; background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; text-shadow: 0 0 50px rgba(34, 211, 238, 1); position: relative;">
+                          <h1 style="margin: 30px 0 0 0; font-size: 52px; font-weight: 900; color: #06b6d4; background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; text-shadow: 0 0 50px rgba(34, 211, 238, 1); position: relative;">
                             Welcome ${fullName}
                           </h1>
                           <div style="margin-top: 15px; width: 60px; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, transparent); margin-left: auto; margin-right: auto;"></div>
@@ -51,7 +51,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                       <!-- Content -->
                       <tr>
                         <td style="padding: 45px 40px; position: relative;">
-                          <p style="margin: 0 0 35px 0; color: #e5e7eb; font-size: 22px; line-height: 2; font-weight: 400; letter-spacing: 0.3px;">
+                          <p style="margin: 0 0 35px 0; color: #e5e7eb; font-size: 28px; line-height: 2; font-weight: 400; letter-spacing: 0.3px;">
                             Glad to have your interest, please be sure to follow the following steps in the account.
                           </p>
                           
@@ -60,11 +60,11 @@ After that you will have a fully custom site up and running in less than 24 hour
                             <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: linear-gradient(180deg, #22d3ee, #3b82f6);"></div>
                             <p style="margin: 0 0 30px 0; color: #22d3ee; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);">ACCOUNT DETAILS</p>
                             <div style="border-top: 1px solid rgba(34, 211, 238, 0.2); padding-top: 25px; margin-top: 25px;">
-                              <p style="margin: 22px 0; color: #f3f4f6; font-size: 20px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                              <p style="margin: 22px 0; color: #f3f4f6; font-size: 24px; line-height: 1.8; font-family: 'Courier New', monospace;">
                                 <span style="color: #9ca3af; font-weight: 600; margin-right: 12px;">USERNAME:</span>
                                 <span style="color: #ffffff; font-weight: 500; letter-spacing: 0.5px;">${email}</span>
                               </p>
-                              <p style="margin: 22px 0; color: #f3f4f6; font-size: 20px; line-height: 1.8; font-family: 'Courier New', monospace;">
+                              <p style="margin: 22px 0; color: #f3f4f6; font-size: 24px; line-height: 1.8; font-family: 'Courier New', monospace;">
                                 <span style="color: #9ca3af; font-weight: 600; margin-right: 12px;">PASSWORD:</span>
                                 <span style="color: #ffffff; font-weight: 500; letter-spacing: 0.5px;">${password}</span>
                               </p>
@@ -75,23 +75,23 @@ After that you will have a fully custom site up and running in less than 24 hour
                           <div style="margin: 45px 0;">
                             <p style="margin: 0 0 30px 0; color: #22d3ee; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);">INSTRUCTIONS</p>
                             <div style="margin: 0; padding-left: 0;">
-                              <div style="margin-bottom: 30px; color: #f3f4f6; font-size: 21px; line-height: 2; padding-left: 50px; position: relative;">
-                                <span style="position: absolute; left: 0; top: 0; width: 35px; height: 35px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 16px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 35px;">1</span>
+                              <div style="margin-bottom: 30px; color: #f3f4f6; font-size: 26px; line-height: 2; padding-left: 50px; position: relative;">
+                                <span style="position: absolute; left: 0; top: 0; width: 40px; height: 40px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 20px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 40px;">1</span>
                                 Upload your best pictures you want to see on your website.
                               </div>
-                              <div style="margin-bottom: 30px; color: #f3f4f6; font-size: 21px; line-height: 2; padding-left: 50px; position: relative;">
-                                <span style="position: absolute; left: 0; top: 0; width: 35px; height: 35px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 16px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 35px;">2</span>
+                              <div style="margin-bottom: 30px; color: #f3f4f6; font-size: 26px; line-height: 2; padding-left: 50px; position: relative;">
+                                <span style="position: absolute; left: 0; top: 0; width: 40px; height: 40px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 20px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 40px;">2</span>
                                 Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
                               </div>
-                              <div style="margin-bottom: 30px; color: #f3f4f6; font-size: 21px; line-height: 2; padding-left: 50px; position: relative;">
-                                <span style="position: absolute; left: 0; top: 0; width: 35px; height: 35px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 16px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 35px;">3</span>
+                              <div style="margin-bottom: 30px; color: #f3f4f6; font-size: 26px; line-height: 2; padding-left: 50px; position: relative;">
+                                <span style="position: absolute; left: 0; top: 0; width: 40px; height: 40px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 20px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 40px;">3</span>
                                 Fill in all the info for account settings.
                               </div>
                             </div>
                           </div>
 
                           <!-- Final Message - Plain Text -->
-                          <p style="margin: 45px 0 0 0; color: #f3f4f6; font-size: 22px; line-height: 2; font-weight: 400;">
+                          <p style="margin: 45px 0 0 0; color: #f3f4f6; font-size: 28px; line-height: 2; font-weight: 400;">
                             After that you will have a fully custom site up and running in less than 24 hours.
                           </p>
                         </td>
