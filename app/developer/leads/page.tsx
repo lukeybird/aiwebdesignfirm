@@ -93,6 +93,7 @@ export default function LeadsPage() {
               const hasWebsite = lead.websiteLink && 
                                 lead.websiteLink.trim() !== '' && 
                                 lead.websiteLink.trim().toLowerCase() !== 'directions' &&
+                                lead.websiteLink.trim().toLowerCase() !== 'none' &&
                                 !lead.websiteLink.toLowerCase().includes('booksy.com');
               return hasWebsite;
             });
@@ -101,6 +102,7 @@ export default function LeadsPage() {
               const hasWebsite = lead.websiteLink && 
                                 lead.websiteLink.trim() !== '' && 
                                 lead.websiteLink.trim().toLowerCase() !== 'directions' &&
+                                lead.websiteLink.trim().toLowerCase() !== 'none' &&
                                 !lead.websiteLink.toLowerCase().includes('booksy.com');
               return !hasWebsite;
             });
@@ -383,6 +385,7 @@ export default function LeadsPage() {
                           {lead.websiteLink && 
                            lead.websiteLink.trim() !== '' && 
                            lead.websiteLink.trim().toLowerCase() !== 'directions' &&
+                           lead.websiteLink.trim().toLowerCase() !== 'none' &&
                            !lead.websiteLink.toLowerCase().includes('booksy.com') && (
                             <span className="text-2xl" title="Has website">
                               🌐
