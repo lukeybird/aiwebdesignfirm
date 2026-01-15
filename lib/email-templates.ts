@@ -4,7 +4,9 @@ export function getWelcomeEmailContent(fullName: string, email: string, password
   const emailContent = `
 Welcome ${fullName}
 
-Glad to have your interest, please be sure to follow the following steps in the account.
+We are excited to build an amazing website for you. We do need you to login to your account now and follow the instructions in your account.
+
+Login to your account: https://aiwebdesignfirm.com/login/client
 
 Your username is: ${email}
 Your password is: ${password}
