@@ -872,6 +872,177 @@ export default function ClientDashboard() {
             </div>
           )}
 
+          {/* Instructions Checklist Section */}
+          <div className={`mb-8 rounded-xl p-8 ${
+            isStarkMode 
+              ? 'bg-gray-800 border border-cyan-500/20' 
+              : 'bg-white border-2 border-gray-300/60'
+          }`}>
+            <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Instructions Checklist
+            </h2>
+            <div className="space-y-4">
+              <label className={`flex items-start gap-4 cursor-pointer group ${
+                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={instructions.instruction1}
+                  onChange={async (e) => {
+                    const newInstructions = { ...instructions, instruction1: e.target.checked };
+                    setInstructions(newInstructions);
+                    setIsSavingInstructions(true);
+                    try {
+                      await fetch('/api/clients', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: clientEmail,
+                          instruction1Completed: e.target.checked,
+                        }),
+                      });
+                    } catch (error) {
+                      console.error('Error saving instruction:', error);
+                    } finally {
+                      setIsSavingInstructions(false);
+                    }
+                  }}
+                  className={`mt-1 w-6 h-6 rounded border-2 transition-all ${
+                    instructions.instruction1
+                      ? isStarkMode
+                        ? 'bg-cyan-500 border-cyan-500'
+                        : 'bg-gray-900 border-gray-900'
+                      : isStarkMode
+                        ? 'border-cyan-500/40 bg-transparent'
+                        : 'border-gray-400 bg-transparent'
+                  }`}
+                />
+                <span className={`text-lg flex-1 ${instructions.instruction1 ? 'line-through opacity-60' : ''}`}>
+                  Upload your best pictures you want to see on your website.
+                </span>
+              </label>
+              
+              <label className={`flex items-start gap-4 cursor-pointer group ${
+                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={instructions.instruction2}
+                  onChange={async (e) => {
+                    const newInstructions = { ...instructions, instruction2: e.target.checked };
+                    setInstructions(newInstructions);
+                    setIsSavingInstructions(true);
+                    try {
+                      await fetch('/api/clients', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: clientEmail,
+                          instruction2Completed: e.target.checked,
+                        }),
+                      });
+                    } catch (error) {
+                      console.error('Error saving instruction:', error);
+                    } finally {
+                      setIsSavingInstructions(false);
+                    }
+                  }}
+                  className={`mt-1 w-6 h-6 rounded border-2 transition-all ${
+                    instructions.instruction2
+                      ? isStarkMode
+                        ? 'bg-cyan-500 border-cyan-500'
+                        : 'bg-gray-900 border-gray-900'
+                      : isStarkMode
+                        ? 'border-cyan-500/40 bg-transparent'
+                        : 'border-gray-400 bg-transparent'
+                  }`}
+                />
+                <span className={`text-lg flex-1 ${instructions.instruction2 ? 'line-through opacity-60' : ''}`}>
+                  Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
+                </span>
+              </label>
+              
+              <label className={`flex items-start gap-4 cursor-pointer group ${
+                isStarkMode ? 'text-gray-300' : 'text-gray-900'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={instructions.instruction3}
+                  onChange={async (e) => {
+                    const newInstructions = { ...instructions, instruction3: e.target.checked };
+                    setInstructions(newInstructions);
+                    setIsSavingInstructions(true);
+                    try {
+                      await fetch('/api/clients', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: clientEmail,
+                          instruction3Completed: e.target.checked,
+                        }),
+                      });
+                    } catch (error) {
+                      console.error('Error saving instruction:', error);
+                    } finally {
+                      setIsSavingInstructions(false);
+                    }
+                  }}
+                  className={`mt-1 w-6 h-6 rounded border-2 transition-all ${
+                    instructions.instruction3
+                      ? isStarkMode
+                        ? 'bg-cyan-500 border-cyan-500'
+                        : 'bg-gray-900 border-gray-900'
+                      : isStarkMode
+                        ? 'border-cyan-500/40 bg-transparent'
+                        : 'border-gray-400 bg-transparent'
+                  }`}
+                />
+                <span className={`text-lg flex-1 ${instructions.instruction3 ? 'line-through opacity-60' : ''}`}>
+                  Click the ready button in your account.
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Website Notes Section */}
+          <div className={`mb-8 rounded-xl p-8 ${
+            isStarkMode 
+              ? 'bg-gray-800 border border-cyan-500/20' 
+              : 'bg-white border-2 border-gray-300/60'
+          }`}>
+            <h2 className={`text-2xl font-black mb-4 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Website Notes
+            </h2>
+            <p className={`text-sm mb-4 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Tell us how you want your website to be designed and styled.
+            </p>
+            <textarea
+              value={websiteNotes}
+              onChange={(e) => setWebsiteNotes(e.target.value)}
+              onBlur={async () => {
+                try {
+                  await fetch('/api/clients', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: clientEmail,
+                      websiteNotes: websiteNotes,
+                    }),
+                  });
+                } catch (error) {
+                  console.error('Error saving notes:', error);
+                }
+              }}
+              placeholder="Describe your vision for your website... (e.g., colors, style, layout, features, etc.)"
+              rows={6}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 ${
+                isStarkMode
+                  ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50 placeholder-gray-500'
+                  : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50 placeholder-gray-400'
+              }`}
+            />
+          </div>
+
           {/* File Upload Section */}
           <div className={`mb-8 rounded-xl p-8 ${
             isStarkMode 
