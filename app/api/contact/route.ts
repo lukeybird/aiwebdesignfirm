@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(process.env.RESEND_API_KEY);
 
       const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
-      const toEmail = process.env.TO_EMAIL || 'contact@aiwebdesignfirm.com';
+      const toEmail = process.env.TO_EMAIL || 'support@aiwebdesignfirm.com';
 
       // Log configuration (without exposing full API key)
       console.log('Resend configuration:', {
