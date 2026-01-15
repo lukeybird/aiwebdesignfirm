@@ -2,7 +2,7 @@
 
 export function getWelcomeEmailContent(fullName: string, email: string, password: string) {
   const emailContent = `
-Welcome ${fullName},
+Welcome ${fullName}
 
 Glad to have your interest, please be sure to follow the following steps in the account.
 
