@@ -325,7 +325,7 @@ After that you will have a fully custom site up and running in less than 24 hour
           to: toEmail,
           subject: 'Welcome to AI Web Design Firm',
           text: emailContent,
-          html: resendHtmlContent,
+          html: htmlContent,
         });
 
         if (emailResult.error) {
