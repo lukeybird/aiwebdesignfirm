@@ -295,8 +295,9 @@ export default function DeveloperDashboard() {
           const businessName = row[0]?.trim() || '';
           const phoneRaw = row[5]?.trim() || '';
           const locationInfo = row[4]?.trim() || '';
-          const websiteLinkRaw = row[9]?.trim() || '';
-          const mapsLink = row[11]?.trim() || row[12]?.trim() || '';
+          // NOTE: Columns appear to be swapped - column 9 has Google Maps, column 11 has website
+          const mapsLinkRaw = row[9]?.trim() || '';
+          const websiteLinkRaw = row[11]?.trim() || row[12]?.trim() || '';
           
           // Extract phone number (remove "· " prefix)
           const businessPhone = phoneRaw.replace(/^·\s*/, '').trim() || undefined;
@@ -309,8 +310,8 @@ export default function DeveloperDashboard() {
           const websiteLink = websiteLinkRaw && websiteLinkRaw.trim() !== '' ? websiteLinkRaw.trim() : undefined;
           
           // Handle Google Maps listing link
-          // First try the direct maps link from CSV
-          let listingLink = mapsLink && mapsLink.trim() !== '' ? mapsLink.trim() : undefined;
+          // First try the direct maps link from CSV (now from column 9)
+          let listingLink = mapsLinkRaw && mapsLinkRaw.trim() !== '' ? mapsLinkRaw.trim() : undefined;
           
           // If no maps link, try to construct one from business name and address
           if (!listingLink && businessName) {
