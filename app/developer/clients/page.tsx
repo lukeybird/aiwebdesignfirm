@@ -546,52 +546,6 @@ export default function ClientsPage() {
                           Joined: {new Date(client.createdAt).toLocaleDateString()}
                         </p>
                       </button>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm(`Are you sure you want to delete ${client.fullName}'s account? This will also delete all their files and messages. This action cannot be undone.`)) {
-                            return;
-                          }
-                          
-                          try {
-                            const response = await fetch(`/api/clients?clientId=${client.id}`, {
-                              method: 'DELETE',
-                            });
-                            
-                            const data = await response.json();
-                            
-                            if (!response.ok) {
-                              throw new Error(data.error || 'Failed to delete client');
-                            }
-                            
-                            // Remove from local state
-                            const updatedClients = clients.filter(c => c.id !== client.id);
-                            const updatedAllClients = allClients.filter(c => c.id !== client.id);
-                            setClients(updatedClients);
-                            setAllClients(updatedAllClients);
-                            
-                            // Clear selection if deleted client was selected
-                            if (selectedClient?.id === client.id) {
-                              setSelectedClient(null);
-                              setClientFiles([]);
-                              setShowAccountInfo(false);
-                            }
-                            
-                            alert('Client account deleted successfully');
-                          } catch (error: any) {
-                            console.error('Error deleting client:', error);
-                            alert(error.message || 'Error deleting client. Please try again.');
-                          }
-                        }}
-                        className={`mt-2 px-3 py-1.5 rounded text-xs font-medium transition-all hover:scale-105 ${
-                          isStarkMode
-                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
-                            : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                        }`}
-                        title="Delete Client Account"
-                      >
-                        🗑️ Delete Account
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -609,20 +563,66 @@ export default function ClientsPage() {
                   {selectedClient ? `${selectedClient.fullName}'s Files` : 'Select a Client'}
                 </h2>
                 {selectedClient && (
-                  <button
-                    onClick={() => setShowAccountInfo(!showAccountInfo)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                      isStarkMode
-                        ? showAccountInfo
-                          ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                          : 'bg-gray-700 text-white hover:bg-gray-600 border border-cyan-500/20'
-                        : showAccountInfo
-                          ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
-                          : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300/60'
-                    }`}
-                  >
-                    {showAccountInfo ? 'Hide Info' : 'View Account Info'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setShowAccountInfo(!showAccountInfo)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                        isStarkMode
+                          ? showAccountInfo
+                            ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                            : 'bg-gray-700 text-white hover:bg-gray-600 border border-cyan-500/20'
+                          : showAccountInfo
+                            ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                            : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300/60'
+                      }`}
+                    >
+                      {showAccountInfo ? 'Hide Info' : 'View Account Info'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!selectedClient) return;
+                        if (!confirm(`Are you sure you want to delete ${selectedClient.fullName}'s account? This will also delete all their files and messages. This action cannot be undone.`)) {
+                          return;
+                        }
+                        
+                        try {
+                          const response = await fetch(`/api/clients?clientId=${selectedClient.id}`, {
+                            method: 'DELETE',
+                          });
+                          
+                          const data = await response.json();
+                          
+                          if (!response.ok) {
+                            throw new Error(data.error || 'Failed to delete client');
+                          }
+                          
+                          // Remove from local state
+                          const updatedClients = clients.filter(c => c.id !== selectedClient.id);
+                          const updatedAllClients = allClients.filter(c => c.id !== selectedClient.id);
+                          setClients(updatedClients);
+                          setAllClients(updatedAllClients);
+                          
+                          // Clear selection
+                          setSelectedClient(null);
+                          setClientFiles([]);
+                          setShowAccountInfo(false);
+                          
+                          alert('Client account deleted successfully');
+                        } catch (error: any) {
+                          console.error('Error deleting client:', error);
+                          alert(error.message || 'Error deleting client. Please try again.');
+                        }
+                      }}
+                      className={`hidden md:block px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                        isStarkMode
+                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
+                          : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                      }`}
+                      title="Delete Client Account"
+                    >
+                      🗑️ Delete Account
+                    </button>
+                  </div>
                 )}
               </div>
 
