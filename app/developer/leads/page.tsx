@@ -74,13 +74,9 @@ export default function LeadsPage() {
       try {
         setIsLoading(true);
         
-        // When filtering, fetch all leads to filter properly
-        // Otherwise, use pagination
-        const shouldFetchAll = websiteFilter !== 'all';
-        const fetchLimit = shouldFetchAll ? 10000 : leadsPerPage;
-        const fetchPage = shouldFetchAll ? 1 : currentPage;
-        
-        const response = await fetch(`/api/leads?page=${fetchPage}&limit=${fetchLimit}`);
+        // Fetch all leads to properly filter and paginate
+        // We'll fetch a large number to get all leads, then filter and paginate client-side
+        const response = await fetch(`/api/leads?page=1&limit=10000`);
         const data = await response.json();
         
         if (data.error) {
@@ -124,7 +120,7 @@ export default function LeadsPage() {
           setTotalLeads(filteredTotal);
           
           // Reset to page 1 when filter changes
-          if (websiteFilter !== 'all' && currentPage > filteredTotalPages && filteredTotalPages > 0) {
+          if (currentPage > filteredTotalPages && filteredTotalPages > 0) {
             setCurrentPage(1);
           }
         }
