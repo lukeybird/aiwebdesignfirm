@@ -1088,7 +1088,7 @@ export default function ClientDashboard() {
               Website Notes
             </h2>
             <p className={`text-sm mb-4 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Tell us how you want your website to be designed and styled.
+              Here you can explain your prices, how you want the site to be designed, or else. Keep in mind if you have a pdf or file with your prices you can upload that to the file manager.
             </p>
             <textarea
               value={websiteNotes}
