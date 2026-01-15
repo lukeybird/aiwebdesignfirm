@@ -735,6 +735,7 @@ export default function ClientsPage() {
                               instruction1Completed: c.instruction_1_completed || false,
                               instruction2Completed: c.instruction_2_completed || false,
                               instruction3Completed: c.instruction_3_completed || false,
+                              websiteNotes: c.website_notes || '',
                               createdAt: c.created_at,
                             }));
                             
