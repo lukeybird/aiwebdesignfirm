@@ -1072,7 +1072,7 @@ export default function ClientDashboard() {
                   </div>
                 </div>
                 <span className={`text-lg flex-1 pt-0.5 ${instructions.instruction3 ? 'line-through opacity-60' : isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                  Click the ready button in your account.
+                  Fill in all the info for account settings.
                 </span>
               </label>
             </div>

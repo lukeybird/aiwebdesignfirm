@@ -95,7 +95,7 @@ Your password is: ${password}
 
 2. Upload info pertaining to your website. Pamphlets etc... The more info and menu prices the better.
 
-3. Click the ready button in your account.
+3. Fill in all the info for account settings.
 
 After that you will have a fully custom site up and running in less than 24 hours.
     `;
@@ -167,7 +167,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                               </div>
                               <div style="margin-bottom: 30px; color: #f3f4f6; font-size: 21px; line-height: 2; padding-left: 50px; position: relative;">
                                 <span style="position: absolute; left: 0; top: 0; width: 35px; height: 35px; background: linear-gradient(135deg, #22d3ee, #3b82f6); border: 2px solid rgba(34, 211, 238, 0.5); display: table-cell; vertical-align: middle; text-align: center; font-weight: 700; font-size: 16px; color: #000; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); line-height: 35px;">3</span>
-                                Click the ready button in your account.
+                                Fill in all the info for account settings.
                               </div>
                             </div>
                           </div>
