@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function Home() {
+  const router = useRouter();
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [expandedFeatures, setExpandedFeatures] = useState<Set<number>>(new Set());
@@ -22,9 +23,11 @@ export default function Home() {
     fullName: '',
     phone: '',
     email: '',
-    competitorSites: '',
-    notes: '',
+    password: '',
+    confirmPassword: '',
   });
+  const [formError, setFormError] = useState('');
+  const [isFormLoading, setIsFormLoading] = useState(false);
 
   const projects = [
     { id: 1, name: 'PayNGoSystems', url: 'https://www.payngosystems.com/', thumbnail: '/pay.png' },
@@ -573,7 +576,7 @@ export default function Home() {
                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
                     : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
                 }`}>
-                  Schedule a Demo
+                  Create Your Account
                 </h2>
                 <button
                   onClick={() => setIsFormOpen(false)}
@@ -590,42 +593,80 @@ export default function Home() {
               </div>
 
               {/* Form */}
+              {formError && (
+                <div className={`p-4 rounded-lg mb-6 ${
+                  isStarkMode 
+                    ? 'bg-red-500/20 border border-red-500/40 text-red-400'
+                    : 'bg-red-50 border-2 border-red-200 text-red-600'
+                }`}>
+                  {formError}
+                </div>
+              )}
               <form 
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  setFormError('');
+                  
+                  // Validation
+                  if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
+                    setFormError('All fields are required');
+                    return;
+                  }
+
+                  if (formData.password !== formData.confirmPassword) {
+                    setFormError('Passwords do not match');
+                    return;
+                  }
+
+                  if (formData.password.length < 6) {
+                    setFormError('Password must be at least 6 characters');
+                    return;
+                  }
+
+                  // Validate email format
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!emailRegex.test(formData.email)) {
+                    setFormError('Invalid email format');
+                    return;
+                  }
+
+                  setIsFormLoading(true);
                   
                   try {
-                    const response = await fetch('/api/contact', {
+                    const response = await fetch('/api/clients', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify(formData),
+                      body: JSON.stringify({
+                        email: formData.email,
+                        password: formData.password,
+                        fullName: formData.fullName,
+                        phone: formData.phone,
+                      }),
                     });
 
                     const data = await response.json();
 
                     if (response.ok) {
-                      // Success - show success message and reset form
-                      alert('Thank you! Your demo request has been submitted successfully. We\'ll be in touch soon!');
-                      setFormData({
-                        fullName: '',
-                        phone: '',
-                        email: '',
-                        competitorSites: '',
-                        notes: '',
-                      });
-                      setIsFormOpen(false);
+                      // Auto-login after signup
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('clientAuth', 'authenticated');
+                        localStorage.setItem('clientAuthEmail', formData.email);
+                        localStorage.setItem('clientAuthTime', Date.now().toString());
+                        localStorage.setItem('clientId', data.client.id.toString());
+                      }
+                      
+                      // Redirect to client dashboard
+                      router.push('/client/dashboard');
                     } else {
-                      // Error - show detailed error message
-                      const errorMsg = data.error || 'Failed to submit form. Please try again.';
-                      const details = data.details ? `\n\n${data.details}` : '';
-                      alert(`${errorMsg}${details}`);
-                      console.error('Form submission error:', data);
+                      setFormError(data.error || 'Signup failed. Please try again.');
+                      setIsFormLoading(false);
                     }
                   } catch (error) {
-                    console.error('Form submission error:', error);
-                    alert('An error occurred. Please try again later.');
+                    console.error('Signup error:', error);
+                    setFormError('An error occurred. Please try again later.');
+                    setIsFormLoading(false);
                   }
                 }}
                 className="space-y-6"
@@ -696,45 +737,47 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Competitor Sites */}
+                {/* Password */}
                 <div>
-                  <label htmlFor="competitorSites" className={`block text-sm font-medium mb-2 ${
+                  <label htmlFor="password" className={`block text-sm font-medium mb-2 ${
                     isStarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Competitor Sites You Like
+                    Password
                   </label>
-                  <textarea
-                    id="competitorSites"
-                    value={formData.competitorSites}
-                    onChange={(e) => setFormData({ ...formData, competitorSites: e.target.value })}
-                    rows={3}
-                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all resize-none ${
+                  <input
+                    type="password"
+                    id="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
                       isStarkMode
                         ? 'bg-gray-800 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
                         : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
                     }`}
-                    placeholder="List any competitor websites you admire or want to emulate..."
+                    placeholder="At least 6 characters"
                   />
                 </div>
 
-                {/* Notes */}
+                {/* Confirm Password */}
                 <div>
-                  <label htmlFor="notes" className={`block text-sm font-medium mb-2 ${
+                  <label htmlFor="confirmPassword" className={`block text-sm font-medium mb-2 ${
                     isStarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Notes
+                    Confirm Password
                   </label>
-                  <textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={4}
-                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all resize-none ${
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
                       isStarkMode
                         ? 'bg-gray-800 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
                         : 'bg-white border-gray-300/60 text-black focus:ring-gray-900 focus:border-gray-900'
                     }`}
-                    placeholder="Any additional information you'd like to share..."
+                    placeholder="Confirm your password"
                   />
                 </div>
 
@@ -742,13 +785,14 @@ export default function Home() {
                 <div className="pt-4">
                   <button
                     type="submit"
-                    className={`w-full px-8 py-4 rounded-full text-lg font-bold transition-all duration-200 hover:scale-[1.02] ${
+                    disabled={isFormLoading}
+                    className={`w-full px-8 py-4 rounded-full text-lg font-bold transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed ${
                       isStarkMode
                         ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
                         : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
                     }`}
                   >
-                    Schedule Demo
+                    {isFormLoading ? 'Creating Account...' : 'Create Account'}
                   </button>
                 </div>
               </form>

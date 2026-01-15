@@ -123,6 +123,58 @@ export async function POST(request: NextRequest) {
         });
 
         console.log('Welcome email sent successfully via SMTP to:', email);
+        
+        // Send notification email to support
+        try {
+          const notificationContent = `
+New Client Signup
+
+A new client has signed up for an account:
+
+Full Name: ${fullName}
+Email: ${email}
+Phone: ${phone}
+Account Created: ${new Date().toLocaleString()}
+
+You can view this client's account in the developer dashboard.
+          `;
+          
+          const notificationHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+            </head>
+            <body style="margin: 0; padding: 20px; background: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%); border: 2px solid rgba(34, 211, 238, 0.3); padding: 40px;">
+                <h1 style="color: #22d3ee; font-size: 28px; margin-bottom: 30px; text-align: center;">New Client Signup</h1>
+                <div style="background: rgba(15, 23, 42, 0.8); border: 2px solid rgba(34, 211, 238, 0.4); padding: 30px; margin-bottom: 20px;">
+                  <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Full Name:</strong> ${fullName}</p>
+                  <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Email:</strong> ${email}</p>
+                  <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Phone:</strong> ${phone}</p>
+                  <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Account Created:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+                <p style="color: #9ca3af; font-size: 14px; text-align: center; margin-top: 30px;">
+                  You can view this client's account in the developer dashboard.
+                </p>
+              </div>
+            </body>
+            </html>
+          `;
+          
+          await transporter.sendMail({
+            from: fromEmail,
+            to: 'support@aiwebdesignfirm.com',
+            subject: `New Client Signup: ${fullName}`,
+            text: notificationContent,
+            html: notificationHtml,
+          });
+          
+          console.log('Notification email sent to support@aiwebdesignfirm.com');
+        } catch (notificationError: any) {
+          console.error('Error sending notification email:', notificationError);
+          // Don't fail the signup if notification email fails
+        }
       } catch (emailError: any) {
         console.error('Error sending welcome email via SMTP:', emailError);
         console.error('Error details:', {
@@ -163,6 +215,62 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('Welcome email sent successfully via Resend to:', email);
           console.log('Email result:', emailResult.data);
+          
+          // Send notification email to support
+          try {
+            const notificationContent = `
+New Client Signup
+
+A new client has signed up for an account:
+
+Full Name: ${fullName}
+Email: ${email}
+Phone: ${phone}
+Account Created: ${new Date().toLocaleString()}
+
+You can view this client's account in the developer dashboard.
+            `;
+            
+            const notificationHtml = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+              </head>
+              <body style="margin: 0; padding: 20px; background: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%); border: 2px solid rgba(34, 211, 238, 0.3); padding: 40px;">
+                  <h1 style="color: #22d3ee; font-size: 28px; margin-bottom: 30px; text-align: center;">New Client Signup</h1>
+                  <div style="background: rgba(15, 23, 42, 0.8); border: 2px solid rgba(34, 211, 238, 0.4); padding: 30px; margin-bottom: 20px;">
+                    <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Full Name:</strong> ${fullName}</p>
+                    <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Email:</strong> ${email}</p>
+                    <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Phone:</strong> ${phone}</p>
+                    <p style="color: #f3f4f6; font-size: 18px; margin: 15px 0;"><strong style="color: #22d3ee;">Account Created:</strong> ${new Date().toLocaleString()}</p>
+                  </div>
+                  <p style="color: #9ca3af; font-size: 14px; text-align: center; margin-top: 30px;">
+                    You can view this client's account in the developer dashboard.
+                  </p>
+                </div>
+              </body>
+              </html>
+            `;
+            
+            const notificationResult = await resend.emails.send({
+              from: fromEmail,
+              to: 'support@aiwebdesignfirm.com',
+              subject: `New Client Signup: ${fullName}`,
+              text: notificationContent,
+              html: notificationHtml,
+            });
+            
+            if (notificationResult.error) {
+              console.error('Error sending notification email:', notificationResult.error);
+            } else {
+              console.log('Notification email sent to support@aiwebdesignfirm.com');
+            }
+          } catch (notificationError: any) {
+            console.error('Error sending notification email:', notificationError);
+            // Don't fail the signup if notification email fails
+          }
         }
       } catch (emailError: any) {
         console.error('Error sending welcome email via Resend:', emailError);
