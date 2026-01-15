@@ -92,6 +92,10 @@ export default function DeveloperDashboard() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isProcessingCsv, setIsProcessingCsv] = useState(false);
   const [csvProgress, setCsvProgress] = useState({ processed: 0, total: 0, success: 0, errors: 0 });
+  const [duplicateCount, setDuplicateCount] = useState(0);
+  const [showDuplicatePrompt, setShowDuplicatePrompt] = useState(false);
+  const [csvDataToProcess, setCsvDataToProcess] = useState<any[]>([]);
+  const [shouldOverwrite, setShouldOverwrite] = useState(false);
 
   // Available fields to add
   const availableFields = [
@@ -136,6 +140,106 @@ export default function DeveloperDashboard() {
     setFieldSearchQuery('');
   };
 
+  const checkForDuplicates = async (phoneNumbers: string[]): Promise<number> => {
+    try {
+      const response = await fetch('/api/leads/check-duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumbers }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.duplicateCount || 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+      return 0;
+    }
+  };
+
+  const processCsvData = async (dataRows: any[], overwriteDuplicates: boolean = false) => {
+    setCsvProgress({ processed: 0, total: dataRows.length, success: 0, errors: 0 });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      
+      try {
+        const businessName = row.businessName || '';
+        const businessPhone = row.businessPhone;
+        const locationInfo = row.locationInfo || '';
+        const websiteLink = row.websiteLink || '';
+        const listingLink = row.listingLink;
+        const businessAddress = row.businessAddress;
+
+        if (!listingLink) {
+          errorCount++;
+          setCsvProgress(prev => ({ ...prev, processed: prev.processed + 1, errors: prev.errors + 1 }));
+          continue;
+        }
+
+        // If overwriting duplicates and phone number exists, delete old lead first
+        if (overwriteDuplicates && businessPhone) {
+          try {
+            await fetch(`/api/leads/delete-by-phone?phone=${encodeURIComponent(businessPhone)}`, {
+              method: 'DELETE',
+            });
+          } catch (error) {
+            // Continue even if delete fails
+            console.error('Error deleting duplicate:', error);
+          }
+        }
+
+        // Create lead
+        const response = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            listingLink,
+            websiteLink: websiteLink || undefined,
+            businessPhone,
+            businessName: businessName || undefined,
+            businessAddress,
+          }),
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+
+        setCsvProgress(prev => ({ 
+          ...prev, 
+          processed: prev.processed + 1,
+          success: successCount,
+          errors: errorCount
+        }));
+
+        // Small delay to avoid overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        errorCount++;
+        setCsvProgress(prev => ({ 
+          ...prev, 
+          processed: prev.processed + 1,
+          errors: prev.errors + 1
+        }));
+      }
+    }
+
+    setIsProcessingCsv(false);
+    setCsvFile(null);
+    setShowDuplicatePrompt(false);
+    setCsvDataToProcess([]);
+    alert(`CSV processing complete!\nSuccess: ${successCount}\nErrors: ${errorCount}`);
+    setShowCsvUpload(false);
+  };
+
   const handleCsvUpload = async () => {
     if (!csvFile) return;
 
@@ -150,89 +254,62 @@ export default function DeveloperDashboard() {
         // Skip header row
         const dataRows = rows.slice(1).filter(row => row[0] && row[0].trim() !== '');
         
-        setCsvProgress(prev => ({ ...prev, total: dataRows.length }));
-
-        let successCount = 0;
-        let errorCount = 0;
+        // Parse CSV rows into structured data
+        const parsedRows: any[] = [];
+        const phoneNumbers: string[] = [];
 
         for (let i = 0; i < dataRows.length; i++) {
           const row = dataRows[i];
           
-          try {
-            // Extract data from CSV row
-            // Column 0: Business Name
-            // Column 5: Phone (format: "· (813) 548-0240")
-            // Column 4: Location info (contains address)
-            // Column 9: Website URL
-            // Column 11: Google Maps Directions link
-            const businessName = row[0]?.trim() || '';
-            const phoneRaw = row[5]?.trim() || '';
-            const locationInfo = row[4]?.trim() || '';
-            const websiteLink = row[9]?.trim() || ''; // Website URL from column 9
-            const mapsLink = row[11]?.trim() || row[12]?.trim() || ''; // Try column 11 or 12
-            
-            // Extract phone number (remove "· " prefix)
-            const businessPhone = phoneRaw.replace(/^·\s*/, '').trim() || undefined;
-            
-            // Extract address from location info (everything after "· ")
-            const addressMatch = locationInfo.match(/·\s*(.+)$/);
-            const businessAddress = addressMatch ? addressMatch[1].trim() : locationInfo || undefined;
-            
-            // Use Google Maps link as listing link, or construct from business name if not available
-            let listingLink = mapsLink || '';
-            if (!listingLink && businessName) {
-              // Try to construct a basic Google Maps search URL
-              listingLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessName + ' ' + (businessAddress || ''))}`;
-            }
+          // Extract data from CSV row
+          const businessName = row[0]?.trim() || '';
+          const phoneRaw = row[5]?.trim() || '';
+          const locationInfo = row[4]?.trim() || '';
+          const websiteLink = row[9]?.trim() || '';
+          const mapsLink = row[11]?.trim() || row[12]?.trim() || '';
+          
+          // Extract phone number (remove "· " prefix)
+          const businessPhone = phoneRaw.replace(/^·\s*/, '').trim() || undefined;
+          
+          // Extract address from location info
+          const addressMatch = locationInfo.match(/·\s*(.+)$/);
+          const businessAddress = addressMatch ? addressMatch[1].trim() : locationInfo || undefined;
+          
+          // Use Google Maps link as listing link, or construct from business name if not available
+          let listingLink = mapsLink || '';
+          if (!listingLink && businessName) {
+            listingLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessName + ' ' + (businessAddress || ''))}`;
+          }
 
-            if (!listingLink) {
-              errorCount++;
-              setCsvProgress(prev => ({ ...prev, processed: prev.processed + 1, errors: prev.errors + 1 }));
-              continue;
-            }
-
-            // Create lead
-            const response = await fetch('/api/leads', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                listingLink,
-                websiteLink: websiteLink || undefined,
-                businessPhone,
-                businessName: businessName || undefined,
-                businessAddress,
-              }),
+          if (listingLink) {
+            parsedRows.push({
+              businessName,
+              businessPhone,
+              locationInfo,
+              websiteLink,
+              listingLink,
+              businessAddress,
             });
 
-            if (response.ok) {
-              successCount++;
-            } else {
-              errorCount++;
+            if (businessPhone) {
+              phoneNumbers.push(businessPhone);
             }
-
-            setCsvProgress(prev => ({ 
-              ...prev, 
-              processed: prev.processed + 1,
-              success: successCount,
-              errors: errorCount
-            }));
-
-            // Small delay to avoid overwhelming the API
-            await new Promise(resolve => setTimeout(resolve, 100));
-          } catch (error) {
-            errorCount++;
-            setCsvProgress(prev => ({ 
-              ...prev, 
-              processed: prev.processed + 1,
-              errors: prev.errors + 1
-            }));
           }
         }
 
-        setIsProcessingCsv(false);
-        setCsvFile(null);
-        alert(`CSV processing complete!\nSuccess: ${successCount}\nErrors: ${errorCount}`);
-        setShowCsvUpload(false);
+        // Check for duplicates
+        const duplicateCount = await checkForDuplicates(phoneNumbers);
+
+        if (duplicateCount > 0) {
+          // Show prompt and store data for processing
+          setDuplicateCount(duplicateCount);
+          setCsvDataToProcess(parsedRows);
+          setShowDuplicatePrompt(true);
+          setIsProcessingCsv(false);
+        } else {
+          // No duplicates, process immediately
+          await processCsvData(parsedRows, false);
+        }
       },
       error: (error) => {
         console.error('CSV parsing error:', error);
@@ -240,6 +317,12 @@ export default function DeveloperDashboard() {
         setIsProcessingCsv(false);
       }
     });
+  };
+
+  const handleDuplicateResponse = async (overwrite: boolean) => {
+    setShowDuplicatePrompt(false);
+    setIsProcessingCsv(true);
+    await processCsvData(csvDataToProcess, overwrite);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
