@@ -385,7 +385,9 @@ export default function LeadProfilePage() {
                 }`}>
                   Website Link:
                 </span>
-                {lead.websiteLink && !lead.websiteLink.toLowerCase().includes('booksy.com') ? (
+                {lead.websiteLink && 
+                 lead.websiteLink.trim().toLowerCase() !== 'directions' &&
+                 !lead.websiteLink.toLowerCase().includes('booksy.com') ? (
                   <a
                     href={lead.websiteLink}
                     target="_blank"
