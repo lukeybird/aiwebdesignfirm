@@ -49,19 +49,30 @@ export async function initDatabase() {
     `;
 
     // Add website_link column if it doesn't exist (for existing databases)
+    // This handles the case where the table was created before website_link was added
     try {
-      const columnExists = await sql`
-        SELECT 1 FROM information_schema.columns 
+      // Check if the column exists
+      const columnCheck = await sql`
+        SELECT column_name 
+        FROM information_schema.columns 
         WHERE table_name = 'leads' AND column_name = 'website_link'
       `;
       
-      if (columnExists.length === 0) {
-        await sql`ALTER TABLE leads ADD COLUMN website_link TEXT`;
-        console.log('Added website_link column to leads table');
+      // If column doesn't exist, add it
+      if (columnCheck.length === 0) {
+        await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_link TEXT`;
+        console.log('✓ Added website_link column to leads table');
+      } else {
+        console.log('✓ website_link column already exists');
       }
-    } catch (error) {
-      console.error('Error adding website_link column:', error);
-      // Continue anyway - might already exist or table might not exist yet
+    } catch (error: any) {
+      // If the error is that the table doesn't exist, that's fine - it will be created above
+      if (error.message && error.message.includes('does not exist')) {
+        console.log('Leads table does not exist yet, will be created with website_link column');
+      } else {
+        console.error('Error checking/adding website_link column:', error);
+        // Don't throw - the table creation above should handle it
+      }
     }
 
     // Create notes table (for leads)
