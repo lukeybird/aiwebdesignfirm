@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
-// GET - Get all leads
-export async function GET() {
+// GET - Get all leads with pagination
+export async function GET(request: NextRequest) {
   try {
+    // Ensure website_link column exists
+    await ensureWebsiteLinkColumn();
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '25');
+    const offset = (page - 1) * limit;
+
+    // Get total count
+    const countResult = await sql`SELECT COUNT(*) as total FROM leads`;
+    const total = Number(countResult[0]?.total || 0);
+    const totalPages = Math.ceil(total / limit);
+
+    // Get paginated leads
     const leads = await sql`
       SELECT 
         l.*,
@@ -22,13 +36,15 @@ export async function GET() {
       LEFT JOIN lead_notes ln ON l.id = ln.lead_id
       GROUP BY l.id
       ORDER BY l.created_at DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
     `;
 
     // Transform notes from array to proper format
     const formattedLeads = leads.map(lead => ({
       id: lead.id.toString(),
       listingLink: lead.listing_link,
-      websiteLink: lead.website_link,
+      websiteLink: lead.website_link || null,
       businessPhone: lead.business_phone,
       businessName: lead.business_name,
       businessEmail: lead.business_email,
@@ -45,8 +61,17 @@ export async function GET() {
       createdAt: lead.created_at
     }));
 
-    return NextResponse.json({ leads: formattedLeads });
+    return NextResponse.json({ 
+      leads: formattedLeads,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
+    });
   } catch (error: any) {
+    console.error('Error fetching leads:', error);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

@@ -62,16 +62,30 @@ export default function LeadsPage() {
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalLeads, setTotalLeads] = useState(0);
+  const leadsPerPage = 25;
 
   // Load leads from API
   useEffect(() => {
     const loadLeads = async () => {
       try {
-        const response = await fetch('/api/leads');
+        setIsLoading(true);
+        const response = await fetch(`/api/leads?page=${currentPage}&limit=${leadsPerPage}`);
         const data = await response.json();
+        
+        if (data.error) {
+          console.error('Error from API:', data.error);
+          return;
+        }
         
         if (data.leads) {
           setLeads(data.leads);
+          if (data.pagination) {
+            setTotalPages(data.pagination.totalPages);
+            setTotalLeads(data.pagination.total);
+          }
         }
       } catch (error) {
         console.error('Error loading leads:', error);
@@ -81,7 +95,7 @@ export default function LeadsPage() {
     };
 
     loadLeads();
-  }, []);
+  }, [currentPage]);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -185,8 +199,11 @@ export default function LeadsPage() {
                 ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
                 : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
             }`}>
-              All Leads ({leads.length})
+              All Leads ({totalLeads})
             </h1>
+            <p className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Showing {leads.length > 0 ? ((currentPage - 1) * leadsPerPage + 1) : 0} - {Math.min(currentPage * leadsPerPage, totalLeads)} of {totalLeads}
+            </p>
             <p className={`text-lg font-light ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               View and manage all your leads
             </p>
@@ -291,6 +308,41 @@ export default function LeadsPage() {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className={`mt-8 flex items-center justify-center gap-4 ${
+              isStarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isStarkMode
+                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+                }`}
+              >
+                Previous
+              </button>
+              
+              <span className={`text-sm ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Page {currentPage} of {totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isStarkMode
+                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+                }`}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
