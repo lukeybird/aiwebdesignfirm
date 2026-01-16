@@ -652,8 +652,8 @@ export default function ClientDashboard() {
     // Update immediately
     updateTimer();
 
-    // Update every minute
-    const interval = setInterval(updateTimer, 60000);
+    // Update every second for smooth countdown
+    const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
   }, [completionTime]);
