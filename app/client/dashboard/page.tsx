@@ -555,6 +555,45 @@ export default function ClientDashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [galleryOpen, galleryIndex, imageFiles.length]);
 
+  // Auto-check/uncheck instruction 1 based on file count (5 or more)
+  useEffect(() => {
+    if (!clientEmail) return;
+    
+    const hasEnoughFiles = files.length >= 5;
+    const shouldBeChecked = hasEnoughFiles;
+    
+    // Only update if the state needs to change
+    if (instructions.instruction1 !== shouldBeChecked) {
+      const newInstructions = { ...instructions, instruction1: shouldBeChecked };
+      setInstructions(newInstructions);
+      setIsSavingInstructions(true);
+      
+      const saveInstruction = async () => {
+        try {
+          const response = await fetch('/api/clients', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: clientEmail,
+              instruction1Completed: shouldBeChecked,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to save');
+          }
+        } catch (error) {
+          console.error('Error updating instruction 1:', error);
+          // Revert on error
+          setInstructions({ ...instructions, instruction1: !shouldBeChecked });
+        } finally {
+          setIsSavingInstructions(false);
+        }
+      };
+      
+      saveInstruction();
+    }
+  }, [files.length, instructions.instruction1, clientEmail]);
 
   const handleDownloadFile = async (file: UploadedFile) => {
     try {
