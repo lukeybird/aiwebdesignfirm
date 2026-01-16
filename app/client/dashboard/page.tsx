@@ -727,7 +727,7 @@ export default function ClientDashboard() {
                     setClientName(accountInfo.fullName);
                     
                     // Check/uncheck instruction 3 based on business name and address
-                    const hasBusinessInfo = accountInfo.businessName.trim() && accountInfo.businessAddress.trim();
+                    const hasBusinessInfo = !!(accountInfo.businessName.trim() && accountInfo.businessAddress.trim());
                     const shouldBeChecked = hasBusinessInfo;
                     
                     if (instructions.instruction3 !== shouldBeChecked) {
