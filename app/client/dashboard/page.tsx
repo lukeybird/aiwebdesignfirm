@@ -1843,7 +1843,11 @@ export default function ClientDashboard() {
 
       {/* Bottom Left Countdown Timer */}
       {completionTime && timeRemaining > 0 && (
-        <div className="fixed bottom-6 left-6 z-40">
+        <button
+          onClick={() => setShowCompletionModal(true)}
+          className="fixed bottom-6 left-6 z-40 cursor-pointer transition-transform hover:scale-105"
+          title="View countdown details"
+        >
           <div className={`rounded-lg p-4 shadow-2xl border ${
             isStarkMode
               ? 'bg-gray-900 border-cyan-500/30 shadow-cyan-500/20'
@@ -1865,7 +1869,7 @@ export default function ClientDashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </button>
       )}
     </main>
   );
