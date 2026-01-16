@@ -45,6 +45,9 @@ export default function ClientDashboard() {
   });
   const [websiteNotes, setWebsiteNotes] = useState('');
   const [isSavingInstructions, setIsSavingInstructions] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completionTime, setCompletionTime] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -594,6 +597,64 @@ export default function ClientDashboard() {
       saveInstruction();
     }
   }, [files.length, instructions.instruction1, clientEmail]);
+
+  // Check if all instructions are completed and show modal/set timer
+  useEffect(() => {
+    const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
+    
+    if (allCompleted && typeof window !== 'undefined') {
+      const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
+      
+      if (!storedCompletionTime) {
+        // First time all completed - set completion time and show modal
+        const now = Date.now();
+        localStorage.setItem('instructionsCompletionTime', now.toString());
+        setCompletionTime(now);
+        setShowCompletionModal(true);
+      } else {
+        // Already completed before - just set the time
+        setCompletionTime(parseInt(storedCompletionTime));
+      }
+    } else if (!allCompleted && typeof window !== 'undefined') {
+      // If instructions are unchecked, clear the completion time
+      localStorage.removeItem('instructionsCompletionTime');
+      setCompletionTime(null);
+      setShowCompletionModal(false);
+    }
+  }, [instructions.instruction1, instructions.instruction2, instructions.instruction3]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!completionTime) {
+      setTimeRemaining(0);
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const elapsed = now - completionTime;
+      const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const remaining = Math.max(0, twentyFourHours - elapsed);
+      setTimeRemaining(remaining);
+    };
+
+    // Update immediately
+    updateTimer();
+
+    // Update every minute
+    const interval = setInterval(updateTimer, 60000);
+
+    return () => clearInterval(interval);
+  }, [completionTime]);
+
+  // Format time remaining as hours and minutes
+  const formatTimeRemaining = (ms: number) => {
+    if (ms <= 0) return '00:00';
+    const totalMinutes = Math.floor(ms / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
 
   const handleDownloadFile = async (file: UploadedFile) => {
     try {
