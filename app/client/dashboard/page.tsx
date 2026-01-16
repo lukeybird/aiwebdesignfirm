@@ -951,9 +951,28 @@ export default function ClientDashboard() {
               ? 'bg-gray-800 border border-cyan-500/20' 
               : 'bg-white border-2 border-gray-300/60'
           }`}>
-            <h2 className={`text-2xl font-black mb-6 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Instructions Checklist
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className={`text-2xl font-black ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Instructions Checklist
+              </h2>
+              {instructions.instruction1 && instructions.instruction2 && instructions.instruction3 ? (
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/50">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/50">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="space-y-5">
               <label className={`flex items-start gap-4 cursor-pointer group p-4 rounded-lg transition-all ${
                 isStarkMode 
