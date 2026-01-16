@@ -1028,13 +1028,17 @@ export default function ClientDashboard() {
                 Instructions Checklist
               </h2>
               {instructions.instruction1 && instructions.instruction2 && instructions.instruction3 ? (
-                <div className="relative">
+                <button
+                  onClick={() => setShowCompletionModal(true)}
+                  className="relative cursor-pointer transition-transform hover:scale-110"
+                  title="View countdown"
+                >
                   <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/50">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                </div>
+                </button>
               ) : (
                 <div className="relative">
                   <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/50">
