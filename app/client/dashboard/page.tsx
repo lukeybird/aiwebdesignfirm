@@ -108,6 +108,17 @@ export default function ClientDashboard() {
                 instruction3: clientData.client.instruction_3_completed || false,
               });
               setWebsiteNotes(clientData.client.website_notes || '');
+              
+              // Load completion time if all instructions are completed
+              const allCompleted = (clientData.client.instruction_1_completed || false) && 
+                                   (clientData.client.instruction_2_completed || false) && 
+                                   (clientData.client.instruction_3_completed || false);
+              if (allCompleted && typeof window !== 'undefined') {
+                const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
+                if (storedCompletionTime) {
+                  setCompletionTime(parseInt(storedCompletionTime));
+                }
+              }
             } else {
               // Fallback: try to get from the client object if it has the fields
               setInstructions({
