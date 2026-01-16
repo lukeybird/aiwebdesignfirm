@@ -1747,6 +1747,111 @@ export default function ClientDashboard() {
           </div>
         </div>
       )}
+
+      {/* Completion Modal */}
+      {showCompletionModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowCompletionModal(false)}
+        >
+          <div 
+            className={`rounded-xl shadow-2xl w-full max-w-md mx-4 transition-colors duration-300 ${
+              isStarkMode 
+                ? 'bg-gray-900 border border-cyan-500/20' 
+                : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className={`text-3xl font-black tracking-tighter ${
+                  isStarkMode 
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
+                    : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
+                }`}>
+                  Site In Progress
+                </h2>
+                <button
+                  onClick={() => setShowCompletionModal(false)}
+                  className={`transition-colors ${
+                    isStarkMode 
+                      ? 'text-gray-400 hover:text-cyan-400' 
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/50">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className={`text-xl mb-4 ${isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                  All instructions completed!
+                </p>
+                <p className={`text-lg mb-6 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Come back in 24 hours to see the result.
+                </p>
+                <div className={`p-4 rounded-lg ${
+                  isStarkMode 
+                    ? 'bg-gray-800 border border-cyan-500/30' 
+                    : 'bg-gray-100 border border-gray-300'
+                }`}>
+                  <p className={`text-sm mb-2 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Time remaining:
+                  </p>
+                  <p className={`text-3xl font-bold ${isStarkMode ? 'text-cyan-400' : 'text-gray-900'}`}>
+                    {formatTimeRemaining(timeRemaining)}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowCompletionModal(false)}
+                className={`w-full px-6 py-3 rounded-full text-base font-bold transition-all duration-200 hover:scale-105 ${
+                  isStarkMode
+                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                }`}
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Left Countdown Timer */}
+      {completionTime && timeRemaining > 0 && (
+        <div className="fixed bottom-6 left-6 z-40">
+          <div className={`rounded-lg p-4 shadow-2xl border ${
+            isStarkMode
+              ? 'bg-gray-900 border-cyan-500/30 shadow-cyan-500/20'
+              : 'bg-white border-gray-300 shadow-gray-900/20'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/50">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className={`text-xs ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Site ready in:
+                </p>
+                <p className={`text-lg font-bold ${isStarkMode ? 'text-cyan-400' : 'text-gray-900'}`}>
+                  {formatTimeRemaining(timeRemaining)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
