@@ -162,22 +162,82 @@ Generate the complete HTML now:`;
     }
     
     const generatedCode = claudeData.content[0].text;
+    console.log('=== CLAUDE API RESPONSE ===');
+    console.log('Generated code length:', generatedCode.length);
+    console.log('First 1000 chars:', generatedCode.substring(0, 1000));
+    console.log('Last 500 chars:', generatedCode.substring(Math.max(0, generatedCode.length - 500)));
 
-    // Extract HTML, CSS, and JS from the response
+    // Extract HTML from the response
     // Claude might return markdown code blocks, so we need to parse it
-    let htmlCode = generatedCode;
+    let htmlCode = generatedCode.trim();
     
     // Try to extract code from markdown code blocks if present
     const htmlMatch = generatedCode.match(/```html\n([\s\S]*?)```/);
+    const htmlMatch2 = generatedCode.match(/```\n([\s\S]*?)```/);
+    const htmlMatch3 = generatedCode.match(/```([\s\S]*?)```/);
     const cssMatch = generatedCode.match(/```css\n([\s\S]*?)```/);
     const jsMatch = generatedCode.match(/```javascript\n([\s\S]*?)```/) || generatedCode.match(/```js\n([\s\S]*?)```/);
     
+    console.log('HTML extraction attempts:');
+    console.log('- htmlMatch found:', !!htmlMatch);
+    console.log('- htmlMatch2 found:', !!htmlMatch2);
+    console.log('- htmlMatch3 found:', !!htmlMatch3);
+    console.log('- Contains DOCTYPE:', generatedCode.includes('<!DOCTYPE'));
+    console.log('- Contains <html>:', generatedCode.includes('<html>'));
+    
     if (htmlMatch) {
-      htmlCode = htmlMatch[1];
+      htmlCode = htmlMatch[1].trim();
+      console.log('✅ Extracted HTML from ```html block, length:', htmlCode.length);
+    } else if (htmlMatch2 && (htmlMatch2[1].includes('<!DOCTYPE') || htmlMatch2[1].includes('<html>'))) {
+      htmlCode = htmlMatch2[1].trim();
+      console.log('✅ Extracted HTML from ``` block, length:', htmlCode.length);
+    } else if (htmlMatch3 && (htmlMatch3[1].includes('<!DOCTYPE') || htmlMatch3[1].includes('<html>'))) {
+      // Remove language identifier if present
+      htmlCode = htmlMatch3[1].replace(/^html\n?/, '').trim();
+      console.log('✅ Extracted HTML from ``` block (with language), length:', htmlCode.length);
     } else if (generatedCode.includes('<!DOCTYPE html>') || generatedCode.includes('<html>')) {
       // If it's already HTML, use it directly
-      htmlCode = generatedCode;
+      htmlCode = generatedCode.trim();
+      console.log('✅ Using generated code directly as HTML, length:', htmlCode.length);
+    } else {
+      // If no HTML found, wrap the content
+      console.warn('⚠️ No HTML structure found in Claude response, wrapping content');
+      htmlCode = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${businessName}</title>
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>${businessName}</h1>
+  <p>Website content:</p>
+  <pre>${generatedCode}</pre>
+</body>
+</html>`;
     }
+    
+    // Ensure it starts with DOCTYPE
+    if (!htmlCode.trim().startsWith('<!DOCTYPE')) {
+      console.warn('⚠️ Generated code does not start with DOCTYPE, prepending HTML structure');
+      htmlCode = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${businessName}</title>
+</head>
+<body>
+${htmlCode}
+</body>
+</html>`;
+    }
+    
+    console.log('Final HTML code length:', htmlCode.length);
+    console.log('Final HTML starts with:', htmlCode.substring(0, 100));
 
     // Store the generated website
     const siteUrl = `/sites/${clientId}`;
