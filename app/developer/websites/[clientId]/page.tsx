@@ -55,6 +55,7 @@ export default function BuildWebsitePage() {
         const clientData = await clientResponse.json();
         if (clientData.client) {
           setClient(clientData.client);
+          console.log('Loaded client:', clientData.client);
         }
 
         // Load client files
@@ -62,6 +63,9 @@ export default function BuildWebsitePage() {
         const filesData = await filesResponse.json();
         if (filesData.files) {
           setFiles(filesData.files);
+          console.log('Loaded files:', filesData.files.length, filesData.files);
+        } else {
+          console.log('No files found for client');
         }
       } catch (error) {
         console.error('Error loading client data:', error);
@@ -83,6 +87,15 @@ export default function BuildWebsitePage() {
     setError('');
     setGeneratedWebsite(null);
 
+    console.log('Generating website with:', {
+      clientId,
+      prompt,
+      client,
+      filesCount: files.length,
+      files,
+      websiteNotes: client?.website_notes
+    });
+
     try {
       const response = await fetch('/api/websites/generate', {
         method: 'POST',
@@ -91,7 +104,7 @@ export default function BuildWebsitePage() {
           clientId: parseInt(clientId),
           prompt,
           clientInfo: client,
-          files,
+          files: files, // Explicitly pass files array
           websiteNotes: client?.website_notes
         })
       });
