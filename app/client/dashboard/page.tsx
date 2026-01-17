@@ -132,12 +132,34 @@ export default function ClientDashboard() {
               }
             } else {
               // Fallback: try to get from the client object if it has the fields
-              setInstructions({
+              const loadedInstructions = {
                 instruction1: (client as any).instruction_1_completed || false,
                 instruction2: (client as any).instruction_2_completed || false,
                 instruction3: (client as any).instruction_3_completed || false,
-              });
+              };
+              setInstructions(loadedInstructions);
               setWebsiteNotes((client as any).website_notes || '');
+              
+              // Load completion time if all instructions are completed
+              const allCompleted = loadedInstructions.instruction1 && 
+                                   loadedInstructions.instruction2 && 
+                                   loadedInstructions.instruction3;
+              if (allCompleted && typeof window !== 'undefined') {
+                const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
+                if (storedCompletionTime) {
+                  // Use existing completion time
+                  setCompletionTime(parseInt(storedCompletionTime));
+                } else {
+                  // First time all completed - set completion time now
+                  const now = Date.now();
+                  localStorage.setItem('instructionsCompletionTime', now.toString());
+                  setCompletionTime(now);
+                }
+              } else if (typeof window !== 'undefined') {
+                // Not all completed - clear completion time
+                localStorage.removeItem('instructionsCompletionTime');
+                setCompletionTime(null);
+              }
             }
           }
 
