@@ -1896,8 +1896,14 @@ export default function ClientDashboard() {
         </div>
       )}
 
-      {/* Bottom Left Countdown Timer - Only show if timer is set and all instructions are checked */}
-      {completionTime && instructions.instruction1 && instructions.instruction2 && instructions.instruction3 && (
+      {/* Bottom Left Countdown Timer - Show if timer is set, and either all instructions are checked OR timer has completed */}
+      {completionTime && (() => {
+        const allChecked = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
+        const now = Date.now();
+        const tenSeconds = 10 * 1000;
+        const hasCompleted = (now - completionTime) >= tenSeconds;
+        return allChecked || hasCompleted;
+      })() && (
         <button
           onClick={() => setShowCompletionModal(true)}
           className="fixed bottom-6 left-6 z-40 cursor-pointer transition-transform hover:scale-105"
