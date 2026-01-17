@@ -1792,23 +1792,49 @@ export default function ClientDashboard() {
                   </svg>
                 </div>
                 <p className={`text-xl mb-4 ${isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                  All instructions completed!
+                  {timeRemaining > 0 ? 'All instructions completed!' : 'Your website is ready!'}
                 </p>
-                <p className={`text-lg mb-6 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Come back in 10 seconds to see the result.
-                </p>
-                <div className={`p-4 rounded-lg ${
-                  isStarkMode 
-                    ? 'bg-gray-800 border border-cyan-500/30' 
-                    : 'bg-gray-100 border border-gray-300'
-                }`}>
-                  <p className={`text-sm mb-2 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Time remaining:
-                  </p>
-                  <p className={`text-3xl font-bold ${isStarkMode ? 'text-cyan-400' : 'text-gray-900'}`}>
-                    {formatTimeRemaining(timeRemaining)}
-                  </p>
-                </div>
+                {timeRemaining > 0 ? (
+                  <>
+                    <p className={`text-lg mb-6 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Come back in 10 seconds to see the result.
+                    </p>
+                    <div className={`p-4 rounded-lg ${
+                      isStarkMode 
+                        ? 'bg-gray-800 border border-cyan-500/30' 
+                        : 'bg-gray-100 border border-gray-300'
+                    }`}>
+                      <p className={`text-sm mb-2 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Time remaining:
+                      </p>
+                      <p className={`text-3xl font-bold ${isStarkMode ? 'text-cyan-400' : 'text-gray-900'}`}>
+                        {formatTimeRemaining(timeRemaining)}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className={`text-lg mb-6 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Your website has been completed!
+                    </p>
+                    {accountInfo.businessWebsite && (
+                      <div className="mb-6">
+                        <a
+                          href={accountInfo.businessWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-block px-8 py-4 rounded-full text-lg font-bold transition-all duration-200 hover:scale-105 ${
+                            isStarkMode
+                              ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                          }`}
+                        >
+                          View Site
+                        </a>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <button
