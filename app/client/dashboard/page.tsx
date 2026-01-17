@@ -111,6 +111,7 @@ export default function ClientDashboard() {
               setWebsiteNotes(clientData.client.website_notes || '');
               
               // Load completion time if all instructions are completed
+              // Don't set a new completion time on initial load - only use existing one
               const allCompleted = loadedInstructions.instruction1 && 
                                    loadedInstructions.instruction2 && 
                                    loadedInstructions.instruction3;
@@ -119,17 +120,16 @@ export default function ClientDashboard() {
                 if (storedCompletionTime) {
                   // Use existing completion time
                   setCompletionTime(parseInt(storedCompletionTime));
-                } else {
-                  // First time all completed - set completion time now
-                  const now = Date.now();
-                  localStorage.setItem('instructionsCompletionTime', now.toString());
-                  setCompletionTime(now);
                 }
+                // If no stored time exists, don't set one - wait for user to actually complete
               } else if (typeof window !== 'undefined') {
                 // Not all completed - clear completion time
                 localStorage.removeItem('instructionsCompletionTime');
                 setCompletionTime(null);
               }
+              
+              // Store initial state to detect changes later
+              previousInstructionsState.current = loadedInstructions;
             } else {
               // Fallback: try to get from the client object if it has the fields
               const loadedInstructions = {
@@ -141,6 +141,7 @@ export default function ClientDashboard() {
               setWebsiteNotes((client as any).website_notes || '');
               
               // Load completion time if all instructions are completed
+              // Don't set a new completion time on initial load - only use existing one
               const allCompleted = loadedInstructions.instruction1 && 
                                    loadedInstructions.instruction2 && 
                                    loadedInstructions.instruction3;
@@ -149,17 +150,16 @@ export default function ClientDashboard() {
                 if (storedCompletionTime) {
                   // Use existing completion time
                   setCompletionTime(parseInt(storedCompletionTime));
-                } else {
-                  // First time all completed - set completion time now
-                  const now = Date.now();
-                  localStorage.setItem('instructionsCompletionTime', now.toString());
-                  setCompletionTime(now);
                 }
+                // If no stored time exists, don't set one - wait for user to actually complete
               } else if (typeof window !== 'undefined') {
                 // Not all completed - clear completion time
                 localStorage.removeItem('instructionsCompletionTime');
                 setCompletionTime(null);
               }
+              
+              // Store initial state to detect changes later
+              previousInstructionsState.current = loadedInstructions;
             }
           }
 
