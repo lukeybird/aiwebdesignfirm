@@ -52,14 +52,45 @@ export async function GET(
       });
     }
 
-    const websiteData = websites[0].site_data;
-    const htmlCode = websiteData.html || '';
+    const siteDataRaw = websites[0].site_data;
     
     console.log('=== SERVING WEBSITE ===');
     console.log('Client ID:', clientId);
-    console.log('Website data keys:', Object.keys(websiteData));
+    console.log('Site data type:', typeof siteDataRaw);
+    console.log('Site data:', siteDataRaw);
+    
+    // Handle JSONB - it might be a string or already parsed
+    let websiteData: any;
+    if (typeof siteDataRaw === 'string') {
+      try {
+        websiteData = JSON.parse(siteDataRaw);
+        console.log('✅ Parsed site_data from string');
+      } catch (e) {
+        console.error('❌ Failed to parse site_data as JSON:', e);
+        websiteData = {};
+      }
+    } else {
+      websiteData = siteDataRaw;
+      console.log('✅ Using site_data directly (already parsed)');
+    }
+    
+    console.log('Website data keys:', Object.keys(websiteData || {}));
+    console.log('Website data structure:', JSON.stringify(websiteData, null, 2).substring(0, 500));
+    
+    // Extract HTML code
+    let htmlCode = '';
+    if (websiteData && typeof websiteData === 'object') {
+      htmlCode = websiteData.html || websiteData.HTML || '';
+    } else if (typeof siteDataRaw === 'string' && (siteDataRaw.trim().startsWith('<!DOCTYPE') || siteDataRaw.trim().startsWith('<html'))) {
+      // Fallback: if site_data is directly the HTML string
+      htmlCode = siteDataRaw;
+      console.log('✅ Using site_data directly as HTML string');
+    }
+    
     console.log('HTML code length:', htmlCode.length);
-    console.log('HTML code starts with:', htmlCode.substring(0, 200));
+    if (htmlCode.length > 0) {
+      console.log('HTML code starts with:', htmlCode.substring(0, 200));
+    }
     
     if (!htmlCode || htmlCode.trim().length === 0) {
       console.error('⚠️ HTML code is empty!');
@@ -77,7 +108,9 @@ export async function GET(
   <div>
     <h1>Website Error</h1>
     <p>The website HTML is empty. Please regenerate the website.</p>
-    <p>Website data structure: ${JSON.stringify(Object.keys(websiteData))}</p>
+    <p>Website data type: ${typeof siteDataRaw}</p>
+    <p>Website data keys: ${websiteData ? Object.keys(websiteData).join(', ') : 'null'}</p>
+    <pre style="max-width: 800px; overflow: auto; text-align: left; margin: 20px auto;">${JSON.stringify(websiteData, null, 2).substring(0, 1000)}</pre>
   </div>
 </body>
 </html>
