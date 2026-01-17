@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Pusher from 'pusher-js';
 import Link from 'next/link';
@@ -111,7 +111,6 @@ export default function ClientDashboard() {
               setWebsiteNotes(clientData.client.website_notes || '');
               
               // Load completion time if all instructions are completed
-              // Don't set a new completion time on initial load - only use existing one
               const allCompleted = loadedInstructions.instruction1 && 
                                    loadedInstructions.instruction2 && 
                                    loadedInstructions.instruction3;
@@ -120,16 +119,17 @@ export default function ClientDashboard() {
                 if (storedCompletionTime) {
                   // Use existing completion time
                   setCompletionTime(parseInt(storedCompletionTime));
+                } else {
+                  // First time all completed - set completion time now
+                  const now = Date.now();
+                  localStorage.setItem('instructionsCompletionTime', now.toString());
+                  setCompletionTime(now);
                 }
-                // If no stored time exists, don't set one - wait for user to actually complete
               } else if (typeof window !== 'undefined') {
                 // Not all completed - clear completion time
                 localStorage.removeItem('instructionsCompletionTime');
                 setCompletionTime(null);
               }
-              
-              // Store initial state to detect changes later
-              previousInstructionsState.current = loadedInstructions;
             } else {
               // Fallback: try to get from the client object if it has the fields
               const loadedInstructions = {
@@ -141,25 +141,30 @@ export default function ClientDashboard() {
               setWebsiteNotes((client as any).website_notes || '');
               
               // Load completion time if all instructions are completed
-              // Don't set a new completion time on initial load - only use existing one
               const allCompleted = loadedInstructions.instruction1 && 
                                    loadedInstructions.instruction2 && 
                                    loadedInstructions.instruction3;
               if (allCompleted && typeof window !== 'undefined') {
                 const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
                 if (storedCompletionTime) {
-                  // Use existing completion time
-                  setCompletionTime(parseInt(storedCompletionTime));
+                  const completionTime = parseInt(storedCompletionTime);
+                  const now = Date.now();
+                  const twentyFourHours = 24 * 60 * 60 * 1000;
+                  
+                  // Check if 24 hours have passed - if so, reset the timer
+                  if (now - completionTime >= twentyFourHours) {
+                    localStorage.removeItem('instructionsCompletionTime');
+                    setCompletionTime(null);
+                  } else {
+                    // Use existing completion time
+                    setCompletionTime(completionTime);
+                  }
                 }
-                // If no stored time exists, don't set one - wait for user to actually complete
               } else if (typeof window !== 'undefined') {
                 // Not all completed - clear completion time
                 localStorage.removeItem('instructionsCompletionTime');
                 setCompletionTime(null);
               }
-              
-              // Store initial state to detect changes later
-              previousInstructionsState.current = loadedInstructions;
             }
           }
 
@@ -602,63 +607,13 @@ export default function ClientDashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [galleryOpen, galleryIndex, imageFiles.length]);
 
-  // Auto-check/uncheck instruction 1 based on file count (5 or more)
-  useEffect(() => {
-    if (!clientEmail) return;
-    
-    const hasEnoughFiles = files.length >= 5;
-    const shouldBeChecked = hasEnoughFiles;
-    
-    // Only update if the state needs to change
-    if (instructions.instruction1 !== shouldBeChecked) {
-      const newInstructions = { ...instructions, instruction1: shouldBeChecked };
-      setInstructions(newInstructions);
-      setIsSavingInstructions(true);
-      
-      const saveInstruction = async () => {
-        try {
-          const response = await fetch('/api/clients', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: clientEmail,
-              instruction1Completed: shouldBeChecked,
-            }),
-          });
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.error || 'Failed to save');
-          }
-        } catch (error) {
-          console.error('Error updating instruction 1:', error);
-          // Revert on error
-          setInstructions({ ...instructions, instruction1: !shouldBeChecked });
-        } finally {
-          setIsSavingInstructions(false);
-        }
-      };
-      
-      saveInstruction();
-    }
-  }, [files.length, instructions.instruction1, clientEmail]);
 
   // Check if all instructions are completed and show modal/set timer
   // Only runs when instructions change (not on initial load)
   useEffect(() => {
-    // Skip on initial load
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false;
-      previousInstructionsState.current = { ...instructions };
-      return;
-    }
-    
     const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
-    const wasAllCompleted = previousInstructionsState.current.instruction1 && 
-                            previousInstructionsState.current.instruction2 && 
-                            previousInstructionsState.current.instruction3;
     
-    // Only set completion time when transitioning from incomplete to complete
-    if (allCompleted && !wasAllCompleted && typeof window !== 'undefined') {
+    if (allCompleted && typeof window !== 'undefined') {
       const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
       
       if (!storedCompletionTime) {
@@ -668,13 +623,7 @@ export default function ClientDashboard() {
         setCompletionTime(now);
         setShowCompletionModal(true);
       } else {
-        // Completion time already exists - use it
-        setCompletionTime(parseInt(storedCompletionTime));
-      }
-    } else if (allCompleted && typeof window !== 'undefined') {
-      // Already completed - just ensure the time is set (don't reset it)
-      const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
-      if (storedCompletionTime) {
+        // Already completed before - just ensure the time is set (don't reset it)
         setCompletionTime(parseInt(storedCompletionTime));
       }
     } else if (!allCompleted && typeof window !== 'undefined') {
@@ -683,9 +632,6 @@ export default function ClientDashboard() {
       setCompletionTime(null);
       setShowCompletionModal(false);
     }
-    
-    // Update previous state
-    previousInstructionsState.current = { ...instructions };
   }, [instructions.instruction1, instructions.instruction2, instructions.instruction3]);
 
   // Countdown timer effect
@@ -891,31 +837,6 @@ export default function ClientDashboard() {
                     }
 
                     setClientName(accountInfo.fullName);
-                    
-                    // Check/uncheck instruction 3 based on business name and address
-                    const hasBusinessInfo = !!(accountInfo.businessName.trim() && accountInfo.businessAddress.trim());
-                    const shouldBeChecked = hasBusinessInfo;
-                    
-                    if (instructions.instruction3 !== shouldBeChecked) {
-                      const newInstructions = { ...instructions, instruction3: shouldBeChecked };
-                      setInstructions(newInstructions);
-                      try {
-                        const instructionResponse = await fetch('/api/clients', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            email: clientEmail,
-                            instruction3Completed: shouldBeChecked,
-                          }),
-                        });
-                        if (!instructionResponse.ok) {
-                          console.error('Failed to update instruction 3');
-                        }
-                      } catch (error) {
-                        console.error('Error updating instruction 3:', error);
-                      }
-                    }
-                    
                     setIsSavingAccount(false);
                     alert('Account information updated successfully!');
                   } catch (error: any) {
