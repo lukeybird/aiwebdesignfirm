@@ -48,6 +48,7 @@ export default function ClientDashboard() {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionTime, setCompletionTime] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
