@@ -117,13 +117,18 @@ export default function ClientDashboard() {
               if (allCompleted && typeof window !== 'undefined') {
                 const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
                 if (storedCompletionTime) {
-                  // Use existing completion time
-                  setCompletionTime(parseInt(storedCompletionTime));
-                } else {
-                  // First time all completed - set completion time now
+                  const completionTime = parseInt(storedCompletionTime);
                   const now = Date.now();
-                  localStorage.setItem('instructionsCompletionTime', now.toString());
-                  setCompletionTime(now);
+                  const twentyFourHours = 24 * 60 * 60 * 1000;
+                  
+                  // Check if 24 hours have passed - if so, reset the timer
+                  if (now - completionTime >= twentyFourHours) {
+                    localStorage.removeItem('instructionsCompletionTime');
+                    setCompletionTime(null);
+                  } else {
+                    // Use existing completion time
+                    setCompletionTime(completionTime);
+                  }
                 }
               } else if (typeof window !== 'undefined') {
                 // Not all completed - clear completion time
@@ -609,7 +614,7 @@ export default function ClientDashboard() {
 
 
   // Check if all instructions are completed and show modal/set timer
-  // Only runs when instructions change (not on initial load)
+  // Only activates when user manually checks all three boxes
   useEffect(() => {
     const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
     
@@ -623,8 +628,21 @@ export default function ClientDashboard() {
         setCompletionTime(now);
         setShowCompletionModal(true);
       } else {
-        // Already completed before - just ensure the time is set (don't reset it)
-        setCompletionTime(parseInt(storedCompletionTime));
+        // Check if 24 hours have passed
+        const completionTime = parseInt(storedCompletionTime);
+        const now = Date.now();
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        
+        if (now - completionTime >= twentyFourHours) {
+          // 24 hours have passed - reset timer
+          localStorage.removeItem('instructionsCompletionTime');
+          const newTime = Date.now();
+          localStorage.setItem('instructionsCompletionTime', newTime.toString());
+          setCompletionTime(newTime);
+        } else {
+          // Still within 24 hours - use existing time
+          setCompletionTime(completionTime);
+        }
       }
     } else if (!allCompleted && typeof window !== 'undefined') {
       // If instructions are manually unchecked, clear the completion time
