@@ -651,8 +651,8 @@ export default function ClientDashboard() {
     const updateTimer = () => {
       const now = Date.now();
       const elapsed = now - completionTime;
-      const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      const remaining = Math.max(0, twentyFourHours - elapsed);
+      const tenSeconds = 10 * 1000; // 10 seconds for testing
+      const remaining = Math.max(0, tenSeconds - elapsed);
       setTimeRemaining(remaining);
     };
 
