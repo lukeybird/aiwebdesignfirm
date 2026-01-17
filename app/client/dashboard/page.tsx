@@ -615,9 +615,23 @@ export default function ClientDashboard() {
     
     if (typeof window === 'undefined') return;
     
+    // Check if timer has already completed (reached 0)
+    const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
+    if (storedCompletionTime) {
+      const completionTime = parseInt(storedCompletionTime);
+      const now = Date.now();
+      const tenSeconds = 10 * 1000; // 10 seconds for testing
+      const hasCompleted = (now - completionTime) >= tenSeconds;
+      
+      // If timer has already completed, don't clear it even if boxes are unchecked
+      if (hasCompleted) {
+        setCompletionTime(completionTime);
+        return;
+      }
+    }
+    
     // Check if all three are checked
     const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
-    const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
     const timerHasBeenSet = !!storedCompletionTime;
     
     if (allCompleted) {
@@ -634,10 +648,20 @@ export default function ClientDashboard() {
         setCompletionTime(completionTime);
       }
     } else {
-      // Not all checked - clear timer
-      localStorage.removeItem('instructionsCompletionTime');
-      setCompletionTime(null);
-      setShowCompletionModal(false);
+      // Not all checked - only clear timer if it hasn't completed yet
+      if (storedCompletionTime) {
+        const completionTime = parseInt(storedCompletionTime);
+        const now = Date.now();
+        const tenSeconds = 10 * 1000;
+        const hasCompleted = (now - completionTime) >= tenSeconds;
+        
+        // Only clear if timer hasn't completed
+        if (!hasCompleted) {
+          localStorage.removeItem('instructionsCompletionTime');
+          setCompletionTime(null);
+          setShowCompletionModal(false);
+        }
+      }
     }
   }, [instructions.instruction1, instructions.instruction2, instructions.instruction3]);
 
