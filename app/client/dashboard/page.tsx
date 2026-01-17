@@ -110,30 +110,25 @@ export default function ClientDashboard() {
               setInstructions(loadedInstructions);
               setWebsiteNotes(clientData.client.website_notes || '');
               
-              // Load completion time if all instructions are completed
-              const allCompleted = loadedInstructions.instruction1 && 
-                                   loadedInstructions.instruction2 && 
-                                   loadedInstructions.instruction3;
-              if (allCompleted && typeof window !== 'undefined') {
+              // Load timer if it exists and check if 24 hours have passed
+              if (typeof window !== 'undefined') {
                 const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
                 if (storedCompletionTime) {
                   const completionTime = parseInt(storedCompletionTime);
                   const now = Date.now();
                   const twentyFourHours = 24 * 60 * 60 * 1000;
                   
-                  // Check if 24 hours have passed - if so, reset the timer
+                  // Check if 24 hours have passed - if so, clear the timer
                   if (now - completionTime >= twentyFourHours) {
                     localStorage.removeItem('instructionsCompletionTime');
                     setCompletionTime(null);
                   } else {
-                    // Use existing completion time
+                    // Timer still valid - set it
                     setCompletionTime(completionTime);
                   }
+                } else {
+                  setCompletionTime(null);
                 }
-              } else if (typeof window !== 'undefined') {
-                // Not all completed - clear completion time
-                localStorage.removeItem('instructionsCompletionTime');
-                setCompletionTime(null);
               }
             } else {
               // Fallback: try to get from the client object if it has the fields
@@ -145,30 +140,25 @@ export default function ClientDashboard() {
               setInstructions(loadedInstructions);
               setWebsiteNotes((client as any).website_notes || '');
               
-              // Load completion time if all instructions are completed
-              const allCompleted = loadedInstructions.instruction1 && 
-                                   loadedInstructions.instruction2 && 
-                                   loadedInstructions.instruction3;
-              if (allCompleted && typeof window !== 'undefined') {
+              // Load timer if it exists and check if 24 hours have passed
+              if (typeof window !== 'undefined') {
                 const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
                 if (storedCompletionTime) {
                   const completionTime = parseInt(storedCompletionTime);
                   const now = Date.now();
                   const twentyFourHours = 24 * 60 * 60 * 1000;
                   
-                  // Check if 24 hours have passed - if so, reset the timer
+                  // Check if 24 hours have passed - if so, clear the timer
                   if (now - completionTime >= twentyFourHours) {
                     localStorage.removeItem('instructionsCompletionTime');
                     setCompletionTime(null);
                   } else {
-                    // Use existing completion time
+                    // Timer still valid - set it
                     setCompletionTime(completionTime);
                   }
+                } else {
+                  setCompletionTime(null);
                 }
-              } else if (typeof window !== 'undefined') {
-                // Not all completed - clear completion time
-                localStorage.removeItem('instructionsCompletionTime');
-                setCompletionTime(null);
               }
             }
           }
@@ -613,39 +603,40 @@ export default function ClientDashboard() {
   }, [galleryOpen, galleryIndex, imageFiles.length]);
 
 
-  // Check if all instructions are completed and show modal/set timer
-  // Only activates when user manually checks all three boxes
+  // Handle timer when checklist items are manually toggled
   useEffect(() => {
-    const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
+    if (typeof window === 'undefined') return;
     
-    if (allCompleted && typeof window !== 'undefined') {
-      const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
-      
-      if (!storedCompletionTime) {
-        // First time all completed - set completion time and show modal
+    const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
+    const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
+    const timerHasBeenSet = !!storedCompletionTime;
+    
+    if (allCompleted) {
+      // All three are checked
+      if (!timerHasBeenSet) {
+        // Timer has not been set - set it now
         const now = Date.now();
         localStorage.setItem('instructionsCompletionTime', now.toString());
         setCompletionTime(now);
         setShowCompletionModal(true);
       } else {
-        // Check if 24 hours have passed
+        // Timer has been set - check if still valid (within 24 hours)
         const completionTime = parseInt(storedCompletionTime);
         const now = Date.now();
         const twentyFourHours = 24 * 60 * 60 * 1000;
         
         if (now - completionTime >= twentyFourHours) {
           // 24 hours have passed - reset timer
-          localStorage.removeItem('instructionsCompletionTime');
           const newTime = Date.now();
           localStorage.setItem('instructionsCompletionTime', newTime.toString());
           setCompletionTime(newTime);
         } else {
-          // Still within 24 hours - use existing time
+          // Timer still valid - display it
           setCompletionTime(completionTime);
         }
       }
-    } else if (!allCompleted && typeof window !== 'undefined') {
-      // If instructions are manually unchecked, clear the completion time
+    } else {
+      // Not all checked - clear timer
       localStorage.removeItem('instructionsCompletionTime');
       setCompletionTime(null);
       setShowCompletionModal(false);
