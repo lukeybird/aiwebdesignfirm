@@ -110,7 +110,7 @@ export default function ClientDashboard() {
               setInstructions(loadedInstructions);
               setWebsiteNotes(clientData.client.website_notes || '');
               
-              // Load timer if it exists and check if 24 hours have passed
+              // On page load: Check if timer exists and is still valid
               if (typeof window !== 'undefined') {
                 const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
                 if (storedCompletionTime) {
@@ -123,7 +123,7 @@ export default function ClientDashboard() {
                     localStorage.removeItem('instructionsCompletionTime');
                     setCompletionTime(null);
                   } else {
-                    // Timer still valid - set it
+                    // Timer still valid - display it
                     setCompletionTime(completionTime);
                   }
                 } else {
@@ -140,7 +140,7 @@ export default function ClientDashboard() {
               setInstructions(loadedInstructions);
               setWebsiteNotes((client as any).website_notes || '');
               
-              // Load timer if it exists and check if 24 hours have passed
+              // On page load: Check if timer exists and is still valid
               if (typeof window !== 'undefined') {
                 const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
                 if (storedCompletionTime) {
@@ -153,7 +153,7 @@ export default function ClientDashboard() {
                     localStorage.removeItem('instructionsCompletionTime');
                     setCompletionTime(null);
                   } else {
-                    // Timer still valid - set it
+                    // Timer still valid - display it
                     setCompletionTime(completionTime);
                   }
                 } else {
@@ -603,10 +603,18 @@ export default function ClientDashboard() {
   }, [galleryOpen, galleryIndex, imageFiles.length]);
 
 
-  // Handle timer when checklist items are manually toggled
+  // Handle timer ONLY when checklist items are manually toggled
+  // This effect should NOT run on initial page load
   useEffect(() => {
+    // Skip on initial load
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+    
     if (typeof window === 'undefined') return;
     
+    // Check if all three are checked
     const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
     const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
     const timerHasBeenSet = !!storedCompletionTime;
@@ -620,20 +628,9 @@ export default function ClientDashboard() {
         setCompletionTime(now);
         setShowCompletionModal(true);
       } else {
-        // Timer has been set - check if still valid (within 24 hours)
+        // Timer has been set - just display it (don't reset)
         const completionTime = parseInt(storedCompletionTime);
-        const now = Date.now();
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-        
-        if (now - completionTime >= twentyFourHours) {
-          // 24 hours have passed - reset timer
-          const newTime = Date.now();
-          localStorage.setItem('instructionsCompletionTime', newTime.toString());
-          setCompletionTime(newTime);
-        } else {
-          // Timer still valid - display it
-          setCompletionTime(completionTime);
-        }
+        setCompletionTime(completionTime);
       }
     } else {
       // Not all checked - clear timer
