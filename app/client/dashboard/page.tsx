@@ -1081,7 +1081,7 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction1}
-                    disabled={completionTime && timeRemaining <= 0}
+                    disabled={!!(completionTime && timeRemaining <= 0)}
                     onChange={async (e) => {
                       if (completionTime && timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction1: e.target.checked };
@@ -1149,7 +1149,7 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction2}
-                    disabled={completionTime && timeRemaining <= 0}
+                    disabled={!!(completionTime && timeRemaining <= 0)}
                     onChange={async (e) => {
                       if (completionTime && timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction2: e.target.checked };
@@ -1217,7 +1217,7 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction3}
-                    disabled={completionTime && timeRemaining <= 0}
+                    disabled={!!(completionTime && timeRemaining <= 0)}
                     onChange={async (e) => {
                       if (completionTime && timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction3: e.target.checked };
