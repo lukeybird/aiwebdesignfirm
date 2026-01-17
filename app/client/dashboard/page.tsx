@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Pusher from 'pusher-js';
 import Link from 'next/link';
@@ -645,9 +645,20 @@ export default function ClientDashboard() {
   // Check if all instructions are completed and show modal/set timer
   // Only runs when instructions change (not on initial load)
   useEffect(() => {
-    const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
+    // Skip on initial load
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      previousInstructionsState.current = { ...instructions };
+      return;
+    }
     
-    if (allCompleted && typeof window !== 'undefined') {
+    const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
+    const wasAllCompleted = previousInstructionsState.current.instruction1 && 
+                            previousInstructionsState.current.instruction2 && 
+                            previousInstructionsState.current.instruction3;
+    
+    // Only set completion time when transitioning from incomplete to complete
+    if (allCompleted && !wasAllCompleted && typeof window !== 'undefined') {
       const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
       
       if (!storedCompletionTime) {
@@ -657,7 +668,13 @@ export default function ClientDashboard() {
         setCompletionTime(now);
         setShowCompletionModal(true);
       } else {
-        // Already completed before - just ensure the time is set (don't reset it)
+        // Completion time already exists - use it
+        setCompletionTime(parseInt(storedCompletionTime));
+      }
+    } else if (allCompleted && typeof window !== 'undefined') {
+      // Already completed - just ensure the time is set (don't reset it)
+      const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
+      if (storedCompletionTime) {
         setCompletionTime(parseInt(storedCompletionTime));
       }
     } else if (!allCompleted && typeof window !== 'undefined') {
@@ -666,6 +683,9 @@ export default function ClientDashboard() {
       setCompletionTime(null);
       setShowCompletionModal(false);
     }
+    
+    // Update previous state
+    previousInstructionsState.current = { ...instructions };
   }, [instructions.instruction1, instructions.instruction2, instructions.instruction3]);
 
   // Countdown timer effect
