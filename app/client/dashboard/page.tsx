@@ -102,22 +102,33 @@ export default function ClientDashboard() {
             const clientResponse = await fetch(`/api/clients?clientId=${clientId}`);
             const clientData = await clientResponse.json();
             if (clientData.client) {
-              setInstructions({
+              const loadedInstructions = {
                 instruction1: clientData.client.instruction_1_completed || false,
                 instruction2: clientData.client.instruction_2_completed || false,
                 instruction3: clientData.client.instruction_3_completed || false,
-              });
+              };
+              setInstructions(loadedInstructions);
               setWebsiteNotes(clientData.client.website_notes || '');
               
               // Load completion time if all instructions are completed
-              const allCompleted = (clientData.client.instruction_1_completed || false) && 
-                                   (clientData.client.instruction_2_completed || false) && 
-                                   (clientData.client.instruction_3_completed || false);
+              const allCompleted = loadedInstructions.instruction1 && 
+                                   loadedInstructions.instruction2 && 
+                                   loadedInstructions.instruction3;
               if (allCompleted && typeof window !== 'undefined') {
                 const storedCompletionTime = localStorage.getItem('instructionsCompletionTime');
                 if (storedCompletionTime) {
+                  // Use existing completion time
                   setCompletionTime(parseInt(storedCompletionTime));
+                } else {
+                  // First time all completed - set completion time now
+                  const now = Date.now();
+                  localStorage.setItem('instructionsCompletionTime', now.toString());
+                  setCompletionTime(now);
                 }
+              } else if (typeof window !== 'undefined') {
+                // Not all completed - clear completion time
+                localStorage.removeItem('instructionsCompletionTime');
+                setCompletionTime(null);
               }
             } else {
               // Fallback: try to get from the client object if it has the fields
@@ -610,6 +621,7 @@ export default function ClientDashboard() {
   }, [files.length, instructions.instruction1, clientEmail]);
 
   // Check if all instructions are completed and show modal/set timer
+  // Only runs when instructions change (not on initial load)
   useEffect(() => {
     const allCompleted = instructions.instruction1 && instructions.instruction2 && instructions.instruction3;
     
@@ -623,11 +635,11 @@ export default function ClientDashboard() {
         setCompletionTime(now);
         setShowCompletionModal(true);
       } else {
-        // Already completed before - just set the time
+        // Already completed before - just ensure the time is set (don't reset it)
         setCompletionTime(parseInt(storedCompletionTime));
       }
     } else if (!allCompleted && typeof window !== 'undefined') {
-      // If instructions are unchecked, clear the completion time
+      // If instructions are manually unchecked, clear the completion time
       localStorage.removeItem('instructionsCompletionTime');
       setCompletionTime(null);
       setShowCompletionModal(false);
