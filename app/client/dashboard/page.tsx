@@ -959,16 +959,34 @@ export default function ClientDashboard() {
                       }`}>
                         Business Website
                       </label>
-                      <input
-                        type="url"
-                        value={accountInfo.businessWebsite}
-                        disabled
-                        className={`w-full px-4 py-2 rounded-lg border ${
-                          isStarkMode
-                            ? 'bg-gray-900/50 border-gray-700 text-gray-500 cursor-not-allowed'
-                            : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={accountInfo.businessWebsite}
+                          disabled
+                          className={`flex-1 px-4 py-2 rounded-lg border ${
+                            isStarkMode
+                              ? 'bg-gray-900/50 border-gray-700 text-gray-500 cursor-not-allowed'
+                              : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        />
+                        <a
+                          href={accountInfo.businessWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2 ${
+                            isStarkMode
+                              ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                          }`}
+                          title="Open website in new tab"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          Open
+                        </a>
+                      </div>
                       <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                         Website link can only be changed by developer
                       </p>
