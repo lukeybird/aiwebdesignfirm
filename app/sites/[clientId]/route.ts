@@ -54,9 +54,41 @@ export async function GET(
 
     const websiteData = websites[0].site_data;
     const htmlCode = websiteData.html || '';
+    
+    console.log('=== SERVING WEBSITE ===');
+    console.log('Client ID:', clientId);
+    console.log('Website data keys:', Object.keys(websiteData));
+    console.log('HTML code length:', htmlCode.length);
+    console.log('HTML code starts with:', htmlCode.substring(0, 200));
+    
+    if (!htmlCode || htmlCode.trim().length === 0) {
+      console.error('⚠️ HTML code is empty!');
+      const errorHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Error - Empty Website</title>
+  <style>
+    body { margin: 0; padding: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Website Error</h1>
+    <p>The website HTML is empty. Please regenerate the website.</p>
+    <p>Website data structure: ${JSON.stringify(Object.keys(websiteData))}</p>
+  </div>
+</body>
+</html>
+      `;
+      return new NextResponse(errorHtml, {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
 
     return new NextResponse(htmlCode, {
-      headers: { 'Content-Type': 'text/html' },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   } catch (error) {
     const html = `
