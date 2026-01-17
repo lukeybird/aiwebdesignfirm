@@ -952,26 +952,28 @@ export default function ClientDashboard() {
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className={`block mb-2 font-medium ${
-                      isStarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Business Website
-                    </label>
-                    <input
-                      type="url"
-                      value={accountInfo.businessWebsite}
-                      disabled
-                      className={`w-full px-4 py-2 rounded-lg border ${
-                        isStarkMode
-                          ? 'bg-gray-900/50 border-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                    />
-                    <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                      Website link can only be changed by developer
-                    </p>
-                  </div>
+                  {timeRemaining <= 0 && accountInfo.businessWebsite && (
+                    <div className="md:col-span-2">
+                      <label className={`block mb-2 font-medium ${
+                        isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Business Website
+                      </label>
+                      <input
+                        type="url"
+                        value={accountInfo.businessWebsite}
+                        disabled
+                        className={`w-full px-4 py-2 rounded-lg border ${
+                          isStarkMode
+                            ? 'bg-gray-900/50 border-gray-700 text-gray-500 cursor-not-allowed'
+                            : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      />
+                      <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                        Website link can only be changed by developer
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-4">
