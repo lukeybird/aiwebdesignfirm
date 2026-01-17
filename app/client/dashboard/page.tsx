@@ -119,10 +119,10 @@ export default function ClientDashboard() {
                   const now = Date.now();
                   const tenSeconds = 10 * 1000; // 10 seconds for testing
                   
-                  // Check if 10 seconds have passed - if so, clear the timer
+                  // Check if 10 seconds have passed - if so, keep timer but mark as completed (don't clear it)
                   if (now - completionTime >= tenSeconds) {
-                    localStorage.removeItem('instructionsCompletionTime');
-                    setCompletionTime(null);
+                    // Timer has completed - keep it set so it shows as 0, don't clear it
+                    setCompletionTime(completionTime);
                   } else {
                     // Timer still valid - display it
                     setCompletionTime(completionTime);
@@ -149,10 +149,10 @@ export default function ClientDashboard() {
                   const now = Date.now();
                   const tenSeconds = 10 * 1000; // 10 seconds for testing
                   
-                  // Check if 10 seconds have passed - if so, clear the timer
+                  // Check if 10 seconds have passed - if so, keep timer but mark as completed (don't clear it)
                   if (now - completionTime >= tenSeconds) {
-                    localStorage.removeItem('instructionsCompletionTime');
-                    setCompletionTime(null);
+                    // Timer has completed - keep it set so it shows as 0, don't clear it
+                    setCompletionTime(completionTime);
                   } else {
                     // Timer still valid - display it
                     setCompletionTime(completionTime);
