@@ -36,10 +36,15 @@ export async function POST(request: NextRequest) {
       clientFiles = filesData || [];
     }
     
+    console.log('Client files found:', clientFiles.length);
+    console.log('Client files:', JSON.stringify(clientFiles, null, 2));
+    
     // Filter to only image files for the website
     const imageFiles = clientFiles.filter((f: any) => 
       f.file_type && f.file_type.startsWith('image/')
     );
+    
+    console.log('Image files:', imageFiles.length);
 
     // Build context for Claude with detailed information
     const businessName = clientData.business_name || clientData.full_name || 'Business';
