@@ -4,7 +4,7 @@ import { sql } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { clientId, prompt, clientInfo, files, websiteNotes } = body;
+    const { clientId, prompt, clientInfo, files, websiteNotes, conversationHistory, currentHtml } = body;
 
     if (!clientId || !prompt) {
       return NextResponse.json(
@@ -61,8 +61,42 @@ export async function POST(request: NextRequest) {
         ).join('\n\n')
       : 'No images uploaded yet. Create placeholder sections for images.';
     
+    // Build conversation context if this is an update
+    let conversationContext = '';
+    if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+      conversationContext = '\n\nPREVIOUS CONVERSATION:\n';
+      conversationHistory.forEach((msg: any, idx: number) => {
+        conversationContext += `${idx + 1}. ${msg.role === 'user' ? 'Developer' : 'Assistant'}: ${msg.content}\n`;
+      });
+    }
+    
     // Build context for Claude
-    const contextPrompt = `You are a professional web developer. Create a complete, production-ready website.
+    const isUpdate = currentHtml && currentHtml.trim().length > 0;
+    const basePrompt = isUpdate 
+      ? `You are a professional web developer. You are updating an existing website based on developer feedback.
+
+CURRENT WEBSITE HTML:
+\`\`\`html
+${currentHtml.substring(0, 5000)}${currentHtml.length > 5000 ? '\n... (truncated for context)' : ''}
+\`\`\`
+
+${conversationContext}
+
+DEVELOPER'S REQUEST:
+${prompt}
+
+INSTRUCTIONS:
+- Modify the existing HTML to implement the developer's request
+- Keep all the good parts that aren't being changed
+- Return the COMPLETE, updated HTML file
+- Include ALL CSS inside a <style> tag in the <head>
+- Include ALL JavaScript inside a <script> tag before </body>
+- Maintain the dark theme with cyan (#22d3ee) and blue (#3b82f6) accent colors
+- Keep it fully responsive and modern
+- Do NOT use markdown code blocks - return the raw HTML directly
+
+Return the complete updated HTML:`
+      : `You are a professional web developer. Create a complete, production-ready website.
 
 BUSINESS INFORMATION:
 - Business Name: ${businessName}
@@ -76,6 +110,8 @@ ${imageList}
 
 CLIENT REQUIREMENTS/NOTES:
 ${notes}
+
+${conversationContext}
 
 DEVELOPER INSTRUCTIONS:
 ${prompt}
@@ -100,6 +136,8 @@ IMPORTANT:
 - Do NOT use markdown code blocks - return the raw HTML directly
 
 Generate the complete HTML now:`;
+    
+    const contextPrompt = basePrompt;
 
     // Check if API key is configured
     const apiKey = process.env.CLAUDE_API_KEY;
@@ -255,9 +293,22 @@ ${htmlCode}
     console.log('Website data HTML length:', websiteData.html.length);
     console.log('Website data keys:', Object.keys(websiteData));
 
+    // Update conversation history
+    const updatedHistory = conversationHistory || [];
+    updatedHistory.push({
+      role: 'user',
+      content: prompt,
+      timestamp: new Date().toISOString()
+    });
+    updatedHistory.push({
+      role: 'assistant',
+      content: 'Website updated successfully.',
+      timestamp: new Date().toISOString()
+    });
+
     // Check if website already exists for this client
     const existing = await sql`
-      SELECT id FROM client_websites WHERE client_id = ${clientId}
+      SELECT id, conversation_history FROM client_websites WHERE client_id = ${clientId}
     `;
 
     if (existing.length > 0) {
@@ -268,6 +319,7 @@ ${htmlCode}
         SET site_data = ${JSON.stringify(websiteData)}::jsonb,
             site_url = ${siteUrl},
             prompt_used = ${prompt},
+            conversation_history = ${JSON.stringify(updatedHistory)}::jsonb,
             updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ${clientId}
       `;
@@ -276,8 +328,8 @@ ${htmlCode}
       // Create new website
       console.log('Creating new website record');
       await sql`
-        INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status)
-        VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, ${prompt}, 'published')
+        INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status, conversation_history)
+        VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, ${prompt}, 'published', ${JSON.stringify(updatedHistory)}::jsonb)
       `;
       console.log('✅ Website saved to database');
     }
@@ -296,7 +348,8 @@ ${htmlCode}
         url: siteUrl,
         code: htmlCode,
         data: websiteData
-      }
+      },
+      conversationHistory: updatedHistory
     });
 
   } catch (error: any) {

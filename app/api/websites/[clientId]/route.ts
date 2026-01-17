@@ -11,7 +11,7 @@ export async function GET(
     const clientId = parseInt(clientIdParam);
 
     const websites = await sql`
-      SELECT id, client_id, site_url, site_data, prompt_used, status, created_at, updated_at
+      SELECT id, client_id, site_url, site_data, prompt_used, status, conversation_history, created_at, updated_at
       FROM client_websites
       WHERE client_id = ${clientId}
       ORDER BY updated_at DESC

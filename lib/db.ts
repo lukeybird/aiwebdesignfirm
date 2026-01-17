@@ -171,6 +171,7 @@ export async function initDatabase() {
         { name: 'prompt_used', type: 'TEXT' },
         { name: 'status', type: "VARCHAR(50) DEFAULT 'draft'" },
         { name: 'updated_at', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+        { name: 'conversation_history', type: 'JSONB' },
       ];
 
       for (const column of columnsToAdd) {
