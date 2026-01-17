@@ -53,7 +53,7 @@ export async function PUT(
       // Update existing
       await sql`
         UPDATE client_websites
-        SET site_data = ${JSON.stringify(siteData)}::jsonb,
+        SET site_data = ${siteData}::jsonb,
             site_url = COALESCE(${siteUrl}, site_url),
             prompt_used = COALESCE(${prompt}, prompt_used),
             status = COALESCE(${status}, status),
@@ -73,7 +73,7 @@ export async function PUT(
       // Create new
       await sql`
         INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status)
-        VALUES (${clientId}, ${siteUrl || `/sites/${clientId}`}, ${JSON.stringify(siteData)}::jsonb, ${prompt || ''}, ${status || 'draft'})
+        VALUES (${clientId}, ${siteUrl || `/sites/${clientId}`}, ${siteData}::jsonb, ${prompt || ''}, ${status || 'draft'})
       `;
 
       if (siteUrl) {

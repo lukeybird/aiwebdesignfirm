@@ -265,7 +265,7 @@ ${htmlCode}
       console.log('Updating existing website record');
       await sql`
         UPDATE client_websites
-        SET site_data = ${JSON.stringify(websiteData)}::jsonb,
+        SET site_data = ${websiteData}::jsonb,
             site_url = ${siteUrl},
             prompt_used = ${prompt},
             updated_at = CURRENT_TIMESTAMP
@@ -277,7 +277,7 @@ ${htmlCode}
       console.log('Creating new website record');
       await sql`
         INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status)
-        VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, ${prompt}, 'published')
+        VALUES (${clientId}, ${siteUrl}, ${websiteData}::jsonb, ${prompt}, 'published')
       `;
       console.log('✅ Website saved to database');
     }
