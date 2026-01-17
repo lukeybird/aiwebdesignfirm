@@ -190,6 +190,11 @@ Generate the complete HTML now:`;
       prompt_used: prompt
     };
 
+    console.log('=== SAVING TO DATABASE ===');
+    console.log('Site URL:', siteUrl);
+    console.log('Website data HTML length:', websiteData.html.length);
+    console.log('Website data keys:', Object.keys(websiteData));
+
     // Check if website already exists for this client
     const existing = await sql`
       SELECT id FROM client_websites WHERE client_id = ${clientId}
@@ -197,6 +202,7 @@ Generate the complete HTML now:`;
 
     if (existing.length > 0) {
       // Update existing website
+      console.log('Updating existing website record');
       await sql`
         UPDATE client_websites
         SET site_data = ${JSON.stringify(websiteData)}::jsonb,
@@ -205,12 +211,15 @@ Generate the complete HTML now:`;
             updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ${clientId}
       `;
+      console.log('✅ Website updated in database');
     } else {
       // Create new website
+      console.log('Creating new website record');
       await sql`
         INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status)
         VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, ${prompt}, 'published')
       `;
+      console.log('✅ Website saved to database');
     }
 
     // Auto-update business_website in clients table
@@ -219,6 +228,7 @@ Generate the complete HTML now:`;
       SET business_website = ${siteUrl}
       WHERE id = ${clientId}
     `;
+    console.log('✅ Client business_website updated to:', siteUrl);
 
     return NextResponse.json({
       success: true,
