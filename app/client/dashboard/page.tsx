@@ -1843,12 +1843,20 @@ export default function ClientDashboard() {
                 </svg>
               </div>
               <div>
-                <p className={`text-xs ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Site ready in:
-                </p>
-                <p className={`text-lg font-bold ${isStarkMode ? 'text-cyan-400' : 'text-gray-900'}`}>
-                  {formatTimeRemaining(timeRemaining)}
-                </p>
+                {timeRemaining > 0 ? (
+                  <>
+                    <p className={`text-xs ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Site ready in:
+                    </p>
+                    <p className={`text-lg font-bold ${isStarkMode ? 'text-cyan-400' : 'text-gray-900'}`}>
+                      {formatTimeRemaining(timeRemaining)}
+                    </p>
+                  </>
+                ) : (
+                  <p className={`text-lg font-bold ${isStarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                    Site ready!
+                  </p>
+                )}
               </div>
             </div>
           </div>
