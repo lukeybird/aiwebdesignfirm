@@ -1,8 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+// Ensure conversation_history column exists
+async function ensureConversationHistoryColumn() {
+  try {
+    const columnCheck = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' AND table_name = 'client_websites' AND column_name = 'conversation_history'
+    `;
+    
+    if (columnCheck.length === 0) {
+      await sql.unsafe(`ALTER TABLE client_websites ADD COLUMN conversation_history JSONB`);
+      console.log('✓ Added conversation_history column to client_websites table');
+    }
+  } catch (error: any) {
+    console.error('Error ensuring conversation_history column:', error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Ensure column exists before proceeding
+    await ensureConversationHistoryColumn();
+
     const body = await request.json();
     const { clientId, prompt, clientInfo, files, websiteNotes, conversationHistory, currentHtml } = body;
 
