@@ -4,10 +4,11 @@ import { sql } from '@/lib/db';
 // GET - Get website for a client
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = parseInt(params.clientId);
+    const { clientId: clientIdParam } = await params;
+    const clientId = parseInt(clientIdParam);
 
     const websites = await sql`
       SELECT id, client_id, site_url, site_data, prompt_used, status, created_at, updated_at
@@ -36,10 +37,11 @@ export async function GET(
 // PUT - Update website
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = parseInt(params.clientId);
+    const { clientId: clientIdParam } = await params;
+    const clientId = parseInt(clientIdParam);
     const body = await request.json();
     const { siteData, prompt, status, siteUrl } = body;
 

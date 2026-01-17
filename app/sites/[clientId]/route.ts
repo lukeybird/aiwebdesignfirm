@@ -3,10 +3,11 @@ import { sql } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = parseInt(params.clientId);
+    const { clientId: clientIdParam } = await params;
+    const clientId = parseInt(clientIdParam);
 
     const websites = await sql`
       SELECT site_data
