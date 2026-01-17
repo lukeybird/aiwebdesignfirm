@@ -3,6 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import Editor from '@monaco-editor/react';
+
+// Dynamically import Monaco Editor to avoid SSR issues
+const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-full text-gray-400">Loading editor...</div>
+});
 
 interface Client {
   id: number;
@@ -37,8 +45,9 @@ export default function BuildWebsitePage() {
   const [inputMessage, setInputMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentHtml, setCurrentHtml] = useState<string>('');
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [editorHtml, setEditorHtml] = useState<string>('');
   const [error, setError] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -82,10 +91,7 @@ export default function BuildWebsitePage() {
             const siteData = websiteData.website.site_data;
             if (siteData && siteData.html) {
               setCurrentHtml(siteData.html);
-              // Create blob URL for preview
-              const blob = new Blob([siteData.html], { type: 'text/html' });
-              const url = URL.createObjectURL(blob);
-              setPreviewUrl(url);
+              setEditorHtml(siteData.html);
             }
             // Load conversation history
             if (websiteData.website.conversation_history) {
@@ -110,16 +116,62 @@ export default function BuildWebsitePage() {
 
   // Update preview iframe when HTML changes
   useEffect(() => {
-    if (previewIframeRef.current && currentHtml) {
+    if (previewIframeRef.current && editorHtml) {
       const iframe = previewIframeRef.current;
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
       if (doc) {
         doc.open();
-        doc.write(currentHtml);
+        doc.write(editorHtml);
         doc.close();
       }
     }
-  }, [currentHtml]);
+  }, [editorHtml]);
+
+  // Track changes in editor
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setEditorHtml(value);
+      setHasUnsavedChanges(value !== currentHtml);
+    }
+  };
+
+  // Save code changes
+  const handleSaveCode = async () => {
+    if (!editorHtml.trim()) {
+      setError('Code cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/websites/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: parseInt(clientId),
+          prompt: 'Update website with manually edited code',
+          clientInfo: client,
+          files: files,
+          websiteNotes: client?.website_notes,
+          conversationHistory: messages,
+          currentHtml: editorHtml,
+          isManualEdit: true
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save website');
+      }
+
+      setCurrentHtml(editorHtml);
+      setHasUnsavedChanges(false);
+      alert('Website saved successfully!');
+    } catch (error: any) {
+      console.error('Error saving website:', error);
+      setError(error.message || 'Failed to save website');
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isGenerating) return;
@@ -131,22 +183,26 @@ export default function BuildWebsitePage() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage('');
     setIsGenerating(true);
     setError('');
 
     try {
+      // Use current editor content as the base
+      const htmlToUse = editorHtml || currentHtml;
+
       const response = await fetch('/api/websites/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: parseInt(clientId),
-          prompt: inputMessage,
+          prompt: currentInput,
           clientInfo: client,
           files: files,
           websiteNotes: client?.website_notes,
           conversationHistory: messages,
-          currentHtml: currentHtml
+          currentHtml: htmlToUse
         })
       });
 
@@ -157,16 +213,11 @@ export default function BuildWebsitePage() {
         throw new Error(errorMessage);
       }
 
-      // Update HTML and preview
+      // Update HTML in editor and preview
       if (data.website && data.website.code) {
         setCurrentHtml(data.website.code);
-        const blob = new Blob([data.website.code], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        // Revoke old URL to prevent memory leaks
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-        }
-        setPreviewUrl(url);
+        setEditorHtml(data.website.code);
+        setHasUnsavedChanges(false);
       }
 
       // Update conversation history
@@ -185,7 +236,7 @@ export default function BuildWebsitePage() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -210,14 +261,30 @@ export default function BuildWebsitePage() {
               </div>
             </Link>
             <div className="flex items-center gap-4">
+              {hasUnsavedChanges && (
+                <span className={`text-sm ${isStarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                  Unsaved changes
+                </span>
+              )}
+              <button
+                onClick={handleSaveCode}
+                disabled={!hasUnsavedChanges}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isStarkMode
+                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                }`}
+              >
+                Save Code
+              </button>
               <a
                 href={`/sites/${clientId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
                   isStarkMode
-                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                    ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
                 }`}
               >
                 View Live Site
@@ -237,20 +304,57 @@ export default function BuildWebsitePage() {
         </div>
       </div>
 
-      {/* Main Content - Split View */}
+      {/* Main Content - Cursor-like Split View */}
       <div className="flex h-[calc(100vh-80px)]">
-        {/* Left Side - Chat Interface */}
-        <div className={`w-full md:w-1/2 flex flex-col border-r ${
+        {/* Left Side - Code Editor */}
+        <div className={`w-1/3 flex flex-col border-r ${
+          isStarkMode ? 'border-cyan-500/20 bg-[#1e1e1e]' : 'border-gray-300 bg-white'
+        }`}>
+          <div className={`p-3 border-b flex items-center justify-between ${
+            isStarkMode ? 'border-cyan-500/20 bg-[#252526]' : 'border-gray-300 bg-gray-50'
+          }`}>
+            <h2 className={`text-sm font-semibold ${isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+              index.html
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs ${isStarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                {editorHtml.length} chars
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <MonacoEditor
+              height="100%"
+              language="html"
+              theme={isStarkMode ? "vs-dark" : "vs-light"}
+              value={editorHtml}
+              onChange={handleEditorChange}
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                wordWrap: 'on',
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                tabSize: 2,
+                formatOnPaste: true,
+                formatOnType: true,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Middle - Chat Interface */}
+        <div className={`w-1/3 flex flex-col border-r ${
           isStarkMode ? 'border-cyan-500/20 bg-black' : 'border-gray-300 bg-white'
         }`}>
           {/* Chat Header */}
           <div className={`p-4 border-b ${
-            isStarkMode ? 'border-cyan-500/20' : 'border-gray-300'
+            isStarkMode ? 'border-cyan-500/20 bg-[#252526]' : 'border-gray-300 bg-gray-50'
           }`}>
-            <h2 className={`text-xl font-bold ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Building Website for {client?.full_name || 'Client'}
+            <h2 className={`text-lg font-bold ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+              AI Assistant
             </h2>
-            <p className={`text-sm mt-1 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               {client?.business_name || 'No business name'}
             </p>
           </div>
@@ -260,7 +364,10 @@ export default function BuildWebsitePage() {
             {messages.length === 0 && (
               <div className={`text-center py-8 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 <p className="mb-2">Start building the website by sending a message.</p>
-                <p className="text-sm">For example: "Create a modern barbershop website with a hero section, image gallery, services section, and contact form."</p>
+                <p className="text-sm">I can see your code and help you modify it.</p>
+                <p className="text-xs mt-2 text-gray-500">
+                  Press Cmd/Ctrl + Enter to send
+                </p>
               </div>
             )}
             {messages.map((msg, idx) => (
@@ -268,7 +375,7 @@ export default function BuildWebsitePage() {
                 key={idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[80%] rounded-lg p-3 ${
+                <div className={`max-w-[85%] rounded-lg p-3 ${
                   msg.role === 'user'
                     ? isStarkMode
                       ? 'bg-cyan-500 text-black'
@@ -277,20 +384,20 @@ export default function BuildWebsitePage() {
                       ? 'bg-gray-800 text-gray-300'
                       : 'bg-gray-100 text-gray-900'
                 }`}>
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                 </div>
               </div>
             ))}
             {isGenerating && (
               <div className="flex justify-start">
-                <div className={`max-w-[80%] rounded-lg p-3 ${
+                <div className={`max-w-[85%] rounded-lg p-3 ${
                   isStarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-900'
                 }`}>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
                     <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                     <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                    <span className="ml-2">Generating website...</span>
+                    <span className="ml-2 text-sm">Thinking...</span>
                   </div>
                 </div>
               </div>
@@ -305,32 +412,35 @@ export default function BuildWebsitePage() {
                 ? 'bg-red-500/20 border border-red-500/40 text-red-400'
                 : 'bg-red-50 border-2 border-red-200 text-red-600'
             }`}>
-              {error}
+              <p className="text-sm">{error}</p>
             </div>
           )}
 
           {/* Input */}
           <div className={`p-4 border-t ${
-            isStarkMode ? 'border-cyan-500/20' : 'border-gray-300'
+            isStarkMode ? 'border-cyan-500/20 bg-[#252526]' : 'border-gray-300 bg-gray-50'
           }`}>
-            <div className="flex gap-2">
-              <textarea
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Describe changes or additions to the website..."
-                rows={3}
-                disabled={isGenerating}
-                className={`flex-1 px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 resize-none ${
-                  isStarkMode
-                    ? 'bg-gray-800 border-cyan-500/40 text-white focus:ring-cyan-500/50 placeholder-gray-500 disabled:opacity-50'
-                    : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50 placeholder-gray-400 disabled:opacity-50'
-                }`}
-              />
+            <textarea
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Ask me to modify the code... (Cmd/Ctrl + Enter to send)"
+              rows={3}
+              disabled={isGenerating}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 resize-none text-sm ${
+                isStarkMode
+                  ? 'bg-gray-800 border-cyan-500/40 text-white focus:ring-cyan-500/50 placeholder-gray-500 disabled:opacity-50'
+                  : 'bg-white border-gray-300 text-gray-900 focus:ring-cyan-500/50 placeholder-gray-400 disabled:opacity-50'
+              }`}
+            />
+            <div className="flex items-center justify-between mt-2">
+              <p className={`text-xs ${isStarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                I can see your code and will modify it based on your requests
+              </p>
               <button
                 onClick={handleSendMessage}
                 disabled={isGenerating || !inputMessage.trim()}
-                className={`px-6 py-3 rounded-lg font-bold transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isStarkMode
                     ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
                     : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
@@ -343,29 +453,50 @@ export default function BuildWebsitePage() {
         </div>
 
         {/* Right Side - Live Preview */}
-        <div className={`hidden md:flex md:w-1/2 flex-col ${
+        <div className={`w-1/3 flex flex-col ${
           isStarkMode ? 'bg-gray-900' : 'bg-gray-100'
         }`}>
-          <div className={`p-4 border-b ${
-            isStarkMode ? 'border-cyan-500/20' : 'border-gray-300'
+          <div className={`p-3 border-b flex items-center justify-between ${
+            isStarkMode ? 'border-cyan-500/20 bg-[#252526]' : 'border-gray-300 bg-gray-50'
           }`}>
-            <h2 className={`text-xl font-bold ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+            <h2 className={`text-sm font-semibold ${isStarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
               Live Preview
             </h2>
+            <button
+              onClick={() => {
+                if (previewIframeRef.current) {
+                  const iframe = previewIframeRef.current;
+                  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                  if (doc) {
+                    doc.open();
+                    doc.write(editorHtml);
+                    doc.close();
+                  }
+                }
+              }}
+              className={`text-xs px-2 py-1 rounded ${
+                isStarkMode
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Refresh
+            </button>
           </div>
           <div className="flex-1 relative">
-            {currentHtml ? (
+            {editorHtml ? (
               <iframe
                 ref={previewIframeRef}
-                src={previewUrl}
+                srcDoc={editorHtml}
                 className="w-full h-full border-0"
                 title="Website Preview"
+                sandbox="allow-same-origin allow-scripts"
               />
             ) : (
               <div className={`flex items-center justify-center h-full ${
                 isStarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
-                <p>Start a conversation to see the website preview here</p>
+                <p className="text-sm">Start editing code or send a message to see preview</p>
               </div>
             )}
           </div>

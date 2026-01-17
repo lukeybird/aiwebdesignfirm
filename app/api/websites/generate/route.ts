@@ -25,11 +25,74 @@ export async function POST(request: NextRequest) {
     await ensureConversationHistoryColumn();
 
     const body = await request.json();
-    const { clientId, prompt, clientInfo, files, websiteNotes, conversationHistory, currentHtml } = body;
+    const { clientId, prompt, clientInfo, files, websiteNotes, conversationHistory, currentHtml, isManualEdit } = body;
 
-    if (!clientId || !prompt) {
+    if (!clientId) {
       return NextResponse.json(
-        { error: 'Client ID and prompt are required' },
+        { error: 'Client ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // For manual edits, just save the code without calling Claude
+    if (isManualEdit && currentHtml) {
+      const siteUrl = `/sites/${clientId}`;
+      const websiteData = {
+        html: currentHtml,
+        css: '',
+        js: '',
+        generated_at: new Date().toISOString(),
+        prompt_used: 'Manual edit'
+      };
+
+      // Update conversation history
+      const updatedHistory = conversationHistory || [];
+      updatedHistory.push({
+        role: 'user',
+        content: 'Manually edited code',
+        timestamp: new Date().toISOString()
+      });
+
+      const existing = await sql`
+        SELECT id FROM client_websites WHERE client_id = ${clientId}
+      `;
+
+      if (existing.length > 0) {
+        await sql`
+          UPDATE client_websites
+          SET site_data = ${JSON.stringify(websiteData)}::jsonb,
+              site_url = ${siteUrl},
+              conversation_history = ${JSON.stringify(updatedHistory)}::jsonb,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE client_id = ${clientId}
+        `;
+      } else {
+        await sql`
+          INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status, conversation_history)
+          VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, 'Manual edit', 'published', ${JSON.stringify(updatedHistory)}::jsonb)
+        `;
+      }
+
+      await sql`
+        UPDATE clients
+        SET business_website = ${siteUrl}
+        WHERE id = ${clientId}
+      `;
+
+      return NextResponse.json({
+        success: true,
+        website: {
+          url: siteUrl,
+          code: currentHtml,
+          data: websiteData
+        },
+        conversationHistory: updatedHistory
+      });
+    }
+
+    if (!prompt) {
+      return NextResponse.json(
+        { error: 'Prompt is required' },
         { status: 400 }
       );
     }
