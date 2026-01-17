@@ -117,10 +117,10 @@ export default function ClientDashboard() {
                 if (storedCompletionTime) {
                   const completionTime = parseInt(storedCompletionTime);
                   const now = Date.now();
-                  const twentyFourHours = 24 * 60 * 60 * 1000;
+                  const tenSeconds = 10 * 1000; // 10 seconds for testing
                   
-                  // Check if 24 hours have passed - if so, clear the timer
-                  if (now - completionTime >= twentyFourHours) {
+                  // Check if 10 seconds have passed - if so, clear the timer
+                  if (now - completionTime >= tenSeconds) {
                     localStorage.removeItem('instructionsCompletionTime');
                     setCompletionTime(null);
                   } else {
@@ -147,10 +147,10 @@ export default function ClientDashboard() {
                 if (storedCompletionTime) {
                   const completionTime = parseInt(storedCompletionTime);
                   const now = Date.now();
-                  const twentyFourHours = 24 * 60 * 60 * 1000;
+                  const tenSeconds = 10 * 1000; // 10 seconds for testing
                   
-                  // Check if 24 hours have passed - if so, clear the timer
-                  if (now - completionTime >= twentyFourHours) {
+                  // Check if 10 seconds have passed - if so, clear the timer
+                  if (now - completionTime >= tenSeconds) {
                     localStorage.removeItem('instructionsCompletionTime');
                     setCompletionTime(null);
                   } else {
@@ -1793,7 +1793,7 @@ export default function ClientDashboard() {
                   All instructions completed!
                 </p>
                 <p className={`text-lg mb-6 ${isStarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Come back in 24 hours to see the result.
+                  Come back in 10 seconds to see the result.
                 </p>
                 <div className={`p-4 rounded-lg ${
                   isStarkMode 
