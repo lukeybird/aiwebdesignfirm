@@ -74,11 +74,21 @@ Include all CSS in a <style> tag and all JavaScript in a <script> tag.
 Make sure all image URLs from the assets are properly referenced.
 `;
 
+    // Check if API key is configured
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (!apiKey) {
+      console.error('CLAUDE_API_KEY is not set in environment variables');
+      return NextResponse.json(
+        { error: 'Claude API key is not configured. Please add CLAUDE_API_KEY to your environment variables.' },
+        { status: 500 }
+      );
+    }
+
     // Call Claude API
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': process.env.CLAUDE_API_KEY || '',
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json'
       },
@@ -93,15 +103,37 @@ Make sure all image URLs from the assets are properly referenced.
     });
 
     if (!claudeResponse.ok) {
-      const errorData = await claudeResponse.json();
-      console.error('Claude API error:', errorData);
+      let errorData;
+      try {
+        errorData = await claudeResponse.json();
+      } catch (e) {
+        errorData = { message: await claudeResponse.text() };
+      }
+      console.error('Claude API error:', {
+        status: claudeResponse.status,
+        statusText: claudeResponse.statusText,
+        error: errorData
+      });
       return NextResponse.json(
-        { error: 'Failed to generate website', details: errorData },
+        { 
+          error: `Failed to generate website: ${errorData.error?.message || errorData.message || 'Unknown error'}`,
+          details: errorData,
+          status: claudeResponse.status
+        },
         { status: claudeResponse.status }
       );
     }
 
     const claudeData = await claudeResponse.json();
+    
+    if (!claudeData.content || !claudeData.content[0] || !claudeData.content[0].text) {
+      console.error('Invalid Claude API response:', claudeData);
+      return NextResponse.json(
+        { error: 'Invalid response from Claude API', details: claudeData },
+        { status: 500 }
+      );
+    }
+    
     const generatedCode = claudeData.content[0].text;
 
     // Extract HTML, CSS, and JS from the response

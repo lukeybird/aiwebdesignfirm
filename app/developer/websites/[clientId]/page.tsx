@@ -99,7 +99,8 @@ export default function BuildWebsitePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate website');
+        const errorMessage = data.error || data.details?.error?.message || data.details?.message || 'Failed to generate website';
+        throw new Error(errorMessage);
       }
 
       setGeneratedWebsite(data.website);
