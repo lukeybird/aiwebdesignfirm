@@ -26,53 +26,75 @@ export async function POST(request: NextRequest) {
 
     // Get client files if not provided
     let clientFiles = files;
-    if (!clientFiles) {
+    if (!clientFiles || clientFiles.length === 0) {
       const filesData = await sql`
         SELECT blob_url, file_name, file_type
         FROM client_files
         WHERE client_id = ${clientId}
         ORDER BY uploaded_at DESC
       `;
-      clientFiles = filesData;
+      clientFiles = filesData || [];
     }
+    
+    // Filter to only image files for the website
+    const imageFiles = clientFiles.filter((f: any) => 
+      f.file_type && f.file_type.startsWith('image/')
+    );
 
+    // Build context for Claude with detailed information
+    const businessName = clientData.business_name || clientData.full_name || 'Business';
+    const ownerName = clientData.full_name || 'Owner';
+    const address = clientData.business_address || 'Address not provided';
+    const email = clientData.email || '';
+    const phone = clientData.phone || 'Phone not provided';
+    const notes = websiteNotes || clientData.website_notes || 'No specific notes provided';
+    
+    // Build image list for prompt
+    const imageList = imageFiles.length > 0
+      ? imageFiles.map((f: any, index: number) => 
+          `Image ${index + 1}: ${f.file_name}\n  URL: ${f.blob_url}\n  Type: ${f.file_type}`
+        ).join('\n\n')
+      : 'No images uploaded yet. Create placeholder sections for images.';
+    
     // Build context for Claude
-    const contextPrompt = `
-Create a professional website for ${clientData.business_name || clientData.full_name}.
+    const contextPrompt = `You are a professional web developer. Create a complete, production-ready website.
 
-Business Details:
-- Business Name: ${clientData.business_name || 'Not specified'}
-- Owner Name: ${clientData.full_name}
-- Address: ${clientData.business_address || 'Not specified'}
-- Email: ${clientData.email}
-- Phone: ${clientData.phone || 'Not specified'}
+BUSINESS INFORMATION:
+- Business Name: ${businessName}
+- Owner Name: ${ownerName}
+- Business Address: ${address}
+- Contact Email: ${email}
+- Contact Phone: ${phone}
 
-Available Assets:
-${clientFiles.length > 0 
-  ? clientFiles.map((f: any) => `- ${f.file_name} (${f.file_type}) - URL: ${f.blob_url}`).join('\n')
-  : '- No files uploaded yet'
-}
+AVAILABLE IMAGES:
+${imageList}
 
-Client Notes/Requirements:
-${websiteNotes || clientData.website_notes || 'No specific notes provided'}
+CLIENT REQUIREMENTS/NOTES:
+${notes}
 
-Developer Instructions:
+DEVELOPER INSTRUCTIONS:
 ${prompt}
 
-Design Requirements:
-- Dark theme with cyan accents (matching the AI Web Design Firm aesthetic)
-- Modern, professional layout
-- Fully responsive design (mobile, tablet, desktop)
-- Use the uploaded images in a gallery or hero section
-- Include contact information
-- Professional typography
-- Smooth animations and transitions
+TECHNICAL REQUIREMENTS:
+1. Generate a COMPLETE, standalone HTML file
+2. Include ALL CSS inside a <style> tag in the <head>
+3. Include ALL JavaScript inside a <script> tag before </body>
+4. Use the provided image URLs directly in <img> tags (use the blob_url values)
+5. Dark theme with cyan (#22d3ee) and blue (#3b82f6) accent colors
+6. Modern, professional design
+7. Fully responsive (mobile-first approach)
+8. Include a hero section, image gallery (if images provided), services section, and contact section
+9. Use professional typography and smooth animations
+10. Make it visually appealing and match the AI Web Design Firm aesthetic
 
-Generate complete, production-ready HTML, CSS, and JavaScript code.
-The HTML should be a complete, standalone file that can be served directly.
-Include all CSS in a <style> tag and all JavaScript in a <script> tag.
-Make sure all image URLs from the assets are properly referenced.
-`;
+IMPORTANT: 
+- The HTML must be COMPLETE and ready to serve
+- Use the exact image URLs provided above
+- Include proper DOCTYPE, html, head, and body tags
+- All code must be in a single HTML file
+- Do NOT use markdown code blocks - return the raw HTML directly
+
+Generate the complete HTML now:`;
 
     // Check if API key is configured
     const apiKey = process.env.CLAUDE_API_KEY;
