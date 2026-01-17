@@ -1033,11 +1033,11 @@ export default function ClientDashboard() {
                 <h2 className={`text-2xl font-black ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
                   Instructions Checklist
                 </h2>
-                {timeRemaining <= 0 && (
+                {completionTime && timeRemaining <= 0 && (
                   <span className="text-2xl" title="Checklist locked - website is ready">🔒</span>
                 )}
               </div>
-              {timeRemaining <= 0 ? (
+              {completionTime && timeRemaining <= 0 ? (
                 <div className="relative">
                   <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/50">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1081,9 +1081,9 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction1}
-                    disabled={timeRemaining <= 0}
+                    disabled={completionTime && timeRemaining <= 0}
                     onChange={async (e) => {
-                      if (timeRemaining <= 0) return;
+                      if (completionTime && timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction1: e.target.checked };
                       setInstructions(newInstructions);
                       setIsSavingInstructions(true);
@@ -1133,7 +1133,7 @@ export default function ClientDashboard() {
               </label>
               
               <label className={`flex items-start gap-4 group p-4 rounded-lg transition-all ${
-                timeRemaining <= 0
+                completionTime && timeRemaining <= 0
                   ? 'cursor-not-allowed opacity-60'
                   : 'cursor-pointer hover:scale-[1.01]'
               } ${
@@ -1149,9 +1149,9 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction2}
-                    disabled={timeRemaining <= 0}
+                    disabled={completionTime && timeRemaining <= 0}
                     onChange={async (e) => {
-                      if (timeRemaining <= 0) return;
+                      if (completionTime && timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction2: e.target.checked };
                       setInstructions(newInstructions);
                       setIsSavingInstructions(true);
@@ -1201,7 +1201,7 @@ export default function ClientDashboard() {
               </label>
               
               <label className={`flex items-start gap-4 group p-4 rounded-lg transition-all ${
-                timeRemaining <= 0
+                completionTime && timeRemaining <= 0
                   ? 'cursor-not-allowed opacity-60'
                   : 'cursor-pointer hover:scale-[1.01]'
               } ${
@@ -1217,9 +1217,9 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction3}
-                    disabled={timeRemaining <= 0}
+                    disabled={completionTime && timeRemaining <= 0}
                     onChange={async (e) => {
-                      if (timeRemaining <= 0) return;
+                      if (completionTime && timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction3: e.target.checked };
                       setInstructions(newInstructions);
                       setIsSavingInstructions(true);
