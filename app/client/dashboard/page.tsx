@@ -1068,7 +1068,9 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction1}
+                    disabled={timeRemaining <= 0}
                     onChange={async (e) => {
+                      if (timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction1: e.target.checked };
                       setInstructions(newInstructions);
                       setIsSavingInstructions(true);
@@ -1117,7 +1119,11 @@ export default function ClientDashboard() {
                 </span>
               </label>
               
-              <label className={`flex items-start gap-4 cursor-pointer group p-4 rounded-lg transition-all ${
+              <label className={`flex items-start gap-4 group p-4 rounded-lg transition-all ${
+                timeRemaining <= 0
+                  ? 'cursor-not-allowed opacity-60'
+                  : 'cursor-pointer hover:scale-[1.01]'
+              } ${
                 isStarkMode 
                   ? instructions.instruction2
                     ? 'bg-cyan-500/10 border border-cyan-500/30'
@@ -1130,7 +1136,9 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction2}
+                    disabled={timeRemaining <= 0}
                     onChange={async (e) => {
+                      if (timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction2: e.target.checked };
                       setInstructions(newInstructions);
                       setIsSavingInstructions(true);
@@ -1179,7 +1187,11 @@ export default function ClientDashboard() {
                 </span>
               </label>
               
-              <label className={`flex items-start gap-4 cursor-pointer group p-4 rounded-lg transition-all ${
+              <label className={`flex items-start gap-4 group p-4 rounded-lg transition-all ${
+                timeRemaining <= 0
+                  ? 'cursor-not-allowed opacity-60'
+                  : 'cursor-pointer hover:scale-[1.01]'
+              } ${
                 isStarkMode 
                   ? instructions.instruction3
                     ? 'bg-cyan-500/10 border border-cyan-500/30'
@@ -1192,7 +1204,9 @@ export default function ClientDashboard() {
                   <input
                     type="checkbox"
                     checked={instructions.instruction3}
+                    disabled={timeRemaining <= 0}
                     onChange={async (e) => {
+                      if (timeRemaining <= 0) return;
                       const newInstructions = { ...instructions, instruction3: e.target.checked };
                       setInstructions(newInstructions);
                       setIsSavingInstructions(true);
