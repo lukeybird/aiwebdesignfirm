@@ -149,6 +149,46 @@ export async function initDatabase() {
       )
     `;
 
+    // Create client_websites table for storing generated websites
+    await sql`
+      CREATE TABLE IF NOT EXISTS client_websites (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+        site_url VARCHAR(255),
+        site_data JSONB,
+        prompt_used TEXT,
+        status VARCHAR(50) DEFAULT 'draft',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Add client_websites columns if they don't exist (for existing databases)
+    try {
+      const columnsToAdd = [
+        { name: 'site_url', type: 'VARCHAR(255)' },
+        { name: 'site_data', type: 'JSONB' },
+        { name: 'prompt_used', type: 'TEXT' },
+        { name: 'status', type: "VARCHAR(50) DEFAULT 'draft'" },
+        { name: 'updated_at', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+      ];
+
+      for (const column of columnsToAdd) {
+        const columnCheck = await sql`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_schema = 'public' AND table_name = 'client_websites' AND column_name = ${column.name}
+        `;
+        
+        if (columnCheck.length === 0) {
+          await sql.unsafe(`ALTER TABLE client_websites ADD COLUMN ${column.name} ${column.type}`);
+          console.log(`✓ Added ${column.name} column to client_websites table`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error adding columns to client_websites table:', error);
+    }
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);

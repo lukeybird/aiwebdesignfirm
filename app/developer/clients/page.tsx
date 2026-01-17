@@ -594,20 +594,32 @@ export default function ClientsPage() {
                   {selectedClient ? `${selectedClient.fullName}'s Files` : 'Select a Client'}
                 </h2>
                 {selectedClient && (
-                  <button
-                    onClick={() => setShowAccountInfo(!showAccountInfo)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                      isStarkMode
-                        ? showAccountInfo
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => router.push(`/developer/websites/${selectedClient.id}`)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                        isStarkMode
                           ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
-                          : 'bg-gray-700 text-white hover:bg-gray-600 border border-cyan-500/20'
-                        : showAccountInfo
-                          ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
-                          : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300/60'
-                    }`}
-                  >
-                    {showAccountInfo ? 'Hide Info' : 'View Account Info'}
-                  </button>
+                          : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                      }`}
+                    >
+                      Build Website
+                    </button>
+                    <button
+                      onClick={() => setShowAccountInfo(!showAccountInfo)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                        isStarkMode
+                          ? showAccountInfo
+                            ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                            : 'bg-gray-700 text-white hover:bg-gray-600 border border-cyan-500/20'
+                          : showAccountInfo
+                            ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                            : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300/60'
+                      }`}
+                    >
+                      {showAccountInfo ? 'Hide Info' : 'View Account Info'}
+                    </button>
+                  </div>
                 )}
               </div>
 
