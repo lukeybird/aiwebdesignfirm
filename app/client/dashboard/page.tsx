@@ -961,14 +961,16 @@ export default function ClientDashboard() {
                     <input
                       type="url"
                       value={accountInfo.businessWebsite}
-                      onChange={(e) => setAccountInfo({ ...accountInfo, businessWebsite: e.target.value })}
-                      placeholder="https://www.example.com"
-                      className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 ${
+                      disabled
+                      className={`w-full px-4 py-2 rounded-lg border ${
                         isStarkMode
-                          ? 'bg-gray-900 border-cyan-500/40 text-white focus:ring-cyan-500/50'
-                          : 'bg-gray-50 border-gray-300 text-gray-900 focus:ring-cyan-500/50'
+                          ? 'bg-gray-900/50 border-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     />
+                    <p className={`text-xs mt-1 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Website link can only be changed by developer
+                    </p>
                   </div>
                 </div>
 
