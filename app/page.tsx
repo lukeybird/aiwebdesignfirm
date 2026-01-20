@@ -96,6 +96,7 @@ export default function Home() {
   const [audioAllowed, setAudioAllowed] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [videoSliding, setVideoSliding] = useState(false);
+  const [videoSlidingOut, setVideoSlidingOut] = useState(false);
   const [showPlayButton, setShowPlayButton] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -615,7 +616,11 @@ export default function Home() {
       {showVideo && (
         <div 
           className={`fixed top-24 right-6 z-40 transition-transform duration-500 ease-out ${
-            videoSliding ? 'translate-x-0' : 'translate-x-[120%]'
+            videoSlidingOut 
+              ? 'translate-x-[120%]' 
+              : videoSliding 
+                ? 'translate-x-0' 
+                : 'translate-x-[120%]'
           }`}
           style={{ maxWidth: '300px', width: '90vw' }}
         >
@@ -629,12 +634,15 @@ export default function Home() {
               muted={!audioAllowed}
               loop={false}
               onEnded={() => {
-                // Hide video after it finishes playing
+                // Start slide-out animation
+                setVideoSlidingOut(true);
+                // Hide video after slide-out animation completes
                 setTimeout(() => {
                   setShowVideo(false);
                   setVideoSliding(false);
+                  setVideoSlidingOut(false);
                   setShowPlayButton(true);
-                }, 500);
+                }, 600); // Wait for slide-out animation (500ms) + small buffer
               }}
             />
             
