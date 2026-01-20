@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -14,6 +14,31 @@ export default function Home() {
   // Always use dark mode
   const [isStarkMode] = useState(true);
 
+  const triggerVideo = (shouldPlayAudio?: boolean) => {
+    const playAudio = shouldPlayAudio !== undefined ? shouldPlayAudio : audioAllowed;
+    setShowVideo(true);
+    // Start sliding animation
+    setTimeout(() => {
+      setVideoSliding(true);
+      
+      // Play audio if allowed
+      if (playAudio && audioRef.current) {
+        audioRef.current.play().catch(error => {
+          console.log('Audio playback error:', error);
+        });
+      }
+      
+      // After slide animation completes, play video
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(error => {
+            console.log('Video playback error:', error);
+          });
+        }
+      }, 600); // Wait for slide animation (500ms) + small buffer
+    }, 100);
+  };
+
   // Set theme to dark mode in localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -26,6 +51,10 @@ export default function Home() {
         setShowAudioPrompt(true);
       } else {
         setAudioAllowed(audioPreference === 'true');
+        // If user has already responded, trigger video after a short delay
+        setTimeout(() => {
+          triggerVideo();
+        }, 1000);
       }
     }
   }, []);
@@ -35,6 +64,10 @@ export default function Home() {
     setShowAudioPrompt(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('audioAllowed', 'true');
+      // Trigger video after prompt closes with audio enabled
+      setTimeout(() => {
+        triggerVideo(true);
+      }, 500);
     }
   };
 
@@ -43,6 +76,10 @@ export default function Home() {
     setShowAudioPrompt(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('audioAllowed', 'false');
+      // Still show video but without audio
+      setTimeout(() => {
+        triggerVideo(false);
+      }, 500);
     }
   };
   const [formData, setFormData] = useState({
@@ -56,6 +93,10 @@ export default function Home() {
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [showAudioPrompt, setShowAudioPrompt] = useState(false);
   const [audioAllowed, setAudioAllowed] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoSliding, setVideoSliding] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const projects = [
     { id: 1, name: 'PayNGoSystems', url: 'https://www.payngosystems.com/', thumbnail: '/pay.png' },
@@ -567,6 +608,44 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* TV Video - Upper Right Corner */}
+      {showVideo && (
+        <div 
+          className={`fixed top-6 right-6 z-40 transition-transform duration-500 ease-out ${
+            videoSliding ? 'translate-x-0' : 'translate-x-[120%]'
+          }`}
+          style={{ maxWidth: '300px', width: '90vw' }}
+        >
+          <div className="relative">
+            {/* Video element */}
+            <video
+              ref={videoRef}
+              src="/TV.mp4"
+              className="w-full h-auto rounded-lg shadow-2xl border-2 border-cyan-500/30"
+              playsInline
+              muted
+              loop={false}
+              onEnded={() => {
+                // Hide video after it finishes playing
+                setTimeout(() => {
+                  setShowVideo(false);
+                  setVideoSliding(false);
+                }, 500);
+              }}
+            />
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-cyan-500/20 blur-xl -z-10 rounded-lg"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden audio element */}
+      <audio
+        ref={audioRef}
+        src="/attention.mp3"
+        preload="auto"
+      />
 
       {/* Audio Permission Prompt - Tony Stark Style */}
       {showAudioPrompt && (
