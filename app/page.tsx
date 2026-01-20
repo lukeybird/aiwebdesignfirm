@@ -109,17 +109,17 @@ export default function Home() {
               isStarkMode 
                 ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500' 
                 : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)]'
-            }`} style={{ fontSize: 'clamp(3rem, 18vw, 14rem)' }}>
+            }`} style={{ fontSize: 'clamp(3rem, 12vw, 8rem)' }}>
               BUILD
             </h1>
             <h2 className={`font-black tracking-[-0.04em] mb-2 sm:mb-3 md:mb-4 lg:mb-3 xl:mb-2 2xl:mb-2 leading-none relative z-10 text-center w-full ${
               isStarkMode ? 'text-gray-500' : 'text-gray-400'
-            }`} style={{ fontSize: 'clamp(3rem, 18vw, 14rem)' }}>
+            }`} style={{ fontSize: 'clamp(3rem, 12vw, 8rem)' }}>
               LAUNCH
             </h2>
             <h3 className={`font-black tracking-[-0.04em] mb-8 sm:mb-10 md:mb-12 lg:mb-10 xl:mb-8 2xl:mb-6 leading-none relative z-10 text-center w-full ${
               isStarkMode ? 'text-white' : 'text-gray-900'
-            }`} style={{ fontSize: 'clamp(3rem, 18vw, 14rem)' }}>
+            }`} style={{ fontSize: 'clamp(3rem, 12vw, 8rem)' }}>
               MAINTAIN
             </h3>
             <p className={`text-xl sm:text-2xl max-w-2xl mx-auto font-light leading-relaxed mb-8 ${
