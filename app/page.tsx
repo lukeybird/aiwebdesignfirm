@@ -18,8 +18,33 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('theme', 'stark');
+      
+      // Check if user has already responded to audio prompt
+      const audioPreference = localStorage.getItem('audioAllowed');
+      if (audioPreference === null) {
+        // Show prompt on first visit
+        setShowAudioPrompt(true);
+      } else {
+        setAudioAllowed(audioPreference === 'true');
+      }
     }
   }, []);
+
+  const handleAllowAudio = () => {
+    setAudioAllowed(true);
+    setShowAudioPrompt(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audioAllowed', 'true');
+    }
+  };
+
+  const handleDenyAudio = () => {
+    setAudioAllowed(false);
+    setShowAudioPrompt(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audioAllowed', 'false');
+    }
+  };
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -29,6 +54,8 @@ export default function Home() {
   });
   const [formError, setFormError] = useState('');
   const [isFormLoading, setIsFormLoading] = useState(false);
+  const [showAudioPrompt, setShowAudioPrompt] = useState(false);
+  const [audioAllowed, setAudioAllowed] = useState(false);
 
   const projects = [
     { id: 1, name: 'PayNGoSystems', url: 'https://www.payngosystems.com/', thumbnail: '/pay.png' },
@@ -540,6 +567,91 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Audio Permission Prompt - Tony Stark Style */}
+      {showAudioPrompt && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md">
+          {/* Animated background grid */}
+          <div className="absolute inset-0 opacity-20">
+            <div 
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `
+                  linear-gradient(rgba(34, 211, 238, 0.3) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(34, 211, 238, 0.3) 1px, transparent 1px)
+                `,
+                backgroundSize: '50px 50px',
+                animation: 'gridMove 20s linear infinite'
+              }}
+            ></div>
+          </div>
+          
+          {/* Main modal */}
+          <div className="relative z-10 max-w-2xl mx-4">
+            <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 border-2 border-cyan-500/40 rounded-2xl shadow-2xl shadow-cyan-500/20 p-8 md:p-12 relative overflow-hidden">
+              {/* Glowing corner accents */}
+              <div className="absolute top-0 left-0 w-32 h-32 bg-cyan-500/10 blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl"></div>
+              
+              {/* Decorative lines */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
+              
+              <div className="relative z-10">
+                {/* Icon/Logo */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-cyan-500/20 blur-xl rounded-full"></div>
+                    <div className="relative w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center border-2 border-cyan-400/50">
+                      <svg className="w-10 h-10 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Title */}
+                <h2 className="text-4xl md:text-5xl font-black text-center mb-4 tracking-tight">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400">
+                    FULL EXPERIENCE
+                  </span>
+                </h2>
+                
+                {/* Subtitle */}
+                <p className="text-xl md:text-2xl text-center mb-2 font-bold text-gray-300">
+                  Allow Audio?
+                </p>
+                
+                {/* Description */}
+                <p className="text-base md:text-lg text-center mb-8 text-gray-400 font-light leading-relaxed">
+                  Enable audio for an immersive experience with enhanced interactions and feedback.
+                </p>
+                
+                {/* Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={handleAllowAudio}
+                    className="px-8 py-4 rounded-full text-lg font-bold transition-all duration-200 hover:scale-105 bg-gradient-to-r from-cyan-500 to-blue-500 text-black hover:from-cyan-400 hover:to-blue-400 shadow-lg shadow-cyan-500/50 border-2 border-cyan-400/50"
+                  >
+                    ✓ Allow
+                  </button>
+                  <button
+                    onClick={handleDenyAudio}
+                    className="px-8 py-4 rounded-full text-lg font-bold transition-all duration-200 hover:scale-105 bg-gray-800 text-gray-300 hover:bg-gray-700 border-2 border-gray-700 hover:border-gray-600"
+                  >
+                    Continue Without
+                  </button>
+                </div>
+                
+                {/* Small note */}
+                <p className="text-xs text-center mt-6 text-gray-500">
+                  You can change this preference anytime
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Theme Toggle - Day/Night Switch - Bottom Left - Floating Action Button */}
 
