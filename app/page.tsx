@@ -17,26 +17,27 @@ export default function Home() {
   const triggerVideo = (shouldPlayAudio?: boolean) => {
     const playAudio = shouldPlayAudio !== undefined ? shouldPlayAudio : audioAllowed;
     setShowVideo(true);
+    setShowPlayButton(true);
     // Start sliding animation
     setTimeout(() => {
       setVideoSliding(true);
       
-      // Play audio if allowed
+      // Play attention.mp3 audio if allowed when video slides in
       if (playAudio && audioRef.current) {
         audioRef.current.play().catch(error => {
           console.log('Audio playback error:', error);
         });
       }
-      
-      // After slide animation completes, play video
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.play().catch(error => {
-            console.log('Video playback error:', error);
-          });
-        }
-      }, 600); // Wait for slide animation (500ms) + small buffer
     }, 100);
+  };
+
+  const handlePlayVideo = () => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(error => {
+        console.log('Video playback error:', error);
+      });
+      setShowPlayButton(false);
+    }
   };
 
   // Set theme to dark mode in localStorage
@@ -95,6 +96,7 @@ export default function Home() {
   const [audioAllowed, setAudioAllowed] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [videoSliding, setVideoSliding] = useState(false);
+  const [showPlayButton, setShowPlayButton] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -609,10 +611,10 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* TV Video - Upper Right Corner */}
+      {/* TV Video - Lower Right Corner (under header) */}
       {showVideo && (
         <div 
-          className={`fixed top-6 right-6 z-40 transition-transform duration-500 ease-out ${
+          className={`fixed top-24 right-6 z-40 transition-transform duration-500 ease-out ${
             videoSliding ? 'translate-x-0' : 'translate-x-[120%]'
           }`}
           style={{ maxWidth: '300px', width: '90vw' }}
@@ -631,9 +633,38 @@ export default function Home() {
                 setTimeout(() => {
                   setShowVideo(false);
                   setVideoSliding(false);
+                  setShowPlayButton(true);
                 }, 500);
               }}
             />
+            
+            {/* Play Button Overlay */}
+            {showPlayButton && (
+              <div 
+                className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg cursor-pointer transition-all duration-300 hover:bg-black/70"
+                onClick={handlePlayVideo}
+              >
+                <div className="relative">
+                  {/* Glowing circle background */}
+                  <div className="absolute inset-0 bg-cyan-500/30 blur-2xl rounded-full"></div>
+                  
+                  {/* Play button */}
+                  <button className="relative w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-2xl shadow-cyan-500/50 border-2 border-cyan-400/50 hover:scale-110 transition-transform duration-200">
+                    <svg 
+                      className="w-10 h-10 text-black ml-1" 
+                      fill="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </button>
+                  
+                  {/* Pulse animation */}
+                  <div className="absolute inset-0 bg-cyan-500/20 rounded-full animate-ping"></div>
+                </div>
+              </div>
+            )}
+            
             {/* Glow effect */}
             <div className="absolute inset-0 bg-cyan-500/20 blur-xl -z-10 rounded-lg"></div>
           </div>
