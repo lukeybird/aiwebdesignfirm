@@ -624,7 +624,7 @@ export default function Home() {
               src="/TV.mp4"
               className="w-full h-auto rounded-lg shadow-2xl border-2 border-cyan-500/30"
               playsInline
-              muted
+              muted={!audioAllowed}
               loop={false}
               onEnded={() => {
                 // Hide video after it finishes playing
