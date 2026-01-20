@@ -1,98 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
-// Ensure conversation_history column exists
-async function ensureConversationHistoryColumn() {
-  try {
-    const columnCheck = await sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_schema = 'public' AND table_name = 'client_websites' AND column_name = 'conversation_history'
-    `;
-    
-    if (columnCheck.length === 0) {
-      await sql.unsafe(`ALTER TABLE client_websites ADD COLUMN conversation_history JSONB`);
-      console.log('✓ Added conversation_history column to client_websites table');
-    }
-  } catch (error: any) {
-    console.error('Error ensuring conversation_history column:', error);
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
-    // Ensure column exists before proceeding
-    await ensureConversationHistoryColumn();
-
     const body = await request.json();
-    const { clientId, prompt, clientInfo, files, websiteNotes, conversationHistory, currentHtml, isManualEdit } = body;
+    const { clientId, prompt, clientInfo, files, websiteNotes } = body;
 
-    if (!clientId) {
+    if (!clientId || !prompt) {
       return NextResponse.json(
-        { error: 'Client ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // For manual edits, just save the code without calling Claude
-    if (isManualEdit && currentHtml) {
-      const siteUrl = `/sites/${clientId}`;
-      const websiteData = {
-        html: currentHtml,
-        css: '',
-        js: '',
-        generated_at: new Date().toISOString(),
-        prompt_used: 'Manual edit'
-      };
-
-      // Update conversation history
-      const updatedHistory = conversationHistory || [];
-      updatedHistory.push({
-        role: 'user',
-        content: 'Manually edited code',
-        timestamp: new Date().toISOString()
-      });
-
-      const existing = await sql`
-        SELECT id FROM client_websites WHERE client_id = ${clientId}
-      `;
-
-      if (existing.length > 0) {
-        await sql`
-          UPDATE client_websites
-          SET site_data = ${JSON.stringify(websiteData)}::jsonb,
-              site_url = ${siteUrl},
-              conversation_history = ${JSON.stringify(updatedHistory)}::jsonb,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE client_id = ${clientId}
-        `;
-      } else {
-        await sql`
-          INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status, conversation_history)
-          VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, 'Manual edit', 'published', ${JSON.stringify(updatedHistory)}::jsonb)
-        `;
-      }
-
-      await sql`
-        UPDATE clients
-        SET business_website = ${siteUrl}
-        WHERE id = ${clientId}
-      `;
-
-      return NextResponse.json({
-        success: true,
-        website: {
-          url: siteUrl,
-          code: currentHtml,
-          data: websiteData
-        },
-        conversationHistory: updatedHistory
-      });
-    }
-
-    if (!prompt) {
-      return NextResponse.json(
-        { error: 'Prompt is required' },
+        { error: 'Client ID and prompt are required' },
         { status: 400 }
       );
     }
@@ -145,42 +61,8 @@ export async function POST(request: NextRequest) {
         ).join('\n\n')
       : 'No images uploaded yet. Create placeholder sections for images.';
     
-    // Build conversation context if this is an update
-    let conversationContext = '';
-    if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-      conversationContext = '\n\nPREVIOUS CONVERSATION:\n';
-      conversationHistory.forEach((msg: any, idx: number) => {
-        conversationContext += `${idx + 1}. ${msg.role === 'user' ? 'Developer' : 'Assistant'}: ${msg.content}\n`;
-      });
-    }
-    
     // Build context for Claude
-    const isUpdate = currentHtml && currentHtml.trim().length > 0;
-    const basePrompt = isUpdate 
-      ? `You are a professional web developer. You are updating an existing website based on developer feedback.
-
-CURRENT WEBSITE HTML:
-\`\`\`html
-${currentHtml.substring(0, 5000)}${currentHtml.length > 5000 ? '\n... (truncated for context)' : ''}
-\`\`\`
-
-${conversationContext}
-
-DEVELOPER'S REQUEST:
-${prompt}
-
-INSTRUCTIONS:
-- Modify the existing HTML to implement the developer's request
-- Keep all the good parts that aren't being changed
-- Return the COMPLETE, updated HTML file
-- Include ALL CSS inside a <style> tag in the <head>
-- Include ALL JavaScript inside a <script> tag before </body>
-- Maintain the dark theme with cyan (#22d3ee) and blue (#3b82f6) accent colors
-- Keep it fully responsive and modern
-- Do NOT use markdown code blocks - return the raw HTML directly
-
-Return the complete updated HTML:`
-      : `You are a professional web developer. Create a complete, production-ready website.
+    const contextPrompt = `You are a professional web developer. Create a complete, production-ready website.
 
 BUSINESS INFORMATION:
 - Business Name: ${businessName}
@@ -194,8 +76,6 @@ ${imageList}
 
 CLIENT REQUIREMENTS/NOTES:
 ${notes}
-
-${conversationContext}
 
 DEVELOPER INSTRUCTIONS:
 ${prompt}
@@ -220,8 +100,6 @@ IMPORTANT:
 - Do NOT use markdown code blocks - return the raw HTML directly
 
 Generate the complete HTML now:`;
-    
-    const contextPrompt = basePrompt;
 
     // Check if API key is configured
     const apiKey = process.env.CLAUDE_API_KEY;
@@ -377,22 +255,9 @@ ${htmlCode}
     console.log('Website data HTML length:', websiteData.html.length);
     console.log('Website data keys:', Object.keys(websiteData));
 
-    // Update conversation history
-    const updatedHistory = conversationHistory || [];
-    updatedHistory.push({
-      role: 'user',
-      content: prompt,
-      timestamp: new Date().toISOString()
-    });
-    updatedHistory.push({
-      role: 'assistant',
-      content: 'Website updated successfully.',
-      timestamp: new Date().toISOString()
-    });
-
     // Check if website already exists for this client
     const existing = await sql`
-      SELECT id, conversation_history FROM client_websites WHERE client_id = ${clientId}
+      SELECT id FROM client_websites WHERE client_id = ${clientId}
     `;
 
     if (existing.length > 0) {
@@ -403,7 +268,6 @@ ${htmlCode}
         SET site_data = ${JSON.stringify(websiteData)}::jsonb,
             site_url = ${siteUrl},
             prompt_used = ${prompt},
-            conversation_history = ${JSON.stringify(updatedHistory)}::jsonb,
             updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ${clientId}
       `;
@@ -412,8 +276,8 @@ ${htmlCode}
       // Create new website
       console.log('Creating new website record');
       await sql`
-        INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status, conversation_history)
-        VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, ${prompt}, 'published', ${JSON.stringify(updatedHistory)}::jsonb)
+        INSERT INTO client_websites (client_id, site_url, site_data, prompt_used, status)
+        VALUES (${clientId}, ${siteUrl}, ${JSON.stringify(websiteData)}::jsonb, ${prompt}, 'published')
       `;
       console.log('✅ Website saved to database');
     }
@@ -432,8 +296,7 @@ ${htmlCode}
         url: siteUrl,
         code: htmlCode,
         data: websiteData
-      },
-      conversationHistory: updatedHistory
+      }
     });
 
   } catch (error: any) {
