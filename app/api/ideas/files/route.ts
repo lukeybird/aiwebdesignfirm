@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
     if (filename) {
       const rows = await sql`
-        SELECT filename, blob_url, file_size, uploaded_at
+        SELECT filename, content, blob_url, uploaded_at
         FROM idea_files
         WHERE filename = ${filename}
         LIMIT 1
@@ -16,18 +16,27 @@ export async function GET(request: NextRequest) {
       if (rows.length === 0) {
         return NextResponse.json({ error: 'File not found' }, { status: 404 });
       }
-      return NextResponse.json({ file: rows[0] });
+      const row = rows[0] as { filename: string; content: string | null; blob_url?: string | null; uploaded_at: string };
+      return NextResponse.json({
+        file: {
+          filename: row.filename,
+          content: row.content ?? null,
+          blob_url: row.blob_url ?? null,
+          uploaded_at: row.uploaded_at,
+        },
+      });
     }
 
     const files = await sql`
-      SELECT filename, blob_url, file_size, uploaded_at
+      SELECT filename, uploaded_at
       FROM idea_files
       ORDER BY uploaded_at DESC
     `;
     return NextResponse.json({ files });
   } catch (error: any) {
+    console.error('[ideas/files]', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message || 'Failed to list files' },
       { status: 500 }
     );
   }

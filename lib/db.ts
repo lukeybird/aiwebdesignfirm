@@ -198,16 +198,37 @@ export async function initDatabase() {
       )
     `;
 
-    // Idea HTML files (for /ideas page)
+    // Idea HTML files (for /ideas page) - content stored in DB so no Blob required
     await sql`
       CREATE TABLE IF NOT EXISTS idea_files (
         id SERIAL PRIMARY KEY,
         filename VARCHAR(255) UNIQUE NOT NULL,
-        blob_url TEXT NOT NULL,
-        file_size BIGINT NOT NULL,
+        content TEXT NOT NULL,
+        blob_url TEXT,
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
+    // Migration: add content column if table existed with old schema (blob_url)
+    try {
+      const col = await sql`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'idea_files' AND column_name = 'content'
+      `;
+      if (col.length === 0) {
+        await sql`ALTER TABLE idea_files ADD COLUMN content TEXT`;
+        console.log('✓ Added content column to idea_files');
+      }
+      // Allow inserts with only filename+content (make blob_url/file_size nullable if present)
+      for (const c of ['blob_url', 'file_size']) {
+        const exists = await sql`
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'idea_files' AND column_name = ${c}
+        `;
+        if (exists.length > 0) {
+          await sql.unsafe(`ALTER TABLE idea_files ALTER COLUMN ${c} DROP NOT NULL`);
+        }
+      }
+    } catch (_) {}
 
     console.log('Database initialized successfully');
   } catch (error) {

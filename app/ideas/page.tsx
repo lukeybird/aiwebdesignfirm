@@ -5,8 +5,6 @@ import Link from 'next/link';
 
 type IdeaFile = {
   filename: string;
-  blob_url: string;
-  file_size: number;
   uploaded_at: string;
 };
 
@@ -14,15 +12,20 @@ export default function IdeasPage() {
   const [files, setFiles] = useState<IdeaFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const fetchFiles = async () => {
+    setListError(null);
     try {
       const res = await fetch('/api/ideas/files');
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok) setFiles(data.files || []);
-    } catch {
+      else setListError(data.error || `Failed to load (${res.status})`);
+    } catch (e: any) {
       setFiles([]);
+      setListError(e.message || 'Failed to load list');
     }
   };
 
@@ -33,7 +36,9 @@ export default function IdeasPage() {
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList?.length) return;
     setError(null);
+    setSuccess(null);
     setUploading(true);
+    let uploaded = 0;
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
       if (!file.name.toLowerCase().endsWith('.html')) {
@@ -47,13 +52,16 @@ export default function IdeasPage() {
           method: 'POST',
           body: formData,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
+        uploaded++;
         await fetchFiles();
       } catch (e: any) {
         setError(e.message || 'Upload failed');
+        break;
       }
     }
+    if (uploaded > 0) setSuccess(`Uploaded ${uploaded} file(s).`);
     setUploading(false);
   };
 
@@ -119,7 +127,16 @@ export default function IdeasPage() {
           {error && (
             <p className="mt-3 text-red-400 text-sm">{error}</p>
           )}
+          {success && (
+            <p className="mt-3 text-green-400 text-sm">{success}</p>
+          )}
         </section>
+
+        {listError && (
+          <p className="text-amber-400 text-sm">
+            Could not load file list. Run <a href="/api/db/init" target="_blank" rel="noopener noreferrer" className="underline">/api/db/init</a> once to create tables, then refresh.
+          </p>
+        )}
 
         {files.length > 0 && (
           <section className="rounded-xl border border-gray-700 bg-gray-800/50 p-6">

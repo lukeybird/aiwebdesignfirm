@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function IdeaViewPage() {
   const params = useParams();
   const filename = typeof params.filename === 'string' ? params.filename : params.filename?.[0] ?? '';
+  const [content, setContent] = useState<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -25,7 +26,13 @@ export default function IdeaViewPage() {
         return res.json();
       })
       .then((data) => {
-        if (data?.file?.blob_url) setBlobUrl(data.file.blob_url);
+        const file = data?.file;
+        if (!file) {
+          setNotFound(true);
+          return;
+        }
+        if (file.content) setContent(file.content);
+        else if (file.blob_url) setBlobUrl(file.blob_url);
         else setNotFound(true);
       })
       .catch(() => setNotFound(true))
@@ -40,7 +47,7 @@ export default function IdeaViewPage() {
     );
   }
 
-  if (notFound || !blobUrl) {
+  if (notFound || (!content && !blobUrl)) {
     return (
       <main className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center gap-4 p-8">
         <p className="text-gray-400">File not found.</p>
@@ -62,12 +69,21 @@ export default function IdeaViewPage() {
         </Link>
         <span className="text-gray-500 text-sm font-mono">{filename}</span>
       </div>
-      <iframe
-        src={blobUrl}
-        title={filename}
-        className="flex-1 w-full min-h-0 border-0"
-        sandbox="allow-scripts allow-same-origin"
-      />
+      {content !== null ? (
+        <iframe
+          srcDoc={content}
+          title={filename}
+          className="flex-1 w-full min-h-0 border-0"
+          sandbox="allow-scripts allow-same-origin"
+        />
+      ) : (
+        <iframe
+          src={blobUrl!}
+          title={filename}
+          className="flex-1 w-full min-h-0 border-0"
+          sandbox="allow-scripts allow-same-origin"
+        />
+      )}
     </main>
   );
 }

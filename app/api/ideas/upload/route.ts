@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,27 +21,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const blob = await put(`ideas/${file.name}`, file, {
-      access: 'public',
-    });
+    const content = await file.text();
 
     await sql`
-      INSERT INTO idea_files (filename, blob_url, file_size)
-      VALUES (${file.name}, ${blob.url}, ${file.size})
+      INSERT INTO idea_files (filename, content)
+      VALUES (${file.name}, ${content})
       ON CONFLICT (filename) DO UPDATE SET
-        blob_url = EXCLUDED.blob_url,
-        file_size = EXCLUDED.file_size,
+        content = EXCLUDED.content,
         uploaded_at = CURRENT_TIMESTAMP
     `;
 
     return NextResponse.json({
       success: true,
       filename: file.name,
-      url: blob.url,
     });
   } catch (error: any) {
+    console.error('[ideas/upload]', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message || 'Upload failed' },
       { status: 500 }
     );
   }
