@@ -189,6 +189,26 @@ export async function initDatabase() {
       console.error('Error adding columns to client_websites table:', error);
     }
 
+    // Device status (for /test page - single row, latest status)
+    await sql`
+      CREATE TABLE IF NOT EXISTS device_status (
+        id SERIAL PRIMARY KEY,
+        status BOOLEAN NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Idea HTML files (for /ideas page)
+    await sql`
+      CREATE TABLE IF NOT EXISTS idea_files (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) UNIQUE NOT NULL,
+        blob_url TEXT NOT NULL,
+        file_size BIGINT NOT NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
