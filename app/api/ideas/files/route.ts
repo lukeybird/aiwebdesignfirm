@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { sql, initDatabase } from '@/lib/db';
+
+async function ensureTable() {
+  try {
+    await sql`SELECT 1 FROM idea_files LIMIT 1`;
+  } catch (e: any) {
+    if (e?.message?.includes('idea_files') && e?.message?.includes('does not exist')) {
+      await initDatabase();
+    } else {
+      throw e;
+    }
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureTable();
+
     const { searchParams } = new URL(request.url);
     const filename = searchParams.get('filename');
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { sql, initDatabase } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,13 +23,28 @@ export async function POST(request: NextRequest) {
 
     const content = await file.text();
 
-    await sql`
-      INSERT INTO idea_files (filename, content)
-      VALUES (${file.name}, ${content})
-      ON CONFLICT (filename) DO UPDATE SET
-        content = EXCLUDED.content,
-        uploaded_at = CURRENT_TIMESTAMP
-    `;
+    try {
+      await sql`
+        INSERT INTO idea_files (filename, content)
+        VALUES (${file.name}, ${content})
+        ON CONFLICT (filename) DO UPDATE SET
+          content = EXCLUDED.content,
+          uploaded_at = CURRENT_TIMESTAMP
+      `;
+    } catch (dbError: any) {
+      if (dbError?.message?.includes('idea_files') && dbError?.message?.includes('does not exist')) {
+        await initDatabase();
+        await sql`
+          INSERT INTO idea_files (filename, content)
+          VALUES (${file.name}, ${content})
+          ON CONFLICT (filename) DO UPDATE SET
+            content = EXCLUDED.content,
+            uploaded_at = CURRENT_TIMESTAMP
+        `;
+      } else {
+        throw dbError;
+      }
+    }
 
     return NextResponse.json({
       success: true,
