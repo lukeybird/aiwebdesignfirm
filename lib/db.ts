@@ -230,6 +230,63 @@ export async function initDatabase() {
       }
     } catch (_) {}
 
+    // Idea projects (folder upload → /ideas/slug/...)
+    await sql`
+      CREATE TABLE IF NOT EXISTS idea_projects (
+        id SERIAL PRIMARY KEY,
+        slug VARCHAR(128) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS idea_project_files (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER NOT NULL REFERENCES idea_projects(id) ON DELETE CASCADE,
+        file_path TEXT NOT NULL,
+        content TEXT NOT NULL,
+        mime_type VARCHAR(128),
+        is_binary BOOLEAN DEFAULT FALSE,
+        UNIQUE (project_id, file_path)
+      )
+    `;
+
+    // Marine app: boat owners (subscription-based remote monitoring)
+    await sql`
+      CREATE TABLE IF NOT EXISTS marine_users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        full_name VARCHAR(255) NOT NULL,
+        subscription_status VARCHAR(50) DEFAULT 'inactive',
+        subscription_expires_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS marine_devices (
+        id SERIAL PRIMARY KEY,
+        marine_user_id INTEGER NOT NULL REFERENCES marine_users(id) ON DELETE CASCADE,
+        device_id VARCHAR(64) UNIQUE NOT NULL,
+        auth_token VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL DEFAULT 'My Boat',
+        last_float_status VARCHAR(32),
+        last_activity_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS marine_events (
+        id SERIAL PRIMARY KEY,
+        device_id VARCHAR(64) NOT NULL,
+        event_type VARCHAR(64) NOT NULL,
+        payload JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
