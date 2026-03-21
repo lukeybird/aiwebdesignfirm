@@ -11,6 +11,12 @@ export type IdeaFileEntry = {
   binary: boolean;
 };
 
+/** PostgreSQL UTF-8 TEXT cannot contain null bytes (0x00). */
+export function sanitizePostgresUtf8(s: string): string {
+  if (typeof s !== 'string' || !s.includes('\0')) return s;
+  return s.replace(/\0/g, '');
+}
+
 const TEXT_EXT = new Set([
   'html', 'htm', 'css', 'js', 'mjs', 'cjs', 'json', 'txt', 'xml', 'svg', 'md', 'map', 'tsx', 'ts', 'jsx',
 ]);
@@ -98,9 +104,10 @@ export async function insertIdeaProject(
     const projectId = (proj as { id: number }).id;
 
     for (const e of entries) {
+      const safeContent = e.binary ? e.content : sanitizePostgresUtf8(e.content);
       await sql`
         INSERT INTO idea_project_files (project_id, file_path, content, mime_type, is_binary)
-        VALUES (${projectId}, ${e.path}, ${e.content}, ${e.mime}, ${e.binary})
+        VALUES (${projectId}, ${e.path}, ${safeContent}, ${e.mime}, ${e.binary})
       `;
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql, initDatabase } from '@/lib/db';
+import { sanitizePostgresUtf8 } from '@/lib/ideaProjectHelpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,10 +26,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const safeContent = sanitizePostgresUtf8(content);
+
     try {
       await sql`
         INSERT INTO idea_files (filename, content)
-        VALUES (${filename.trim()}, ${content})
+        VALUES (${filename.trim()}, ${safeContent})
         ON CONFLICT (filename) DO UPDATE SET
           content = EXCLUDED.content,
           uploaded_at = CURRENT_TIMESTAMP
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
         await initDatabase();
         await sql`
           INSERT INTO idea_files (filename, content)
-          VALUES (${filename.trim()}, ${content})
+          VALUES (${filename.trim()}, ${safeContent})
           ON CONFLICT (filename) DO UPDATE SET
             content = EXCLUDED.content,
             uploaded_at = CURRENT_TIMESTAMP

@@ -5,6 +5,7 @@ import {
   extMime,
   isProbablyText,
   MAX_FILE_BYTES,
+  sanitizePostgresUtf8,
   insertIdeaProject,
   type IdeaFileEntry,
 } from '@/lib/ideaProjectHelpers';
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
         const buf = Buffer.from(await file.arrayBuffer());
         content = buf.toString('base64');
       } else {
-        content = await file.text();
+        content = sanitizePostgresUtf8(await file.text());
       }
       entries.push({ path: rel, content, mime, binary });
     }

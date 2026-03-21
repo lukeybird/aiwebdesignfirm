@@ -9,6 +9,7 @@ import {
   MAX_FILE_BYTES,
   MAX_ZIP_FILES,
   MAX_ZIP_TOTAL_BYTES,
+  sanitizePostgresUtf8,
   insertIdeaProject,
   type IdeaFileEntry,
 } from '@/lib/ideaProjectHelpers';
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
 
       const mime = extMime(rel);
       const binary = !isProbablyText(rel, mime);
-      const content = binary ? data.toString('base64') : data.toString('utf8');
+      const content = binary ? data.toString('base64') : sanitizePostgresUtf8(data.toString('utf8'));
       entries.push({ path: rel, content, mime, binary });
     }
 

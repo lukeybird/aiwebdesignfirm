@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql, initDatabase } from '@/lib/db';
+import { sanitizePostgresUtf8 } from '@/lib/ideaProjectHelpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const content = await file.text();
+    const content = sanitizePostgresUtf8(await file.text());
 
     try {
       await sql`
