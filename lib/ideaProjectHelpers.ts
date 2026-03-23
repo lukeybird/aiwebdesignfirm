@@ -1,8 +1,12 @@
 import { sql, initDatabase } from '@/lib/db';
 
-export const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB per file
+/** Max size per file inside a project (ZIP / folder / manual). */
+export const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB per file
 export const MAX_ZIP_FILES = 1000;
-export const MAX_ZIP_TOTAL_BYTES = 45 * 1024 * 1024; // ~45 MB total unzipped
+/** Max total unzipped payload stored in DB for one project. */
+export const MAX_ZIP_TOTAL_BYTES = 120 * 1024 * 1024; // ~120 MB total unzipped
+/** Max ZIP file bytes accepted via direct FormData (often hits Vercel ~4.5MB before this). */
+export const MAX_ZIP_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB when Blob upload is used
 
 export type IdeaFileEntry = {
   path: string;

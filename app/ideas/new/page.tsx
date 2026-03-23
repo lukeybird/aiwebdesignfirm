@@ -58,13 +58,48 @@ export default function NewIdeaProjectPage() {
     setError(null);
     setSuccess(null);
     try {
+      // Large ZIPs: upload directly to Vercel Blob (avoids ~4.5MB serverless body limit → 413).
+      const tokenRes = await fetch('/api/ideas/project-zip-token', { method: 'POST' });
+      if (tokenRes.ok) {
+        const { clientToken, pathname } = await tokenRes.json();
+        const { put } = await import('@vercel/blob/client');
+        const uploaded = await put(pathname, file, {
+          access: 'public',
+          token: clientToken,
+          multipart: file.size > 3 * 1024 * 1024,
+          contentType: file.type || 'application/zip',
+        });
+        const proc = await fetch('/api/ideas/project-process-zip-blob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            blobUrl: uploaded.url,
+            slug: effectiveSlug,
+            displayName: displayName.trim() || effectiveSlug,
+          }),
+        });
+        const data = await proc.json().catch(() => ({}));
+        if (!proc.ok) throw new Error(data.error || `Processing failed (${proc.status})`);
+        setSuccess(`Uploaded ${data.project?.fileCount} files → /ideas/${data.project?.slug}`);
+        setTimeout(() => router.push(`/ideas/${encodeURIComponent(data.project.slug)}`), 1200);
+        return;
+      }
+
+      // Fallback: direct FormData (works for small ZIPs on localhost or without Blob).
       const fd = new FormData();
       fd.append('slug', effectiveSlug);
       fd.append('displayName', displayName.trim() || effectiveSlug);
       fd.append('zip', file);
       const res = await fetch('/api/ideas/project-upload-zip', { method: 'POST', body: fd });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
+      if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error(
+            'Upload too large for direct upload. On Vercel, enable Vercel Blob (BLOB_READ_WRITE_TOKEN) so large ZIPs upload to storage first.'
+          );
+        }
+        throw new Error(data.error || `Upload failed (${res.status})`);
+      }
       setSuccess(`Uploaded ${data.project?.fileCount} files → /ideas/${data.project?.slug}`);
       setTimeout(() => router.push(`/ideas/${encodeURIComponent(data.project.slug)}`), 1200);
     } catch (e: any) {
@@ -206,7 +241,9 @@ export default function NewIdeaProjectPage() {
             <h2 className="text-lg font-semibold">ZIP file</h2>
             <p className="text-gray-400 text-sm">
               On Mac: right-click your project folder → Compress. Exclude or delete <code>node_modules</code> first to
-              keep the ZIP small.
+              keep the ZIP small. Large ZIPs upload through <strong className="text-gray-300">Vercel Blob</strong> so you
+              don&apos;t hit the small server request limit (413). Blob is enabled automatically on Vercel when{' '}
+              <code className="text-cyan-400">BLOB_READ_WRITE_TOKEN</code> is set.
             </p>
             <input
               type="file"

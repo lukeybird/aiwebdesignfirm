@@ -8,6 +8,7 @@ interface Client {
   id: string;
   email: string;
   fullName: string;
+  phone?: string;
   createdAt: string;
   instruction1Completed?: boolean;
   instruction2Completed?: boolean;
@@ -45,6 +46,10 @@ export default function ClientsPage() {
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [editingFileName, setEditingFileName] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [smsMessage, setSmsMessage] = useState('');
+  const [isSendingSms, setIsSendingSms] = useState(false);
+  const [smsResults, setSmsResults] = useState<any>(null);
   
   // Always use dark mode
   const [isStarkMode] = useState(true);
@@ -392,6 +397,62 @@ export default function ClientsPage() {
     }, 2000);
   };
 
+  // Get clients with valid phone numbers
+  const getClientsWithValidPhones = () => {
+    return allClients.filter(client => {
+      if (!client.phone) return false;
+      const cleaned = client.phone.replace(/[^\d+]/g, '');
+      // Valid if it's 10 digits, 11 digits starting with 1, or starts with +
+      return (cleaned.length === 10) || 
+             (cleaned.length === 11 && cleaned.startsWith('1')) || 
+             (cleaned.startsWith('+') && cleaned.length >= 10);
+    });
+  };
+
+  // Send bulk SMS
+  const handleSendBulkSms = async () => {
+    if (!smsMessage.trim()) {
+      alert('Please enter a message');
+      return;
+    }
+
+    const clientsWithPhones = getClientsWithValidPhones();
+    if (clientsWithPhones.length === 0) {
+      alert('No clients with valid phone numbers found');
+      return;
+    }
+
+    setIsSendingSms(true);
+    setSmsResults(null);
+
+    try {
+      const phoneNumbers = clientsWithPhones.map(client => client.phone).filter(Boolean);
+      
+      const response = await fetch('/api/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumbers,
+          message: smsMessage.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send SMS messages');
+      }
+
+      setSmsResults(data);
+      showToast(`SMS sent to ${data.successful} of ${data.total} clients`);
+    } catch (error: any) {
+      console.error('Error sending SMS:', error);
+      alert(error.message || 'Error sending SMS messages. Please try again.');
+    } finally {
+      setIsSendingSms(false);
+    }
+  };
+
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isStarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
       {/* Navigation */}
@@ -510,9 +571,21 @@ export default function ClientsPage() {
                 ? 'bg-gray-800 border border-cyan-500/20' 
                 : 'bg-white border-2 border-gray-300/60'
             }`}>
-              <h2 className={`text-2xl font-black mb-4 ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Client Accounts ({clients.length})
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className={`text-2xl font-black ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Client Accounts ({clients.length})
+                </h2>
+                <button
+                  onClick={() => setShowSmsModal(true)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                    isStarkMode
+                      ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                  }`}
+                >
+                  📱 Send Bulk SMS
+                </button>
+              </div>
 
               {/* Search Bar */}
               <div className="mb-6">
@@ -1451,6 +1524,162 @@ export default function ClientsPage() {
         >
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk SMS Modal */}
+      {showSmsModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => {
+            setShowSmsModal(false);
+            setSmsMessage('');
+            setSmsResults(null);
+          }}
+        >
+          <div 
+            className={`rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto transition-colors duration-300 ${
+              isStarkMode 
+                ? 'bg-gray-900 border border-cyan-500/20' 
+                : 'bg-white border-2 border-gray-300/60 shadow-gray-900/20'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-8">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className={`text-3xl font-black ${
+                  isStarkMode 
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500'
+                    : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
+                }`}>
+                  Send Bulk SMS
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowSmsModal(false);
+                    setSmsMessage('');
+                    setSmsResults(null);
+                  }}
+                  className={`transition-colors ${
+                    isStarkMode 
+                      ? 'text-gray-400 hover:text-cyan-400' 
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Client Count */}
+              <div className={`mb-6 p-4 rounded-lg ${
+                isStarkMode 
+                  ? 'bg-gray-800 border border-cyan-500/20' 
+                  : 'bg-gray-50 border border-gray-300/60'
+              }`}>
+                <p className={`text-sm ${isStarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <span className="font-bold">{getClientsWithValidPhones().length}</span> clients have valid phone numbers and will receive this message.
+                </p>
+              </div>
+
+              {/* Message Input */}
+              <div className="mb-6">
+                <label htmlFor="smsMessage" className={`block text-sm font-medium mb-2 ${
+                  isStarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Message
+                </label>
+                <textarea
+                  id="smsMessage"
+                  value={smsMessage}
+                  onChange={(e) => setSmsMessage(e.target.value)}
+                  rows={6}
+                  maxLength={1600}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    isStarkMode
+                      ? 'bg-gray-800 border-cyan-500/20 text-white focus:ring-cyan-500 focus:border-cyan-500'
+                      : 'bg-white border-gray-300/60 text-black focus:ring-cyan-500 focus:border-cyan-500'
+                  }`}
+                  placeholder="Enter your message here (max 1600 characters)..."
+                />
+                <p className={`text-xs mt-2 ${isStarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  {smsMessage.length} / 1600 characters
+                </p>
+              </div>
+
+              {/* Results */}
+              {smsResults && (
+                <div className={`mb-6 p-4 rounded-lg ${
+                  smsResults.failed > 0
+                    ? isStarkMode
+                      ? 'bg-yellow-500/20 border border-yellow-500/40'
+                      : 'bg-yellow-50 border border-yellow-200'
+                    : isStarkMode
+                      ? 'bg-green-500/20 border border-green-500/40'
+                      : 'bg-green-50 border border-green-200'
+                }`}>
+                  <p className={`text-sm font-medium ${
+                    isStarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    ✅ Sent to {smsResults.successful} of {smsResults.total} clients
+                    {smsResults.failed > 0 && (
+                      <span className="block mt-1 text-yellow-400">
+                        ⚠️ {smsResults.failed} failed to send
+                      </span>
+                    )}
+                  </p>
+                  {smsResults.errors && smsResults.errors.length > 0 && (
+                    <div className={`mt-3 text-xs ${
+                      isStarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      <p className="font-medium mb-1">Errors:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {smsResults.errors.slice(0, 5).map((error: any, idx: number) => (
+                          <li key={idx}>
+                            {error.phoneNumber}: {error.error}
+                          </li>
+                        ))}
+                        {smsResults.errors.length > 5 && (
+                          <li>...and {smsResults.errors.length - 5} more</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={handleSendBulkSms}
+                  disabled={isSendingSms || !smsMessage.trim()}
+                  className={`flex-1 px-6 py-3 rounded-full text-lg font-bold transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isStarkMode
+                      ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/50'
+                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg shadow-gray-900/20'
+                  }`}
+                >
+                  {isSendingSms ? 'Sending...' : `Send to ${getClientsWithValidPhones().length} Clients`}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSmsModal(false);
+                    setSmsMessage('');
+                    setSmsResults(null);
+                  }}
+                  className={`px-6 py-3 rounded-full text-lg font-medium transition-all duration-200 hover:scale-[1.02] ${
+                    isStarkMode
+                      ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300 border border-gray-300/60'
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

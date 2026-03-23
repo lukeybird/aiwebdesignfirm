@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Invalid path: ${paths[i]}` }, { status: 400 });
       }
       if (file.size > MAX_FILE_BYTES) {
-        return NextResponse.json({ error: `File too large (max 5 MB): ${rel}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `File too large (max ${Math.round(MAX_FILE_BYTES / 1024 / 1024)} MB): ${rel}` },
+          { status: 400 }
+        );
       }
       const mime = extMime(rel);
       const binary = !isProbablyText(rel, mime);
