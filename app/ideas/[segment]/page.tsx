@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+const LIVE_LINK_BASE_URL = 'https://aiwebdesignfirm.com/project/';
+
 type ViewMode = 'preview' | 'code';
 
 function SingleHtmlViewer({ filename }: { filename: string }) {
@@ -143,13 +145,11 @@ function SingleHtmlViewer({ filename }: { filename: string }) {
   );
 }
 
-/** Turn stored value into an href (add https:// when user typed a bare host/path). */
+/** Stored value is only trailing segment; full URL is always base + segment. */
 function hrefForLiveLink(raw: string): string {
-  const t = raw.trim();
-  if (!t) return '';
-  if (t.startsWith('/')) return t;
-  if (/^https?:\/\//i.test(t)) return t;
-  return `https://${t}`;
+  const segment = raw.trim().replace(/^\/+|\/+$/g, '');
+  if (!segment) return '';
+  return `${LIVE_LINK_BASE_URL}${segment}`;
 }
 
 function ProjectHub({ slug }: { slug: string }) {
@@ -238,17 +238,17 @@ function ProjectHub({ slug }: { slug: string }) {
         <section className="rounded-xl border border-gray-700 bg-gray-800/50 p-6 space-y-3">
           <h2 className="text-lg font-semibold">Live / deployed URL</h2>
           <p className="text-gray-400 text-sm">
-            Optional link to where this project is hosted (e.g.{' '}
-            <span className="text-gray-300 font-mono text-xs">aiwebdesignfirm.com/demo</span> or{' '}
-            <span className="text-gray-300 font-mono text-xs">https://example.com/app</span>).             Paths on this site can
-            start with <span className="font-mono text-xs text-gray-300">/</span>. Leave empty and click Save to remove.
+            Base URL is fixed at <span className="text-gray-300 font-mono text-xs">{LIVE_LINK_BASE_URL}</span>. Enter
+            only the custom part (example: <span className="text-gray-300 font-mono text-xs">custom</span> or{' '}
+            <span className="text-gray-300 font-mono text-xs">team/landing</span>). Leave empty and click Save to
+            remove.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
-              inputMode="url"
+              inputMode="text"
               autoComplete="off"
-              placeholder="aiwebdesignfirm.com/something or https://…"
+              placeholder="custom"
               value={liveLinkDraft}
               onChange={(e) => setLiveLinkDraft(e.target.value)}
               className="flex-1 px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm font-mono placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-600"

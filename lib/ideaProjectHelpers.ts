@@ -25,26 +25,39 @@ const TEXT_EXT = new Set([
   'html', 'htm', 'css', 'js', 'mjs', 'cjs', 'json', 'txt', 'xml', 'svg', 'md', 'map', 'tsx', 'ts', 'jsx',
 ]);
 
-/** Stored on idea_projects; optional external or path URL for “open live site”. */
-export const MAX_LIVE_LINK_LEN = 2048;
+/** Stored on idea_projects as only the custom trailing segment. */
+export const LIVE_LINK_BASE_URL = 'https://aiwebdesignfirm.com/project/';
+export const MAX_LIVE_LINK_LEN = 200;
 
 export function parseLiveLinkInput(raw: unknown): string | null {
   if (raw === null || raw === undefined) return null;
-  const s = String(raw).trim();
-  if (s === '') return null;
-  if (s.length > MAX_LIVE_LINK_LEN) {
+  const input = String(raw).trim();
+  if (input === '') return null;
+
+  let segment = input;
+  const lower = input.toLowerCase();
+  const baseLower = LIVE_LINK_BASE_URL.toLowerCase();
+
+  // Accept full URL and keep only the part after /project/
+  if (lower.startsWith(baseLower)) {
+    segment = input.slice(LIVE_LINK_BASE_URL.length);
+  } else if (lower.startsWith('aiwebdesignfirm.com/project/')) {
+    segment = input.slice('aiwebdesignfirm.com/project/'.length);
+  } else if (lower.startsWith('/project/')) {
+    segment = input.slice('/project/'.length);
+  } else if (lower.startsWith('project/')) {
+    segment = input.slice('project/'.length);
+  }
+
+  segment = segment.trim().replace(/^\/+|\/+$/g, '');
+  if (segment === '') return null;
+  if (segment.length > MAX_LIVE_LINK_LEN) {
     throw new Error(`Link is too long (max ${MAX_LIVE_LINK_LEN} characters)`);
   }
-  const lower = s.toLowerCase();
-  if (
-    lower.startsWith('javascript:') ||
-    lower.startsWith('data:') ||
-    lower.startsWith('vbscript:') ||
-    lower.startsWith('file:')
-  ) {
-    throw new Error('Invalid link');
+  if (!/^[a-z0-9\-_/]+$/i.test(segment)) {
+    throw new Error('Use only letters, numbers, -, _, and /');
   }
-  return s;
+  return segment;
 }
 
 export function sanitizeSlug(raw: string): string {

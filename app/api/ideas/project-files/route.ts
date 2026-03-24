@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql, initDatabase } from '@/lib/db';
+import { parseLiveLinkInput } from '@/lib/ideaProjectHelpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,10 +32,16 @@ export async function GET(request: NextRequest) {
     `;
 
     const paths = (files as unknown as { file_path: string }[]).map((f) => f.file_path);
-    return NextResponse.json({
-      project: { slug: project.slug, name: project.name, liveLink: project.live_link || '' },
-      files: paths,
-    });
+    let liveLink = '';
+    if (project.live_link) {
+      try {
+        liveLink = parseLiveLinkInput(project.live_link) || '';
+      } catch {
+        liveLink = '';
+      }
+    }
+
+    return NextResponse.json({ project: { slug: project.slug, name: project.name, liveLink }, files: paths });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
