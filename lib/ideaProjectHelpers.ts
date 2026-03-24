@@ -25,6 +25,28 @@ const TEXT_EXT = new Set([
   'html', 'htm', 'css', 'js', 'mjs', 'cjs', 'json', 'txt', 'xml', 'svg', 'md', 'map', 'tsx', 'ts', 'jsx',
 ]);
 
+/** Stored on idea_projects; optional external or path URL for “open live site”. */
+export const MAX_LIVE_LINK_LEN = 2048;
+
+export function parseLiveLinkInput(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim();
+  if (s === '') return null;
+  if (s.length > MAX_LIVE_LINK_LEN) {
+    throw new Error(`Link is too long (max ${MAX_LIVE_LINK_LEN} characters)`);
+  }
+  const lower = s.toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('vbscript:') ||
+    lower.startsWith('file:')
+  ) {
+    throw new Error('Invalid link');
+  }
+  return s;
+}
+
 export function sanitizeSlug(raw: string): string {
   const s = raw
     .toLowerCase()

@@ -250,6 +250,16 @@ export async function initDatabase() {
         UNIQUE (project_id, file_path)
       )
     `;
+    try {
+      const col = await sql`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'idea_projects' AND column_name = 'live_link'
+      `;
+      if (col.length === 0) {
+        await sql`ALTER TABLE idea_projects ADD COLUMN live_link TEXT`;
+        console.log('✓ Added live_link to idea_projects');
+      }
+    } catch (_) {}
 
     // Marine app: boat owners (subscription-based remote monitoring)
     await sql`

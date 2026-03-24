@@ -143,11 +143,24 @@ function SingleHtmlViewer({ filename }: { filename: string }) {
   );
 }
 
+/** Turn stored value into an href (add https:// when user typed a bare host/path). */
+function hrefForLiveLink(raw: string): string {
+  const t = raw.trim();
+  if (!t) return '';
+  if (t.startsWith('/')) return t;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
+
 function ProjectHub({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [name, setName] = useState('');
   const [files, setFiles] = useState<string[]>([]);
+  const [liveLink, setLiveLink] = useState('');
+  const [liveLinkDraft, setLiveLinkDraft] = useState('');
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [linkMessage, setLinkMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/ideas/project-files?slug=${encodeURIComponent(slug)}`)
@@ -159,10 +172,35 @@ function ProjectHub({ slug }: { slug: string }) {
         }
         setName(data.project?.name || slug);
         setFiles(data.files);
+        const saved = typeof data.project?.liveLink === 'string' ? data.project.liveLink : '';
+        setLiveLink(saved);
+        setLiveLinkDraft(saved);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  const saveLiveLink = async () => {
+    setLinkMessage(null);
+    setLinkSaving(true);
+    try {
+      const res = await fetch('/api/ideas/project-live-link', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, liveLink: liveLinkDraft }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not save link');
+      const next = data.project?.liveLink ?? '';
+      setLiveLink(next);
+      setLiveLinkDraft(next);
+      setLinkMessage('Saved.');
+    } catch (e: any) {
+      setLinkMessage(e.message || 'Save failed');
+    } finally {
+      setLinkSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -196,6 +234,62 @@ function ProjectHub({ slug }: { slug: string }) {
           <h1 className="text-2xl font-bold">{name}</h1>
         </div>
         <p className="text-gray-400 text-sm font-mono">/ideas/{slug}</p>
+
+        <section className="rounded-xl border border-gray-700 bg-gray-800/50 p-6 space-y-3">
+          <h2 className="text-lg font-semibold">Live / deployed URL</h2>
+          <p className="text-gray-400 text-sm">
+            Optional link to where this project is hosted (e.g.{' '}
+            <span className="text-gray-300 font-mono text-xs">aiwebdesignfirm.com/demo</span> or{' '}
+            <span className="text-gray-300 font-mono text-xs">https://example.com/app</span>).             Paths on this site can
+            start with <span className="font-mono text-xs text-gray-300">/</span>. Leave empty and click Save to remove.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              placeholder="aiwebdesignfirm.com/something or https://…"
+              value={liveLinkDraft}
+              onChange={(e) => setLiveLinkDraft(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm font-mono placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-600"
+            />
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={saveLiveLink}
+                disabled={linkSaving}
+                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium disabled:opacity-50"
+              >
+                {linkSaving ? 'Saving…' : 'Save link'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLiveLinkDraft('');
+                  setLinkMessage(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          {linkMessage && (
+            <p className={`text-sm ${linkMessage === 'Saved.' ? 'text-green-400' : 'text-red-400'}`}>{linkMessage}</p>
+          )}
+          {liveLink.trim() && (
+            <div>
+              <a
+                href={hrefForLiveLink(liveLink)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium"
+              >
+                Open live URL →
+              </a>
+            </div>
+          )}
+        </section>
 
         {indexPath && (
           <div>
