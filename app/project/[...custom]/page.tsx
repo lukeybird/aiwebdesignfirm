@@ -29,7 +29,7 @@ async function resolveProjectByCustom(custom: string) {
       WHERE project_id = ${project.id}
       ORDER BY file_path
     `;
-    const paths = (files as { file_path: string }[]).map((f) => f.file_path);
+    const paths = (files as unknown as { file_path: string }[]).map((f) => f.file_path);
     const indexPath = paths.find((p) => p.toLowerCase() === 'index.html') || paths.find((p) => p.endsWith('/index.html'));
 
     return { ...project, indexPath, paths };
