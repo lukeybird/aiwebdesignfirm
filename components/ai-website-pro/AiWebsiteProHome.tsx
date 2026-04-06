@@ -103,9 +103,13 @@ export default function AiWebsiteProHome() {
     }
   ];
 
+  const CANNED_FREE_REPLY =
+    "I don't have the answer to that question right now, but if you provide your email we will get back to you as soon as I do.";
+
   type ChatMessage = { role: "user" | "ai"; text: string };
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
+  const [userDraft, setUserDraft] = useState("");
   const [chatPhase, setChatPhase] = useState<"idle" | "typing-q" | "thinking" | "typing-a">("idle");
   const [activeChat, setActiveChat] = useState<number | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -116,7 +120,39 @@ export default function AiWebsiteProHome() {
   useEffect(() => {
     const el = chatMessagesRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [chatMessages, inputText, chatPhase]);
+  }, [chatMessages, inputText, userDraft, chatPhase]);
+
+  const handleUserSend = () => {
+    if (chatPhase !== "idle") return;
+    const trimmed = userDraft.trim();
+    if (!trimmed) return;
+    if (chatIntervalRef.current) clearTimeout(chatIntervalRef.current);
+
+    setActiveChat(null);
+    setUserDraft("");
+    setChatMessages((prev) => [...prev, { role: "user", text: trimmed }]);
+    setChatPhase("thinking");
+
+    chatIntervalRef.current = setTimeout(() => {
+      setChatPhase("typing-a");
+      setChatMessages((prev) => [...prev, { role: "ai", text: "" }]);
+      let aIdx = 0;
+      const typeCanned = () => {
+        aIdx++;
+        setChatMessages((prev) => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { role: "ai", text: CANNED_FREE_REPLY.slice(0, aIdx) };
+          return msgs;
+        });
+        if (aIdx < CANNED_FREE_REPLY.length) {
+          chatIntervalRef.current = setTimeout(typeCanned, 16);
+        } else {
+          setChatPhase("idle");
+        }
+      };
+      chatIntervalRef.current = setTimeout(typeCanned, 80);
+    }, 900);
+  };
 
   const handleFaqClick = (index: number) => {
     if (chatPhase !== "idle") return;
@@ -125,6 +161,7 @@ export default function AiWebsiteProHome() {
     setActiveChat(index);
     setChatMessages([]);
     setInputText("");
+    setUserDraft("");
     setChatPhase("typing-q");
 
     chatSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -502,20 +539,36 @@ export default function AiWebsiteProHome() {
                     <div className="flex-1 relative">
                       <input
                         type="text"
-                        value={inputText}
-                        placeholder="iMessage"
-                        readOnly
-                        className="w-full bg-[#2c2c2e] border border-white/10 rounded-full py-2.5 px-4 text-sm text-white placeholder:text-white/30 focus:outline-none caret-[#00d4ff]"
+                        value={chatPhase === "typing-q" ? inputText : userDraft}
+                        onChange={(e) => {
+                          if (chatPhase === "idle") setUserDraft(e.target.value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && chatPhase === "idle" && userDraft.trim()) {
+                            e.preventDefault();
+                            handleUserSend();
+                          }
+                        }}
+                        placeholder={chatPhase === "idle" ? "Type a message…" : "iMessage"}
+                        readOnly={chatPhase !== "idle"}
+                        className="w-full bg-[#2c2c2e] border border-white/10 rounded-full py-2.5 px-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4ff]/50 caret-[#00d4ff] disabled:opacity-70"
                       />
                     </div>
                     <button
+                      type="button"
+                      onClick={handleUserSend}
+                      disabled={chatPhase !== "idle" || !userDraft.trim()}
                       className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
-                        inputText.length > 0
+                        chatPhase === "idle" && userDraft.trim()
                           ? "bg-[#0066ff] shadow-lg shadow-[#0066ff]/40 scale-105"
                           : "bg-[#2c2c2e]"
-                      }`}
+                      } disabled:opacity-50 disabled:scale-100`}
                     >
-                      <ArrowRight className={`w-4 h-4 transition-colors ${inputText.length > 0 ? "text-white" : "text-white/30"}`} />
+                      <ArrowRight
+                        className={`w-4 h-4 transition-colors ${
+                          chatPhase === "idle" && userDraft.trim() ? "text-white" : "text-white/30"
+                        }`}
+                      />
                     </button>
                   </div>
                 </div>
