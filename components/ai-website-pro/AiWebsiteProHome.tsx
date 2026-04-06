@@ -687,21 +687,21 @@ export default function AiWebsiteProHome() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-5 lg:gap-6 max-w-6xl mx-auto items-end">
+          <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
 
-            {/* Tier 1 — Starter: compact, silver (same card language as Pro/Agency, lighter emphasis) */}
+            {/* Tier 1 — Starter: silver; same footprint as siblings (tiny emphasis via price size only) */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0 }}
               viewport={{ once: true }}
-              className="relative rounded-3xl flex flex-col w-full lg:scale-[0.96] origin-bottom"
+              className="relative rounded-3xl flex flex-col h-full min-h-0 w-full"
               style={{ zIndex: 1 }}
             >
               <div className="absolute -inset-px bg-gradient-to-b from-slate-300/22 via-slate-400/10 to-slate-600/12 rounded-3xl blur-lg -z-10 pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-br from-slate-400/10 via-transparent to-transparent rounded-3xl blur-md -z-10 pointer-events-none" />
-              <div className="relative bg-gradient-to-b from-[#141418] to-[#0d0d1a] border-2 border-slate-400/45 rounded-3xl p-6 md:p-7 flex flex-col shadow-[0_0_28px_-14px_rgba(148,163,184,0.4),0_0_10px_-8px_rgba(203,213,225,0.15)] ring-1 ring-slate-500/20">
-                <div className="mb-5">
+              <div className="relative bg-gradient-to-b from-[#141418] to-[#0d0d1a] border-2 border-slate-400/45 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_28px_-14px_rgba(148,163,184,0.4),0_0_10px_-8px_rgba(203,213,225,0.15)] ring-1 ring-slate-500/20">
+                <div className="mb-6">
                   <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Starter</p>
                   <div className="flex items-end gap-1 mb-1">
                     <span className="text-4xl font-black font-heading text-white">$95.95</span>
@@ -709,7 +709,7 @@ export default function AiWebsiteProHome() {
                   </div>
                   <p className="text-sm text-slate-400/90">One-time $95.95 setup fee to get your site built out</p>
                 </div>
-                <ul className="space-y-2.5 mb-6">
+                <ul className="space-y-3 mb-8 flex-1">
                   {[
                     "Custom AI-powered website built for you",
                     "Site live in 7 days or less",
@@ -737,18 +737,18 @@ export default function AiWebsiteProHome() {
               </div>
             </motion.div>
 
-            {/* Tier 2 — AI Pro — focal tier (largest visual pull) */}
+            {/* Tier 2 — AI Pro — focal glow; same card height as others */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               viewport={{ once: true }}
-              className="relative rounded-3xl flex flex-col w-full lg:-mt-6 lg:mb-2 lg:scale-[1.045] origin-bottom"
-              style={{ zIndex: 20 }}
+              className="relative rounded-3xl flex flex-col h-full min-h-0 w-full"
+              style={{ zIndex: 10 }}
             >
               {/* Glow */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0066ff]/38 to-[#7c3aed]/28 rounded-3xl blur-2xl -z-10 scale-105" />
-              <div className="relative bg-gradient-to-b from-[#0a1628] to-[#0d0d1a] border-2 border-[#0066ff]/70 rounded-3xl p-8 flex flex-col shadow-[0_0_72px_-8px_rgba(0,102,255,0.55),0_0_40px_-12px_rgba(0,212,255,0.35)] ring-1 ring-[#00d4ff]/25">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0066ff]/32 to-[#7c3aed]/22 rounded-3xl blur-xl -z-10" />
+              <div className="relative bg-gradient-to-b from-[#0a1628] to-[#0d0d1a] border-2 border-[#0066ff]/65 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_56px_-10px_rgba(0,102,255,0.5),0_0_28px_-10px_rgba(0,212,255,0.3)] ring-1 ring-[#00d4ff]/25">
                 {/* Badge */}
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black text-xs font-black uppercase tracking-widest px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap">
                   Most Popular — Best Value
@@ -763,7 +763,7 @@ export default function AiWebsiteProHome() {
                   <p className="text-sm text-[#00d4ff]/70">Everything to dominate AI search — every single month</p>
                 </div>
 
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-8 flex-1">
                   {[
                     "Everything in Starter",
                     "Full AI optimization of your site monthly",
@@ -790,18 +790,18 @@ export default function AiWebsiteProHome() {
               </div>
             </motion.div>
 
-            {/* Tier 3 — Full Agency — largest footprint, premium fire tier */}
+            {/* Tier 3 — Full Agency — fire tier; same footprint as Pro / Starter */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               viewport={{ once: true }}
-              className="relative rounded-3xl flex flex-col w-full lg:scale-[1.06] origin-bottom lg:-mb-1"
-              style={{ zIndex: 12 }}
+              className="relative rounded-3xl flex flex-col h-full min-h-0 w-full"
+              style={{ zIndex: 11 }}
             >
-              <div className="absolute -inset-[2px] bg-gradient-to-b from-red-500/55 via-orange-500/38 to-red-600/25 rounded-[1.35rem] blur-2xl -z-10 scale-[1.02]" />
-              <div className="absolute inset-0 bg-gradient-to-br from-red-600/28 via-orange-600/18 to-transparent rounded-3xl blur-xl -z-10" />
-              <div className="relative bg-gradient-to-b from-[#1a0808] via-[#120606] to-[#0d0d1a] border-2 border-red-500/75 rounded-3xl p-8 md:p-9 lg:p-10 flex flex-col shadow-[0_0_80px_-8px_rgba(239,68,68,0.6),0_0_32px_-8px_rgba(249,115,22,0.4)] ring-1 ring-orange-500/30">
+              <div className="absolute -inset-px bg-gradient-to-b from-red-500/50 via-orange-500/35 to-red-600/20 rounded-3xl blur-2xl -z-10" />
+              <div className="absolute inset-0 bg-gradient-to-br from-red-600/25 via-orange-600/15 to-transparent rounded-3xl blur-xl -z-10" />
+              <div className="relative bg-gradient-to-b from-[#1a0808] via-[#120606] to-[#0d0d1a] border-2 border-red-500/70 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_64px_-10px_rgba(239,68,68,0.55),0_0_24px_-8px_rgba(249,115,22,0.35)] ring-1 ring-orange-500/25">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-5 py-1.5 rounded-full shadow-lg shadow-red-950/60 whitespace-nowrap">
                   Elite · White-glove
                 </div>
@@ -811,15 +811,15 @@ export default function AiWebsiteProHome() {
                     Full AI Agency
                   </p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-5xl md:text-6xl font-black font-heading text-white leading-none">$4,999</span>
-                    <span className="text-red-200/60 mb-1 md:mb-1.5">/mo</span>
+                    <span className="text-5xl font-black font-heading text-white">$4,999</span>
+                    <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
-                  <p className="text-sm md:text-[0.9375rem] text-red-200/75 leading-relaxed">
+                  <p className="text-sm text-red-200/70">
                     Serious scale: a senior team fully focused on your growth.
                   </p>
                 </div>
 
-                <ul className="space-y-3.5 mb-8">
+                <ul className="space-y-3 mb-8 flex-1">
                   {[
                     "Everything in AI Pro",
                     "A dedicated team locked in on your business daily",
