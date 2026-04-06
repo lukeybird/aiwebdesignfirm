@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -25,6 +25,12 @@ export const metadata: Metadata = {
     icon: '/icon.png',
     apple: '/icon.png',
   },
+};
+
+/** Tab / mobile browser chrome — matches aiWebDF dark background */
+export const viewport: Viewport = {
+  themeColor: "#0a0a0f",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({

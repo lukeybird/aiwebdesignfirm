@@ -280,12 +280,6 @@ export default function AiWebsiteProHome() {
             <span className="font-heading font-bold text-xl tracking-tight text-white">aiWebDF</span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link
-              href="/home-original"
-              className="text-sm text-gray-400 hover:text-white transition-colors hidden sm:inline"
-            >
-              Classic site
-            </Link>
             <Button asChild className="bg-white text-black hover:bg-gray-200 font-medium px-6 rounded-full transition-all duration-300">
               <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
                 Get Started
@@ -1150,13 +1144,8 @@ export default function AiWebsiteProHome() {
       
       {/* Footer */}
       <footer className="py-8 bg-[#0a0a0f] border-t border-white/5 text-center text-gray-500 text-sm">
-        <div className="container mx-auto px-6 space-y-2">
+        <div className="container mx-auto px-6">
           <p>© {new Date().getFullYear()} aiWebDF. All rights reserved.</p>
-          <p>
-            <Link href="/home-original" className="text-gray-400 hover:text-[#00d4ff] underline-offset-4 hover:underline">
-              View classic AI Web Design Firm homepage
-            </Link>
-          </p>
         </div>
       </footer>
     </div>
