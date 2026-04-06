@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWelcomeEmailContent } from '@/lib/email-templates';
+import { getResendApiKey } from '@/lib/resend-key';
 
 // POST - Send test welcome email
 export async function POST(request: NextRequest) {
@@ -10,6 +11,8 @@ export async function POST(request: NextRequest) {
 
     // Prepare email content using shared template
     const { emailContent, htmlContent } = getWelcomeEmailContent(testFullName, testEmail, testPassword);
+
+    const resendKey = getResendApiKey();
 
     // Try SMTP first, then fall back to Resend API
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -48,10 +51,10 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-    } else if (process.env.RESEND_API_KEY) {
+    } else if (resendKey) {
       try {
         const { Resend } = await import('resend');
-        const resend = new Resend(process.env.RESEND_API_KEY);
+        const resend = new Resend(resendKey);
         
         const fromEmail = process.env.FROM_EMAIL || 'support@aiwebdesignfirm.com';
 
@@ -84,7 +87,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       return NextResponse.json(
-        { error: 'No email service configured (SMTP or RESEND_API_KEY)' },
+        { error: 'No email service configured (SMTP or RESEND_API_KEY / AIWEBD)' },
         { status: 500 }
       );
     }

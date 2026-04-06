@@ -1,3 +1,5 @@
+import { getResendApiKey } from '@/lib/resend-key';
+
 /**
  * Inbound alerts for contact-style submissions (consultation, demo, new signups).
  * Override with CONTACT_NOTIFY_EMAILS="a@x.com,b@y.com" (comma-separated).
@@ -28,10 +30,11 @@ export async function sendTeamNotification(params: {
 
   const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
-  if (process.env.RESEND_API_KEY) {
+  const resendKey = getResendApiKey();
+  if (resendKey) {
     try {
       const { Resend } = await import('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY);
+      const resend = new Resend(resendKey);
       const { error } = await resend.emails.send({
         from: fromEmail,
         to,
@@ -79,6 +82,6 @@ export async function sendTeamNotification(params: {
     }
   }
 
-  console.warn('sendTeamNotification: RESEND_API_KEY and SMTP are not configured');
+  console.warn('sendTeamNotification: no mail transport (set RESEND_API_KEY or AIWEBD, or SMTP)');
   return { ok: false, error: 'no mail transport' };
 }

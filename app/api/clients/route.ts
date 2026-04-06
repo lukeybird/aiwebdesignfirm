@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { getWelcomeEmailContent } from '@/lib/email-templates';
 import { getTeamNotifyEmails } from '@/lib/team-email';
+import { getResendApiKey } from '@/lib/resend-key';
 
 // GET - Get all clients (for developer) or single client (for client dashboard)
 export async function GET(request: NextRequest) {
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare welcome email content using shared template
     const { emailContent, htmlContent } = getWelcomeEmailContent(fullName, email, password);
+    const resendApiKey = getResendApiKey();
 
     // Send welcome email
     // Try SMTP first (Resend SMTP or ProtonMail), then fall back to Resend API
@@ -185,19 +187,19 @@ You can view this client's account in the developer dashboard.
         });
         // Don't fail signup if email fails
       }
-    } else if (process.env.RESEND_API_KEY) {
+    } else if (resendApiKey) {
       // Fall back to Resend API
       try {
         const { Resend } = await import('resend');
-        const resend = new Resend(process.env.RESEND_API_KEY);
+        const resend = new Resend(resendApiKey);
         
         const fromEmail = process.env.FROM_EMAIL || 'support@aiwebdesignfirm.com';
         const toEmail = email;
 
         // Log configuration (without exposing full API key)
         console.log('Welcome email configuration (Resend API):', {
-          hasApiKey: !!process.env.RESEND_API_KEY,
-          apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) + '...',
+          hasApiKey: !!resendApiKey,
+          apiKeyPrefix: resendApiKey.substring(0, 10) + '...',
           fromEmail,
           toEmail,
         });
@@ -282,7 +284,7 @@ You can view this client's account in the developer dashboard.
         });
       }
     } else {
-      console.warn('No email service configured (SMTP or RESEND_API_KEY) - welcome email not sent to:', email);
+      console.warn('No email service configured (SMTP or RESEND_API_KEY / AIWEBD) - welcome email not sent to:', email);
     }
 
     return NextResponse.json({ 

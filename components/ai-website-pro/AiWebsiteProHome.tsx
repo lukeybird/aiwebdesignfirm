@@ -81,7 +81,7 @@ export default function AiWebsiteProHome() {
         } else {
           toast.warning('Request saved — email not sent', {
             description:
-              'Your details were stored, but the notification email failed. Set RESEND_API_KEY (and a verified FROM_EMAIL) on the server, or check logs.',
+              'Your details were stored, but the notification email failed. Set RESEND_API_KEY or AIWEBD (and FROM_EMAIL) on the server, or check logs.',
           });
         }
       } else {
