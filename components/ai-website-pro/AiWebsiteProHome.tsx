@@ -79,9 +79,14 @@ export default function AiWebsiteProHome() {
             description: "We'll be in touch shortly to discuss your AI website.",
           });
         } else {
+          const hint = payload.notifyError?.trim();
+          const maxLen = 220;
+          const shortErr =
+            hint && hint.length > maxLen ? `${hint.slice(0, maxLen)}…` : hint;
           toast.warning('Request saved — email not sent', {
-            description:
-              'Your details were stored, but the notification email failed. Set RESEND_API_KEY or AIWEBD (and FROM_EMAIL) on the server, or check logs.',
+            description: shortErr
+              ? `Resend/notify failed: ${shortErr}`
+              : 'Your details were stored, but the team email did not send. Set RESEND_API_KEY (or RESND_API_KEY) on the server for Production and redeploy; set FROM_EMAIL to a verified sender.',
           });
         }
       } else {

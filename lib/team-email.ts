@@ -35,16 +35,29 @@ export async function sendTeamNotification(params: {
     try {
       const { Resend } = await import('resend');
       const resend = new Resend(resendKey);
-      const { error } = await resend.emails.send({
-        from: fromEmail,
-        to,
-        subject: params.subject,
-        text: params.text,
-        html: params.html,
-      });
-      if (error) {
-        console.error('sendTeamNotification Resend error:', error);
-        return { ok: false, error: (error as { message?: string }).message || String(error) };
+      // One API call per recipient. With onboarding@resend.dev, Resend often only allows
+      // verified addresses — a single multi-recipient send fails entirely if any "to" is blocked.
+      const failures: string[] = [];
+      for (const recipient of to) {
+        const { error } = await resend.emails.send({
+          from: fromEmail,
+          to: recipient,
+          subject: params.subject,
+          text: params.text,
+          html: params.html,
+        });
+        if (error) {
+          const err = error as { message?: string; name?: string };
+          const detail = [err.name, err.message].filter(Boolean).join(': ') || String(error);
+          failures.push(`${recipient}: ${detail}`);
+          console.error('sendTeamNotification Resend error:', recipient, error);
+        }
+      }
+      if (failures.length === to.length) {
+        return { ok: false, error: failures.join(' | ') };
+      }
+      if (failures.length) {
+        console.warn('sendTeamNotification: some recipients failed:', failures.join(' | '));
       }
       return { ok: true };
     } catch (e: unknown) {
@@ -82,6 +95,12 @@ export async function sendTeamNotification(params: {
     }
   }
 
-  console.warn('sendTeamNotification: no mail transport (set RESEND_API_KEY or AIWEBD, or SMTP)');
-  return { ok: false, error: 'no mail transport' };
+  console.warn(
+    'sendTeamNotification: no mail transport (set RESEND_API_KEY, RESND_API_KEY, or AIWEBD on the server, or SMTP)',
+  );
+  return {
+    ok: false,
+    error:
+      'No API key visible to this server. Add RESEND_API_KEY (or RESND_API_KEY) in Vercel → Production, then redeploy.',
+  };
 }
