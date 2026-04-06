@@ -8,6 +8,21 @@ import {
 
 const PLACEHOLDER_LISTING = 'aiWebDF — consultation request';
 
+const PLAN_OPTIONS = ['starter', 'advanced', 'elite'] as const;
+type PlanId = (typeof PLAN_OPTIONS)[number];
+
+const PLAN_LABEL: Record<PlanId, string> = {
+  starter: 'Starter AI',
+  advanced: 'Advanced AI',
+  elite: 'Elite AI',
+};
+
+function parsePlan(raw: unknown): PlanId | null {
+  if (typeof raw !== 'string') return null;
+  const t = raw.trim().toLowerCase();
+  return PLAN_OPTIONS.includes(t as PlanId) ? (t as PlanId) : null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -16,6 +31,7 @@ export async function POST(request: NextRequest) {
     const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
     const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : '';
     const message = typeof body.message === 'string' ? body.message.trim() : '';
+    const plan = parsePlan(body.plan);
 
     if (name.length < 2) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -23,8 +39,18 @@ export async function POST(request: NextRequest) {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
+    if (!plan) {
+      return NextResponse.json({ error: 'Valid plan is required' }, { status: 400 });
+    }
 
-    const noteText = [message ? `Message: ${message}` : null].filter(Boolean).join('\n') || null;
+    const planLabel = PLAN_LABEL[plan];
+
+    const noteText = [
+      `Plan: ${planLabel}`,
+      message ? `Message: ${message}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n') || null;
 
     const result = await sql`
       INSERT INTO leads (
@@ -56,8 +82,9 @@ export async function POST(request: NextRequest) {
     }
 
     const textBody = [
-      `aiWebDF — Elite AI consultation`,
+      `aiWebDF — ${planLabel} consultation`,
       ``,
+      `Plan: ${planLabel}`,
       `Name: ${name}`,
       `Email: ${email}`,
       phone ? `Phone: ${phone}` : null,
@@ -74,7 +101,8 @@ export async function POST(request: NextRequest) {
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     const htmlBody = `
-      <h2>aiWebDF — Elite AI consultation</h2>
+      <h2>aiWebDF — ${esc(planLabel)} consultation</h2>
+      <p><strong>Plan:</strong> ${esc(planLabel)}</p>
       <p><strong>Name:</strong> ${esc(name)}</p>
       <p><strong>Email:</strong> ${esc(email)}</p>
       ${phone ? `<p><strong>Phone:</strong> ${esc(phone)}</p>` : ''}
@@ -84,7 +112,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const mail = await sendTeamNotification({
-      subject: `aiWebDF Elite AI: ${name}`,
+      subject: `aiWebDF ${planLabel}: ${name}`,
       text: textBody,
       html: htmlBody,
     });

@@ -16,6 +16,7 @@ import {
   Globe,
   ArrowUpRight,
   Flame,
+  type LucideIcon,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,8 +25,246 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+
+const PLAN_IDS = ['starter', 'advanced', 'elite'] as const;
+type PlanId = (typeof PLAN_IDS)[number];
+
+const PLAN_LABEL: Record<PlanId, string> = {
+  starter: 'Starter AI',
+  advanced: 'Advanced AI',
+  elite: 'Elite AI',
+};
+
+type ContactTheme = {
+  sectionBg: string;
+  sectionBorder: string;
+  blurTop: string;
+  blurBottom: string;
+  radial: string;
+  leftBadgeWrap: string;
+  leftBadgeText: string;
+  leftHeading1: string;
+  leftHeading2: string;
+  leftSub: string;
+  leftFeatureShell: string;
+  leftFeatureShadowHover: string;
+  leftFeatureIcon: string;
+  leftFeatureText: string;
+  formGlowMotion: string;
+  formGlowStatic: string;
+  formCard: string;
+  formBlobTL: string;
+  formBlobBR: string;
+  divider: string;
+  formHeaderSub: string;
+  label: string;
+  input: string;
+  error: string;
+  select: string;
+  submit: string;
+  successRing: string;
+  successTitle: string;
+  successSub: string;
+  successBtn: string;
+  successIcon: string;
+};
+
+const PLAN_THEMES: Record<PlanId, ContactTheme> = {
+  starter: {
+    sectionBg: 'bg-gradient-to-b from-[#0c0d10] via-[#0a0a0f] to-[#08080a]',
+    sectionBorder: 'border-slate-600/25',
+    blurTop: 'bg-slate-400/22',
+    blurBottom: 'bg-slate-500/18',
+    radial: 'bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(148,163,184,0.14),transparent)]',
+    leftBadgeWrap:
+      'border border-slate-400/45 bg-gradient-to-r from-slate-900/90 to-slate-800/70 shadow-[0_0_24px_-4px_rgba(148,163,184,0.35)]',
+    leftBadgeText:
+      'text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-white to-slate-300',
+    leftHeading1:
+      'text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-100 to-slate-400',
+    leftHeading2:
+      'text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-white to-slate-300',
+    leftSub: 'text-slate-300/75',
+    leftFeatureShell:
+      'bg-gradient-to-br from-slate-600/35 to-slate-800/25 border border-slate-500/40',
+    leftFeatureShadowHover:
+      'shadow-[0_0_20px_-6px_rgba(148,163,184,0.4)] group-hover:shadow-[0_0_28px_-4px_rgba(203,213,225,0.35)]',
+    leftFeatureIcon: 'text-slate-200',
+    leftFeatureText: 'text-slate-200/90',
+    formGlowMotion: 'bg-gradient-to-b from-slate-400/35 via-slate-500/22 to-slate-600/18',
+    formGlowStatic: 'bg-gradient-to-br from-slate-500/20 via-slate-600/12 to-transparent',
+    formCard:
+      'bg-gradient-to-b from-[#121318] via-[#0c0d12] to-[#08090c] border-2 border-slate-500/55 shadow-[0_0_56px_-10px_rgba(148,163,184,0.35),0_0_24px_-12px_rgba(100,116,139,0.25)] ring-1 ring-slate-400/20',
+    formBlobTL: 'bg-slate-400/12',
+    formBlobBR: 'bg-slate-500/14',
+    divider: 'bg-gradient-to-r from-transparent via-slate-500/40 to-transparent',
+    formHeaderSub: 'text-slate-300/90',
+    label: 'text-slate-200/90',
+    input:
+      'bg-black/50 border-slate-500/40 text-white placeholder:text-slate-400/30 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:border-slate-300/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+    error: 'text-slate-300',
+    select:
+      'w-full h-11 rounded-xl bg-black/50 border border-slate-500/45 px-3 text-sm font-medium text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 appearance-none cursor-pointer transition-colors duration-500',
+    submit:
+      'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black shadow-[0_0_36px_-8px_rgba(203,213,225,0.5)] border border-white/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
+    successRing:
+      'bg-gradient-to-br from-slate-400/30 to-slate-600/30 border border-slate-400/45',
+    successTitle:
+      'text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-200',
+    successSub: 'text-slate-300/65',
+    successBtn: 'border-slate-500/45 text-slate-200 hover:bg-slate-950/60 hover:text-white',
+    successIcon: 'text-slate-200',
+  },
+  advanced: {
+    sectionBg: 'bg-gradient-to-b from-[#050a14] via-[#070d18] to-[#0a0a0f]',
+    sectionBorder: 'border-[#0066ff]/25',
+    blurTop: 'bg-[#0066ff]/28',
+    blurBottom: 'bg-[#00d4ff]/20',
+    radial: 'bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(0,102,255,0.2),transparent)]',
+    leftBadgeWrap:
+      'border border-[#00d4ff]/45 bg-gradient-to-r from-[#061428]/95 to-[#0a1a30]/85 shadow-[0_0_24px_-4px_rgba(0,212,255,0.4)]',
+    leftBadgeText: 'text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#0066ff]',
+    leftHeading1:
+      'text-transparent bg-clip-text bg-gradient-to-br from-white via-[#b8e8ff] to-[#00d4ff]',
+    leftHeading2:
+      'text-transparent bg-clip-text bg-gradient-to-r from-[#0066ff] via-[#00d4ff] to-[#0052cc]',
+    leftSub: 'text-[#7dd3fc]/75',
+    leftFeatureShell:
+      'bg-gradient-to-br from-[#0066ff]/35 to-[#00d4ff]/18 border border-[#00d4ff]/35',
+    leftFeatureShadowHover:
+      'shadow-[0_0_20px_-6px_rgba(0,102,255,0.5)] group-hover:shadow-[0_0_28px_-4px_rgba(0,212,255,0.45)]',
+    leftFeatureIcon: 'text-[#7dd3fc]',
+    leftFeatureText: 'text-cyan-100/85',
+    formGlowMotion: 'bg-gradient-to-b from-[#0066ff]/40 via-[#00d4ff]/28 to-[#0052cc]/15',
+    formGlowStatic: 'bg-gradient-to-br from-[#0066ff]/22 via-[#00d4ff]/12 to-transparent',
+    formCard:
+      'bg-gradient-to-b from-[#0a1525] via-[#060d18] to-[#050810] border-2 border-[#0066ff]/60 shadow-[0_0_64px_-10px_rgba(0,102,255,0.45),0_0_28px_-10px_rgba(0,212,255,0.25)] ring-1 ring-[#00d4ff]/22',
+    formBlobTL: 'bg-[#00d4ff]/12',
+    formBlobBR: 'bg-[#0066ff]/18',
+    divider: 'bg-gradient-to-r from-transparent via-[#00d4ff]/35 to-transparent',
+    formHeaderSub: 'text-[#7dd3fc]/90',
+    label: 'text-[#a5f3fc]/90',
+    input:
+      'bg-black/50 border-[#0066ff]/35 text-white placeholder:text-cyan-200/20 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-[#00d4ff]/70 focus-visible:border-[#00d4ff]/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+    error: 'text-cyan-200',
+    select:
+      'w-full h-11 rounded-xl bg-black/50 border border-[#0066ff]/40 px-3 text-sm font-medium text-cyan-50 outline-none focus-visible:ring-2 focus-visible:ring-[#00d4ff]/55 appearance-none cursor-pointer transition-colors duration-500',
+    submit:
+      'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black shadow-[0_0_40px_-6px_rgba(0,212,255,0.75),0_0_20px_-8px_rgba(0,102,255,0.4)] border border-[#00d4ff]/35 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
+    successRing:
+      'bg-gradient-to-br from-[#00d4ff]/28 to-[#0066ff]/28 border border-[#00d4ff]/45',
+    successTitle:
+      'text-transparent bg-clip-text bg-gradient-to-r from-white to-[#a5f3fc]',
+    successSub: 'text-cyan-200/60',
+    successBtn:
+      'border-[#00d4ff]/40 text-cyan-200 hover:bg-[#061428]/55 hover:text-white',
+    successIcon: 'text-[#00d4ff]',
+  },
+  elite: {
+    sectionBg: 'bg-gradient-to-b from-[#0a0303] via-[#0d0505] to-[#0a0a0f]',
+    sectionBorder: 'border-red-950/40',
+    blurTop: 'bg-red-600/30',
+    blurBottom: 'bg-orange-600/25',
+    radial: 'bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(220,38,38,0.18),transparent)]',
+    leftBadgeWrap:
+      'border border-red-500/40 bg-gradient-to-r from-red-950/80 to-orange-950/60 shadow-[0_0_24px_-4px_rgba(239,68,68,0.45)]',
+    leftBadgeText:
+      'text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-300',
+    leftHeading1:
+      'text-transparent bg-clip-text bg-gradient-to-br from-white via-red-100 to-orange-200',
+    leftHeading2:
+      'text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-red-600',
+    leftSub: 'text-red-100/65',
+    leftFeatureShell:
+      'bg-gradient-to-br from-red-600/40 to-orange-600/25 border border-red-500/35',
+    leftFeatureShadowHover:
+      'shadow-[0_0_20px_-6px_rgba(239,68,68,0.5)] group-hover:shadow-[0_0_28px_-4px_rgba(249,115,22,0.45)]',
+    leftFeatureIcon: 'text-orange-300',
+    leftFeatureText: 'text-red-100/80',
+    formGlowMotion: 'bg-gradient-to-b from-red-500/50 via-orange-500/35 to-red-600/20',
+    formGlowStatic: 'bg-gradient-to-br from-red-600/25 via-orange-600/15 to-transparent',
+    formCard:
+      'bg-gradient-to-b from-[#160606] via-[#0c0303] to-[#080202] border-2 border-red-500/70 shadow-[0_0_72px_-10px_rgba(239,68,68,0.55),0_0_24px_-8px_rgba(249,115,22,0.35)] ring-1 ring-orange-500/25',
+    formBlobTL: 'bg-orange-500/10',
+    formBlobBR: 'bg-red-600/15',
+    divider: 'bg-gradient-to-r from-transparent via-red-500/35 to-transparent',
+    formHeaderSub: 'text-red-300/85',
+    label: 'text-red-200/90',
+    input:
+      'bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+    error: 'text-orange-300',
+    select:
+      'w-full h-11 rounded-xl bg-black/50 border border-red-500/35 px-3 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-orange-500/65 appearance-none cursor-pointer transition-colors duration-500',
+    submit:
+      'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white shadow-[0_0_40px_-6px_rgba(239,68,68,0.85),0_0_20px_-8px_rgba(249,115,22,0.4)] border border-red-400/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
+    successRing:
+      'bg-gradient-to-br from-orange-500/30 to-red-600/30 border border-orange-400/40',
+    successTitle:
+      'text-transparent bg-clip-text bg-gradient-to-r from-white to-orange-200',
+    successSub: 'text-red-200/60',
+    successBtn: 'border-red-500/40 text-orange-200 hover:bg-red-950/50 hover:text-white',
+    successIcon: 'text-orange-400',
+  },
+};
+
+const PLAN_LEFT_COPY: Record<
+  PlanId,
+  {
+    badge: string;
+    BadgeIcon: LucideIcon;
+    h1: string;
+    h2: string;
+    sub: string;
+    bullets: { Icon: LucideIcon; text: string }[];
+  }
+> = {
+  starter: {
+    badge: 'Starter AI intake',
+    BadgeIcon: Bot,
+    h1: 'Launch fast.',
+    h2: 'We handle the build.',
+    sub: 'Tell us about your business — we ship your AI-ready site and keep you in the loop from day one.',
+    bullets: [
+      { Icon: Bot, text: 'Custom AI chatbot + SEO foundations' },
+      { Icon: Zap, text: 'Live in 7 days with clear next steps' },
+      { Icon: MessageSquare, text: 'Team responds within 24 hours' },
+    ],
+  },
+  advanced: {
+    badge: 'Advanced AI intake',
+    BadgeIcon: Zap,
+    h1: 'Compound growth.',
+    h2: 'Every month.',
+    sub: 'You get ongoing AI optimization, integrations, and strategy — so your site keeps pulling leads, not sitting still.',
+    bullets: [
+      { Icon: TrendingUp, text: 'Monthly optimization & strategy touchpoints' },
+      { Icon: BarChart3, text: 'AI tools applied on a recurring roadmap' },
+      { Icon: Globe, text: 'Visibility across search + AI answer engines' },
+    ],
+  },
+  elite: {
+    badge: 'Elite AI intake',
+    BadgeIcon: Flame,
+    h1: 'Torch the competition.',
+    h2: 'Start the conversation.',
+    sub: 'Elite AI leads go straight to our team. No fluff — tell us what you\'re building and we\'ll bring the heat.',
+    bullets: [
+      { Icon: MessageSquare, text: 'White-glove consult — zero pressure' },
+      { Icon: Zap, text: 'Custom growth roadmap for your market' },
+      { Icon: Flame, text: 'Priority routing for Elite AI partners' },
+    ],
+  },
+};
+
+const SUBMIT_LABEL: Record<PlanId, string> = {
+  starter: 'Request Starter AI consultation',
+  advanced: 'Request Advanced AI consultation',
+  elite: 'Request Elite AI consultation',
+};
 
 const formSchema = z.object({
+  plan: z.enum(['starter', 'advanced', 'elite']),
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
   businessName: z.string().optional(),
@@ -36,27 +275,43 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function AiWebsiteProHome() {
+  const defaultFormValues: FormValues = {
+    plan: 'elite',
+    name: '',
+    email: '',
+    businessName: '',
+    phone: '',
+    message: '',
+  };
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      businessName: '',
-      phone: '',
-      message: '',
-    },
+    defaultValues: defaultFormValues,
   });
+
+  const selectedPlan: PlanId = watch('plan') ?? 'elite';
+  const theme = PLAN_THEMES[selectedPlan];
+  const leftCopy = PLAN_LEFT_COPY[selectedPlan];
+  const LeftBadgeIcon = leftCopy.BadgeIcon;
+
+  const scrollToContact = (planId: PlanId) => {
+    setValue('plan', planId, { shouldValidate: true });
+    document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
+    const submittedPlan = data.plan;
     try {
       const response = await fetch('/api/ai-website-consultation', {
         method: 'POST',
@@ -76,7 +331,7 @@ export default function AiWebsiteProHome() {
 
       if (response.ok && payload.success) {
         setIsSuccess(true);
-        reset();
+        reset({ ...defaultFormValues, plan: submittedPlan });
         const teamOk = payload.emailSent === true;
         const thanksOk = payload.thankYouSent === true;
         const fullyOk =
@@ -120,7 +375,7 @@ export default function AiWebsiteProHome() {
       }
     } catch {
       toast.error('Something went wrong', {
-        description: 'Please try again or use the direct payment link.',
+        description: 'Please try again in a moment.',
       });
     } finally {
       setIsSubmitting(false);
@@ -780,13 +1035,12 @@ export default function AiWebsiteProHome() {
                   ))}
                 </ul>
                 <Button
-                  asChild
+                  type="button"
                   size="lg"
-                  className="w-full rounded-full bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black font-black text-base h-14 shadow-[0_0_24px_-6px_rgba(203,213,225,0.45)] border border-white/25 hover:scale-[1.02] transition-all duration-200"
+                  onClick={() => scrollToContact('starter')}
+                  className="w-full rounded-full bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black font-black text-lg h-14 shadow-[0_0_24px_-6px_rgba(203,213,225,0.45)] border border-white/25 hover:scale-[1.02] transition-all duration-200 gap-0"
                 >
-                  <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
-                    Get Started <ArrowRight className="ml-2 w-4 h-4" />
-                  </a>
+                  Get Started <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
                 </Button>
                 <p className="text-xs text-center text-slate-500/70 mt-3">Perfect to get live fast</p>
               </div>
@@ -845,10 +1099,13 @@ export default function AiWebsiteProHome() {
                   ))}
                 </ul>
 
-                <Button asChild size="lg" className="w-full rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-lg h-14 shadow-[0_0_30px_-5px_#00d4ff] hover:scale-105 transition-all duration-200">
-                  <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
-                    Start Advanced AI <ArrowRight className="ml-2 w-5 h-5" />
-                  </a>
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={() => scrollToContact('advanced')}
+                  className="w-full rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-lg h-14 shadow-[0_0_30px_-5px_#00d4ff] hover:scale-105 transition-all duration-200 gap-0"
+                >
+                  Go Advanced AI <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
                 </Button>
                 <p className="text-xs text-center text-[#00d4ff]/50 mt-3">The obvious choice for serious growth</p>
               </div>
@@ -914,13 +1171,12 @@ export default function AiWebsiteProHome() {
                 </ul>
 
                 <Button
-                  asChild
+                  type="button"
                   size="lg"
-                  className="w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white font-black text-lg h-14 shadow-[0_0_36px_-6px_rgba(239,68,68,0.75)] hover:scale-[1.02] transition-all duration-200 border border-red-400/30"
+                  onClick={() => scrollToContact('elite')}
+                  className="w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white font-black text-lg h-14 shadow-[0_0_36px_-6px_rgba(239,68,68,0.75)] hover:scale-[1.02] transition-all duration-200 border border-red-400/30 gap-0"
                 >
-                  <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
-                    Contact Us <ArrowRight className="ml-2 w-5 h-5" />
-                  </a>
+                  Go Elite AI <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
                 </Button>
                 <p className="text-xs text-center text-orange-400/55 mt-3">For businesses that refuse to lose</p>
               </div>
@@ -935,74 +1191,119 @@ export default function AiWebsiteProHome() {
         </div>
       </section>
 
-      {/* Lead Capture — Elite AI */}
-      <section className="relative py-28 md:py-32 overflow-hidden border-t border-red-950/40">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0303] via-[#0d0505] to-[#0a0a0f]" />
+      {/* Lead capture — plan-themed contact */}
+      <section
+        id="contact"
+        className={cn(
+          'relative py-28 md:py-32 overflow-hidden border-t scroll-mt-24 transition-colors duration-500',
+          theme.sectionBorder,
+        )}
+      >
         <motion.div
-          className="absolute -top-32 right-0 w-[min(90vw,520px)] h-[520px] rounded-full bg-red-600/30 blur-[100px] pointer-events-none"
-          animate={{ opacity: [0.35, 0.65, 0.35], scale: [1, 1.08, 1] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-0 w-[min(85vw,480px)] h-[480px] rounded-full bg-orange-600/25 blur-[110px] pointer-events-none"
-          animate={{ opacity: [0.3, 0.55, 0.3] }}
-          transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(220,38,38,0.18),transparent)] pointer-events-none" />
+          key={selectedPlan}
+          initial={{ opacity: 0.88 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.38, ease: 'easeOut' }}
+          className="relative min-h-0"
+        >
+          <div className={cn('absolute inset-0 pointer-events-none', theme.sectionBg)} />
+          <motion.div
+            className={cn(
+              'absolute -top-32 right-0 w-[min(90vw,520px)] h-[520px] rounded-full blur-[100px] pointer-events-none',
+              theme.blurTop,
+            )}
+            animate={{ opacity: [0.35, 0.65, 0.35], scale: [1, 1.08, 1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className={cn(
+              'absolute bottom-0 left-0 w-[min(85vw,480px)] h-[480px] rounded-full blur-[110px] pointer-events-none',
+              theme.blurBottom,
+            )}
+            animate={{ opacity: [0.3, 0.55, 0.3] }}
+            transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+          />
+          <div className={cn('absolute inset-0 pointer-events-none', theme.radial)} />
 
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="max-w-5xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-              <div className="space-y-8">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-red-500/40 bg-gradient-to-r from-red-950/80 to-orange-950/60 shadow-[0_0_24px_-4px_rgba(239,68,68,0.45)]">
-                  <Flame className="w-4 h-4 text-orange-400 shrink-0" />
-                  <span className="text-xs font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-300">
-                    Elite AI intake
-                  </span>
-                </div>
-                <h2 className="text-4xl md:text-5xl lg:text-[2.75rem] font-black font-heading leading-[1.1]">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-red-100 to-orange-200">
-                    Torch the competition.
-                  </span>
-                  <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-red-600">
-                    Start the conversation.
-                  </span>
-                </h2>
-                <p className="text-lg text-red-100/65 leading-relaxed max-w-md">
-                  Elite AI leads go straight to our team. No fluff — tell us what you&apos;re building and we&apos;ll
-                  bring the heat.
-                </p>
-                <div className="space-y-5">
-                  {[
-                    { icon: MessageSquare, text: 'White-glove consult — zero pressure' },
-                    { icon: Zap, text: 'Custom growth roadmap for your market' },
-                    { icon: Flame, text: 'Priority routing for Elite AI partners' },
-                  ].map(({ icon: Icon, text }) => (
-                    <div
-                      key={text}
-                      className="flex items-center gap-4 text-red-100/80 group"
+          <div className="container mx-auto px-6 relative z-10">
+            <div className="max-w-5xl mx-auto">
+              <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+                <div className="space-y-8">
+                  <div
+                    className={cn(
+                      'inline-flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-500',
+                      theme.leftBadgeWrap,
+                    )}
+                  >
+                    <LeftBadgeIcon className={cn('w-4 h-4 shrink-0', theme.leftFeatureIcon)} />
+                    <span
+                      className={cn(
+                        'text-xs font-black uppercase tracking-[0.2em] transition-colors duration-500',
+                        theme.leftBadgeText,
+                      )}
                     >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600/40 to-orange-600/25 border border-red-500/35 flex items-center justify-center shadow-[0_0_20px_-6px_rgba(239,68,68,0.5)] group-hover:shadow-[0_0_28px_-4px_rgba(249,115,22,0.45)] transition-shadow">
-                        <Icon className="w-5 h-5 text-orange-300" />
+                      {leftCopy.badge}
+                    </span>
+                  </div>
+                  <h2 className="text-4xl md:text-5xl lg:text-[2.75rem] font-black font-heading leading-[1.1] transition-colors duration-500">
+                    <span className={cn(theme.leftHeading1)}>{leftCopy.h1}</span>
+                    <br />
+                    <span className={cn(theme.leftHeading2)}>{leftCopy.h2}</span>
+                  </h2>
+                  <p className={cn('text-lg leading-relaxed max-w-md transition-colors duration-500', theme.leftSub)}>
+                    {leftCopy.sub}
+                  </p>
+                  <div className="space-y-5">
+                    {leftCopy.bullets.map(({ Icon, text }) => (
+                      <div key={text} className={cn('flex items-center gap-4 group', theme.leftFeatureText)}>
+                        <div
+                          className={cn(
+                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500',
+                            theme.leftFeatureShell,
+                            theme.leftFeatureShadowHover,
+                          )}
+                        >
+                          <Icon className={cn('w-5 h-5', theme.leftFeatureIcon)} />
+                        </div>
+                        <span className="font-medium">{text}</span>
                       </div>
-                      <span className="font-medium">{text}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="relative lg:pt-2 rounded-3xl">
-                {/* Same glow stack as Elite AI pricing card */}
-                <motion.div
-                  className="absolute -inset-px bg-gradient-to-b from-red-500/50 via-orange-500/35 to-red-600/20 rounded-3xl blur-2xl -z-10 pointer-events-none"
-                  animate={{ opacity: [0.55, 0.85, 0.55] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-br from-red-600/25 via-orange-600/15 to-transparent rounded-3xl blur-xl -z-10 pointer-events-none" />
-                <div className="relative bg-gradient-to-b from-[#160606] via-[#0c0303] to-[#080202] border-2 border-red-500/70 rounded-3xl p-8 md:p-9 shadow-[0_0_72px_-10px_rgba(239,68,68,0.55),0_0_24px_-8px_rgba(249,115,22,0.35)] ring-1 ring-orange-500/25 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-600/15 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative lg:pt-2 rounded-3xl">
+                  <motion.div
+                    className={cn(
+                      'absolute -inset-px rounded-3xl blur-2xl -z-10 pointer-events-none transition-colors duration-500',
+                      theme.formGlowMotion,
+                    )}
+                    animate={{ opacity: [0.55, 0.85, 0.55] }}
+                    transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  <div
+                    className={cn(
+                      'absolute inset-0 rounded-3xl blur-xl -z-10 pointer-events-none transition-colors duration-500',
+                      theme.formGlowStatic,
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      'relative rounded-3xl p-8 md:p-9 overflow-hidden transition-all duration-500',
+                      theme.formCard,
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none transition-colors duration-500',
+                        theme.formBlobTL,
+                      )}
+                    />
+                    <div
+                      className={cn(
+                        'absolute bottom-0 left-0 w-32 h-32 rounded-full blur-2xl pointer-events-none transition-colors duration-500',
+                        theme.formBlobBR,
+                      )}
+                    />
 
                     {isSuccess ? (
                       <div className="relative flex flex-col items-center justify-center text-center space-y-5 py-10">
@@ -1016,18 +1317,23 @@ export default function AiWebsiteProHome() {
                           />
                           <span className="font-heading font-bold text-white tracking-tight">aiWebDF</span>
                         </div>
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500/30 to-red-600/30 border border-orange-400/40 flex items-center justify-center shadow-[0_0_32px_-4px_rgba(249,115,22,0.5)]">
-                          <CheckCircle2 className="w-10 h-10 text-orange-400" />
+                        <div
+                          className={cn(
+                            'w-20 h-20 rounded-full flex items-center justify-center shadow-[0_0_32px_-4px_rgba(0,0,0,0.35)] transition-all duration-500',
+                            theme.successRing,
+                          )}
+                        >
+                          <CheckCircle2 className={cn('w-10 h-10', theme.successIcon)} />
                         </div>
-                        <h3 className="text-2xl font-black font-heading text-transparent bg-clip-text bg-gradient-to-r from-white to-orange-200">
+                        <h3 className={cn('text-2xl font-black font-heading', theme.successTitle)}>
                           You&apos;re in the queue
                         </h3>
-                        <p className="text-red-200/60 max-w-xs">Our agency team will reach out shortly.</p>
+                        <p className={cn('max-w-xs', theme.successSub)}>Our agency team will reach out shortly.</p>
                         <Button
                           type="button"
                           onClick={() => setIsSuccess(false)}
                           variant="outline"
-                          className="mt-2 border-red-500/40 text-orange-200 hover:bg-red-950/50 hover:text-white"
+                          className={cn('mt-2 transition-colors duration-500', theme.successBtn)}
                         >
                           Send another
                         </Button>
@@ -1036,7 +1342,10 @@ export default function AiWebsiteProHome() {
                       <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-5">
                         <div className="flex items-center gap-3 pb-4 mb-1 relative">
                           <div
-                            className="absolute bottom-0 left-0 right-0 h-px rounded-full bg-gradient-to-r from-transparent via-red-500/35 to-transparent pointer-events-none"
+                            className={cn(
+                              'absolute bottom-0 left-0 right-0 h-px rounded-full pointer-events-none transition-colors duration-500',
+                              theme.divider,
+                            )}
                             aria-hidden
                           />
                           <img
@@ -1048,98 +1357,148 @@ export default function AiWebsiteProHome() {
                           />
                           <div className="min-w-0">
                             <p className="text-xl font-black font-heading tracking-tight text-white">aiWebDF</p>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-300/85 mt-0.5">
-                              Elite AI · Contact
+                            <p
+                              className={cn(
+                                'text-[11px] font-bold uppercase tracking-[0.2em] mt-0.5 transition-colors duration-500',
+                                theme.formHeaderSub,
+                              )}
+                            >
+                              {PLAN_LABEL[selectedPlan]} · Contact
                             </p>
                           </div>
                         </div>
 
+                        <div>
+                          <label
+                            className={cn(
+                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              theme.label,
+                            )}
+                          >
+                            Which plan?
+                          </label>
+                          <select
+                            className={cn(theme.select)}
+                            {...register('plan')}
+                          >
+                            <option value="starter">{PLAN_LABEL.starter}</option>
+                            <option value="advanced">{PLAN_LABEL.advanced}</option>
+                            <option value="elite">{PLAN_LABEL.elite}</option>
+                          </select>
+                          {errors.plan && (
+                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.plan.message}</p>
+                          )}
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
+                            <label
+                              className={cn(
+                                'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                                theme.label,
+                              )}
+                            >
                               Name
                             </label>
-                            <Input
-                              placeholder="John Doe"
-                              className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                              {...register('name')}
-                            />
+                            <Input placeholder="John Doe" className={cn(theme.input)} {...register('name')} />
                             {errors.name && (
-                              <p className="text-orange-300 text-sm mt-1.5">{errors.name.message}</p>
+                              <p className={cn('text-sm mt-1.5', theme.error)}>{errors.name.message}</p>
                             )}
                           </div>
                           <div>
-                            <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
-                              Phone <span className="text-red-400/50 font-normal normal-case">(optional)</span>
+                            <label
+                              className={cn(
+                                'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                                theme.label,
+                              )}
+                            >
+                              Phone <span className="opacity-60 font-normal normal-case">(optional)</span>
                             </label>
-                            <Input
-                              placeholder="555-0123"
-                              className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                              {...register('phone')}
-                            />
+                            <Input placeholder="555-0123" className={cn(theme.input)} {...register('phone')} />
                             {errors.phone && (
-                              <p className="text-orange-300 text-sm mt-1.5">{errors.phone.message}</p>
+                              <p className={cn('text-sm mt-1.5', theme.error)}>{errors.phone.message}</p>
                             )}
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
+                          <label
+                            className={cn(
+                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              theme.label,
+                            )}
+                          >
                             Email
                           </label>
                           <Input
                             placeholder="john@example.com"
                             type="email"
-                            className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            className={cn(theme.input)}
                             {...register('email')}
                           />
                           {errors.email && (
-                            <p className="text-orange-300 text-sm mt-1.5">{errors.email.message}</p>
+                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.email.message}</p>
                           )}
                         </div>
 
                         <div>
-                          <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
-                            Business <span className="text-red-400/50 font-normal normal-case">(optional)</span>
+                          <label
+                            className={cn(
+                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              theme.label,
+                            )}
+                          >
+                            Business <span className="opacity-60 font-normal normal-case">(optional)</span>
                           </label>
-                          <Input
-                            placeholder="Acme Corp"
-                            className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                            {...register('businessName')}
-                          />
+                          <Input placeholder="Acme Corp" className={cn(theme.input)} {...register('businessName')} />
                           {errors.businessName && (
-                            <p className="text-orange-300 text-sm mt-1.5">{errors.businessName.message}</p>
+                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.businessName.message}</p>
                           )}
                         </div>
 
                         <div>
-                          <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
-                            Message <span className="text-red-400/50 font-normal normal-case">(optional)</span>
+                          <label
+                            className={cn(
+                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              theme.label,
+                            )}
+                          >
+                            Message <span className="opacity-60 font-normal normal-case">(optional)</span>
                           </label>
                           <Textarea
                             placeholder="What does winning look like for you?"
-                            className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 min-h-[120px] rounded-xl resize-none focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            className={cn(theme.input, 'h-auto min-h-[120px] resize-none')}
                             {...register('message')}
                           />
                           {errors.message && (
-                            <p className="text-orange-300 text-sm mt-1.5">{errors.message.message}</p>
+                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.message.message}</p>
                           )}
                         </div>
 
                         <Button
                           type="submit"
                           disabled={isSubmitting}
-                          className="w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white shadow-[0_0_40px_-6px_rgba(239,68,68,0.85),0_0_20px_-8px_rgba(249,115,22,0.4)] border border-red-400/40 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-60 disabled:hover:scale-100"
+                          className={cn(
+                            'inline-flex items-center justify-center gap-2 transition-all duration-500',
+                            theme.submit,
+                          )}
                         >
                           {isSubmitting ? (
                             <span className="flex items-center justify-center gap-2">
-                              <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span
+                                className={cn(
+                                  'h-4 w-4 border-2 rounded-full animate-spin',
+                                  selectedPlan === 'elite'
+                                    ? 'border-white/30 border-t-white'
+                                    : 'border-black/25 border-t-black',
+                                )}
+                              />
                               Sending…
                             </span>
                           ) : (
                             <>
-                              <Flame className="w-5 h-5 shrink-0" />
-                              Request Elite AI consultation
+                              <LeftBadgeIcon className="w-5 h-5 shrink-0" />
+                              {SUBMIT_LABEL[selectedPlan]}
                             </>
                           )}
                         </Button>
@@ -1150,6 +1509,7 @@ export default function AiWebsiteProHome() {
               </div>
             </div>
           </div>
+        </motion.div>
       </section>
       
       {/* Footer */}
