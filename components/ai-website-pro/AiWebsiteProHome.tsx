@@ -1068,7 +1068,6 @@ export default function AiWebsiteProHome() {
               </div>
             </div>
           </div>
-        </div>
       </section>
       
       {/* Footer */}

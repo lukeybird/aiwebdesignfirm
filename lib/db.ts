@@ -1,16 +1,34 @@
 import postgres from 'postgres';
 
-// Get connection string from environment variable
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+type SqlClient = ReturnType<typeof postgres>;
 
-if (!connectionString) {
-  throw new Error('POSTGRES_URL or DATABASE_URL environment variable is required');
+let sqlClient: SqlClient | null = null;
+
+function getSqlClient(): SqlClient {
+  if (!sqlClient) {
+    const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error('POSTGRES_URL or DATABASE_URL environment variable is required');
+    }
+    sqlClient = postgres(connectionString, {
+      ssl: 'require',
+    });
+  }
+  return sqlClient;
 }
 
-// Create postgres client
-export const sql = postgres(connectionString, {
-  ssl: 'require',
-});
+/** Lazy client so importing this module during `next build` does not require DB env vars. */
+export const sql = new Proxy(function () {} as unknown as SqlClient, {
+  apply(_target, _thisArg, argArray) {
+    const client = getSqlClient();
+    return Reflect.apply(client as unknown as (...args: unknown[]) => unknown, client, argArray);
+  },
+  get(_target, prop) {
+    const client = getSqlClient();
+    const value = Reflect.get(client as object, prop, client as object);
+    return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(client) : value;
+  },
+}) as SqlClient;
 
 // Initialize database tables
 export async function initDatabase() {
