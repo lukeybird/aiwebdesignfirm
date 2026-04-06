@@ -704,10 +704,10 @@ export default function AiWebsiteProHome() {
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Starter</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-4xl font-black font-heading text-white">$95.95</span>
+                    <span className="text-4xl font-black font-heading text-white">$99.95</span>
                     <span className="text-slate-500 mb-1 text-sm">/mo</span>
                   </div>
-                  <p className="text-sm text-slate-400/90">One-time $95.95 setup fee to get your site built out</p>
+                  <p className="text-sm text-slate-400/90">One-time $99.95 setup fee to get your site built out</p>
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
@@ -811,7 +811,7 @@ export default function AiWebsiteProHome() {
                     Full AI Agency
                   </p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-5xl font-black font-heading text-white">$4,999</span>
+                    <span className="text-5xl font-black font-heading text-white">$4,999.95</span>
                     <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
                   <p className="text-sm text-red-200/70">
@@ -905,7 +905,7 @@ export default function AiWebsiteProHome() {
                   {[
                     { icon: MessageSquare, text: 'White-glove consult — zero pressure' },
                     { icon: Zap, text: 'Custom growth roadmap for your market' },
-                    { icon: Flame, text: 'Priority routing for $4,999/mo partners' },
+                    { icon: Flame, text: 'Priority routing for $4,999.95/mo partners' },
                   ].map(({ icon: Icon, text }) => (
                     <div
                       key={text}
