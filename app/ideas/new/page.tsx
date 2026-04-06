@@ -226,7 +226,7 @@ export default function NewIdeaProjectPage() {
               type="button"
               onClick={() => setMode(m)}
               className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                mode === m ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                mode === m ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
             >
               {m === 'zip' && 'Upload ZIP'}
@@ -248,7 +248,7 @@ export default function NewIdeaProjectPage() {
             <input
               type="file"
               accept=".zip,application/zip"
-              className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-violet-600 file:text-white"
+              className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white"
               disabled={busy}
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -278,7 +278,7 @@ export default function NewIdeaProjectPage() {
             />
             <label
               htmlFor="new-proj-folder"
-              className={`inline-block px-4 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+              className={`inline-block px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
             >
               {busy ? 'Uploading…' : 'Select folder…'}
             </label>
@@ -335,7 +335,7 @@ export default function NewIdeaProjectPage() {
                 type="button"
                 disabled={busy}
                 onClick={submitManual}
-                className="px-4 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium disabled:opacity-50"
+                className="px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50"
               >
                 {busy ? 'Uploading…' : 'Upload project'}
               </button>

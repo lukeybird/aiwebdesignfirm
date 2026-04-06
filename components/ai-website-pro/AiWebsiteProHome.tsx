@@ -64,14 +64,28 @@ export default function AiWebsiteProHome() {
         body: JSON.stringify(data),
       });
 
-      if (response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        emailSent?: boolean;
+        notifyError?: string;
+        error?: string;
+      };
+
+      if (response.ok && payload.success) {
         setIsSuccess(true);
         reset();
-        toast.success('Request received', {
-          description: "We'll be in touch shortly to discuss your AI website.",
-        });
+        if (payload.emailSent) {
+          toast.success('Request received', {
+            description: "We'll be in touch shortly to discuss your AI website.",
+          });
+        } else {
+          toast.warning('Request saved — email not sent', {
+            description:
+              'Your details were stored, but the notification email failed. Set RESEND_API_KEY (and a verified FROM_EMAIL) on the server, or check logs.',
+          });
+        }
       } else {
-        throw new Error('Failed to submit');
+        throw new Error(payload.error || 'Failed to submit');
       }
     } catch {
       toast.error('Something went wrong', {
@@ -287,7 +301,7 @@ export default function AiWebsiteProHome() {
             
             <motion.div variants={fadeIn} className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg" className="w-full sm:w-auto h-16 px-10 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-bold text-lg shadow-[0_0_40px_-10px_#00d4ff] transition-all duration-300 hover:scale-105">
-                <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
+                <a href="#plans">
                   Activate Your AI Website <ArrowRight className="ml-2 w-5 h-5" />
                 </a>
               </Button>
@@ -340,7 +354,7 @@ export default function AiWebsiteProHome() {
             </div>
             
             <motion.div variants={fadeIn} className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-[#7c3aed]/20 to-transparent rounded-3xl blur-2xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#0066ff]/20 to-transparent rounded-3xl blur-2xl"></div>
               <div className="relative bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 shadow-2xl">
                 <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/10">
                   <Search className="w-5 h-5 text-gray-400" />
@@ -374,7 +388,7 @@ export default function AiWebsiteProHome() {
 
       {/* The Solution */}
       <section className="py-24 relative">
-        <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-[#7c3aed]/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-[#0066ff]/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Your Unfair Advantage.</h2>
@@ -391,7 +405,7 @@ export default function AiWebsiteProHome() {
                 desc: "An intelligent chatbot that answers questions, handles objections, and captures leads while you sleep."
               },
               {
-                icon: <Search className="w-8 h-8 text-[#7c3aed]" />,
+                icon: <Search className="w-8 h-8 text-[#0066ff]" />,
                 title: "LLM Optimization",
                 desc: "Structured data specifically designed so ChatGPT, Claude, and Grok recommend your business."
               },
@@ -452,7 +466,7 @@ export default function AiWebsiteProHome() {
 
             {/* iPhone-style chat window */}
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0066ff]/20 to-[#7c3aed]/20 rounded-[2.5rem] blur-2xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0066ff]/20 to-[#00d4ff]/20 rounded-[2.5rem] blur-2xl"></div>
               <div className="relative bg-[#1c1c1e] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col h-[580px] shadow-2xl" style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08)' }}>
 
                 {/* iPhone-style status bar */}
@@ -676,7 +690,7 @@ export default function AiWebsiteProHome() {
       </section>
 
       {/* Pricing */}
-      <section className="py-32 relative overflow-hidden">
+      <section id="plans" className="py-32 relative overflow-hidden scroll-mt-24">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-[#0d0d1a] to-[#0a0a0f]"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-[#0066ff]/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="container mx-auto px-6 relative z-10">
@@ -698,15 +712,20 @@ export default function AiWebsiteProHome() {
               className="relative rounded-3xl flex flex-col h-full min-h-0 w-full"
               style={{ zIndex: 1 }}
             >
+              <div className="absolute -inset-2 rounded-3xl bg-white/[0.14] blur-2xl -z-10 pointer-events-none" />
               <div className="absolute -inset-px bg-gradient-to-b from-slate-300/22 via-slate-400/10 to-slate-600/12 rounded-3xl blur-lg -z-10 pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-br from-slate-400/10 via-transparent to-transparent rounded-3xl blur-md -z-10 pointer-events-none" />
-              <div className="relative bg-gradient-to-b from-[#141418] to-[#0d0d1a] border-2 border-slate-400/45 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_28px_-14px_rgba(148,163,184,0.4),0_0_10px_-8px_rgba(203,213,225,0.15)] ring-1 ring-slate-500/20">
-                <div className="mb-6">
+              <div className="relative bg-gradient-to-b from-[#141418] to-[#0d0d1a] border-2 border-slate-400/45 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_32px_-6px_rgba(255,255,255,0.2),0_0_28px_-14px_rgba(148,163,184,0.4),0_0_10px_-8px_rgba(203,213,225,0.15)] ring-1 ring-slate-500/20">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 text-black text-xs font-black uppercase tracking-widest px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap">
+                  Start Today
+                </div>
+
+                <div className="mb-6 mt-2">
                   <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Starter</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="flex items-baseline gap-0 tabular-nums">
-                      <span className="text-4xl font-black font-heading text-white">$99</span>
-                      <span className="text-lg font-black font-heading text-white leading-none">.95</span>
+                    <span className="tabular-nums text-4xl font-black font-heading text-white leading-none">
+                      $99
+                      <span className="text-[0.55em] align-super font-black ml-0.5">95</span>
                     </span>
                     <span className="text-slate-500 mb-1 text-sm">/mo</span>
                   </div>
@@ -714,7 +733,7 @@ export default function AiWebsiteProHome() {
                     One-time{' '}
                     <span className="tabular-nums text-slate-300/95">
                       <span className="font-semibold">$99</span>
-                      <span className="text-[0.7em] font-semibold align-top inline-block translate-y-px">.95</span>
+                      <span className="text-[0.7em] font-semibold align-top inline-block translate-y-px">95</span>
                     </span>{' '}
                     setup fee to get your site built out
                   </p>
@@ -758,7 +777,7 @@ export default function AiWebsiteProHome() {
               style={{ zIndex: 10 }}
             >
               {/* Glow */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0066ff]/32 to-[#7c3aed]/22 rounded-3xl blur-xl -z-10" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0066ff]/32 to-[#00d4ff]/22 rounded-3xl blur-xl -z-10" />
               <div className="relative bg-gradient-to-b from-[#0a1628] to-[#0d0d1a] border-2 border-[#0066ff]/65 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_56px_-10px_rgba(0,102,255,0.5),0_0_28px_-10px_rgba(0,212,255,0.3)] ring-1 ring-[#00d4ff]/25">
                 {/* Badge */}
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black text-xs font-black uppercase tracking-widest px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap">
@@ -768,9 +787,9 @@ export default function AiWebsiteProHome() {
                 <div className="mb-6 mt-2">
                   <p className="text-sm font-semibold text-[#00d4ff] uppercase tracking-widest mb-2">AI Pro</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="flex items-baseline gap-0 tabular-nums">
-                      <span className="text-5xl font-black font-heading text-white">$499</span>
-                      <span className="text-2xl font-black font-heading text-white leading-none">.95</span>
+                    <span className="tabular-nums text-5xl font-black font-heading text-white leading-none">
+                      $499
+                      <span className="text-[0.55em] align-super font-black ml-0.5">95</span>
                     </span>
                     <span className="text-gray-400 mb-1.5">/mo</span>
                   </div>
@@ -783,6 +802,8 @@ export default function AiWebsiteProHome() {
                     "Full AI optimization of your site monthly",
                     "Monthly strategy meeting with our team",
                     "AI feature integrations every month",
+                    "AI phone receptionist",
+                    "Appointment reminders",
                     "ChatGPT targeting — get recommended by AI",
                     "Show up in Claude, Grok & Perplexity too",
                     "Website remodel up to 5 pages (additional pages vary in cost)",
@@ -824,9 +845,9 @@ export default function AiWebsiteProHome() {
                     Full AI Agency
                   </p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="flex items-baseline gap-0 tabular-nums">
-                      <span className="text-5xl font-black font-heading text-white">$4,999</span>
-                      <span className="text-2xl font-black font-heading text-white leading-none">.95</span>
+                    <span className="tabular-nums text-5xl font-black font-heading text-white leading-none">
+                      $4,999
+                      <span className="text-[0.55em] align-super font-black ml-0.5">95</span>
                     </span>
                     <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
@@ -921,7 +942,7 @@ export default function AiWebsiteProHome() {
                   {[
                     { icon: MessageSquare, text: 'White-glove consult — zero pressure' },
                     { icon: Zap, text: 'Custom growth roadmap for your market' },
-                    { icon: Flame, text: 'Priority routing for $4,999.95/mo partners' },
+                    { icon: Flame, text: 'Priority routing for $4,999\u202f95/mo partners' },
                   ].map(({ icon: Icon, text }) => (
                     <div
                       key={text}

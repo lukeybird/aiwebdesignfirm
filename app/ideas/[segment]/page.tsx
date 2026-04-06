@@ -283,7 +283,7 @@ function ProjectHub({ slug }: { slug: string }) {
                 href={hrefForLiveLink(liveLink)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium"
+                className="inline-flex px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium"
               >
                 Open live URL →
               </a>

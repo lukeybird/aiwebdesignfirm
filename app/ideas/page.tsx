@@ -139,7 +139,7 @@ export default function IdeasPage() {
           </div>
           <Link
             href="/ideas/new"
-            className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium text-sm"
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm"
           >
             + New project
           </Link>
@@ -264,7 +264,7 @@ export default function IdeasPage() {
                   </div>
                   <Link
                     href={`/ideas/${encodeURIComponent(p.slug)}`}
-                    className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium"
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium"
                   >
                     Open project
                   </Link>

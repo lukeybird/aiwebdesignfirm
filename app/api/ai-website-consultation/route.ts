@@ -85,10 +85,19 @@ export async function POST(request: NextRequest) {
       html: htmlBody,
     });
     if (!mail.ok) {
-      console.error('ai-website-consultation email notify failed:', mail.error, 'recipients:', getTeamNotifyEmails());
+      console.error(
+        'ai-website-consultation: email notify failed (lead still saved):',
+        mail.error,
+        'recipients:',
+        getTeamNotifyEmails(),
+      );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      emailSent: mail.ok,
+      ...(mail.ok ? {} : { notifyError: mail.error || 'Email transport not configured' }),
+    });
   } catch (e: any) {
     if (e?.message?.includes('leads') && e?.message?.includes('does not exist')) {
       await initDatabase();
