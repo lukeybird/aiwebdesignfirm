@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql, initDatabase } from '@/lib/db';
 
-const PLACEHOLDER_LISTING = 'AI Website Pro — consultation request';
+const PLACEHOLDER_LISTING = 'aiWebDF — consultation request';
 
 export async function POST(request: NextRequest) {
   try {

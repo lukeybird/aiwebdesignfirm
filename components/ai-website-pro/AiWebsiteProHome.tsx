@@ -3,7 +3,20 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, Bot, Search, Zap, CheckCircle2, TrendingUp, BarChart3, MessageSquare, Clock, Globe, ArrowUpRight } from 'lucide-react';
+import {
+  ArrowRight,
+  Bot,
+  Search,
+  Zap,
+  CheckCircle2,
+  TrendingUp,
+  BarChart3,
+  MessageSquare,
+  Clock,
+  Globe,
+  ArrowUpRight,
+  Flame,
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -211,12 +224,16 @@ export default function AiWebsiteProHome() {
       {/* Sticky Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#0066ff] to-[#00d4ff] flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-heading font-bold text-xl tracking-tight">AI Website Pro</span>
-          </div>
+          <Link href="/" className="flex items-center gap-3 shrink-0">
+            <img
+              src="/blueBall.png"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 object-contain"
+            />
+            <span className="font-heading font-bold text-xl tracking-tight text-white">aiWebDF</span>
+          </Link>
           <div className="flex items-center gap-4">
             <Link
               href="/home-original"
@@ -836,107 +853,213 @@ export default function AiWebsiteProHome() {
         </div>
       </section>
 
-      {/* Lead Capture */}
-      <section className="py-24 bg-[#0d0d1a] border-t border-white/5">
-        <div className="container mx-auto px-6">
+      {/* Lead Capture — Full AI Agency fire intake */}
+      <section className="relative py-28 md:py-32 overflow-hidden border-t border-red-950/40">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0303] via-[#0d0505] to-[#0a0a0f]" />
+        <motion.div
+          className="absolute -top-32 right-0 w-[min(90vw,520px)] h-[520px] rounded-full bg-red-600/30 blur-[100px] pointer-events-none"
+          animate={{ opacity: [0.35, 0.65, 0.35], scale: [1, 1.08, 1] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-0 left-0 w-[min(85vw,480px)] h-[480px] rounded-full bg-orange-600/25 blur-[110px] pointer-events-none"
+          animate={{ opacity: [0.3, 0.55, 0.3] }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(220,38,38,0.18),transparent)] pointer-events-none" />
+
+        <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-5xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-16">
-              <div>
-                <h2 className="text-3xl lg:text-4xl font-bold font-heading mb-6">Still have questions?</h2>
-                <p className="text-lg text-gray-400 mb-8">
-                  We get it. It's a big shift. Drop your details below and one of our AI growth specialists will reach out.
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+              <div className="space-y-8">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-red-500/40 bg-gradient-to-r from-red-950/80 to-orange-950/60 shadow-[0_0_24px_-4px_rgba(239,68,68,0.45)]">
+                  <Flame className="w-4 h-4 text-orange-400 shrink-0" />
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-300">
+                    Agency intake
+                  </span>
+                </div>
+                <h2 className="text-4xl md:text-5xl lg:text-[2.75rem] font-black font-heading leading-[1.1]">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-red-100 to-orange-200">
+                    Torch the competition.
+                  </span>
+                  <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-red-600">
+                    Start the conversation.
+                  </span>
+                </h2>
+                <p className="text-lg text-red-100/65 leading-relaxed max-w-md">
+                  Full AI Agency leads go straight to our team. No fluff — tell us what you&apos;re building and we&apos;ll
+                  bring the heat.
                 </p>
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4 text-gray-400">
-                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                      <MessageSquare className="w-5 h-5 text-[#00d4ff]" />
+                <div className="space-y-5">
+                  {[
+                    { icon: MessageSquare, text: 'White-glove consult — zero pressure' },
+                    { icon: Zap, text: 'Custom domination roadmap for your market' },
+                    { icon: Flame, text: 'Priority routing for $4,999/mo partners' },
+                  ].map(({ icon: Icon, text }) => (
+                    <div
+                      key={text}
+                      className="flex items-center gap-4 text-red-100/80 group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600/40 to-orange-600/25 border border-red-500/35 flex items-center justify-center shadow-[0_0_20px_-6px_rgba(239,68,68,0.5)] group-hover:shadow-[0_0_28px_-4px_rgba(249,115,22,0.45)] transition-shadow">
+                        <Icon className="w-5 h-5 text-orange-300" />
+                      </div>
+                      <span className="font-medium">{text}</span>
                     </div>
-                    <span>No pressure consultation</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-gray-400">
-                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-[#00d4ff]" />
-                    </div>
-                    <span>Custom strategy breakdown</span>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="bg-[#0a0a0f] border border-white/10 rounded-3xl p-8">
-                {isSuccess ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-12">
-                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <CheckCircle2 className="w-8 h-8 text-green-500" />
-                    </div>
-                    <h3 className="text-2xl font-bold">Request Received</h3>
-                    <p className="text-gray-400">We'll be in touch shortly.</p>
-                    <Button onClick={() => setIsSuccess(false)} variant="outline" className="mt-4 border-white/10 text-white hover:bg-white/5">
-                      Send another
-                    </Button>
+              <div className="relative lg:pt-2">
+                <motion.div
+                  className="absolute -inset-3 rounded-[1.75rem] bg-gradient-to-r from-red-600 via-orange-500 to-red-600 opacity-60 blur-xl"
+                  animate={{ opacity: [0.45, 0.75, 0.45] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-br from-red-500/90 via-orange-500/70 to-red-600/90 p-px shadow-[0_0_40px_-6px_rgba(239,68,68,0.6)]">
+                  <div className="rounded-3xl bg-gradient-to-b from-[#160606] via-[#0c0303] to-[#080202] p-8 md:p-9 border border-red-950/60 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-600/15 rounded-full blur-2xl pointer-events-none" />
+
+                    {isSuccess ? (
+                      <div className="relative flex flex-col items-center justify-center text-center space-y-5 py-10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <img
+                            src="/blueBall.png"
+                            alt=""
+                            width={32}
+                            height={32}
+                            className="h-8 w-8 object-contain opacity-90"
+                          />
+                          <span className="font-heading font-bold text-white tracking-tight">aiWebDF</span>
+                        </div>
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500/30 to-red-600/30 border border-orange-400/40 flex items-center justify-center shadow-[0_0_32px_-4px_rgba(249,115,22,0.5)]">
+                          <CheckCircle2 className="w-10 h-10 text-orange-400" />
+                        </div>
+                        <h3 className="text-2xl font-black font-heading text-transparent bg-clip-text bg-gradient-to-r from-white to-orange-200">
+                          You&apos;re in the queue
+                        </h3>
+                        <p className="text-red-200/60 max-w-xs">Our agency team will reach out shortly.</p>
+                        <Button
+                          type="button"
+                          onClick={() => setIsSuccess(false)}
+                          variant="outline"
+                          className="mt-2 border-red-500/40 text-orange-200 hover:bg-red-950/50 hover:text-white"
+                        >
+                          Send another
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-5">
+                        <div className="flex items-center gap-3 pb-4 mb-1 border-b border-red-500/25">
+                          <img
+                            src="/blueBall.png"
+                            alt=""
+                            width={44}
+                            height={44}
+                            className="h-11 w-11 object-contain shrink-0 drop-shadow-[0_0_16px_rgba(59,130,246,0.45)]"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xl font-black font-heading tracking-tight text-white">aiWebDF</p>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-300/85 mt-0.5">
+                              Full AI Agency · Contact
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
+                              Name
+                            </label>
+                            <Input
+                              placeholder="John Doe"
+                              className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                              {...register('name')}
+                            />
+                            {errors.name && (
+                              <p className="text-orange-300 text-sm mt-1.5">{errors.name.message}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
+                              Phone <span className="text-red-400/50 font-normal normal-case">(optional)</span>
+                            </label>
+                            <Input
+                              placeholder="555-0123"
+                              className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                              {...register('phone')}
+                            />
+                            {errors.phone && (
+                              <p className="text-orange-300 text-sm mt-1.5">{errors.phone.message}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
+                            Email
+                          </label>
+                          <Input
+                            placeholder="john@example.com"
+                            type="email"
+                            className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            {...register('email')}
+                          />
+                          {errors.email && (
+                            <p className="text-orange-300 text-sm mt-1.5">{errors.email.message}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
+                            Business <span className="text-red-400/50 font-normal normal-case">(optional)</span>
+                          </label>
+                          <Input
+                            placeholder="Acme Corp"
+                            className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            {...register('businessName')}
+                          />
+                          {errors.businessName && (
+                            <p className="text-orange-300 text-sm mt-1.5">{errors.businessName.message}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-red-200/90 text-xs font-bold uppercase tracking-wider block mb-2">
+                            Message <span className="text-red-400/50 font-normal normal-case">(optional)</span>
+                          </label>
+                          <Textarea
+                            placeholder="What does winning look like for you?"
+                            className="bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 min-h-[120px] rounded-xl resize-none focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            {...register('message')}
+                          />
+                          {errors.message && (
+                            <p className="text-orange-300 text-sm mt-1.5">{errors.message.message}</p>
+                          )}
+                        </div>
+
+                        <Button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white shadow-[0_0_40px_-6px_rgba(239,68,68,0.85),0_0_20px_-8px_rgba(249,115,22,0.4)] border border-red-400/40 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-60 disabled:hover:scale-100"
+                        >
+                          {isSubmitting ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Sending…
+                            </span>
+                          ) : (
+                            <>
+                              <Flame className="w-5 h-5 shrink-0" />
+                              Request agency consultation
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    )}
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-gray-300 text-sm font-medium block mb-1.5">Name</label>
-                        <Input
-                          placeholder="John Doe"
-                          className="bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-[#00d4ff]"
-                          {...register('name')}
-                        />
-                        {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name.message}</p>}
-                      </div>
-                      <div>
-                        <label className="text-gray-300 text-sm font-medium block mb-1.5">Phone (Optional)</label>
-                        <Input
-                          placeholder="555-0123"
-                          className="bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-[#00d4ff]"
-                          {...register('phone')}
-                        />
-                        {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone.message}</p>}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-gray-300 text-sm font-medium block mb-1.5">Email</label>
-                      <Input
-                        placeholder="john@example.com"
-                        type="email"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-[#00d4ff]"
-                        {...register('email')}
-                      />
-                      {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>}
-                    </div>
-
-                    <div>
-                      <label className="text-gray-300 text-sm font-medium block mb-1.5">Business Name (Optional)</label>
-                      <Input
-                        placeholder="Acme Corp"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-[#00d4ff]"
-                        {...register('businessName')}
-                      />
-                      {errors.businessName && <p className="text-red-400 text-sm mt-1">{errors.businessName.message}</p>}
-                    </div>
-
-                    <div>
-                      <label className="text-gray-300 text-sm font-medium block mb-1.5">Message (Optional)</label>
-                      <Textarea
-                        placeholder="Tell us about your current website..."
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-[#00d4ff] min-h-[100px] resize-none"
-                        {...register('message')}
-                      />
-                      {errors.message && <p className="text-red-400 text-sm mt-1">{errors.message.message}</p>}
-                    </div>
-
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full bg-[#0066ff] hover:bg-[#0052cc] text-white font-bold h-12"
-                    >
-                      {isSubmitting ? 'Sending...' : 'Request Consultation'}
-                    </Button>
-                  </form>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -946,7 +1069,7 @@ export default function AiWebsiteProHome() {
       {/* Footer */}
       <footer className="py-8 bg-[#0a0a0f] border-t border-white/5 text-center text-gray-500 text-sm">
         <div className="container mx-auto px-6 space-y-2">
-          <p>© {new Date().getFullYear()} AI Website Pro. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} aiWebDF. All rights reserved.</p>
           <p>
             <Link href="/home-original" className="text-gray-400 hover:text-[#00d4ff] underline-offset-4 hover:underline">
               View classic AI Web Design Firm homepage
