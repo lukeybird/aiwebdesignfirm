@@ -805,7 +805,7 @@ export default function AiWebsiteProHome() {
                     <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
                   <p className="text-sm text-red-200/70">
-                    Total market domination. A team obsessed with your business.
+                    Serious scale: a senior team fully focused on your growth.
                   </p>
                 </div>
 
@@ -817,8 +817,8 @@ export default function AiWebsiteProHome() {
                     "Constant monitoring, adjusting & pushing forward",
                     "We grind it out by your side — every single day",
                     "Always looking. Always improving. Always ahead.",
-                    "Full local market domination strategy",
-                    "You pay for results, not hours",
+                    "Local growth roadmap tied to measurable outcomes",
+                    "You pay for results—not billable hours",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2
@@ -894,7 +894,7 @@ export default function AiWebsiteProHome() {
                 <div className="space-y-5">
                   {[
                     { icon: MessageSquare, text: 'White-glove consult — zero pressure' },
-                    { icon: Zap, text: 'Custom domination roadmap for your market' },
+                    { icon: Zap, text: 'Custom growth roadmap for your market' },
                     { icon: Flame, text: 'Priority routing for $4,999/mo partners' },
                   ].map(({ icon: Icon, text }) => (
                     <div
@@ -910,14 +910,15 @@ export default function AiWebsiteProHome() {
                 </div>
               </div>
 
-              <div className="relative lg:pt-2">
+              <div className="relative lg:pt-2 rounded-3xl">
+                {/* Same glow stack as Full AI Agency pricing card — wraps corners, no flat “bar” */}
                 <motion.div
-                  className="absolute -inset-3 rounded-[1.75rem] bg-gradient-to-r from-red-600 via-orange-500 to-red-600 opacity-60 blur-xl"
-                  animate={{ opacity: [0.45, 0.75, 0.45] }}
+                  className="absolute -inset-px bg-gradient-to-b from-red-500/50 via-orange-500/35 to-red-600/20 rounded-3xl blur-2xl -z-10 pointer-events-none"
+                  animate={{ opacity: [0.55, 0.85, 0.55] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                 />
-                <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-br from-red-500/90 via-orange-500/70 to-red-600/90 p-px shadow-[0_0_40px_-6px_rgba(239,68,68,0.6)]">
-                  <div className="rounded-3xl bg-gradient-to-b from-[#160606] via-[#0c0303] to-[#080202] p-8 md:p-9 border border-red-950/60 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-600/25 via-orange-600/15 to-transparent rounded-3xl blur-xl -z-10 pointer-events-none" />
+                <div className="relative bg-gradient-to-b from-[#160606] via-[#0c0303] to-[#080202] border-2 border-red-500/70 rounded-3xl p-8 md:p-9 shadow-[0_0_72px_-10px_rgba(239,68,68,0.55),0_0_24px_-8px_rgba(249,115,22,0.35)] ring-1 ring-orange-500/25 overflow-hidden">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-600/15 rounded-full blur-2xl pointer-events-none" />
 
@@ -951,7 +952,11 @@ export default function AiWebsiteProHome() {
                       </div>
                     ) : (
                       <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-5">
-                        <div className="flex items-center gap-3 pb-4 mb-1 border-b border-red-500/25">
+                        <div className="flex items-center gap-3 pb-4 mb-1 relative">
+                          <div
+                            className="absolute bottom-0 left-0 right-0 h-px rounded-full bg-gradient-to-r from-transparent via-red-500/35 to-transparent pointer-events-none"
+                            aria-hidden
+                          />
                           <img
                             src="/blueBall.png"
                             alt=""

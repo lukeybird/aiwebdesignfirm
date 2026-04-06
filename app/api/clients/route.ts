@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { getWelcomeEmailContent } from '@/lib/email-templates';
+import { getTeamNotifyEmails } from '@/lib/team-email';
 
 // GET - Get all clients (for developer) or single client (for client dashboard)
 export async function GET(request: NextRequest) {
@@ -164,13 +165,13 @@ You can view this client's account in the developer dashboard.
           
           await transporter.sendMail({
             from: fromEmail,
-            to: 'support@aiwebdesignfirm.com',
+            to: getTeamNotifyEmails().join(', '),
             subject: `New Client Signup: ${fullName}`,
             text: notificationContent,
             html: notificationHtml,
           });
-          
-          console.log('Notification email sent to support@aiwebdesignfirm.com');
+
+          console.log('Notification email sent to:', getTeamNotifyEmails().join(', '));
         } catch (notificationError: any) {
           console.error('Error sending notification email:', notificationError);
           // Don't fail the signup if notification email fails
@@ -256,16 +257,16 @@ You can view this client's account in the developer dashboard.
             
             const notificationResult = await resend.emails.send({
               from: fromEmail,
-              to: 'support@aiwebdesignfirm.com',
+              to: getTeamNotifyEmails(),
               subject: `New Client Signup: ${fullName}`,
               text: notificationContent,
               html: notificationHtml,
             });
-            
+
             if (notificationResult.error) {
               console.error('Error sending notification email:', notificationResult.error);
             } else {
-              console.log('Notification email sent to support@aiwebdesignfirm.com');
+              console.log('Notification email sent to:', getTeamNotifyEmails().join(', '));
             }
           } catch (notificationError: any) {
             console.error('Error sending notification email:', notificationError);
