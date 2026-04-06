@@ -704,10 +704,20 @@ export default function AiWebsiteProHome() {
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Starter</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-4xl font-black font-heading text-white">$99.95</span>
+                    <span className="flex items-baseline gap-0 tabular-nums">
+                      <span className="text-4xl font-black font-heading text-white">$99</span>
+                      <span className="text-lg font-black font-heading text-white leading-none">.95</span>
+                    </span>
                     <span className="text-slate-500 mb-1 text-sm">/mo</span>
                   </div>
-                  <p className="text-sm text-slate-400/90">One-time $99.95 setup fee to get your site built out</p>
+                  <p className="text-sm text-slate-400/90">
+                    One-time{' '}
+                    <span className="tabular-nums text-slate-300/95">
+                      <span className="font-semibold">$99</span>
+                      <span className="text-[0.7em] font-semibold align-top inline-block translate-y-px">.95</span>
+                    </span>{' '}
+                    setup fee to get your site built out
+                  </p>
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
@@ -758,7 +768,10 @@ export default function AiWebsiteProHome() {
                 <div className="mb-6 mt-2">
                   <p className="text-sm font-semibold text-[#00d4ff] uppercase tracking-widest mb-2">AI Pro</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-5xl font-black font-heading text-white">$499.95</span>
+                    <span className="flex items-baseline gap-0 tabular-nums">
+                      <span className="text-5xl font-black font-heading text-white">$499</span>
+                      <span className="text-2xl font-black font-heading text-white leading-none">.95</span>
+                    </span>
                     <span className="text-gray-400 mb-1.5">/mo</span>
                   </div>
                   <p className="text-sm text-[#00d4ff]/70">Everything to dominate AI search — every single month</p>
@@ -811,7 +824,10 @@ export default function AiWebsiteProHome() {
                     Full AI Agency
                   </p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-5xl font-black font-heading text-white">$4,999.95</span>
+                    <span className="flex items-baseline gap-0 tabular-nums">
+                      <span className="text-5xl font-black font-heading text-white">$4,999</span>
+                      <span className="text-2xl font-black font-heading text-white leading-none">.95</span>
+                    </span>
                     <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
                   <p className="text-sm text-red-200/70">
