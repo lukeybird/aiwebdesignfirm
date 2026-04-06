@@ -887,7 +887,7 @@ export default function AiWebsiteProHome() {
                     <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
                   <p className="text-sm text-red-200/70">
-                    The most cutting-edge AI implementations and experimentations.
+                    The most cutting-edge AI implementations.
                   </p>
                 </div>
 
