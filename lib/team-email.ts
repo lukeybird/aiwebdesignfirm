@@ -145,7 +145,7 @@ export async function sendConsultationThankYou(params: {
   const subject = 'We received your request — aiWebDF';
   const text = `Hi ${first},
 
-Thank you for reaching out about Full AI Agency. We received your consultation request and will reach out shortly.
+Thank you for reaching out about Elite AI. We received your consultation request and will reach out shortly.
 
 If you have any questions in the meantime, reply to this email.
 
@@ -153,7 +153,7 @@ If you have any questions in the meantime, reply to this email.
 
   const html = `
     <p>Hi ${safeFirst},</p>
-    <p>Thank you for reaching out about <strong>Full AI Agency</strong>. We received your consultation request and <strong>we'll reach out shortly</strong>.</p>
+    <p>Thank you for reaching out about <strong>Elite AI</strong>. We received your consultation request and <strong>we'll reach out shortly</strong>.</p>
     <p>If you have any questions in the meantime, reply to this email.</p>
     <p>— aiWebDF</p>
   `.trim();

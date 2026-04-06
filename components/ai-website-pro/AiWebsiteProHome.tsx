@@ -728,7 +728,7 @@ export default function AiWebsiteProHome() {
 
           <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
 
-            {/* Tier 1 — Starter: silver; same footprint as siblings (tiny emphasis via price size only) */}
+            {/* Tier 1 — Starter AI */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -746,7 +746,12 @@ export default function AiWebsiteProHome() {
                 </div>
 
                 <div className="mb-6 mt-2">
-                  <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Starter</p>
+                  <div className="flex items-baseline justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest min-w-0">Starter AI</p>
+                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-slate-500 shrink-0">
+                      TIER I
+                    </span>
+                  </div>
                   <div className="flex items-end gap-1 mb-1">
                     <span className="tabular-nums text-4xl font-black font-heading text-white leading-none">
                       $99
@@ -755,12 +760,7 @@ export default function AiWebsiteProHome() {
                     <span className="text-slate-500 mb-1 text-sm">/mo</span>
                   </div>
                   <p className="text-sm text-slate-400/90">
-                    One-time{' '}
-                    <span className="tabular-nums text-slate-300/95">
-                      <span className="font-semibold">$99</span>
-                      <span className="text-[0.7em] font-semibold align-top inline-block translate-y-px">95</span>
-                    </span>{' '}
-                    setup fee to get your site built out
+                    The plan to get started with AI.
                   </p>
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
@@ -792,7 +792,7 @@ export default function AiWebsiteProHome() {
               </div>
             </motion.div>
 
-            {/* Tier 2 — AI Pro — focal glow; same card height as others */}
+            {/* Tier 2 — Advanced AI */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -810,7 +810,12 @@ export default function AiWebsiteProHome() {
                 </div>
 
                 <div className="mb-6 mt-2">
-                  <p className="text-sm font-semibold text-[#00d4ff] uppercase tracking-widest mb-2">AI Pro</p>
+                  <div className="flex items-baseline justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-[#00d4ff] uppercase tracking-widest min-w-0">Advanced AI</p>
+                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-[#00d4ff]/55 shrink-0">
+                      TIER II
+                    </span>
+                  </div>
                   <div className="flex items-end gap-1 mb-1">
                     <span className="tabular-nums text-5xl font-black font-heading text-white leading-none">
                       $499
@@ -818,12 +823,12 @@ export default function AiWebsiteProHome() {
                     </span>
                     <span className="text-gray-400 mb-1.5">/mo</span>
                   </div>
-                  <p className="text-sm text-[#00d4ff]/70">Everything to dominate AI search — every single month</p>
+                  <p className="text-sm text-[#00d4ff]/70">The most reliable tools AI has to offer.</p>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
-                    "Everything in Starter",
+                    "Everything in Starter AI",
                     "Full AI optimization of your site monthly",
                     "Monthly strategy meeting with our team",
                     "AI feature integrations every month",
@@ -842,14 +847,14 @@ export default function AiWebsiteProHome() {
 
                 <Button asChild size="lg" className="w-full rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-lg h-14 shadow-[0_0_30px_-5px_#00d4ff] hover:scale-105 transition-all duration-200">
                   <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
-                    Start AI Pro <ArrowRight className="ml-2 w-5 h-5" />
+                    Start Advanced AI <ArrowRight className="ml-2 w-5 h-5" />
                   </a>
                 </Button>
                 <p className="text-xs text-center text-[#00d4ff]/50 mt-3">The obvious choice for serious growth</p>
               </div>
             </motion.div>
 
-            {/* Tier 3 — Full Agency — fire tier; same footprint as Pro / Starter */}
+            {/* Tier 3 — Elite AI */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -866,9 +871,14 @@ export default function AiWebsiteProHome() {
                 </div>
 
                 <div className="mb-6 mt-2">
-                  <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-red-500 uppercase tracking-widest mb-2">
-                    Full AI Agency
-                  </p>
+                  <div className="flex items-baseline justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-red-500 uppercase tracking-widest min-w-0">
+                      Elite AI
+                    </p>
+                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-orange-400/80 shrink-0">
+                      TIER III
+                    </span>
+                  </div>
                   <div className="flex items-end gap-1 mb-1">
                     <span className="tabular-nums text-5xl font-black font-heading text-white leading-none">
                       $4,999
@@ -877,13 +887,13 @@ export default function AiWebsiteProHome() {
                     <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
                   <p className="text-sm text-red-200/70">
-                    Serious scale: a senior team fully focused on your growth.
+                    The most cutting-edge AI implementations and experimentations.
                   </p>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
-                    "Everything in AI Pro",
+                    "Everything in Advanced AI",
                     "A dedicated team locked in on your business daily",
                     "Every cutting-edge AI tool, applied for you",
                     "Constant monitoring, adjusting & pushing forward",
@@ -925,7 +935,7 @@ export default function AiWebsiteProHome() {
         </div>
       </section>
 
-      {/* Lead Capture — Full AI Agency fire intake */}
+      {/* Lead Capture — Elite AI */}
       <section className="relative py-28 md:py-32 overflow-hidden border-t border-red-950/40">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0303] via-[#0d0505] to-[#0a0a0f]" />
         <motion.div
@@ -947,7 +957,7 @@ export default function AiWebsiteProHome() {
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-red-500/40 bg-gradient-to-r from-red-950/80 to-orange-950/60 shadow-[0_0_24px_-4px_rgba(239,68,68,0.45)]">
                   <Flame className="w-4 h-4 text-orange-400 shrink-0" />
                   <span className="text-xs font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-300">
-                    Agency intake
+                    Elite AI intake
                   </span>
                 </div>
                 <h2 className="text-4xl md:text-5xl lg:text-[2.75rem] font-black font-heading leading-[1.1]">
@@ -960,14 +970,14 @@ export default function AiWebsiteProHome() {
                   </span>
                 </h2>
                 <p className="text-lg text-red-100/65 leading-relaxed max-w-md">
-                  Full AI Agency leads go straight to our team. No fluff — tell us what you&apos;re building and we&apos;ll
+                  Elite AI leads go straight to our team. No fluff — tell us what you&apos;re building and we&apos;ll
                   bring the heat.
                 </p>
                 <div className="space-y-5">
                   {[
                     { icon: MessageSquare, text: 'White-glove consult — zero pressure' },
                     { icon: Zap, text: 'Custom growth roadmap for your market' },
-                    { icon: Flame, text: 'Priority routing for $4,999\u202f95/mo partners' },
+                    { icon: Flame, text: 'Priority routing for Elite AI partners' },
                   ].map(({ icon: Icon, text }) => (
                     <div
                       key={text}
@@ -983,7 +993,7 @@ export default function AiWebsiteProHome() {
               </div>
 
               <div className="relative lg:pt-2 rounded-3xl">
-                {/* Same glow stack as Full AI Agency pricing card — wraps corners, no flat “bar” */}
+                {/* Same glow stack as Elite AI pricing card */}
                 <motion.div
                   className="absolute -inset-px bg-gradient-to-b from-red-500/50 via-orange-500/35 to-red-600/20 rounded-3xl blur-2xl -z-10 pointer-events-none"
                   animate={{ opacity: [0.55, 0.85, 0.55] }}
@@ -1039,7 +1049,7 @@ export default function AiWebsiteProHome() {
                           <div className="min-w-0">
                             <p className="text-xl font-black font-heading tracking-tight text-white">aiWebDF</p>
                             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-300/85 mt-0.5">
-                              Full AI Agency · Contact
+                              Elite AI · Contact
                             </p>
                           </div>
                         </div>
@@ -1129,7 +1139,7 @@ export default function AiWebsiteProHome() {
                           ) : (
                             <>
                               <Flame className="w-5 h-5 shrink-0" />
-                              Request agency consultation
+                              Request Elite AI consultation
                             </>
                           )}
                         </Button>

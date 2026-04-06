@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     const textBody = [
-      `aiWebDF — Full AI Agency consultation`,
+      `aiWebDF — Elite AI consultation`,
       ``,
       `Name: ${name}`,
       `Email: ${email}`,
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     const htmlBody = `
-      <h2>aiWebDF — Agency consultation</h2>
+      <h2>aiWebDF — Elite AI consultation</h2>
       <p><strong>Name:</strong> ${esc(name)}</p>
       <p><strong>Email:</strong> ${esc(email)}</p>
       ${phone ? `<p><strong>Phone:</strong> ${esc(phone)}</p>` : ''}
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const mail = await sendTeamNotification({
-      subject: `aiWebDF consultation: ${name}`,
+      subject: `aiWebDF Elite AI: ${name}`,
       text: textBody,
       html: htmlBody,
     });
