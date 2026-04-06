@@ -29,8 +29,6 @@ export async function POST(request: NextRequest) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const email = typeof body.email === 'string' ? body.email.trim() : '';
     const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
-    const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : '';
-    const message = typeof body.message === 'string' ? body.message.trim() : '';
     const plan = parsePlan(body.plan);
 
     if (name.length < 2) {
@@ -39,18 +37,17 @@ export async function POST(request: NextRequest) {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      return NextResponse.json({ error: 'Valid phone is required' }, { status: 400 });
+    }
     if (!plan) {
       return NextResponse.json({ error: 'Valid plan is required' }, { status: 400 });
     }
 
     const planLabel = PLAN_LABEL[plan];
 
-    const noteText = [
-      `Plan: ${planLabel}`,
-      message ? `Message: ${message}` : null,
-    ]
-      .filter(Boolean)
-      .join('\n') || null;
+    const noteText = `Plan: ${planLabel}`;
 
     const result = await sql`
       INSERT INTO leads (
@@ -61,7 +58,7 @@ export async function POST(request: NextRequest) {
         ${PLACEHOLDER_LISTING},
         ${null},
         ${phone || null},
-        ${businessName || null},
+        ${null},
         ${email},
         ${null},
         ${name},
@@ -74,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     const lead = result[0] as { id: number };
 
-    if (noteText && lead?.id) {
+    if (lead?.id) {
       await sql`
         INSERT INTO lead_notes (lead_id, text)
         VALUES (${lead.id}, ${noteText})
@@ -87,15 +84,11 @@ export async function POST(request: NextRequest) {
       `Plan: ${planLabel}`,
       `Name: ${name}`,
       `Email: ${email}`,
-      phone ? `Phone: ${phone}` : null,
-      businessName ? `Business: ${businessName}` : null,
-      message ? `Message: ${message}` : null,
+      `Phone: ${phone}`,
       ``,
       `Lead ID: ${lead?.id ?? '—'}`,
       `Submitted: ${new Date().toISOString()}`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    ].join('\n');
 
     const esc = (s: string) =>
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -105,9 +98,7 @@ export async function POST(request: NextRequest) {
       <p><strong>Plan:</strong> ${esc(planLabel)}</p>
       <p><strong>Name:</strong> ${esc(name)}</p>
       <p><strong>Email:</strong> ${esc(email)}</p>
-      ${phone ? `<p><strong>Phone:</strong> ${esc(phone)}</p>` : ''}
-      ${businessName ? `<p><strong>Business:</strong> ${esc(businessName)}</p>` : ''}
-      ${message ? `<p><strong>Message:</strong> ${esc(message)}</p>` : ''}
+      <p><strong>Phone:</strong> ${esc(phone)}</p>
       <p><em>Lead ID: ${lead?.id ?? '—'} · ${new Date().toLocaleString()}</em></p>
     `;
 

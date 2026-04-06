@@ -24,7 +24,6 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 const PLAN_IDS = ['starter', 'advanced', 'elite'] as const;
@@ -267,9 +266,10 @@ const formSchema = z.object({
   plan: z.enum(['starter', 'advanced', 'elite']),
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
-  businessName: z.string().optional(),
-  phone: z.string().optional(),
-  message: z.string().optional(),
+  phone: z
+    .string()
+    .min(1, "Phone is required")
+    .refine((val) => val.replace(/\D/g, "").length >= 10, "Enter a valid phone number"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -279,9 +279,7 @@ export default function AiWebsiteProHome() {
     plan: 'elite',
     name: '',
     email: '',
-    businessName: '',
     phone: '',
-    message: '',
   };
 
   const {
@@ -1195,40 +1193,44 @@ export default function AiWebsiteProHome() {
       <section
         id="contact"
         className={cn(
-          'relative py-28 md:py-32 overflow-hidden border-t scroll-mt-24 transition-colors duration-500',
+          'relative overflow-hidden border-t scroll-mt-24 pt-12 pb-16 md:pt-16 md:pb-24 transition-colors duration-500',
           theme.sectionBorder,
         )}
       >
-        <motion.div
-          key={selectedPlan}
-          initial={{ opacity: 0.88 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.38, ease: 'easeOut' }}
-          className="relative min-h-0"
-        >
-          <div className={cn('absolute inset-0 pointer-events-none', theme.sectionBg)} />
+        {/* Full-bleed behind section padding so the top band isn’t flat page black (#0a0a0f) */}
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
           <motion.div
-            className={cn(
-              'absolute -top-32 right-0 w-[min(90vw,520px)] h-[520px] rounded-full blur-[100px] pointer-events-none',
-              theme.blurTop,
-            )}
-            animate={{ opacity: [0.35, 0.65, 0.35], scale: [1, 1.08, 1] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className={cn(
-              'absolute bottom-0 left-0 w-[min(85vw,480px)] h-[480px] rounded-full blur-[110px] pointer-events-none',
-              theme.blurBottom,
-            )}
-            animate={{ opacity: [0.3, 0.55, 0.3] }}
-            transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-          />
-          <div className={cn('absolute inset-0 pointer-events-none', theme.radial)} />
+            key={selectedPlan}
+            initial={{ opacity: 0.88 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.38, ease: 'easeOut' }}
+            className="absolute inset-0"
+          >
+            <div className={cn('absolute inset-0', theme.sectionBg)} />
+            <div className={cn('absolute inset-0', theme.radial)} />
+            <motion.div
+              className={cn(
+                'absolute -top-32 right-0 w-[min(90vw,520px)] h-[520px] rounded-full blur-[100px]',
+                theme.blurTop,
+              )}
+              animate={{ opacity: [0.35, 0.65, 0.35], scale: [1, 1.08, 1] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className={cn(
+                'absolute bottom-0 left-0 w-[min(85vw,480px)] h-[480px] rounded-full blur-[110px]',
+                theme.blurBottom,
+              )}
+              animate={{ opacity: [0.3, 0.55, 0.3] }}
+              transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+            />
+          </motion.div>
+        </div>
 
-          <div className="container mx-auto px-6 relative z-10">
+        <div className="container relative z-10 mx-auto px-6">
             <div className="max-w-5xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-                <div className="space-y-8">
+                <div className="space-y-8 lg:pt-10">
                   <div
                     className={cn(
                       'inline-flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-500',
@@ -1412,9 +1414,9 @@ export default function AiWebsiteProHome() {
                                 theme.label,
                               )}
                             >
-                              Phone <span className="opacity-60 font-normal normal-case">(optional)</span>
+                              Phone
                             </label>
-                            <Input placeholder="555-0123" className={cn(theme.input)} {...register('phone')} />
+                            <Input placeholder="(555) 555-0123" className={cn(theme.input)} {...register('phone')} />
                             {errors.phone && (
                               <p className={cn('text-sm mt-1.5', theme.error)}>{errors.phone.message}</p>
                             )}
@@ -1438,40 +1440,6 @@ export default function AiWebsiteProHome() {
                           />
                           {errors.email && (
                             <p className={cn('text-sm mt-1.5', theme.error)}>{errors.email.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label
-                            className={cn(
-                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
-                              theme.label,
-                            )}
-                          >
-                            Business <span className="opacity-60 font-normal normal-case">(optional)</span>
-                          </label>
-                          <Input placeholder="Acme Corp" className={cn(theme.input)} {...register('businessName')} />
-                          {errors.businessName && (
-                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.businessName.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label
-                            className={cn(
-                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
-                              theme.label,
-                            )}
-                          >
-                            Message <span className="opacity-60 font-normal normal-case">(optional)</span>
-                          </label>
-                          <Textarea
-                            placeholder="What does winning look like for you?"
-                            className={cn(theme.input, 'h-auto min-h-[120px] resize-none')}
-                            {...register('message')}
-                          />
-                          {errors.message && (
-                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.message.message}</p>
                           )}
                         </div>
 
@@ -1509,7 +1477,6 @@ export default function AiWebsiteProHome() {
               </div>
             </div>
           </div>
-        </motion.div>
       </section>
       
       {/* Footer */}
