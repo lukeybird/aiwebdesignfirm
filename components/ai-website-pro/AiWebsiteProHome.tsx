@@ -707,16 +707,18 @@ export default function AiWebsiteProHome() {
                     <span className="text-4xl font-black font-heading text-white">$95.95</span>
                     <span className="text-slate-500 mb-1 text-sm">/mo</span>
                   </div>
-                  <p className="text-sm text-slate-400/90">One-time $95.95 setup fee to get your site built out</p>
+                  <p className="text-sm text-slate-400/90">
+                    The sell is the bot: a real AI chatbot on your site, 24/7. One-time $95.95 setup covers your build-out.
+                  </p>
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
-                    "Custom AI-powered website built for you",
-                    "Site live in 7 days or less",
-                    "Detailed email with full instructions",
-                    "Web design makeover included",
-                    "Text our Q&A robot anytime",
-                    "We answer what it can't"
+                    "AI chatbot implemented on your site — answers questions, captures leads, never sleeps",
+                    "Trained for your business so replies feel on-brand, not like a generic widget",
+                    "Custom site built around the experience — live in 7 days or less",
+                    "Web design makeover + polished pages your bot can actually use",
+                    "Visitors reach the bot anytime; our team answers what it can't",
+                    "Detailed onboarding email — you know exactly how to use everything",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
@@ -733,7 +735,7 @@ export default function AiWebsiteProHome() {
                     Get Started <ArrowRight className="ml-2 w-4 h-4" />
                   </a>
                 </Button>
-                <p className="text-xs text-center text-slate-500/70 mt-3">Perfect to get live fast</p>
+                <p className="text-xs text-center text-slate-500/70 mt-3">Start with the chatbot customers actually talk to</p>
               </div>
             </motion.div>
 
@@ -760,23 +762,28 @@ export default function AiWebsiteProHome() {
                     <span className="text-5xl font-black font-heading text-white">$499.95</span>
                     <span className="text-gray-400 mb-1.5">/mo</span>
                   </div>
-                  <p className="text-sm text-[#00d4ff]/70">Everything to dominate AI search — every single month</p>
+                  <p className="text-sm text-[#00d4ff]/70">
+                    Includes a full AI-optimized website build — then we keep tuning it every month so you win search &amp; AI.
+                  </p>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
-                    "Everything in Starter",
-                    "Full AI optimization of your site monthly",
+                    "Full AI-optimized website build — structure, content & schema for Google and AI assistants",
+                    "Everything in Starter (chatbot implementation, human backup, fast launch)",
+                    "Ongoing full AI optimization of your site every month",
                     "Monthly strategy meeting with our team",
                     "AI feature integrations every month",
                     "Google, Yahoo & Bing SEO submission",
                     "ChatGPT targeting — get recommended by AI",
                     "Show up in Claude, Grok & Perplexity too",
-                    "Monthly performance report"
+                    "Monthly performance report",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${i === 0 ? "text-gray-500" : "text-[#00d4ff]"}`} />
-                      <span className={i === 0 ? "text-gray-500" : "text-gray-200"}>{item}</span>
+                      <CheckCircle2
+                        className={`w-4 h-4 shrink-0 mt-0.5 ${i === 1 ? "text-gray-500" : "text-[#00d4ff]"}`}
+                      />
+                      <span className={i === 1 ? "text-gray-500" : "text-gray-200"}>{item}</span>
                     </li>
                   ))}
                 </ul>
