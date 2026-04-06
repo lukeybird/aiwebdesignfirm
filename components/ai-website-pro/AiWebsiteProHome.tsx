@@ -16,6 +16,8 @@ import {
   Globe,
   ArrowUpRight,
   Flame,
+  Phone,
+  Smartphone,
   type LucideIcon,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -24,6 +26,7 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 const PLAN_IDS = ['starter', 'advanced', 'elite'] as const;
@@ -225,9 +228,9 @@ const PLAN_LEFT_COPY: Record<
     h2: 'We handle the build.',
     sub: 'Tell us about your business — we ship your AI-ready site and keep you in the loop from day one.',
     bullets: [
-      { Icon: Bot, text: 'Custom AI chatbot + SEO foundations' },
-      { Icon: Zap, text: 'Live in 7 days with clear next steps' },
-      { Icon: MessageSquare, text: 'Team responds within 24 hours' },
+      { Icon: Bot, text: 'An AI Q&A chatbot that strengthens your SEO' },
+      { Icon: Zap, text: 'Site built out in 7 days or less' },
+      { Icon: Search, text: 'Submission to Google & major search engines' },
     ],
   },
   advanced: {
@@ -237,9 +240,9 @@ const PLAN_LEFT_COPY: Record<
     h2: 'Every month.',
     sub: 'You get ongoing AI optimization, integrations, and strategy — so your site keeps pulling leads, not sitting still.',
     bullets: [
-      { Icon: TrendingUp, text: 'Monthly optimization & strategy touchpoints' },
-      { Icon: BarChart3, text: 'AI tools applied on a recurring roadmap' },
-      { Icon: Globe, text: 'Visibility across search + AI answer engines' },
+      { Icon: Smartphone, text: 'One Basic Custom App Build Out (generic)' },
+      { Icon: Phone, text: 'AI Phone Receptionist (books appointments)' },
+      { Icon: MessageSquare, text: 'Appointment Booking App (sends SMS reminders)' },
     ],
   },
   elite: {
@@ -270,6 +273,7 @@ const formSchema = z.object({
     .string()
     .min(1, "Phone is required")
     .refine((val) => val.replace(/\D/g, "").length >= 10, "Enter a valid phone number"),
+  notes: z.string().max(2000, "Notes must be 2000 characters or less").optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -280,6 +284,7 @@ export default function AiWebsiteProHome() {
     name: '',
     email: '',
     phone: '',
+    notes: '',
   };
 
   const {
@@ -1018,13 +1023,13 @@ export default function AiWebsiteProHome() {
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
-                    "Custom AI powered chat bot for your website",
-                    "Google, Yahoo & Bing SEO submission",
-                    "Site live in 7 days or less",
-                    "Detailed email with full instructions",
+                    "An AI Q&A chatbot that strengthens your SEO",
+                    "Site built out in 7 days or less",
+                    "Submission to Google & major search engines",
                     "Web design makeover included",
+                    "Virtual support via our Q&A chatbot",
+                    "Detailed documents on how to best effectively use the tool",
                     "Text our Q&A robot anytime",
-                    "We answer what it can't"
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
@@ -1081,14 +1086,9 @@ export default function AiWebsiteProHome() {
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
                     "Everything in Starter AI",
-                    "Full AI optimization of your site monthly",
-                    "Monthly strategy meeting with our team",
-                    "AI feature integrations every month",
-                    "AI phone receptionist",
-                    "Appointment reminders",
-                    "ChatGPT targeting — get recommended by AI",
-                    "Show up in Claude, Grok & Perplexity too",
-                    "Website remodel up to 5 pages (additional pages vary in cost)",
+                    "One Basic Custom App Build Out (generic)",
+                    "AI Phone Receptionist (books appointments)",
+                    "Appointment Booking App (sends SMS reminders)",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${i === 0 ? "text-gray-500" : "text-[#00d4ff]"}`} />
@@ -1440,6 +1440,25 @@ export default function AiWebsiteProHome() {
                           />
                           {errors.email && (
                             <p className={cn('text-sm mt-1.5', theme.error)}>{errors.email.message}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label
+                            className={cn(
+                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              theme.label,
+                            )}
+                          >
+                            Notes <span className="opacity-60 font-normal normal-case">(optional)</span>
+                          </label>
+                          <Textarea
+                            placeholder="Anything we should know before we reach out?"
+                            className={cn(theme.input, 'h-auto min-h-[100px] resize-y')}
+                            {...register('notes')}
+                          />
+                          {errors.notes && (
+                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.notes.message}</p>
                           )}
                         </div>
 

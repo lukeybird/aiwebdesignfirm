@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const email = typeof body.email === 'string' ? body.email.trim() : '';
     const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : '';
     const plan = parsePlan(body.plan);
 
     if (name.length < 2) {
@@ -47,7 +48,9 @@ export async function POST(request: NextRequest) {
 
     const planLabel = PLAN_LABEL[plan];
 
-    const noteText = `Plan: ${planLabel}`;
+    const noteText = [`Plan: ${planLabel}`, notes ? `Notes: ${notes}` : null]
+      .filter(Boolean)
+      .join('\n');
 
     const result = await sql`
       INSERT INTO leads (
@@ -85,10 +88,13 @@ export async function POST(request: NextRequest) {
       `Name: ${name}`,
       `Email: ${email}`,
       `Phone: ${phone}`,
+      notes ? `Notes: ${notes}` : null,
       ``,
       `Lead ID: ${lead?.id ?? '—'}`,
       `Submitted: ${new Date().toISOString()}`,
-    ].join('\n');
+    ]
+      .filter((line) => line !== null)
+      .join('\n');
 
     const esc = (s: string) =>
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -99,6 +105,7 @@ export async function POST(request: NextRequest) {
       <p><strong>Name:</strong> ${esc(name)}</p>
       <p><strong>Email:</strong> ${esc(email)}</p>
       <p><strong>Phone:</strong> ${esc(phone)}</p>
+      ${notes ? `<p><strong>Notes:</strong> ${esc(notes).replace(/\n/g, '<br/>')}</p>` : ''}
       <p><em>Lead ID: ${lead?.id ?? '—'} · ${new Date().toLocaleString()}</em></p>
     `;
 
