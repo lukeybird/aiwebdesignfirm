@@ -67,26 +67,52 @@ export default function AiWebsiteProHome() {
       const payload = (await response.json().catch(() => ({}))) as {
         success?: boolean;
         emailSent?: boolean;
+        thankYouSent?: boolean;
+        allEmailsSent?: boolean;
         notifyError?: string;
+        thankYouError?: string;
         error?: string;
       };
 
       if (response.ok && payload.success) {
         setIsSuccess(true);
         reset();
-        if (payload.emailSent) {
+        const teamOk = payload.emailSent === true;
+        const thanksOk = payload.thankYouSent === true;
+        const fullyOk =
+          payload.allEmailsSent === true || (teamOk && thanksOk);
+
+        if (fullyOk) {
           toast.success('Request received', {
-            description: "We'll be in touch shortly to discuss your AI website.",
+            description:
+              "Check your inbox for a confirmation — we'll reach out shortly about your AI website.",
           });
         } else {
-          const hint = payload.notifyError?.trim();
-          const maxLen = 220;
-          const shortErr =
-            hint && hint.length > maxLen ? `${hint.slice(0, maxLen)}…` : hint;
-          toast.warning('Request saved — email not sent', {
-            description: shortErr
-              ? `Resend/notify failed: ${shortErr}`
-              : 'Your details were stored, but the team email did not send. Set RESEND_API_KEY (or RESND_API_KEY) on the server for Production and redeploy; set FROM_EMAIL to a verified sender.',
+          const parts: string[] = [];
+          if (!teamOk) {
+            const hint = payload.notifyError?.trim();
+            const maxLen = 160;
+            const shortErr =
+              hint && hint.length > maxLen ? `${hint.slice(0, maxLen)}…` : hint;
+            parts.push(
+              shortErr
+                ? `Team notification: ${shortErr}`
+                : 'Team notification did not send.',
+            );
+          }
+          if (!thanksOk) {
+            const hint = payload.thankYouError?.trim();
+            const maxLen = 160;
+            const shortErr =
+              hint && hint.length > maxLen ? `${hint.slice(0, maxLen)}…` : hint;
+            parts.push(
+              shortErr
+                ? `Your confirmation email: ${shortErr}`
+                : 'Confirmation email to you did not send.',
+            );
+          }
+          toast.warning('Request saved — some email did not send', {
+            description: parts.join(' '),
           });
         }
       } else {

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql, initDatabase } from '@/lib/db';
-import { getTeamNotifyEmails, sendTeamNotification } from '@/lib/team-email';
+import {
+  getTeamNotifyEmails,
+  sendConsultationThankYou,
+  sendTeamNotification,
+} from '@/lib/team-email';
 
 const PLACEHOLDER_LISTING = 'aiWebDF — consultation request';
 
@@ -86,17 +90,28 @@ export async function POST(request: NextRequest) {
     });
     if (!mail.ok) {
       console.error(
-        'ai-website-consultation: email notify failed (lead still saved):',
+        'ai-website-consultation: team notify failed (lead still saved):',
         mail.error,
         'recipients:',
         getTeamNotifyEmails(),
       );
     }
 
+    const thanks = await sendConsultationThankYou({ to: email, name });
+    if (!thanks.ok) {
+      console.error('ai-website-consultation: thank-you email failed:', thanks.error, 'to:', email);
+    }
+
+    const allOk = mail.ok && thanks.ok;
+
     return NextResponse.json({
       success: true,
       emailSent: mail.ok,
-      ...(mail.ok ? {} : { notifyError: mail.error || 'Email transport not configured' }),
+      thankYouSent: thanks.ok,
+      ...(mail.ok ? {} : { notifyError: mail.error || 'Team notification failed' }),
+      ...(thanks.ok ? {} : { thankYouError: thanks.error || 'Thank-you email failed' }),
+      // Back-compat for older clients: "fully delivered" when both emails sent
+      allEmailsSent: allOk,
     });
   } catch (e: any) {
     if (e?.message?.includes('leads') && e?.message?.includes('does not exist')) {
