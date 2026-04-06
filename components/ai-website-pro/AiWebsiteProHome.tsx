@@ -695,11 +695,11 @@ export default function AiWebsiteProHome() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0 }}
               viewport={{ once: true }}
-              className="relative rounded-3xl flex flex-col"
+              className="relative rounded-3xl flex flex-col h-full min-h-0"
             >
               <div className="absolute -inset-px bg-gradient-to-b from-slate-300/25 via-slate-400/12 to-slate-600/15 rounded-3xl blur-xl -z-10 pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-br from-slate-400/12 via-transparent to-transparent rounded-3xl blur-lg -z-10 pointer-events-none" />
-              <div className="relative bg-[#0d0d1a] border border-slate-400/35 rounded-3xl p-8 flex flex-col shadow-[0_0_32px_-16px_rgba(148,163,184,0.45),0_0_12px_-8px_rgba(203,213,225,0.2)] ring-1 ring-slate-500/15">
+              <div className="relative bg-[#0d0d1a] border border-slate-400/35 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_32px_-16px_rgba(148,163,184,0.45),0_0_12px_-8px_rgba(203,213,225,0.2)] ring-1 ring-slate-500/15">
                 <div className="mb-6">
                   <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Starter</p>
                   <div className="flex items-end gap-1 mb-1">
@@ -728,6 +728,9 @@ export default function AiWebsiteProHome() {
                     Get Started
                   </a>
                 </Button>
+                <p className="text-xs text-center mt-3 text-slate-500/40" aria-hidden>
+                  &nbsp;
+                </p>
               </div>
             </motion.div>
 
@@ -737,7 +740,7 @@ export default function AiWebsiteProHome() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               viewport={{ once: true }}
-              className="relative rounded-3xl flex flex-col lg:-mt-4 lg:-mb-4"
+              className="relative rounded-3xl flex flex-col h-full min-h-0 lg:-mt-4 lg:-mb-4"
               style={{ zIndex: 10 }}
             >
               {/* Glow */}
@@ -790,7 +793,7 @@ export default function AiWebsiteProHome() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               viewport={{ once: true }}
-              className="relative rounded-3xl flex flex-col lg:-mt-4 lg:-mb-4"
+              className="relative rounded-3xl flex flex-col h-full min-h-0 lg:-mt-4 lg:-mb-4"
               style={{ zIndex: 11 }}
             >
               <div className="absolute -inset-px bg-gradient-to-b from-red-500/50 via-orange-500/35 to-red-600/20 rounded-3xl blur-2xl -z-10" />
