@@ -689,42 +689,46 @@ export default function AiWebsiteProHome() {
 
           <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
 
-            {/* Tier 1 — Starter */}
+            {/* Tier 1 — Starter (subtle silver glow — lighter than Pro / Agency) */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0 }}
               viewport={{ once: true }}
-              className="relative bg-[#0d0d1a] border border-white/10 rounded-3xl p-8 flex flex-col"
+              className="relative rounded-3xl flex flex-col"
             >
-              <div className="mb-6">
-                <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Starter</p>
-                <div className="flex items-end gap-1 mb-1">
-                  <span className="text-4xl font-black font-heading text-white">$95.95</span>
-                  <span className="text-gray-500 mb-1">/mo</span>
+              <div className="absolute -inset-px bg-gradient-to-b from-slate-300/25 via-slate-400/12 to-slate-600/15 rounded-3xl blur-xl -z-10 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-400/12 via-transparent to-transparent rounded-3xl blur-lg -z-10 pointer-events-none" />
+              <div className="relative bg-[#0d0d1a] border border-slate-400/35 rounded-3xl p-8 flex flex-col shadow-[0_0_32px_-16px_rgba(148,163,184,0.45),0_0_12px_-8px_rgba(203,213,225,0.2)] ring-1 ring-slate-500/15">
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Starter</p>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-4xl font-black font-heading text-white">$95.95</span>
+                    <span className="text-gray-500 mb-1">/mo</span>
+                  </div>
+                  <p className="text-sm text-gray-500">One-time $95.95 setup fee to get your site built out</p>
                 </div>
-                <p className="text-sm text-gray-500">One-time $95.95 setup fee to get your site built out</p>
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    "Custom AI-powered website built for you",
+                    "Site live in 7 days or less",
+                    "Detailed email with full instructions",
+                    "Web design makeover included",
+                    "Text our Q&A robot anytime",
+                    "We answer what it can't"
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-gray-400 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-gray-600 shrink-0 mt-0.5" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild variant="outline" className="w-full rounded-full border-white/20 text-white hover:bg-white/5 font-semibold h-12">
+                  <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
+                    Get Started
+                  </a>
+                </Button>
               </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                {[
-                  "Custom AI-powered website built for you",
-                  "Site live in 7 days or less",
-                  "Detailed email with full instructions",
-                  "Web design makeover included",
-                  "Text our Q&A robot anytime",
-                  "We answer what it can't"
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-gray-400 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-gray-600 shrink-0 mt-0.5" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button asChild variant="outline" className="w-full rounded-full border-white/20 text-white hover:bg-white/5 font-semibold h-12">
-                <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
-                  Get Started
-                </a>
-              </Button>
             </motion.div>
 
             {/* Tier 2 — AI Pro — THE OBVIOUS CHOICE */}
