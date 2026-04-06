@@ -645,7 +645,10 @@ export default function AiWebsiteProHome() {
                 <Clock className="w-4 h-4" /> The window is closing
               </div>
               <h2 className="text-4xl lg:text-6xl font-bold font-heading mb-8">
-                Early Movers <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#7c3aed]">Take All.</span>
+                Early Movers{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] via-orange-400 to-red-500">
+                  Take All.
+                </span>
               </h2>
               <p className="text-xl lg:text-2xl text-gray-400 mb-12 leading-relaxed">
                 When mobile search took over, businesses that adapted early dominated for a decade. AI search is happening 10x faster. Those who optimize now will lock in their local market. Those who wait will be left behind.
@@ -760,45 +763,68 @@ export default function AiWebsiteProHome() {
               </div>
             </motion.div>
 
-            {/* Tier 3 — Full Agency */}
+            {/* Tier 3 — Full Agency — red / “fire” tier */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               viewport={{ once: true }}
-              className="relative bg-[#0d0d1a] border border-white/10 rounded-3xl p-8 flex flex-col"
+              className="relative rounded-3xl flex flex-col lg:-mt-4 lg:-mb-4"
+              style={{ zIndex: 11 }}
             >
-              <div className="mb-6">
-                <p className="text-sm font-semibold text-[#7c3aed] uppercase tracking-widest mb-2">Full AI Agency</p>
-                <div className="flex items-end gap-1 mb-1">
-                  <span className="text-4xl font-black font-heading text-white">$4,999</span>
-                  <span className="text-gray-500 mb-1">/mo</span>
+              <div className="absolute -inset-px bg-gradient-to-b from-red-500/50 via-orange-500/35 to-red-600/20 rounded-3xl blur-2xl -z-10" />
+              <div className="absolute inset-0 bg-gradient-to-br from-red-600/25 via-orange-600/15 to-transparent rounded-3xl blur-xl -z-10" />
+              <div className="relative bg-gradient-to-b from-[#1a0808] via-[#120606] to-[#0d0d1a] border-2 border-red-500/70 rounded-3xl p-8 flex flex-col h-full shadow-[0_0_72px_-10px_rgba(239,68,68,0.55),0_0_24px_-8px_rgba(249,115,22,0.35)] ring-1 ring-orange-500/25">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-5 py-1.5 rounded-full shadow-lg shadow-red-950/60 whitespace-nowrap">
+                  Elite · White-glove
                 </div>
-                <p className="text-sm text-gray-500">Total market domination. A team obsessed with your business.</p>
+
+                <div className="mb-6 mt-2">
+                  <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-red-500 uppercase tracking-widest mb-2">
+                    Full AI Agency
+                  </p>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-5xl font-black font-heading text-white">$4,999</span>
+                    <span className="text-red-200/60 mb-1.5">/mo</span>
+                  </div>
+                  <p className="text-sm text-red-200/70">
+                    Total market domination. A team obsessed with your business.
+                  </p>
+                </div>
+
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    "Everything in AI Pro",
+                    "A dedicated team locked in on your business daily",
+                    "Every cutting-edge AI tool, applied for you",
+                    "Constant monitoring, adjusting & pushing forward",
+                    "We grind it out by your side — every single day",
+                    "Always looking. Always improving. Always ahead.",
+                    "Full local market domination strategy",
+                    "You pay for results, not hours",
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm">
+                      <CheckCircle2
+                        className={`w-4 h-4 shrink-0 mt-0.5 ${
+                          i === 0 ? "text-gray-500" : "text-orange-400"
+                        }`}
+                      />
+                      <span className={i === 0 ? "text-gray-500" : "text-gray-200"}>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  asChild
+                  size="lg"
+                  className="w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white font-black text-lg h-14 shadow-[0_0_36px_-6px_rgba(239,68,68,0.75)] hover:scale-[1.02] transition-all duration-200 border border-red-400/30"
+                >
+                  <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
+                    Contact Us <ArrowRight className="ml-2 w-5 h-5" />
+                  </a>
+                </Button>
+                <p className="text-xs text-center text-orange-400/55 mt-3">For businesses that refuse to lose</p>
               </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                {[
-                  "Everything in AI Pro",
-                  "A dedicated team locked in on your business daily",
-                  "Every cutting-edge AI tool, applied for you",
-                  "Constant monitoring, adjusting & pushing forward",
-                  "We grind it out by your side — every single day",
-                  "Always looking. Always improving. Always ahead.",
-                  "Full local market domination strategy",
-                  "You pay for results, not hours"
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-gray-400 text-sm">
-                    <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${i === 0 ? "text-gray-600" : "text-[#7c3aed]"}`} />
-                    <span className={i === 0 ? "text-gray-500" : ""}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button asChild variant="outline" className="w-full rounded-full border-[#7c3aed]/40 text-[#7c3aed] hover:bg-[#7c3aed]/10 font-semibold h-12">
-                <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
-                  Contact Us
-                </a>
-              </Button>
-              <p className="text-xs text-center text-gray-600 mt-3">For businesses that refuse to lose</p>
             </motion.div>
 
           </div>
