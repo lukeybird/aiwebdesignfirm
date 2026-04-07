@@ -49,6 +49,20 @@ const PLAN_LABEL: Record<PlanId, string> = {
   elite: 'Elite AI',
 };
 
+/** Unselected plan segments: shared slate outline (Starter-style gray). */
+const PLAN_SEGMENT_IDLE =
+  'border-slate-500/25 bg-black/35 text-slate-500 hover:border-slate-400/40 hover:bg-slate-900/45 hover:text-slate-300';
+
+/** Segmented plan picker: selected option uses tier colors; unselected use gray outline. */
+const PLAN_SEGMENT_SELECTED: Record<PlanId, string> = {
+  starter:
+    'border-slate-300/55 bg-gradient-to-b from-slate-600/50 to-slate-800/40 text-white shadow-[0_0_22px_-8px_rgba(148,163,184,0.5)] ring-2 ring-slate-400/45',
+  advanced:
+    'border-[#00d4ff]/55 bg-gradient-to-b from-[#0066ff]/45 to-[#00d4ff]/28 text-cyan-50 shadow-[0_0_22px_-8px_rgba(0,212,255,0.45)] ring-2 ring-[#00d4ff]/40',
+  elite:
+    'border-orange-400/55 bg-gradient-to-b from-red-600/50 to-orange-600/38 text-white shadow-[0_0_22px_-8px_rgba(239,68,68,0.48)] ring-2 ring-orange-400/40',
+};
+
 type ContactTheme = {
   sectionBg: string;
   sectionBorder: string;
@@ -69,7 +83,6 @@ type ContactTheme = {
   label: string;
   input: string;
   error: string;
-  select: string;
   submit: string;
   successRing: string;
   successTitle: string;
@@ -103,8 +116,6 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     input:
       'bg-black/50 border-slate-500/40 text-white placeholder:text-slate-400/30 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:border-slate-300/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
     error: 'text-slate-300',
-    select:
-      'w-full h-11 rounded-xl bg-black/50 border border-slate-500/45 px-3 text-sm font-medium text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 appearance-none cursor-pointer transition-colors duration-500',
     submit:
       'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black shadow-[0_0_36px_-8px_rgba(203,213,225,0.5)] border border-white/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
     successRing:
@@ -139,8 +150,6 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     input:
       'bg-black/50 border-[#0066ff]/35 text-white placeholder:text-cyan-200/20 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-[#00d4ff]/70 focus-visible:border-[#00d4ff]/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
     error: 'text-cyan-200',
-    select:
-      'w-full h-11 rounded-xl bg-black/50 border border-[#0066ff]/40 px-3 text-sm font-medium text-cyan-50 outline-none focus-visible:ring-2 focus-visible:ring-[#00d4ff]/55 appearance-none cursor-pointer transition-colors duration-500',
     submit:
       'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black shadow-[0_0_40px_-6px_rgba(0,212,255,0.75),0_0_20px_-8px_rgba(0,102,255,0.4)] border border-[#00d4ff]/35 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
     successRing:
@@ -176,8 +185,6 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     input:
       'bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
     error: 'text-orange-300',
-    select:
-      'w-full h-11 rounded-xl bg-black/50 border border-red-500/35 px-3 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-orange-500/65 appearance-none cursor-pointer transition-colors duration-500',
     submit:
       'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white shadow-[0_0_40px_-6px_rgba(239,68,68,0.85),0_0_20px_-8px_rgba(249,115,22,0.4)] border border-red-400/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
     successRing:
@@ -1223,8 +1230,8 @@ export default function AiWebsiteProHome() {
 
         <div className="container relative z-10 mx-auto px-6">
             <div className="max-w-5xl mx-auto">
-              <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-                <div className="space-y-8 lg:pt-10">
+              <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start lg:items-center">
+                <div className="space-y-8">
                   <div className="space-y-5">
                     {leftCopy.bullets.map(({ Icon, text }) => (
                       <div key={text} className={cn('flex items-center gap-4 group', theme.leftFeatureText)}>
@@ -1349,14 +1356,37 @@ export default function AiWebsiteProHome() {
                           >
                             Which plan?
                           </label>
-                          <select
-                            className={cn(theme.select)}
-                            {...register('plan')}
+                          <input type="hidden" {...register('plan')} />
+                          <div
+                            className={cn(
+                              'grid grid-cols-3 gap-1.5 rounded-xl border p-1.5 transition-colors duration-500',
+                              selectedPlan === 'starter' && 'border-slate-500/40 bg-slate-950/50',
+                              selectedPlan === 'advanced' && 'border-[#0066ff]/40 bg-[#050a14]/55',
+                              selectedPlan === 'elite' && 'border-red-500/35 bg-[#120606]/55',
+                            )}
+                            role="group"
+                            aria-label="Which plan?"
                           >
-                            <option value="starter">{PLAN_LABEL.starter}</option>
-                            <option value="advanced">{PLAN_LABEL.advanced}</option>
-                            <option value="elite">{PLAN_LABEL.elite}</option>
-                          </select>
+                            {PLAN_IDS.map((planId) => {
+                              const isSelected = selectedPlan === planId;
+                              return (
+                                <button
+                                  key={planId}
+                                  type="button"
+                                  aria-pressed={isSelected}
+                                  onClick={() =>
+                                    setValue('plan', planId, { shouldValidate: true, shouldDirty: true })
+                                  }
+                                  className={cn(
+                                    'relative min-w-0 rounded-lg border px-1 py-2.5 text-center text-[10px] font-black uppercase leading-tight tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25 sm:px-2 sm:text-[11px]',
+                                    isSelected ? PLAN_SEGMENT_SELECTED[planId] : PLAN_SEGMENT_IDLE,
+                                  )}
+                                >
+                                  <span className="block truncate">{PLAN_LABEL[planId]}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                           {errors.plan && (
                             <p className={cn('text-sm mt-1.5', theme.error)}>{errors.plan.message}</p>
                           )}
