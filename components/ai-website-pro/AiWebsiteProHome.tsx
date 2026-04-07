@@ -18,6 +18,15 @@ import {
   Flame,
   Phone,
   Smartphone,
+  BookOpen,
+  ShoppingBag,
+  RefreshCw,
+  Mail,
+  Code2,
+  Users,
+  Megaphone,
+  Briefcase,
+  Calendar,
   type LucideIcon,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -213,48 +222,62 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
 const PLAN_LEFT_COPY: Record<
   PlanId,
   {
-    badge: string;
     BadgeIcon: LucideIcon;
     h1: string;
     h2: string;
-    sub: string;
     bullets: { Icon: LucideIcon; text: string }[];
   }
 > = {
   starter: {
-    badge: 'Starter AI intake',
     BadgeIcon: Bot,
     h1: 'Launch fast.',
     h2: 'We handle the build.',
-    sub: 'Tell us about your business — we ship your AI-ready site and keep you in the loop from day one.',
     bullets: [
       { Icon: Bot, text: 'An AI Q&A chatbot that strengthens your SEO' },
       { Icon: Zap, text: 'Site built out in 7 days or less' },
       { Icon: Search, text: 'Submission to Google & major search engines' },
+      { Icon: Mail, text: '2 custom emails' },
     ],
   },
   advanced: {
-    badge: 'Advanced AI intake',
     BadgeIcon: Zap,
     h1: 'Compound growth.',
     h2: 'Every month.',
-    sub: 'You get ongoing AI optimization, integrations, and strategy — so your site keeps pulling leads, not sitting still.',
     bullets: [
       { Icon: Smartphone, text: 'One Basic Custom App Build Out (generic)' },
       { Icon: Phone, text: 'AI Phone Receptionist (books appointments)' },
       { Icon: MessageSquare, text: 'Appointment Booking App (sends SMS reminders)' },
+      { Icon: Bot, text: 'Custom design for AI chatbot' },
+      { Icon: RefreshCw, text: 'Free tweaks and changes' },
+      { Icon: BookOpen, text: 'Online Blog (generic)' },
+      { Icon: ShoppingBag, text: 'Online Store (generic)' },
+      { Icon: Mail, text: '20 custom emails' },
     ],
   },
   elite: {
-    badge: 'Elite AI intake',
     BadgeIcon: Flame,
     h1: 'Torch the competition.',
     h2: 'Start the conversation.',
-    sub: 'Elite AI leads go straight to our team. No fluff — tell us what you\'re building and we\'ll bring the heat.',
     bullets: [
-      { Icon: MessageSquare, text: 'White-glove consult — zero pressure' },
-      { Icon: Zap, text: 'Custom growth roadmap for your market' },
-      { Icon: Flame, text: 'Priority routing for Elite AI partners' },
+      {
+        Icon: Code2,
+        text: 'Proactive custom development designed to solve the biggest problems in your business',
+      },
+      {
+        Icon: Calendar,
+        text: 'Weekly status meetings to discuss progress and pain points',
+      },
+      {
+        Icon: Users,
+        text: '24/7 dedication to solve the biggest problems before you know they exist',
+      },
+      { Icon: BarChart3, text: 'Deep data analysis (learn to convert leads)' },
+      { Icon: Mail, text: '100 custom emails' },
+      {
+        Icon: Megaphone,
+        text: 'Full time social media marketing (video editor, marketing planner, and executionist)',
+      },
+      { Icon: Briefcase, text: 'Technical consultation' },
     ],
   },
 };
@@ -1007,7 +1030,7 @@ export default function AiWebsiteProHome() {
                   <div className="flex items-baseline justify-between gap-3 mb-2">
                     <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest min-w-0">Starter AI</p>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-slate-500 shrink-0">
-                      TIER I
+                      TIER III
                     </span>
                   </div>
                   <div className="flex items-end gap-1 mb-1">
@@ -1029,7 +1052,7 @@ export default function AiWebsiteProHome() {
                     "Web design makeover included",
                     "Virtual support via our Q&A chatbot",
                     "Detailed documents on how to best effectively use the tool",
-                    "Text our Q&A robot anytime",
+                    "2 custom emails",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
@@ -1089,6 +1112,11 @@ export default function AiWebsiteProHome() {
                     "One Basic Custom App Build Out (generic)",
                     "AI Phone Receptionist (books appointments)",
                     "Appointment Booking App (sends SMS reminders)",
+                    "Custom design for AI chatbot",
+                    "Free tweaks and changes",
+                    "Online Blog (generic)",
+                    "Online Store (generic)",
+                    "20 custom emails",
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${i === 0 ? "text-gray-500" : "text-[#00d4ff]"}`} />
@@ -1122,7 +1150,7 @@ export default function AiWebsiteProHome() {
               <div className="absolute inset-0 bg-gradient-to-br from-red-600/25 via-orange-600/15 to-transparent rounded-3xl blur-xl -z-10" />
               <div className="relative bg-gradient-to-b from-[#1a0808] via-[#120606] to-[#0d0d1a] border-2 border-red-500/70 rounded-3xl p-8 flex flex-col h-full min-h-0 shadow-[0_0_64px_-10px_rgba(239,68,68,0.55),0_0_24px_-8px_rgba(249,115,22,0.35)] ring-1 ring-orange-500/25">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 sm:px-5 py-1.5 rounded-full shadow-lg shadow-red-950/60 whitespace-nowrap">
-                  Elite · White-glove
+                  Elite AI
                 </div>
 
                 <div className="mb-6 mt-2">
@@ -1131,7 +1159,7 @@ export default function AiWebsiteProHome() {
                       Elite AI
                     </p>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-orange-400/80 shrink-0">
-                      TIER III
+                      TIER I
                     </span>
                   </div>
                   <div className="flex items-end gap-1 mb-1">
@@ -1141,29 +1169,29 @@ export default function AiWebsiteProHome() {
                     </span>
                     <span className="text-red-200/60 mb-1.5">/mo</span>
                   </div>
-                  <p className="text-sm text-red-200/70">
-                    The most cutting-edge AI implementations.
+                  <p className="text-sm text-red-200/70 leading-relaxed">
+                    Full technical division that happens to be on the cutting edge of AI.
                   </p>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
-                    "Everything in Advanced AI",
-                    "A dedicated team locked in on your business daily",
-                    "Every cutting-edge AI tool, applied for you",
-                    "Constant monitoring, adjusting & pushing forward",
-                    "We grind it out by your side — every single day",
-                    "Always looking. Always improving. Always ahead.",
-                    "Local growth roadmap tied to measurable outcomes",
-                    "You pay for results—not billable hours",
+                    'Everything in Advanced AI',
+                    'Proactive custom development designed to solve the biggest problems in your business',
+                    'Weekly status meetings to discuss progress and pain points',
+                    '24/7 dedication to solve the biggest problems before you know they exist',
+                    'Deep data analysis (learn to convert leads)',
+                    '100 custom emails',
+                    'Full time social media marketing (video editor, marketing planner, and executionist)',
+                    'Technical consultation',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <CheckCircle2
                         className={`w-4 h-4 shrink-0 mt-0.5 ${
-                          i === 0 ? "text-gray-500" : "text-orange-400"
+                          i === 0 ? 'text-gray-500' : 'text-orange-400'
                         }`}
                       />
-                      <span className={i === 0 ? "text-gray-500" : "text-gray-200"}>{item}</span>
+                      <span className={i === 0 ? 'text-gray-500' : 'text-gray-200'}>{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -1231,30 +1259,11 @@ export default function AiWebsiteProHome() {
             <div className="max-w-5xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
                 <div className="space-y-8 lg:pt-10">
-                  <div
-                    className={cn(
-                      'inline-flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-500',
-                      theme.leftBadgeWrap,
-                    )}
-                  >
-                    <LeftBadgeIcon className={cn('w-4 h-4 shrink-0', theme.leftFeatureIcon)} />
-                    <span
-                      className={cn(
-                        'text-xs font-black uppercase tracking-[0.2em] transition-colors duration-500',
-                        theme.leftBadgeText,
-                      )}
-                    >
-                      {leftCopy.badge}
-                    </span>
-                  </div>
                   <h2 className="text-4xl md:text-5xl lg:text-[2.75rem] font-black font-heading leading-[1.1] transition-colors duration-500">
                     <span className={cn(theme.leftHeading1)}>{leftCopy.h1}</span>
                     <br />
                     <span className={cn(theme.leftHeading2)}>{leftCopy.h2}</span>
                   </h2>
-                  <p className={cn('text-lg leading-relaxed max-w-md transition-colors duration-500', theme.leftSub)}>
-                    {leftCopy.sub}
-                  </p>
                   <div className="space-y-5">
                     {leftCopy.bullets.map(({ Icon, text }) => (
                       <div key={text} className={cn('flex items-center gap-4 group', theme.leftFeatureText)}>
