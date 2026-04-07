@@ -27,6 +27,8 @@ import {
   Megaphone,
   Briefcase,
   Calendar,
+  Palette,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -53,11 +55,6 @@ type ContactTheme = {
   blurTop: string;
   blurBottom: string;
   radial: string;
-  leftBadgeWrap: string;
-  leftBadgeText: string;
-  leftHeading1: string;
-  leftHeading2: string;
-  leftSub: string;
   leftFeatureShell: string;
   leftFeatureShadowHover: string;
   leftFeatureIcon: string;
@@ -88,15 +85,6 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     blurTop: 'bg-slate-400/22',
     blurBottom: 'bg-slate-500/18',
     radial: 'bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(148,163,184,0.14),transparent)]',
-    leftBadgeWrap:
-      'border border-slate-400/45 bg-gradient-to-r from-slate-900/90 to-slate-800/70 shadow-[0_0_24px_-4px_rgba(148,163,184,0.35)]',
-    leftBadgeText:
-      'text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-white to-slate-300',
-    leftHeading1:
-      'text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-100 to-slate-400',
-    leftHeading2:
-      'text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-white to-slate-300',
-    leftSub: 'text-slate-300/75',
     leftFeatureShell:
       'bg-gradient-to-br from-slate-600/35 to-slate-800/25 border border-slate-500/40',
     leftFeatureShadowHover:
@@ -133,14 +121,6 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     blurTop: 'bg-[#0066ff]/28',
     blurBottom: 'bg-[#00d4ff]/20',
     radial: 'bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(0,102,255,0.2),transparent)]',
-    leftBadgeWrap:
-      'border border-[#00d4ff]/45 bg-gradient-to-r from-[#061428]/95 to-[#0a1a30]/85 shadow-[0_0_24px_-4px_rgba(0,212,255,0.4)]',
-    leftBadgeText: 'text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#0066ff]',
-    leftHeading1:
-      'text-transparent bg-clip-text bg-gradient-to-br from-white via-[#b8e8ff] to-[#00d4ff]',
-    leftHeading2:
-      'text-transparent bg-clip-text bg-gradient-to-r from-[#0066ff] via-[#00d4ff] to-[#0052cc]',
-    leftSub: 'text-[#7dd3fc]/75',
     leftFeatureShell:
       'bg-gradient-to-br from-[#0066ff]/35 to-[#00d4ff]/18 border border-[#00d4ff]/35',
     leftFeatureShadowHover:
@@ -178,15 +158,6 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     blurTop: 'bg-red-600/30',
     blurBottom: 'bg-orange-600/25',
     radial: 'bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(220,38,38,0.18),transparent)]',
-    leftBadgeWrap:
-      'border border-red-500/40 bg-gradient-to-r from-red-950/80 to-orange-950/60 shadow-[0_0_24px_-4px_rgba(239,68,68,0.45)]',
-    leftBadgeText:
-      'text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-300',
-    leftHeading1:
-      'text-transparent bg-clip-text bg-gradient-to-br from-white via-red-100 to-orange-200',
-    leftHeading2:
-      'text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-red-600',
-    leftSub: 'text-red-100/65',
     leftFeatureShell:
       'bg-gradient-to-br from-red-600/40 to-orange-600/25 border border-red-500/35',
     leftFeatureShadowHover:
@@ -223,26 +194,23 @@ const PLAN_LEFT_COPY: Record<
   PlanId,
   {
     BadgeIcon: LucideIcon;
-    h1: string;
-    h2: string;
     bullets: { Icon: LucideIcon; text: string }[];
   }
 > = {
   starter: {
     BadgeIcon: Bot,
-    h1: 'Launch fast.',
-    h2: 'We handle the build.',
     bullets: [
       { Icon: Bot, text: 'An AI Q&A chatbot that strengthens your SEO' },
       { Icon: Zap, text: 'Site built out in 7 days or less' },
       { Icon: Search, text: 'Submission to Google & major search engines' },
+      { Icon: Palette, text: 'Web design makeover included' },
+      { Icon: MessageSquare, text: 'Virtual support via our Q&A chatbot' },
+      { Icon: FileText, text: 'Detailed documents on how to best effectively use the tool' },
       { Icon: Mail, text: '2 custom emails' },
     ],
   },
   advanced: {
     BadgeIcon: Zap,
-    h1: 'Compound growth.',
-    h2: 'Every month.',
     bullets: [
       { Icon: Smartphone, text: 'One Basic Custom App Build Out (generic)' },
       { Icon: Phone, text: 'AI Phone Receptionist (books appointments)' },
@@ -256,8 +224,6 @@ const PLAN_LEFT_COPY: Record<
   },
   elite: {
     BadgeIcon: Flame,
-    h1: 'Torch the competition.',
-    h2: 'Start the conversation.',
     bullets: [
       {
         Icon: Code2,
@@ -1259,11 +1225,6 @@ export default function AiWebsiteProHome() {
             <div className="max-w-5xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
                 <div className="space-y-8 lg:pt-10">
-                  <h2 className="text-4xl md:text-5xl lg:text-[2.75rem] font-black font-heading leading-[1.1] transition-colors duration-500">
-                    <span className={cn(theme.leftHeading1)}>{leftCopy.h1}</span>
-                    <br />
-                    <span className={cn(theme.leftHeading2)}>{leftCopy.h2}</span>
-                  </h2>
                   <div className="space-y-5">
                     {leftCopy.bullets.map(({ Icon, text }) => (
                       <div key={text} className={cn('flex items-center gap-4 group', theme.leftFeatureText)}>
