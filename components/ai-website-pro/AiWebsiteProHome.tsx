@@ -49,6 +49,16 @@ const PLAN_LABEL: Record<PlanId, string> = {
   elite: 'Elite AI',
 };
 
+const BOOKING_HREF =
+  typeof process.env.NEXT_PUBLIC_BOOKING_URL === 'string' &&
+  process.env.NEXT_PUBLIC_BOOKING_URL.trim().length > 0
+    ? process.env.NEXT_PUBLIC_BOOKING_URL.trim()
+    : '#contact';
+
+const BOOKING_LINK_PROPS = BOOKING_HREF.startsWith('http')
+  ? ({ target: '_blank' as const, rel: 'noopener noreferrer' as const })
+  : {};
+
 /** Unselected plan segments: shared slate outline (Starter-style gray). */
 const PLAN_SEGMENT_IDLE =
   'border-slate-500/25 bg-black/35 text-slate-500 hover:border-slate-400/40 hover:bg-slate-900/45 hover:text-slate-300';
@@ -533,8 +543,19 @@ export default function AiWebsiteProHome() {
             />
             <span className="font-heading font-bold text-xl tracking-tight text-white">aiWebDF</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <Button asChild className="bg-white text-black hover:bg-gray-200 font-medium px-6 rounded-full transition-all duration-300">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="hidden md:flex items-center gap-5 text-sm text-gray-400">
+              <a href="#journey" className="hover:text-white transition-colors">
+                How it works
+              </a>
+              <a href="#book-call" className="hover:text-white transition-colors">
+                Book a call
+              </a>
+              <a href="#plans" className="hover:text-white transition-colors">
+                Pricing
+              </a>
+            </div>
+            <Button asChild className="bg-white text-black hover:bg-gray-200 font-medium px-5 md:px-6 rounded-full transition-all duration-300 shrink-0">
               <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
                 Get Started
               </a>
@@ -543,51 +564,164 @@ export default function AiWebsiteProHome() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-24 lg:pt-48 lg:pb-32 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="/hero-bg.png" 
-            alt="Abstract Neural Network" 
-            className="w-full h-full object-cover opacity-30 object-center"
+      {/* Hero Section — full viewport height, centered per breakpoint */}
+      <section className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden px-4 py-10 pt-[calc(5rem+env(safe-area-inset-top,0px))] pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-12 sm:pt-28 md:pt-32 md:pb-14">
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <img
+            src="/hero-bg.png"
+            alt=""
+            className="h-full w-full object-cover object-center scale-105 blur-md sm:blur-lg opacity-[0.22]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/50 via-[#0a0a0f]/80 to-[#0a0a0f]"></div>
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[#0066ff]/20 rounded-full blur-[120px] mix-blend-screen pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/65 via-[#0a0a0f]/88 to-[#0a0a0f]"></div>
+          <div className="absolute top-1/4 left-1/2 h-[min(100vw,800px)] w-[min(100vw,800px)] -translate-x-1/2 rounded-full bg-[#0066ff]/15 blur-[120px] mix-blend-screen"></div>
         </div>
 
-        <div className="container mx-auto px-6 relative z-10">
-          <motion.div 
+        <div className="container relative z-10 mx-auto w-full max-w-[min(100%,42rem)] px-2 sm:px-6">
+          <motion.div
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
-            className="max-w-4xl mx-auto text-center"
+            className="max-w-3xl mx-auto text-center"
           >
-            <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#00d4ff]/30 bg-[#00d4ff]/10 text-[#00d4ff] text-sm font-medium mb-8">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00d4ff] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00d4ff]"></span>
-              </span>
-              The Rules Have Changed
-            </motion.div>
-            
-            <motion.h1 variants={fadeIn} className="text-5xl lg:text-7xl font-bold font-heading leading-[1.1] mb-8 text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500">
-              Getting Customers Online Just Got <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#0066ff]">10x Harder.</span>
-            </motion.h1>
-            
-            <motion.p variants={fadeIn} className="text-xl lg:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Digital noise is deafening. Ad costs are soaring. Traditional websites just sit there. You need a site that actively <span className="text-white font-semibold">hunts for customers 24/7.</span>
+            <motion.p
+              variants={fadeIn}
+              className="text-2xl sm:text-3xl lg:text-5xl font-black font-heading text-white leading-[1.15] mb-10 tracking-tight"
+            >
+              You&apos;re{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-300 to-red-500">
+                losing money
+              </span>{' '}
+              if you haven&apos;t implemented{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#0066ff]">AI</span>{' '}
+              yet.
             </motion.p>
-            
-            <motion.div variants={fadeIn} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button asChild size="lg" className="w-full sm:w-auto h-16 px-10 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-bold text-lg shadow-[0_0_40px_-10px_#00d4ff] transition-all duration-300 hover:scale-105">
-                <a href="#plans">
-                  Activate Your AI Website <ArrowRight className="ml-2 w-5 h-5" />
+
+            <motion.div variants={fadeIn} className="flex flex-col items-center justify-center gap-5">
+              <Button
+                asChild
+                size="lg"
+                className="w-full sm:w-auto min-w-[8.5rem] h-14 px-12 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-2xl shadow-[0_0_36px_-10px_#00d4ff] transition-all duration-300 hover:scale-[1.04]"
+              >
+                <a href="#journey" aria-label="See how we fix that">
+                  How?
                 </a>
               </Button>
-              <span className="text-sm text-gray-500 mt-4 sm:mt-0 sm:ml-4 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#00d4ff]" /> Live in 7 days or less
-              </span>
+              <a
+                href="https://square.link/u/AIWebsitePro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                Already convinced — get started →
+              </a>
             </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Journey / How — value breakdown */}
+      <section id="journey" className="py-24 bg-[#0a0a0f] border-y border-white/5 scroll-mt-24">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={staggerContainer}
+            className="max-w-3xl mx-auto text-center mb-16"
+          >
+            <motion.h2
+              variants={fadeIn}
+              className="text-4xl sm:text-5xl lg:text-6xl font-black font-heading text-white mb-2"
+            >
+              How?
+            </motion.h2>
+          </motion.div>
+
+          <div className="max-w-4xl mx-auto space-y-5">
+            {[
+              {
+                n: '1',
+                title: 'Fluidity',
+                body: 'ai responds to leads immediately and helps encourage immediate action.',
+              },
+              {
+                n: '2',
+                title: 'SEO Rank',
+                body: 'the ai questions and answers chatbot we have developed gives human responses that helps with SEO as well as getting found on chatGPT',
+              },
+              {
+                n: '3',
+                title: 'Replaces Employees',
+                body: "Some jobs are mostly to completely replacable by ai, such as an ai voice receptionist, it's so much cheaper and more reliable than staff",
+              },
+              {
+                n: '4',
+                title: 'AI Works 24/7',
+                body: 'You can capture leads away from normal business hours, leads you would not otherwise get, I assure you of that',
+              },
+              {
+                n: '5',
+                title: 'Being there first means means something',
+                body: 'If you get in on the latest tech ai has to offer now, that puts your flag in the ground way earlier than your competitors, whoever gets there first is gonna look a lot better to the major search engines and google.',
+              },
+              {
+                n: '6',
+                title: 'Non Technical People Suddenly Become Tachnical',
+                body: "Using ai you can do a lot of things you wouldn't have otherwise been able to do, that are indeed way more technical, thank God we walk you through it to make it even easier for you.",
+              },
+            ].map((block, i) => (
+              <motion.div
+                key={block.n}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="rounded-2xl border border-white/10 border-l-4 border-l-[#00d4ff] bg-[#0d0d1a]/80 px-5 py-6 sm:px-6"
+              >
+                <div className="flex flex-wrap items-baseline gap-3 mb-3">
+                  <span className="text-[#00d4ff] font-black tabular-nums text-lg">{block.n}.</span>
+                  <h3 className="text-xl sm:text-2xl font-bold font-heading text-white">{block.title}</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed pl-0 sm:pl-8">{block.body}</p>
+              </motion.div>
+            ))}
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-2xl border border-orange-500/35 border-l-4 border-l-orange-400 bg-gradient-to-br from-red-950/40 to-[#0d0d1a] px-5 py-7 sm:px-7"
+            >
+              <h3 className="text-xl sm:text-2xl font-black font-heading text-white mb-4">Conclusion</h3>
+              <p className="text-gray-200 text-lg leading-relaxed">
+                You dramatically reduce physical labor costs, you increase your number of leads, you increase your closing
+                percentages, you increase your exposure online dramatically through ChatGPT and Google, this is literally a
+                no brainer!
+              </p>
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-14"
+          >
+            <Button
+              asChild
+              size="lg"
+              className="rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold px-8 hover:scale-[1.02] transition-transform"
+            >
+              <a href="#plans">
+                Compare plans <ArrowRight className="ml-2 w-4 h-4" />
+              </a>
+            </Button>
+            <a
+              href="#book-call"
+              className="text-sm font-medium text-gray-400 hover:text-[#7dd3fc] transition-colors"
+            >
+              Not sure yet? Book a call →
+            </a>
           </motion.div>
         </div>
       </section>
@@ -595,6 +729,10 @@ export default function AiWebsiteProHome() {
       {/* The Pain */}
       <section className="py-24 bg-[#0d0d1a] relative border-y border-white/5">
         <div className="container mx-auto px-6 relative z-10">
+          <p className="max-w-2xl mx-auto text-center text-gray-500 text-sm mb-12 leading-relaxed">
+            Below is the shift in one picture: why a static brochure site—and only traditional SEO—isn&apos;t enough
+            anymore. The plans above are how we fix it step by step.
+          </p>
           <motion.div 
             initial="hidden"
             whileInView="visible"
@@ -670,9 +808,11 @@ export default function AiWebsiteProHome() {
         <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-[#0066ff]/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Your Unfair Advantage.</h2>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00d4ff] mb-3">The fix</p>
+            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">What we actually ship</h2>
             <p className="text-xl text-gray-400">
-              We build you a high-converting website armed with an AI Q&A chatbot. It boosts your standard SEO while optimizing your business directly for AI search models.
+              A site built to convert, plus an AI Q&amp;A layer that supports SEO and how people discover you in AI
+              tools—not a generic template with a chat bubble glued on.
             </p>
           </div>
 
@@ -892,9 +1032,11 @@ export default function AiWebsiteProHome() {
       <section className="py-24 relative overflow-hidden">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-20">
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Live in 7 Days or Less.</h2>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-3">After you choose a tier</p>
+            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Live in 7 days or less</h2>
             <p className="text-xl text-gray-400">
-              No complex onboarding. No dragged-out agency processes. We move fast so you can start winning fast.
+              Activate, we build, you go live—no endless discovery decks. Same promise on Starter; bigger plans add more
+              systems on top of that foundation.
             </p>
           </div>
 
@@ -968,15 +1110,80 @@ export default function AiWebsiteProHome() {
         </div>
       </section>
 
+      {/* Book a call — consult before you buy */}
+      <section id="book-call" className="py-24 relative overflow-hidden scroll-mt-24 border-y border-white/5">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050a14] via-[#0a0a0f] to-[#0d0d1a]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(90vw,640px)] h-[320px] bg-[#0066ff]/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 text-[#00d4ff] mb-5">
+              <Calendar className="w-5 h-5" />
+              <span className="text-xs font-black uppercase tracking-[0.2em]">Step before the sale</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-heading text-white mb-6">
+              Schedule a call—we&apos;ll help you pick the right plan
+            </h2>
+            <p className="text-lg text-gray-400 mb-6 leading-relaxed">
+              You don&apos;t need an AI phone bot, every new tool, or a full team on day one. If you want to get in
+              without deep technical knowledge,{' '}
+              <span className="text-gray-200 font-medium">Starter at $99.95/mo</span> is often the right first move:
+              your site and chatbot go live fast, the bot keeps learning from real visitors, and you upgrade when it
+              makes sense—not because we pushed you.
+            </p>
+            <p className="text-base text-gray-500 mb-10 leading-relaxed">
+              When you&apos;re ready for call handling, booking + SMS, custom apps, and heavier execution,{' '}
+              <span className="text-gray-300">Advanced (~$500/mo)</span> is usually the fit. Elite is for when you want a
+              dedicated technical division scoring on growth—not billable hours.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button
+                asChild
+                size="lg"
+                className="h-14 px-8 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold hover:scale-[1.02] transition-transform"
+              >
+                <a href={BOOKING_HREF} {...BOOKING_LINK_PROPS}>
+                  {BOOKING_HREF.startsWith('http') ? (
+                    <>
+                      Pick a time on the calendar <ArrowRight className="ml-2 w-5 h-5" />
+                    </>
+                  ) : (
+                    <>
+                      Open consultation form <ArrowRight className="ml-2 w-5 h-5" />
+                    </>
+                  )}
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-14 rounded-full border-white/20 text-gray-200 hover:bg-white/5">
+                <a href="#plans">I already know my tier</a>
+              </Button>
+            </div>
+            {!BOOKING_HREF.startsWith('http') && (
+              <p className="mt-6 text-xs text-gray-600 max-w-md mx-auto">
+                Tip: set <code className="text-gray-500">NEXT_PUBLIC_BOOKING_URL</code> in your environment to point this
+                button at Calendly, Cal.com, or another scheduler.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="plans" className="py-32 relative overflow-hidden scroll-mt-24">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-[#0d0d1a] to-[#0a0a0f]"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-[#0066ff]/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Choose Your Advantage.</h2>
-            <p className="text-xl text-gray-400">
-              Start with your custom AI website — then scale as far as you want to go.
+            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Choose your tier.</h2>
+            <p className="text-xl text-gray-400 mb-4">
+              Start small if that&apos;s honest. Scale when your traffic, ops, or goals demand it—we&apos;d rather you
+              win on Starter first than pay for tools you won&apos;t use yet.
+            </p>
+            <p className="text-sm text-gray-500">
+              Unsure?{' '}
+              <a href="#book-call" className="text-[#7dd3fc] hover:text-[#a5f3fc] underline underline-offset-2">
+                Book a call
+              </a>{' '}
+              and we&apos;ll map Starter → Advanced → Elite to your situation.
             </p>
           </div>
 
