@@ -316,17 +316,9 @@ export default function AiWebsiteProHome() {
             <span className="font-heading font-bold text-2xl tracking-tight text-white">aiWebDF</span>
           </Link>
           <div className="flex items-center gap-4 md:gap-6">
-            <div className="hidden md:flex items-center gap-5 text-base text-gray-400">
-              <a href="#contact" className="hover:text-white transition-colors">
-                How it works
-              </a>
-              <a href="#contact" className="hover:text-white transition-colors">
-                Book a call
-              </a>
-            </div>
             <Button asChild className="bg-white text-black hover:bg-gray-200 font-medium text-base px-5 md:px-6 rounded-full transition-all duration-300 shrink-0">
-              <a href="#contact" aria-label="Book a call — go to contact form">
-                Book A Call
+              <a href="#contact" aria-label="Book a Call — go to contact form">
+                Book a Call!
               </a>
             </Button>
           </div>
@@ -508,6 +500,7 @@ export default function AiWebsiteProHome() {
               {!fridayAvailLoading && fridayAvail != null ? (
                 <p className="text-[11px] sm:text-xs font-medium tracking-wide text-red-500">
                   <span className="sr-only">Call slots still available to book.</span>
+                  Only{' '}
                   <span className="tabular-nums font-semibold">
                     {fridayAvail.hoursEnabled && fridayAvail.total > 0 ? fridayAvail.available : 0}
                   </span>{' '}
