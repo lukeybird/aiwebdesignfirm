@@ -406,7 +406,7 @@ function QrLinkTab({
         </Button>
       </form>
       {preview ? (
-        <div className="rounded-xl border border-white/10 bg-white p-4 inline-block">
+        <div className="rounded-xl border border-white/10 bg-[#141418] p-4 inline-block shadow-inner shadow-black/40">
           <img src={preview} alt="QR code for your link" width={256} height={256} className="w-64 h-64" />
         </div>
       ) : null}

@@ -7,7 +7,7 @@ export default function AiWebsiteProShell() {
   return (
     <>
       <AiWebsiteProHome />
-      <Toaster richColors position="top-center" />
+      <Toaster richColors theme="dark" position="top-center" />
     </>
   );
 }

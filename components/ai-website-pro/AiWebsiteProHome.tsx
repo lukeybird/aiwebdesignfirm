@@ -159,6 +159,56 @@ export default function AiWebsiteProHome() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [fridayAvailLoading, setFridayAvailLoading] = useState(true);
+  const [fridayAvail, setFridayAvail] = useState<{
+    label: string;
+    available: number;
+    total: number;
+    hoursEnabled: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/booking/friday-availability');
+        const j = (await r.json().catch(() => ({}))) as {
+          label?: string;
+          available?: number;
+          total?: number;
+          hoursEnabled?: boolean;
+          error?: string;
+        };
+        if (cancelled || !r.ok) {
+          setFridayAvail(null);
+          return;
+        }
+        if (
+          typeof j.label === 'string' &&
+          typeof j.available === 'number' &&
+          typeof j.total === 'number' &&
+          typeof j.hoursEnabled === 'boolean'
+        ) {
+          setFridayAvail({
+            label: j.label,
+            available: j.available,
+            total: j.total,
+            hoursEnabled: j.hoursEnabled,
+          });
+        } else {
+          setFridayAvail(null);
+        }
+      } catch {
+        if (!cancelled) setFridayAvail(null);
+      } finally {
+        if (!cancelled) setFridayAvailLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
@@ -488,6 +538,53 @@ export default function AiWebsiteProHome() {
                         theme.formBlobBR,
                       )}
                     />
+
+                    {fridayAvailLoading ? (
+                      <div
+                        className={cn(
+                          'mb-5 rounded-xl border px-4 py-3 text-center text-sm',
+                          'border-white/10 bg-white/[0.04] text-gray-500',
+                        )}
+                        aria-live="polite"
+                      >
+                        Checking how many call slots are open this Friday…
+                      </div>
+                    ) : fridayAvail ? (
+                      <div
+                        className={cn(
+                          'mb-5 rounded-xl border px-4 py-3 text-center',
+                          'border-[#00d4ff]/30 bg-[#0066ff]/12',
+                        )}
+                        aria-live="polite"
+                      >
+                        {!fridayAvail.hoursEnabled ? (
+                          <p className={cn('text-sm leading-snug', theme.formHeaderSub)}>
+                            No booking hours on <span className="text-white font-semibold">{fridayAvail.label}</span>{' '}
+                            (EST). Pick a time after you submit — other days may be open.
+                          </p>
+                        ) : fridayAvail.total === 0 ? (
+                          <p className={cn('text-sm leading-snug', theme.formHeaderSub)}>
+                            No call times still open on <span className="text-white font-semibold">{fridayAvail.label}</span>{' '}
+                            (EST) right now.
+                          </p>
+                        ) : fridayAvail.available === 0 ? (
+                          <p className="text-sm text-gray-200">
+                            <span className="font-black tabular-nums text-lg text-white">0</span> calls left —{' '}
+                            <span className="text-white font-semibold">{fridayAvail.label}</span> (EST) is fully booked.
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-200">
+                            <span className="font-black tabular-nums text-2xl text-white sm:text-3xl">
+                              {fridayAvail.available}
+                            </span>{' '}
+                            <span className="text-gray-300">calls left</span>
+                            <span className="text-gray-500"> · </span>
+                            <span className="text-white font-semibold">{fridayAvail.label}</span>
+                            <span className="text-gray-500"> (EST)</span>
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
 
                     <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-5">
                         <div className="flex items-center gap-3 pb-4 mb-1 relative">

@@ -2,14 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Default canvas matches aiWebDF / booking (dark brand); avoids white flash on home & /book */
 :root {
-  --background: #ffffff;
-  --foreground: #1d1d1f;
+  --background: #0a0a0f;
+  --foreground: #f5f5f7;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000000;
+    --background: #0a0a0f;
     --foreground: #f5f5f7;
   }
 }
