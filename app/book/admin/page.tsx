@@ -17,10 +17,13 @@ const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function BookingAdminPage() {
   const [boot, setBoot] = useState<Bootstrap | null>(null);
-  const [tab, setTab] = useState<'up' | 'past' | 'leads' | 'hours'>('up');
+  const [tab, setTab] = useState<'up' | 'past' | 'leads' | 'hours' | 'qr'>('up');
+  const [qrSeedUrl, setQrSeedUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [callLinkId, setCallLinkId] = useState<number | null>(null);
   const [callLinkUrl, setCallLinkUrl] = useState('');
+
+  const clearQrSeed = useCallback(() => setQrSeedUrl(null), []);
 
   const load = useCallback(async () => {
     const r = await fetch('/api/booking/admin/bootstrap');
@@ -98,7 +101,7 @@ export default function BookingAdminPage() {
         </p>
       </div>
       <div className="max-w-6xl mx-auto flex flex-wrap items-center gap-2 mb-8">
-        {(['up', 'past', 'leads', 'hours'] as const).map((k) => (
+        {(['up', 'past', 'leads', 'hours', 'qr'] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -107,7 +110,15 @@ export default function BookingAdminPage() {
               tab === k ? 'bg-[#0066ff] text-white' : 'bg-white/10 text-gray-300'
             }`}
           >
-            {k === 'up' ? 'Upcoming' : k === 'past' ? 'Past' : k === 'leads' ? 'Leads' : 'Hours'}
+            {k === 'up'
+              ? 'Upcoming'
+              : k === 'past'
+                ? 'Past'
+                : k === 'leads'
+                  ? 'Leads'
+                  : k === 'hours'
+                    ? 'Hours'
+                    : 'QR link'}
           </button>
         ))}
         <Button variant="outline" size="sm" onClick={load} className="rounded-full border-white/20">
@@ -191,7 +202,16 @@ export default function BookingAdminPage() {
           </Button>
         </form>
       ) : tab === 'leads' ? (
-        <LeadsTab boot={boot} onReload={load} />
+        <LeadsTab
+          boot={boot}
+          onReload={load}
+          onQrForUrl={(absoluteUrl) => {
+            setQrSeedUrl(absoluteUrl);
+            setTab('qr');
+          }}
+        />
+      ) : tab === 'qr' ? (
+        <QrLinkTab seedUrl={qrSeedUrl} onConsumedSeed={clearQrSeed} onError={setErr} />
       ) : (
         <AppointmentsTable
           rows={tab === 'up' ? boot.upcoming : boot.past}
@@ -305,7 +325,115 @@ function AppointmentsTable({
   );
 }
 
-function LeadsTab({ boot, onReload }: { boot: Bootstrap; onReload: () => void }) {
+function QrLinkTab({
+  seedUrl,
+  onConsumedSeed,
+  onError,
+}: {
+  seedUrl: string | null;
+  onConsumedSeed: () => void;
+  onError: (msg: string | null) => void;
+}) {
+  const [url, setUrl] = useState('');
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [localErr, setLocalErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!seedUrl) return;
+    setUrl(seedUrl);
+    onConsumedSeed();
+  }, [seedUrl, onConsumedSeed]);
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  async function generate(e?: React.FormEvent) {
+    e?.preventDefault();
+    setLocalErr(null);
+    onError(null);
+    setBusy(true);
+    if (preview) {
+      URL.revokeObjectURL(preview);
+      setPreview(null);
+    }
+    try {
+      const r = await fetch('/api/booking/admin/qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        const msg = (j as { error?: string }).error || 'Could not generate QR code';
+        setLocalErr(msg);
+        onError(msg);
+        return;
+      }
+      const blob = await r.blob();
+      setPreview(URL.createObjectURL(blob));
+    } catch {
+      const msg = 'Network error — try again';
+      setLocalErr(msg);
+      onError(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="max-w-lg space-y-6">
+      <p className="text-sm text-gray-400">
+        Paste any website or booking link. The server builds a PNG QR code you can download or screenshot.
+      </p>
+      <form onSubmit={generate} className="space-y-3">
+        <label className="block text-sm text-gray-400">
+          Link
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://yoursite.com or aiwebdesignfirm.com"
+            className="mt-1 bg-white/5 border-white/10"
+            autoComplete="url"
+          />
+        </label>
+        {localErr ? <p className="text-xs text-red-400">{localErr}</p> : null}
+        <Button type="submit" disabled={busy || !url.trim()} className="rounded-full bg-[#0066ff]">
+          {busy ? 'Generating…' : 'Generate QR code'}
+        </Button>
+      </form>
+      {preview ? (
+        <div className="rounded-xl border border-white/10 bg-white p-4 inline-block">
+          <img src={preview} alt="QR code for your link" width={256} height={256} className="w-64 h-64" />
+        </div>
+      ) : null}
+      {preview ? (
+        <div>
+          <a
+            href={preview}
+            download="qr-code.png"
+            className="text-sm text-[#00d4ff] underline hover:text-[#7dd3fc]"
+          >
+            Download PNG
+          </a>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function LeadsTab({
+  boot,
+  onReload,
+  onQrForUrl,
+}: {
+  boot: Bootstrap;
+  onReload: () => void;
+  onQrForUrl: (absoluteUrl: string) => void;
+}) {
   const [adding, setAdding] = useState(false);
   return (
     <div className="space-y-6">
@@ -327,7 +455,7 @@ function LeadsTab({ boot, onReload }: { boot: Bootstrap; onReload: () => void })
               <th className="p-3">Name</th>
               <th className="p-3">Email</th>
               <th className="p-3">Status</th>
-              <th className="p-3">Book link</th>
+              <th className="p-3">Book link / QR</th>
             </tr>
           </thead>
           <tbody>
@@ -341,10 +469,17 @@ function LeadsTab({ boot, onReload }: { boot: Bootstrap; onReload: () => void })
                   <td className="p-3">{String(l.name)}</td>
                   <td className="p-3">{String(l.email)}</td>
                   <td className="p-3">{String(l.status)}</td>
-                  <td className="p-3">
-                    <a href={href} className="text-[#00d4ff] underline text-xs break-all">
+                  <td className="p-3 space-y-1">
+                    <a href={href} className="text-[#00d4ff] underline text-xs break-all block">
                       Open booking
                     </a>
+                    <button
+                      type="button"
+                      className="text-xs text-gray-400 hover:text-[#00d4ff] underline"
+                      onClick={() => onQrForUrl(`${window.location.origin}${href}`)}
+                    >
+                      QR for this link
+                    </button>
                   </td>
                 </tr>
               );
