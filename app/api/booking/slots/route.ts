@@ -5,7 +5,7 @@ import { sql } from '@/lib/db';
 import { initBookingTables } from '@/lib/booking/init-tables';
 import {
   BOOKING_TZ,
-  buildSlotsForDay,
+  buildAllSlotsForDay,
   etWallToUtc,
   etYmdNow,
   type SlotInterval,
@@ -79,22 +79,31 @@ export async function GET(request: NextRequest) {
       end: new Date(b.ends_at),
     }));
 
-    const out: { date: string; slots: { startsAt: string; endsAt: string; label: string }[] }[] = [];
+    const out: {
+      date: string;
+      slots: { startsAt: string; endsAt: string; label: string; taken: boolean }[];
+    }[] = [];
 
     for (let i = 0; i < days; i++) {
       const dayInst = addDays(noonStart, i);
       const ymd = formatInTimeZone(dayInst, BOOKING_TZ, 'yyyy-MM-dd');
       const wd = weekdaySun0Et(ymd);
       const rule = rulesMap.get(wd);
-      const slots = buildSlotsForDay(ymd, rule, interval, booked);
-      if (slots.length === 0) continue;
+      const allSlots = buildAllSlotsForDay(ymd, rule, interval);
+      if (allSlots.length === 0) continue;
       out.push({
         date: ymd,
-        slots: slots.map((s) => ({
-          startsAt: s.startsAt.toISOString(),
-          endsAt: s.endsAt.toISOString(),
-          label: formatInTimeZone(s.startsAt, BOOKING_TZ, 'h:mm a') + ' EST',
-        })),
+        slots: allSlots.map((s) => {
+          const startMs = s.startsAt.getTime();
+          const endMs = s.endsAt.getTime();
+          const taken = booked.some((b) => startMs < b.end.getTime() && endMs > b.start.getTime());
+          return {
+            startsAt: s.startsAt.toISOString(),
+            endsAt: s.endsAt.toISOString(),
+            label: formatInTimeZone(s.startsAt, BOOKING_TZ, 'h:mm a') + ' EST',
+            taken,
+          };
+        }),
       });
     }
 

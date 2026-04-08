@@ -37,11 +37,10 @@ function timeToMinutes(t: string): number {
   return h * 60 + m;
 }
 
-export function buildSlotsForDay(
+export function buildAllSlotsForDay(
   ymd: string,
   rule: WeekdayRule | undefined,
   intervalMin: SlotInterval,
-  booked: { start: Date; end: Date }[],
 ): { startsAt: Date; endsAt: Date }[] {
   if (!rule?.enabled) return [];
 
@@ -57,18 +56,29 @@ export function buildSlotsForDay(
     const endsAt = addMinutes(startsAt, intervalMin);
 
     const startMs = startsAt.getTime();
-    const endMs = endsAt.getTime();
     const now = Date.now();
     if (startMs < now - 60 * 1000) continue;
-
-    const overlap = booked.some(
-      (b) => startMs < b.end.getTime() && endMs > b.start.getTime(),
-    );
-    if (overlap) continue;
 
     slots.push({ startsAt, endsAt });
   }
   return slots;
+}
+
+export function buildSlotsForDay(
+  ymd: string,
+  rule: WeekdayRule | undefined,
+  intervalMin: SlotInterval,
+  booked: { start: Date; end: Date }[],
+): { startsAt: Date; endsAt: Date }[] {
+  const all = buildAllSlotsForDay(ymd, rule, intervalMin);
+  if (all.length === 0) return [];
+
+  return all.filter((s) => {
+    const startMs = s.startsAt.getTime();
+    const endMs = s.endsAt.getTime();
+    const overlap = booked.some((b) => startMs < b.end.getTime() && endMs > b.start.getTime());
+    return !overlap;
+  });
 }
 
 export function formatEtSlot(d: Date): string {

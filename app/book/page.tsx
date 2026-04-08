@@ -4,7 +4,6 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   addMonths,
   eachDayOfInterval,
@@ -15,7 +14,7 @@ import {
   subMonths,
 } from 'date-fns';
 
-type Slot = { startsAt: string; endsAt: string; label: string };
+type Slot = { startsAt: string; endsAt: string; label: string; taken?: boolean };
 type DaySlots = { date: string; slots: Slot[] };
 
 function ymdToDate(ymd: string): Date {
@@ -170,73 +169,14 @@ function BookContent() {
         <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 mb-8 inline-block">
           ← aiWebDF
         </Link>
-        <div className="grid gap-8 lg:grid-cols-[420px_1fr] items-start">
-          {/* Left: details */}
-          <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 sm:p-7 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)]">
-            <h1 className="text-3xl sm:text-4xl font-black font-heading mb-2">Book a call</h1>
-            <p className="text-[#00d4ff] text-sm font-semibold mb-6">All times are US Eastern (EST).</p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Name</label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Full name"
-                  className="bg-[#121218] border-white/10 text-white rounded-2xl h-12"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Email</label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                  className="bg-[#121218] border-white/10 text-white rounded-2xl h-12"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Phone</label>
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone"
-                  className="bg-[#121218] border-white/10 text-white rounded-2xl h-12"
-                />
-                {!phoneOk && phone.trim() ? (
-                  <p className="text-xs text-red-400 mt-2">Enter a valid phone number.</p>
-                ) : null}
-              </div>
-            </div>
-
-            {plan ? (
-              <p className="text-xs text-gray-500 mt-5">
-                Plan: <span className="text-gray-300 font-medium">{plan}</span>
-              </p>
-            ) : null}
-
-            {error ? <p className="text-red-400 text-sm mt-5">{error}</p> : null}
-
-            <Button
-              type="button"
-              disabled={!selected || booking || !nameOk || !emailOk || !phoneOk}
-              onClick={confirm}
-              className="mt-6 w-full rounded-2xl h-12 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold"
-            >
-              {booking ? 'Booking…' : selected ? 'Confirm booking' : 'Select a time'}
-            </Button>
-
-            <p className="text-xs text-gray-600 mt-4">Slots are {intervalMinutes} minutes each.</p>
-          </div>
-
-          {/* Right: calendar + times */}
+        <div className="max-w-4xl mx-auto">
           <div className="rounded-3xl border border-white/10 bg-[#0d0d1a] overflow-hidden">
             <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
               <div>
                 <p className="text-sm font-bold text-white">
-                  {selectedDate ? `Selected: ${selectedDate}` : 'Select a day'}
+                  {selectedDate
+                    ? `Selected: ${format(ymdToDate(selectedDate), 'MMMM do, yyyy')}`
+                    : 'Select a day'}
                 </p>
                 <p className="text-xs text-gray-500">Then choose a time</p>
               </div>
@@ -298,7 +238,8 @@ function BookContent() {
                             return <div key={`pad-${idx}`} />;
                           }
                           const ymd = c.ymd;
-                          const available = (daysByDate.get(ymd)?.length ?? 0) > 0;
+                          const daySlots = daysByDate.get(ymd) || [];
+                          const available = daySlots.some((s) => !s.taken);
                           const picked = selectedDate === ymd;
                           const isToday = isSameDay(c.date, today);
 
@@ -337,7 +278,7 @@ function BookContent() {
                 <p className="text-sm font-bold text-white mb-3">Available times</p>
                 {!selectedDate ? (
                   <p className="text-sm text-gray-500">Pick a day to see times.</p>
-                ) : (daysByDate.get(selectedDate)?.length ?? 0) === 0 ? (
+                ) : (daysByDate.get(selectedDate)?.some((s) => !s.taken) ?? false) === false ? (
                   <p className="text-sm text-gray-500">No times on this day.</p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
@@ -347,12 +288,15 @@ function BookContent() {
                         <button
                           key={s.startsAt}
                           type="button"
+                          disabled={Boolean(s.taken)}
                           onClick={() => setSelected(s.startsAt)}
                           className={classNames(
                             'w-full rounded-2xl border px-3 py-2.5 text-center text-sm font-semibold transition-all',
                             picked
                               ? 'bg-[#0066ff] border-[#0066ff] text-white'
-                              : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-gray-200',
+                              : s.taken
+                                ? 'border-white/5 bg-white/0 text-white/25 cursor-not-allowed line-through'
+                                : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-gray-200',
                           )}
                         >
                           {s.label}
@@ -371,6 +315,19 @@ function BookContent() {
                     ) : null}
                   </p>
                 </div>
+
+                {error ? <p className="text-red-400 text-sm mt-6">{error}</p> : null}
+
+                <Button
+                  type="button"
+                  disabled={!selected || booking || !nameOk || !emailOk || !phoneOk}
+                  onClick={confirm}
+                  className="mt-6 w-full rounded-2xl h-12 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold"
+                >
+                  {booking ? 'Booking…' : selected ? 'Confirm booking' : 'Select a time'}
+                </Button>
+
+                <p className="text-xs text-gray-600 mt-4">Slots are {intervalMinutes} minutes each.</p>
               </div>
             </div>
           </div>
