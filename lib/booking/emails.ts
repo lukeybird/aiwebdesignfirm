@@ -10,6 +10,7 @@ function esc(s: string) {
 }
 
 export const BOOKING_ALERT_EMAILS = ['luke@webstarts.com', 'support@aiwebdesignfirm.com'];
+export const BOOKING_NOTIFY_FROM = 'support@aiwebdesignfirm.com';
 
 export async function sendBookingConfirmed(params: {
   to: string;
@@ -35,6 +36,28 @@ We look forward to speaking with you.
 <p>We look forward to speaking with you.</p>
 <p>— aiWebDF</p>`;
   return deliverEmail({ to: params.to, subject, text, html });
+}
+
+export async function sendBookingAdminNotification(params: {
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  startsAt: Date;
+}): Promise<{ ok: boolean; error?: string }> {
+  const when = formatEtSlot(params.startsAt);
+  const subject = `New booking — ${params.clientName} @ ${when}`;
+  const text = `New booking made.\n\nName: ${params.clientName}\nEmail: ${params.clientEmail}\nPhone: ${params.clientPhone}\nWhen: ${when} (Eastern)\n`;
+  const html = `<h2>New booking made</h2>\n<p><strong>Name:</strong> ${esc(params.clientName)}</p>\n<p><strong>Email:</strong> ${esc(params.clientEmail)}</p>\n<p><strong>Phone:</strong> ${esc(params.clientPhone)}</p>\n<p><strong>When:</strong> ${esc(when)} (Eastern)</p>`;
+
+  const failures: string[] = [];
+  for (const to of BOOKING_ALERT_EMAILS) {
+    const r = await deliverEmail({ to, from: BOOKING_NOTIFY_FROM, subject, text, html });
+    if (!r.ok) failures.push(`${to}: ${r.error || '?'}`);
+  }
+  if (failures.length === BOOKING_ALERT_EMAILS.length) {
+    return { ok: false, error: failures.join(' | ') };
+  }
+  return { ok: true };
 }
 
 export async function sendBookingReminder(params: {

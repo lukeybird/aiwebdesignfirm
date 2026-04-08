@@ -20,8 +20,9 @@ export async function deliverEmail(opts: {
   subject: string;
   text: string;
   html: string;
+  from?: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+  const fromEmail = opts.from || process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
   const resendKey = getResendApiKey();
   if (resendKey) {
@@ -62,7 +63,7 @@ export async function deliverEmail(opts: {
       });
       const smtpFrom = process.env.FROM_EMAIL || process.env.SMTP_USER;
       await transporter.sendMail({
-        from: smtpFrom,
+        from: opts.from || smtpFrom,
         to: opts.to,
         subject: opts.subject,
         text: opts.text,

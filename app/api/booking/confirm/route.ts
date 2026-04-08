@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { initBookingTables } from '@/lib/booking/init-tables';
-import { sendBookingConfirmed } from '@/lib/booking/emails';
+import { sendBookingAdminNotification, sendBookingConfirmed } from '@/lib/booking/emails';
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,6 +91,15 @@ export async function POST(request: NextRequest) {
       if (!mail.ok) {
         console.error('booking confirm email failed:', mail.error);
       }
+      const notify = await sendBookingAdminNotification({
+        clientName: name,
+        clientEmail: emailRaw,
+        clientPhone: phone,
+        startsAt,
+      });
+      if (!notify.ok) {
+        console.error('booking admin notify failed:', notify.error);
+      }
 
       return NextResponse.json({
         success: true,
@@ -98,6 +107,7 @@ export async function POST(request: NextRequest) {
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
         confirmationEmailSent: mail.ok,
+        adminNotified: notify.ok,
       });
     } catch (e: unknown) {
       const err = e as { code?: string; message?: string };
