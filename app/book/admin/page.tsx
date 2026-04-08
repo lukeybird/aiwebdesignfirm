@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  isSameDay,
+  startOfMonth,
+  subMonths,
+} from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -15,9 +24,18 @@ type Bootstrap = {
 
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+function ymdToDate(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map((n) => parseInt(n, 10));
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function cnSlots(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ');
+}
+
 export default function BookingAdminPage() {
   const [boot, setBoot] = useState<Bootstrap | null>(null);
-  const [tab, setTab] = useState<'up' | 'past' | 'leads' | 'hours' | 'qr'>('up');
+  const [tab, setTab] = useState<'up' | 'past' | 'leads' | 'hours' | 'demand' | 'qr'>('up');
   const [qrSeedUrl, setQrSeedUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [callLinkId, setCallLinkId] = useState<number | null>(null);
@@ -101,7 +119,7 @@ export default function BookingAdminPage() {
         </p>
       </div>
       <div className="max-w-6xl mx-auto flex flex-wrap items-center gap-2 mb-8">
-        {(['up', 'past', 'leads', 'hours', 'qr'] as const).map((k) => (
+        {(['up', 'past', 'leads', 'hours', 'demand', 'qr'] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -118,7 +136,9 @@ export default function BookingAdminPage() {
                   ? 'Leads'
                   : k === 'hours'
                     ? 'Hours'
-                    : 'QR link'}
+                    : k === 'demand'
+                      ? 'Demand holds'
+                      : 'QR link'}
           </button>
         ))}
         <Button variant="outline" size="sm" onClick={load} className="rounded-full border-white/20">
@@ -160,7 +180,11 @@ export default function BookingAdminPage() {
         </div>
       ) : null}
 
-      {!boot ? (
+      {tab === 'demand' ? (
+        <SlotDemandTab onError={setErr} />
+      ) : tab === 'qr' ? (
+        <QrLinkTab seedUrl={qrSeedUrl} onConsumedSeed={clearQrSeed} onError={setErr} />
+      ) : !boot ? (
         <p className="text-gray-500">Loading…</p>
       ) : tab === 'hours' ? (
         <form onSubmit={saveHours} className="max-w-xl space-y-4">
@@ -210,8 +234,6 @@ export default function BookingAdminPage() {
             setTab('qr');
           }}
         />
-      ) : tab === 'qr' ? (
-        <QrLinkTab seedUrl={qrSeedUrl} onConsumedSeed={clearQrSeed} onError={setErr} />
       ) : (
         <AppointmentsTable
           rows={tab === 'up' ? boot.upcoming : boot.past}
@@ -321,6 +343,253 @@ function AppointmentsTable({
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+type OverviewSlot = {
+  startsAt: string;
+  endsAt: string;
+  label: string;
+  booked: boolean;
+  held: boolean;
+  holdId: number | null;
+};
+
+type OverviewDay = { date: string; slots: OverviewSlot[] };
+
+function SlotDemandTab({ onError }: { onError: (msg: string | null) => void }) {
+  const [days, setDays] = useState<OverviewDay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [monthBase, setMonthBase] = useState<Date>(() => startOfMonth(new Date()));
+  const [pendingStarts, setPendingStarts] = useState<string | null>(null);
+
+  const loadOverview = useCallback(async () => {
+    setLoading(true);
+    onError(null);
+    try {
+      const r = await fetch('/api/booking/admin/slot-overview?days=45');
+      const j = (await r.json().catch(() => ({}))) as {
+        days?: OverviewDay[];
+        error?: string;
+      };
+      if (!r.ok) {
+        onError(j.error || 'Could not load slot overview');
+        setDays([]);
+        return;
+      }
+      setDays(j.days || []);
+    } catch {
+      onError('Network error loading slots');
+      setDays([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [onError]);
+
+  useEffect(() => {
+    loadOverview();
+  }, [loadOverview]);
+
+  const firstAvailableYmd = days.find((d) => d.slots.length > 0)?.date;
+
+  useEffect(() => {
+    if (!selectedDate && firstAvailableYmd) {
+      setSelectedDate(firstAvailableYmd);
+      setMonthBase(startOfMonth(ymdToDate(firstAvailableYmd)));
+    }
+  }, [firstAvailableYmd, selectedDate]);
+
+  const daysByDate = new Map<string, OverviewSlot[]>();
+  for (const d of days) daysByDate.set(d.date, d.slots);
+
+  async function toggleSlot(s: OverviewSlot) {
+    if (s.booked || pendingStarts) return;
+    setPendingStarts(s.startsAt);
+    onError(null);
+    try {
+      if (s.held && s.holdId != null) {
+        const r = await fetch(`/api/booking/admin/holds/${s.holdId}`, { method: 'DELETE' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          onError((j as { error?: string }).error || 'Could not remove hold');
+          return;
+        }
+      } else {
+        const r = await fetch('/api/booking/admin/holds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startsAt: s.startsAt }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          onError((j as { error?: string }).error || 'Could not add hold');
+          return;
+        }
+      }
+      await loadOverview();
+    } catch {
+      onError('Request failed');
+    } finally {
+      setPendingStarts(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4 max-w-4xl">
+      <p className="text-sm text-gray-400">
+        Block individual times so they show as taken on the public booking page (demand). Real bookings stay
+        protected — you can only add holds on open slots. Click a hold again to release it.
+      </p>
+      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+        <span>
+          <span className="inline-block w-3 h-3 rounded bg-white/10 border border-white/20 mr-1 align-middle" />{' '}
+          Open
+        </span>
+        <span>
+          <span className="inline-block w-3 h-3 rounded bg-amber-500/30 border border-amber-500/60 mr-1 align-middle" />{' '}
+          Demand hold
+        </span>
+        <span>
+          <span className="inline-block w-3 h-3 rounded bg-[#0066ff]/40 border border-[#0066ff] mr-1 align-middle" />{' '}
+          Booked (client)
+        </span>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={loadOverview} className="rounded-full border-white/20">
+        Reload grid
+      </Button>
+
+      <div className="rounded-3xl border border-white/10 bg-[#0d0d1a] overflow-hidden">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
+          <div>
+            <p className="text-sm font-bold text-white">
+              {selectedDate
+                ? `Selected: ${format(ymdToDate(selectedDate), 'MMMM do, yyyy')}`
+                : 'Select a day'}
+            </p>
+            <p className="text-xs text-gray-500">US Eastern · tap a time to hold or release</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMonthBase((d) => startOfMonth(subMonths(d, 1)))}
+              className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              aria-label="Previous month"
+            >
+              ‹
+            </button>
+            <div className="min-w-[140px] text-center text-sm font-semibold text-gray-200">
+              {format(monthBase, 'MMMM yyyy')}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMonthBase((d) => startOfMonth(addMonths(d, 1)))}
+              className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              aria-label="Next month"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-0 lg:grid-cols-[1fr_280px]">
+          <div className="p-5 sm:p-6">
+            {loading ? (
+              <p className="text-gray-400">Loading…</p>
+            ) : days.length === 0 ? (
+              <p className="text-gray-400">No bookable days in range. Enable hours and save.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-7 text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                    <div key={d} className="text-center">
+                      {d}
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {(() => {
+                    const start = startOfMonth(monthBase);
+                    const end = endOfMonth(monthBase);
+                    const daysInMonth = eachDayOfInterval({ start, end });
+                    const pad = start.getDay();
+                    const cells: Array<{ date?: Date; ymd?: string }> = [
+                      ...Array.from({ length: pad }).map(() => ({})),
+                      ...daysInMonth.map((date) => ({ date, ymd: format(date, 'yyyy-MM-dd') })),
+                    ];
+                    const today = new Date();
+                    return cells.map((c, idx) => {
+                      if (!c.date || !c.ymd) {
+                        return <div key={`pad-${idx}`} />;
+                      }
+                      const ymd = c.ymd;
+                      const daySlots = daysByDate.get(ymd) || [];
+                      const available = daySlots.length > 0;
+                      const picked = selectedDate === ymd;
+                      const isToday = isSameDay(c.date, today);
+                      return (
+                        <button
+                          key={ymd}
+                          type="button"
+                          disabled={!available}
+                          onClick={() => {
+                            setSelectedDate(ymd);
+                          }}
+                          className={cnSlots(
+                            'h-11 rounded-2xl border text-sm font-semibold transition-all',
+                            available
+                              ? 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+                              : 'border-transparent bg-white/0 text-white/20 cursor-not-allowed',
+                            picked &&
+                              'bg-[#0066ff] border-[#0066ff] text-white hover:bg-[#0066ff] ring-2 ring-[#00d4ff]/60 ring-offset-2 ring-offset-[#0d0d1a]',
+                            isToday && !picked && 'ring-1 ring-[#00d4ff]/30',
+                          )}
+                        >
+                          {c.date.getDate()}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="border-t border-white/10 lg:border-t-0 lg:border-l border-white/10 p-5 sm:p-6">
+            <p className="text-sm font-bold text-white mb-3">Times</p>
+            {!selectedDate ? (
+              <p className="text-sm text-gray-500">Pick a day.</p>
+            ) : (daysByDate.get(selectedDate)?.length ?? 0) === 0 ? (
+              <p className="text-sm text-gray-500">No slots this day.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {(daysByDate.get(selectedDate) || []).map((s) => {
+                  const busy = pendingStarts === s.startsAt;
+                  return (
+                    <button
+                      key={s.startsAt}
+                      type="button"
+                      disabled={s.booked || busy}
+                      onClick={() => toggleSlot(s)}
+                      className={cnSlots(
+                        'w-full rounded-2xl border px-2 py-2.5 text-center text-xs font-semibold transition-all',
+                        s.booked
+                          ? 'border-[#0066ff]/50 bg-[#0066ff]/20 text-gray-300 cursor-not-allowed'
+                          : s.held
+                            ? 'border-amber-500/60 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
+                            : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-gray-200',
+                      )}
+                    >
+                      {busy ? '…' : s.booked ? `${s.label} · booked` : s.held ? `${s.label} · hold` : s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

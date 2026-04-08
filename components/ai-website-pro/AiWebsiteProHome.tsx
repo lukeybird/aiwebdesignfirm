@@ -504,6 +504,17 @@ export default function AiWebsiteProHome() {
 
         <div className="relative z-10 mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
             <div id="contact" className="h-0 w-full overflow-hidden pointer-events-none" aria-hidden="true" />
+            <div className="mx-auto w-full max-w-lg text-center mb-3">
+              {!fridayAvailLoading && fridayAvail != null ? (
+                <p className="text-[11px] sm:text-xs font-medium tracking-wide text-red-500">
+                  <span className="sr-only">Call slots still available to book.</span>
+                  <span className="tabular-nums font-semibold">
+                    {fridayAvail.hoursEnabled && fridayAvail.total > 0 ? fridayAvail.available : 0}
+                  </span>{' '}
+                  spots left
+                </p>
+              ) : null}
+            </div>
             <div className="mx-auto w-full max-w-lg">
                 <div className="relative rounded-3xl">
                   <motion.div
@@ -538,53 +549,6 @@ export default function AiWebsiteProHome() {
                         theme.formBlobBR,
                       )}
                     />
-
-                    {fridayAvailLoading ? (
-                      <div
-                        className={cn(
-                          'mb-5 rounded-xl border px-4 py-3 text-center text-sm',
-                          'border-white/10 bg-white/[0.04] text-gray-500',
-                        )}
-                        aria-live="polite"
-                      >
-                        Checking how many call slots are open this Friday…
-                      </div>
-                    ) : fridayAvail ? (
-                      <div
-                        className={cn(
-                          'mb-5 rounded-xl border px-4 py-3 text-center',
-                          'border-[#00d4ff]/30 bg-[#0066ff]/12',
-                        )}
-                        aria-live="polite"
-                      >
-                        {!fridayAvail.hoursEnabled ? (
-                          <p className={cn('text-sm leading-snug', theme.formHeaderSub)}>
-                            No booking hours on <span className="text-white font-semibold">{fridayAvail.label}</span>{' '}
-                            (EST). Pick a time after you submit — other days may be open.
-                          </p>
-                        ) : fridayAvail.total === 0 ? (
-                          <p className={cn('text-sm leading-snug', theme.formHeaderSub)}>
-                            No call times still open on <span className="text-white font-semibold">{fridayAvail.label}</span>{' '}
-                            (EST) right now.
-                          </p>
-                        ) : fridayAvail.available === 0 ? (
-                          <p className="text-sm text-gray-200">
-                            <span className="font-black tabular-nums text-lg text-white">0</span> calls left —{' '}
-                            <span className="text-white font-semibold">{fridayAvail.label}</span> (EST) is fully booked.
-                          </p>
-                        ) : (
-                          <p className="text-sm text-gray-200">
-                            <span className="font-black tabular-nums text-2xl text-white sm:text-3xl">
-                              {fridayAvail.available}
-                            </span>{' '}
-                            <span className="text-gray-300">calls left</span>
-                            <span className="text-gray-500"> · </span>
-                            <span className="text-white font-semibold">{fridayAvail.label}</span>
-                            <span className="text-gray-500"> (EST)</span>
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
 
                     <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-5">
                         <div className="flex items-center gap-3 pb-4 mb-1 relative">

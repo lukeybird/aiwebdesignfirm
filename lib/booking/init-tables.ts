@@ -93,4 +93,21 @@ export async function initBookingTables(sql: Sql) {
   await sql`CREATE INDEX IF NOT EXISTS booking_appointments_lead_id ON booking_appointments (lead_id)`;
   await sql`CREATE INDEX IF NOT EXISTS booking_appointments_starts_at ON booking_appointments (starts_at)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_booking_leads_email ON booking_leads (email)`;
+
+  /** Admin-only blocks: slots show as taken (demand) but are not real appointments */
+  await sql`
+    CREATE TABLE IF NOT EXISTS booking_slot_holds (
+      id SERIAL PRIMARY KEY,
+      starts_at TIMESTAMPTZ NOT NULL,
+      ends_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS booking_slot_holds_starts_unique
+    ON booking_slot_holds (starts_at)
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS booking_slot_holds_starts_at ON booking_slot_holds (starts_at)
+  `;
 }

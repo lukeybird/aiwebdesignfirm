@@ -13,35 +13,10 @@ import {
   weekdaySun0Et,
 } from '@/lib/booking/et';
 
+/** Admin: calendar grid with booked vs demand-hold per slot */
 export async function GET(request: NextRequest) {
   try {
     await initBookingTables(sql);
-
-    const emailRaw = request.nextUrl.searchParams.get('email')?.trim().toLowerCase() || '';
-    if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
-      return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
-    }
-
-    if (emailRaw) {
-      const leadRows = await sql`
-        SELECT l.id
-        FROM booking_leads l
-        WHERE LOWER(TRIM(l.email)) = ${emailRaw}
-        ORDER BY l.created_at DESC
-        LIMIT 1
-      `;
-      const leadId = (leadRows[0] as { id: number } | undefined)?.id;
-      if (leadId) {
-        const existing = await sql`
-          SELECT id FROM booking_appointments
-          WHERE lead_id = ${leadId} AND status = 'scheduled'
-          LIMIT 1
-        `;
-        if (existing.length > 0) {
-          return NextResponse.json({ error: 'Already booked', days: [] }, { status: 400 });
-        }
-      }
-    }
 
     const settings = (await sql`
       SELECT slot_interval_minutes FROM booking_settings WHERE id = 1 LIMIT 1
@@ -60,8 +35,8 @@ export async function GET(request: NextRequest) {
 
     const startYmd = request.nextUrl.searchParams.get('start')?.trim() || etYmdNow();
     const days = Math.min(
-      30,
-      Math.max(1, parseInt(request.nextUrl.searchParams.get('days') || '14', 10) || 14),
+      45,
+      Math.max(1, parseInt(request.nextUrl.searchParams.get('days') || '45', 10) || 45),
     );
 
     const rangeStart = etWallToUtc(startYmd, '00:00');
@@ -80,17 +55,27 @@ export async function GET(request: NextRequest) {
     }));
 
     const holdRows = await sql`
-      SELECT starts_at, ends_at FROM booking_slot_holds
+      SELECT id, starts_at, ends_at FROM booking_slot_holds
       WHERE starts_at >= ${rangeStart} AND starts_at < ${rangeEnd}
     `;
-    const holds = (holdRows as unknown as { starts_at: Date; ends_at: Date }[]).map((h) => ({
-      start: new Date(h.starts_at),
-      end: new Date(h.ends_at),
-    }));
+    const holds = (holdRows as unknown as { id: number; starts_at: Date; ends_at: Date }[]).map(
+      (h) => ({
+        id: h.id,
+        start: new Date(h.starts_at),
+        end: new Date(h.ends_at),
+      }),
+    );
 
     const out: {
       date: string;
-      slots: { startsAt: string; endsAt: string; label: string; taken: boolean }[];
+      slots: {
+        startsAt: string;
+        endsAt: string;
+        label: string;
+        booked: boolean;
+        held: boolean;
+        holdId: number | null;
+      }[];
     }[] = [];
 
     for (let i = 0; i < days; i++) {
@@ -100,19 +85,28 @@ export async function GET(request: NextRequest) {
       const rule = rulesMap.get(wd);
       const allSlots = buildAllSlotsForDay(ymd, rule, interval);
       if (allSlots.length === 0) continue;
+
       out.push({
         date: ymd,
         slots: allSlots.map((s) => {
           const startMs = s.startsAt.getTime();
           const endMs = s.endsAt.getTime();
-          const taken =
-            booked.some((b) => startMs < b.end.getTime() && endMs > b.start.getTime()) ||
-            holds.some((h) => startMs < h.end.getTime() && endMs > h.start.getTime());
+          const isBooked = booked.some((b) => startMs < b.end.getTime() && endMs > b.start.getTime());
+          let holdId: number | null = null;
+          for (const h of holds) {
+            if (startMs < h.end.getTime() && endMs > h.start.getTime()) {
+              holdId = h.id;
+              break;
+            }
+          }
+          const held = holdId != null;
           return {
             startsAt: s.startsAt.toISOString(),
             endsAt: s.endsAt.toISOString(),
             label: formatInTimeZone(s.startsAt, BOOKING_TZ, 'h:mm a') + ' EST',
-            taken,
+            booked: isBooked,
+            held,
+            holdId,
           };
         }),
       });
@@ -121,7 +115,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ intervalMinutes: interval, days: out });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error('booking/slots:', e);
+    console.error('booking/admin/slot-overview:', e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

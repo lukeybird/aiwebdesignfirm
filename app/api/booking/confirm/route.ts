@@ -71,6 +71,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already booked' }, { status: 409 });
     }
 
+    const held = await sql`
+      SELECT id FROM booking_slot_holds
+      WHERE starts_at < ${endsAt} AND ends_at > ${startsAt}
+      LIMIT 1
+    `;
+    if (held.length > 0) {
+      return NextResponse.json(
+        { error: 'That time is not available. Pick another slot.' },
+        { status: 409 },
+      );
+    }
+
     try {
       const ins = await sql`
         INSERT INTO booking_appointments (lead_id, starts_at, ends_at, status)

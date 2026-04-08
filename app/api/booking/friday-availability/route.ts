@@ -64,11 +64,22 @@ export async function GET() {
       end: new Date(b.ends_at),
     }));
 
+    const holdRows = await sql`
+      SELECT starts_at, ends_at FROM booking_slot_holds
+      WHERE starts_at >= ${rangeStart} AND starts_at < ${rangeEnd}
+    `;
+    const holds = (holdRows as unknown as { starts_at: Date; ends_at: Date }[]).map((h) => ({
+      start: new Date(h.starts_at),
+      end: new Date(h.ends_at),
+    }));
+
     let available = 0;
     for (const s of allSlots) {
       const startMs = s.startsAt.getTime();
       const endMs = s.endsAt.getTime();
-      const taken = booked.some((b) => startMs < b.end.getTime() && endMs > b.start.getTime());
+      const taken =
+        booked.some((b) => startMs < b.end.getTime() && endMs > b.start.getTime()) ||
+        holds.some((h) => startMs < h.end.getTime() && endMs > h.start.getTime());
       if (!taken) available += 1;
     }
 
