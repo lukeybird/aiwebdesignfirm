@@ -124,10 +124,10 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     formHeaderSub: 'text-slate-300/90',
     label: 'text-slate-200/90',
     input:
-      'bg-black/50 border-slate-500/40 text-white placeholder:text-slate-400/30 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:border-slate-300/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+      'bg-black/50 border-slate-500/40 text-white text-base placeholder:text-slate-400/30 h-12 rounded-xl focus-visible:ring-2 focus-visible:ring-slate-400/70 focus-visible:border-slate-300/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
     error: 'text-slate-300',
     submit:
-      'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black shadow-[0_0_36px_-8px_rgba(203,213,225,0.5)] border border-white/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
+      'w-full h-14 rounded-xl text-lg font-black uppercase tracking-wide bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black shadow-[0_0_36px_-8px_rgba(203,213,225,0.5)] border border-white/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
     successRing:
       'bg-gradient-to-br from-slate-400/30 to-slate-600/30 border border-slate-400/45',
     successTitle:
@@ -158,10 +158,10 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     formHeaderSub: 'text-[#7dd3fc]/90',
     label: 'text-[#a5f3fc]/90',
     input:
-      'bg-black/50 border-[#0066ff]/35 text-white placeholder:text-cyan-200/20 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-[#00d4ff]/70 focus-visible:border-[#00d4ff]/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+      'bg-black/50 border-[#0066ff]/35 text-white text-base placeholder:text-cyan-200/20 h-12 rounded-xl focus-visible:ring-2 focus-visible:ring-[#00d4ff]/70 focus-visible:border-[#00d4ff]/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
     error: 'text-cyan-200',
     submit:
-      'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black shadow-[0_0_40px_-6px_rgba(0,212,255,0.75),0_0_20px_-8px_rgba(0,102,255,0.4)] border border-[#00d4ff]/35 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
+      'w-full h-14 rounded-xl text-lg font-black uppercase tracking-wide bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black shadow-[0_0_40px_-6px_rgba(0,212,255,0.75),0_0_20px_-8px_rgba(0,102,255,0.4)] border border-[#00d4ff]/35 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
     successRing:
       'bg-gradient-to-br from-[#00d4ff]/28 to-[#0066ff]/28 border border-[#00d4ff]/45',
     successTitle:
@@ -193,10 +193,10 @@ const PLAN_THEMES: Record<PlanId, ContactTheme> = {
     formHeaderSub: 'text-red-300/85',
     label: 'text-red-200/90',
     input:
-      'bg-black/50 border-red-500/35 text-white placeholder:text-red-200/25 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+      'bg-black/50 border-red-500/35 text-white text-base placeholder:text-red-200/25 h-12 rounded-xl focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:border-orange-400/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
     error: 'text-orange-300',
     submit:
-      'w-full h-14 rounded-xl text-base font-black uppercase tracking-wide bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white shadow-[0_0_40px_-6px_rgba(239,68,68,0.85),0_0_20px_-8px_rgba(249,115,22,0.4)] border border-red-400/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
+      'w-full h-14 rounded-xl text-lg font-black uppercase tracking-wide bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white shadow-[0_0_40px_-6px_rgba(239,68,68,0.85),0_0_20px_-8px_rgba(249,115,22,0.4)] border border-red-400/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
     successRing:
       'bg-gradient-to-br from-orange-500/30 to-red-600/30 border border-orange-400/40',
     successTitle:
@@ -541,10 +541,10 @@ export default function AiWebsiteProHome() {
               height={36}
               className="h-9 w-9 object-contain"
             />
-            <span className="font-heading font-bold text-xl tracking-tight text-white">aiWebDF</span>
+            <span className="font-heading font-bold text-2xl tracking-tight text-white">aiWebDF</span>
           </Link>
           <div className="flex items-center gap-4 md:gap-6">
-            <div className="hidden md:flex items-center gap-5 text-sm text-gray-400">
+            <div className="hidden md:flex items-center gap-5 text-base text-gray-400">
               <a href="#journey" className="hover:text-white transition-colors">
                 How it works
               </a>
@@ -555,7 +555,7 @@ export default function AiWebsiteProHome() {
                 Pricing
               </a>
             </div>
-            <Button asChild className="bg-white text-black hover:bg-gray-200 font-medium px-5 md:px-6 rounded-full transition-all duration-300 shrink-0">
+            <Button asChild className="bg-white text-black hover:bg-gray-200 font-medium text-base px-5 md:px-6 rounded-full transition-all duration-300 shrink-0">
               <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
                 Get Started
               </a>
@@ -585,7 +585,7 @@ export default function AiWebsiteProHome() {
           >
             <motion.p
               variants={fadeIn}
-              className="text-2xl sm:text-3xl lg:text-5xl font-black font-heading text-white leading-[1.15] mb-10 tracking-tight"
+              className="text-3xl sm:text-4xl lg:text-6xl font-black font-heading text-white leading-[1.15] mb-10 tracking-tight"
             >
               You&apos;re{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-300 to-red-500">
@@ -600,7 +600,7 @@ export default function AiWebsiteProHome() {
               <Button
                 asChild
                 size="lg"
-                className="w-full sm:w-auto min-w-[8.5rem] h-14 px-12 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-2xl shadow-[0_0_36px_-10px_#00d4ff] transition-all duration-300 hover:scale-[1.04]"
+                className="w-full sm:w-auto min-w-[8.5rem] h-14 px-12 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-3xl shadow-[0_0_36px_-10px_#00d4ff] transition-all duration-300 hover:scale-[1.04]"
               >
                 <a href="#journey" aria-label="See how we fix that">
                   How?
@@ -610,7 +610,7 @@ export default function AiWebsiteProHome() {
                 href="https://square.link/u/AIWebsitePro"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                className="text-base text-gray-500 hover:text-gray-300 transition-colors"
               >
                 Already convinced — get started →
               </a>
@@ -631,7 +631,7 @@ export default function AiWebsiteProHome() {
           >
             <motion.h2
               variants={fadeIn}
-              className="text-4xl sm:text-5xl lg:text-6xl font-black font-heading text-white mb-2"
+              className="text-5xl sm:text-6xl lg:text-7xl font-black font-heading text-white mb-2"
             >
               How?
             </motion.h2>
@@ -679,10 +679,10 @@ export default function AiWebsiteProHome() {
                 className="rounded-2xl border border-white/10 border-l-4 border-l-[#00d4ff] bg-[#0d0d1a]/80 px-5 py-6 sm:px-6"
               >
                 <div className="flex flex-wrap items-baseline gap-3 mb-3">
-                  <span className="text-[#00d4ff] font-black tabular-nums text-lg">{block.n}.</span>
-                  <h3 className="text-xl sm:text-2xl font-bold font-heading text-white">{block.title}</h3>
+                  <span className="text-[#00d4ff] font-black tabular-nums text-xl">{block.n}.</span>
+                  <h3 className="text-2xl sm:text-3xl font-bold font-heading text-white">{block.title}</h3>
                 </div>
-                <p className="text-gray-300 leading-relaxed pl-0 sm:pl-8">{block.body}</p>
+                <p className="text-lg text-gray-300 leading-relaxed pl-0 sm:pl-8">{block.body}</p>
               </motion.div>
             ))}
 
@@ -692,8 +692,8 @@ export default function AiWebsiteProHome() {
               viewport={{ once: true }}
               className="rounded-2xl border border-orange-500/35 border-l-4 border-l-orange-400 bg-gradient-to-br from-red-950/40 to-[#0d0d1a] px-5 py-7 sm:px-7"
             >
-              <h3 className="text-xl sm:text-2xl font-black font-heading text-white mb-4">Conclusion</h3>
-              <p className="text-gray-200 text-lg leading-relaxed">
+              <h3 className="text-2xl sm:text-3xl font-black font-heading text-white mb-4">Conclusion</h3>
+              <p className="text-gray-200 text-xl leading-relaxed">
                 You dramatically reduce physical labor costs, you increase your number of leads, you increase your closing
                 percentages, you increase your exposure online dramatically through ChatGPT and Google, this is literally a
                 no brainer!
@@ -710,15 +710,15 @@ export default function AiWebsiteProHome() {
             <Button
               asChild
               size="lg"
-              className="rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold px-8 hover:scale-[1.02] transition-transform"
+              className="rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold text-lg px-8 hover:scale-[1.02] transition-transform"
             >
               <a href="#plans">
-                Compare plans <ArrowRight className="ml-2 w-4 h-4" />
+                Compare plans <ArrowRight className="ml-2 w-5 h-5" />
               </a>
             </Button>
             <a
               href="#book-call"
-              className="text-sm font-medium text-gray-400 hover:text-[#7dd3fc] transition-colors"
+              className="text-base font-medium text-gray-400 hover:text-[#7dd3fc] transition-colors"
             >
               Not sure yet? Book a call →
             </a>
@@ -729,7 +729,7 @@ export default function AiWebsiteProHome() {
       {/* The Pain */}
       <section className="py-24 bg-[#0d0d1a] relative border-y border-white/5">
         <div className="container mx-auto px-6 relative z-10">
-          <p className="max-w-2xl mx-auto text-center text-gray-500 text-sm mb-12 leading-relaxed">
+          <p className="max-w-2xl mx-auto text-center text-gray-500 text-base mb-12 leading-relaxed">
             Below is the shift in one picture: why a static brochure site—and only traditional SEO—isn&apos;t enough
             anymore. The plans above are how we fix it step by step.
           </p>
@@ -741,11 +741,11 @@ export default function AiWebsiteProHome() {
             className="grid lg:grid-cols-2 gap-16 items-center"
           >
             <div>
-              <motion.h2 variants={fadeIn} className="text-3xl lg:text-5xl font-bold font-heading mb-6">
+              <motion.h2 variants={fadeIn} className="text-4xl lg:text-6xl font-bold font-heading mb-6">
                 Consumers don't Google anymore. <br/>
                 <span className="text-gray-500">They ask ChatGPT.</span>
               </motion.h2>
-              <motion.p variants={fadeIn} className="text-lg text-gray-400 mb-8">
+              <motion.p variants={fadeIn} className="text-xl text-gray-400 mb-8">
                 The shift is already here. People are typing "what's the best plumber near me" into AI platforms instead of search engines. If your business isn't optimized for AI, you are completely invisible to the next generation of buyers.
               </motion.p>
               <motion.div variants={fadeIn} className="space-y-6">
@@ -754,8 +754,8 @@ export default function AiWebsiteProHome() {
                     <TrendingUp className="w-6 h-6 text-red-500" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2">Rising Ad Costs</h4>
-                    <p className="text-gray-400">Traditional PPC is becoming unsustainable for local businesses.</p>
+                    <h4 className="text-2xl font-bold mb-2">Rising Ad Costs</h4>
+                    <p className="text-lg text-gray-400">Traditional PPC is becoming unsustainable for local businesses.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -763,8 +763,8 @@ export default function AiWebsiteProHome() {
                     <Globe className="w-6 h-6 text-red-500" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-2">Algorithm Chaos</h4>
-                    <p className="text-gray-400">Google updates are burying honest businesses beneath aggregators.</p>
+                    <h4 className="text-2xl font-bold mb-2">Algorithm Chaos</h4>
+                    <p className="text-lg text-gray-400">Google updates are burying honest businesses beneath aggregators.</p>
                   </div>
                 </div>
               </motion.div>
@@ -775,12 +775,12 @@ export default function AiWebsiteProHome() {
               <div className="relative bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 shadow-2xl">
                 <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/10">
                   <Search className="w-5 h-5 text-gray-400" />
-                  <div className="text-gray-400 font-mono text-sm">Query behavior shift (2023-2025)</div>
+                  <div className="text-gray-400 font-mono text-base">Query behavior shift (2023-2025)</div>
                 </div>
                 <div className="space-y-6">
                   <div>
                     <div className="flex justify-between mb-2">
-                      <span className="font-medium">Traditional Search (Google)</span>
+                      <span className="font-medium text-lg">Traditional Search (Google)</span>
                       <span className="text-red-400">-24%</span>
                     </div>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
@@ -789,7 +789,7 @@ export default function AiWebsiteProHome() {
                   </div>
                   <div>
                     <div className="flex justify-between mb-2">
-                      <span className="font-medium">Generative AI (ChatGPT, Claude)</span>
+                      <span className="font-medium text-lg">Generative AI (ChatGPT, Claude)</span>
                       <span className="text-[#00d4ff]">+415%</span>
                     </div>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
@@ -808,9 +808,9 @@ export default function AiWebsiteProHome() {
         <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-[#0066ff]/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00d4ff] mb-3">The fix</p>
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">What we actually ship</h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-[#00d4ff] mb-3">The fix</p>
+            <h2 className="text-5xl lg:text-6xl font-bold font-heading mb-6">What we actually ship</h2>
+            <p className="text-2xl text-gray-400">
               A site built to convert, plus an AI Q&amp;A layer that supports SEO and how people discover you in AI
               tools—not a generic template with a chat bubble glued on.
             </p>
@@ -845,8 +845,8 @@ export default function AiWebsiteProHome() {
                 <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   {feature.icon}
                 </div>
-                <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{feature.desc}</p>
+                <h3 className="text-3xl font-bold mb-4">{feature.title}</h3>
+                <p className="text-lg text-gray-400 leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -858,8 +858,8 @@ export default function AiWebsiteProHome() {
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">See It In Action.</h2>
-              <p className="text-xl text-gray-400 mb-8">
+              <h2 className="text-5xl lg:text-6xl font-bold font-heading mb-6">See It In Action.</h2>
+              <p className="text-2xl text-gray-400 mb-8">
                 This is how your website will engage visitors. Tap a question and watch the AI respond in real time.
               </p>
               <div className="space-y-3">
@@ -875,7 +875,7 @@ export default function AiWebsiteProHome() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">{faq.q}</span>
+                      <span className="font-medium text-lg">{faq.q}</span>
                       <ArrowUpRight className={`w-5 h-5 shrink-0 ml-3 ${activeChat === i ? 'text-[#00d4ff]' : 'text-gray-500'}`} />
                     </div>
                   </button>
@@ -910,7 +910,7 @@ export default function AiWebsiteProHome() {
                     </div>
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#1c1c1e]"></div>
                   </div>
-                  <span className="font-semibold text-sm text-white">AI Assistant</span>
+                  <span className="font-semibold text-base text-white">AI Assistant</span>
                   <span className="text-[10px] text-green-400">Online</span>
                 </div>
 
@@ -925,7 +925,7 @@ export default function AiWebsiteProHome() {
                     <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#0066ff] to-[#00d4ff] flex items-center justify-center shrink-0 mb-1">
                       <Bot className="w-3.5 h-3.5 text-white" />
                     </div>
-                    <div className="bg-[#2c2c2e] text-white/90 rounded-[18px] rounded-bl-[4px] px-4 py-2.5 text-sm leading-relaxed shadow-sm">
+                    <div className="bg-[#2c2c2e] text-white/90 rounded-[18px] rounded-bl-[4px] px-4 py-2.5 text-base leading-relaxed shadow-sm">
                       Hi! Ask me anything about getting more customers with AI. Tap a question to the left to see how I respond.
                     </div>
                   </motion.div>
@@ -944,7 +944,7 @@ export default function AiWebsiteProHome() {
                           <Bot className="w-3.5 h-3.5 text-white" />
                         </div>
                       )}
-                      <div className={`px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                      <div className={`px-4 py-2.5 text-base leading-relaxed shadow-sm ${
                         msg.role === "user"
                           ? "bg-[#0066ff] text-white rounded-[18px] rounded-br-[4px]"
                           : "bg-[#2c2c2e] text-white/90 rounded-[18px] rounded-bl-[4px]"
@@ -1001,7 +1001,7 @@ export default function AiWebsiteProHome() {
                         }}
                         placeholder={chatPhase === "idle" ? "Type a message…" : "iMessage"}
                         readOnly={chatPhase !== "idle"}
-                        className="w-full bg-[#2c2c2e] border border-white/10 rounded-full py-2.5 px-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4ff]/50 caret-[#00d4ff] disabled:opacity-70"
+                        className="w-full bg-[#2c2c2e] border border-white/10 rounded-full py-2.5 px-4 text-base text-white placeholder:text-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4ff]/50 caret-[#00d4ff] disabled:opacity-70"
                       />
                     </div>
                     <button
@@ -1032,9 +1032,9 @@ export default function AiWebsiteProHome() {
       <section className="py-24 relative overflow-hidden">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-20">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-3">After you choose a tier</p>
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Live in 7 days or less</h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-gray-500 mb-3">After you choose a tier</p>
+            <h2 className="text-5xl lg:text-6xl font-bold font-heading mb-6">Live in 7 days or less</h2>
+            <p className="text-2xl text-gray-400">
               Activate, we build, you go live—no endless discovery decks. Same promise on Starter; bigger plans add more
               systems on top of that foundation.
             </p>
@@ -1073,8 +1073,8 @@ export default function AiWebsiteProHome() {
                     {step.num}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold mb-2">{step.title}</h3>
-                    <p className="text-gray-400 text-lg">{step.desc}</p>
+                    <h3 className="text-3xl font-bold mb-2">{step.title}</h3>
+                    <p className="text-gray-400 text-xl">{step.desc}</p>
                   </div>
                 </motion.div>
               ))}
@@ -1093,16 +1093,16 @@ export default function AiWebsiteProHome() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 text-red-400 text-sm font-bold mb-8 border border-red-500/20 uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 text-red-400 text-base font-bold mb-8 border border-red-500/20 uppercase tracking-wider">
                 <Clock className="w-4 h-4" /> The window is closing
               </div>
-              <h2 className="text-4xl lg:text-6xl font-bold font-heading mb-8">
+              <h2 className="text-5xl lg:text-7xl font-bold font-heading mb-8">
                 Early Movers{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] via-orange-400 to-red-500">
                   Take All.
                 </span>
               </h2>
-              <p className="text-xl lg:text-2xl text-gray-400 mb-12 leading-relaxed">
+              <p className="text-2xl lg:text-3xl text-gray-400 mb-12 leading-relaxed">
                 When mobile search took over, businesses that adapted early dominated for a decade. AI search is happening 10x faster. Those who optimize now will lock in their local market. Those who wait will be left behind.
               </p>
             </motion.div>
@@ -1118,19 +1118,19 @@ export default function AiWebsiteProHome() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 text-[#00d4ff] mb-5">
               <Calendar className="w-5 h-5" />
-              <span className="text-xs font-black uppercase tracking-[0.2em]">Step before the sale</span>
+              <span className="text-sm font-black uppercase tracking-[0.2em]">Step before the sale</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-heading text-white mb-6">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-heading text-white mb-6">
               Schedule a call—we&apos;ll help you pick the right plan
             </h2>
-            <p className="text-lg text-gray-400 mb-6 leading-relaxed">
+            <p className="text-xl text-gray-400 mb-6 leading-relaxed">
               You don&apos;t need an AI phone bot, every new tool, or a full team on day one. If you want to get in
               without deep technical knowledge,{' '}
               <span className="text-gray-200 font-medium">Starter at $99.95/mo</span> is often the right first move:
               your site and chatbot go live fast, the bot keeps learning from real visitors, and you upgrade when it
               makes sense—not because we pushed you.
             </p>
-            <p className="text-base text-gray-500 mb-10 leading-relaxed">
+            <p className="text-lg text-gray-500 mb-10 leading-relaxed">
               When you&apos;re ready for call handling, booking + SMS, custom apps, and heavier execution,{' '}
               <span className="text-gray-300">Advanced (~$500/mo)</span> is usually the fit. Elite is for when you want a
               dedicated technical division scoring on growth—not billable hours.
@@ -1139,7 +1139,7 @@ export default function AiWebsiteProHome() {
               <Button
                 asChild
                 size="lg"
-                className="h-14 px-8 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold hover:scale-[1.02] transition-transform"
+                className="h-14 px-8 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold text-lg hover:scale-[1.02] transition-transform"
               >
                 <a href={BOOKING_HREF} {...BOOKING_LINK_PROPS}>
                   {BOOKING_HREF.startsWith('http') ? (
@@ -1153,12 +1153,12 @@ export default function AiWebsiteProHome() {
                   )}
                 </a>
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-14 rounded-full border-white/20 text-gray-200 hover:bg-white/5">
+              <Button asChild variant="outline" size="lg" className="h-14 rounded-full border-white/20 text-gray-200 text-lg hover:bg-white/5">
                 <a href="#plans">I already know my tier</a>
               </Button>
             </div>
             {!BOOKING_HREF.startsWith('http') && (
-              <p className="mt-6 text-xs text-gray-600 max-w-md mx-auto">
+              <p className="mt-6 text-sm text-gray-600 max-w-md mx-auto">
                 Tip: set <code className="text-gray-500">NEXT_PUBLIC_BOOKING_URL</code> in your environment to point this
                 button at Calendly, Cal.com, or another scheduler.
               </p>
@@ -1173,12 +1173,12 @@ export default function AiWebsiteProHome() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-[#0066ff]/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold font-heading mb-6">Choose your tier.</h2>
-            <p className="text-xl text-gray-400 mb-4">
+            <h2 className="text-5xl lg:text-6xl font-bold font-heading mb-6">Choose your tier.</h2>
+            <p className="text-2xl text-gray-400 mb-4">
               Start small if that&apos;s honest. Scale when your traffic, ops, or goals demand it—we&apos;d rather you
               win on Starter first than pay for tools you won&apos;t use yet.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-base text-gray-500">
               Unsure?{' '}
               <a href="#book-call" className="text-[#7dd3fc] hover:text-[#a5f3fc] underline underline-offset-2">
                 Book a call
@@ -1208,19 +1208,19 @@ export default function AiWebsiteProHome() {
 
                 <div className="mb-6 mt-2">
                   <div className="flex items-baseline justify-between gap-3 mb-2">
-                    <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest min-w-0">Starter AI</p>
+                    <p className="text-base font-semibold text-slate-400 uppercase tracking-widest min-w-0">Starter AI</p>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-slate-500 shrink-0">
                       TIER III
                     </span>
                   </div>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="tabular-nums text-4xl font-black font-heading text-white leading-none">
+                    <span className="tabular-nums text-5xl font-black font-heading text-white leading-none">
                       $99
                       <span className="text-[0.55em] align-super font-black ml-0.5">95</span>
                     </span>
-                    <span className="text-slate-500 mb-1 text-sm">/mo</span>
+                    <span className="text-slate-500 mb-1 text-base">/mo</span>
                   </div>
-                  <p className="text-sm text-slate-400/90">
+                  <p className="text-base text-slate-400/90">
                     The plan to get started with AI.
                   </p>
                 </div>
@@ -1234,8 +1234,8 @@ export default function AiWebsiteProHome() {
                     "Detailed documents on how to best effectively use the tool",
                     "2 custom emails",
                   ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <li key={i} className="flex items-start gap-3 text-base">
+                      <CheckCircle2 className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
                       <span className="text-gray-200">{item}</span>
                     </li>
                   ))}
@@ -1244,11 +1244,11 @@ export default function AiWebsiteProHome() {
                   type="button"
                   size="lg"
                   onClick={() => scrollToContact('starter')}
-                  className="w-full rounded-full bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black font-black text-lg h-14 shadow-[0_0_24px_-6px_rgba(203,213,225,0.45)] border border-white/25 hover:scale-[1.02] transition-all duration-200 gap-0"
+                  className="w-full rounded-full bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 hover:from-slate-200 hover:via-white hover:to-slate-200 text-black font-black text-xl h-14 shadow-[0_0_24px_-6px_rgba(203,213,225,0.45)] border border-white/25 hover:scale-[1.02] transition-all duration-200 gap-0"
                 >
                   Get Started <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
                 </Button>
-                <p className="text-xs text-center text-slate-500/70 mt-3">Perfect to get live fast</p>
+                <p className="text-sm text-center text-slate-500/70 mt-3">Perfect to get live fast</p>
               </div>
             </motion.div>
 
@@ -1271,19 +1271,19 @@ export default function AiWebsiteProHome() {
 
                 <div className="mb-6 mt-2">
                   <div className="flex items-baseline justify-between gap-3 mb-2">
-                    <p className="text-sm font-semibold text-[#00d4ff] uppercase tracking-widest min-w-0">Advanced AI</p>
+                    <p className="text-base font-semibold text-[#00d4ff] uppercase tracking-widest min-w-0">Advanced AI</p>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-[#00d4ff]/55 shrink-0">
                       TIER II
                     </span>
                   </div>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="tabular-nums text-5xl font-black font-heading text-white leading-none">
+                    <span className="tabular-nums text-6xl font-black font-heading text-white leading-none">
                       $499
                       <span className="text-[0.55em] align-super font-black ml-0.5">95</span>
                     </span>
-                    <span className="text-gray-400 mb-1.5">/mo</span>
+                    <span className="text-gray-400 mb-1.5 text-base">/mo</span>
                   </div>
-                  <p className="text-sm text-[#00d4ff]/70">The most reliable tools AI has to offer.</p>
+                  <p className="text-base text-[#00d4ff]/70">The most reliable tools AI has to offer.</p>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
@@ -1298,8 +1298,8 @@ export default function AiWebsiteProHome() {
                     "Online Store (generic)",
                     "20 custom emails",
                   ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${i === 0 ? "text-gray-500" : "text-[#00d4ff]"}`} />
+                    <li key={i} className="flex items-start gap-3 text-base">
+                      <CheckCircle2 className={`w-5 h-5 shrink-0 mt-0.5 ${i === 0 ? "text-gray-500" : "text-[#00d4ff]"}`} />
                       <span className={i === 0 ? "text-gray-500" : "text-gray-200"}>{item}</span>
                     </li>
                   ))}
@@ -1309,11 +1309,11 @@ export default function AiWebsiteProHome() {
                   type="button"
                   size="lg"
                   onClick={() => scrollToContact('advanced')}
-                  className="w-full rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-lg h-14 shadow-[0_0_30px_-5px_#00d4ff] hover:scale-105 transition-all duration-200 gap-0"
+                  className="w-full rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black font-black text-xl h-14 shadow-[0_0_30px_-5px_#00d4ff] hover:scale-105 transition-all duration-200 gap-0"
                 >
                   Go Advanced AI <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
                 </Button>
-                <p className="text-xs text-center text-[#00d4ff]/50 mt-3">The obvious choice for serious growth</p>
+                <p className="text-sm text-center text-[#00d4ff]/50 mt-3">The obvious choice for serious growth</p>
               </div>
             </motion.div>
 
@@ -1335,7 +1335,7 @@ export default function AiWebsiteProHome() {
 
                 <div className="mb-6 mt-2">
                   <div className="flex items-baseline justify-between gap-3 mb-2">
-                    <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-red-500 uppercase tracking-widest min-w-0">
+                    <p className="text-base font-semibold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-red-500 uppercase tracking-widest min-w-0">
                       Elite AI
                     </p>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-orange-400/80 shrink-0">
@@ -1343,13 +1343,13 @@ export default function AiWebsiteProHome() {
                     </span>
                   </div>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="tabular-nums text-5xl font-black font-heading text-white leading-none">
+                    <span className="tabular-nums text-6xl font-black font-heading text-white leading-none">
                       $4,999
                       <span className="text-[0.55em] align-super font-black ml-0.5">95</span>
                     </span>
-                    <span className="text-red-200/60 mb-1.5">/mo</span>
+                    <span className="text-red-200/60 mb-1.5 text-base">/mo</span>
                   </div>
-                  <p className="text-sm text-red-200/70 leading-relaxed">
+                  <p className="text-base text-red-200/70 leading-relaxed">
                     Full technical division that happens to be on the cutting edge of AI.
                   </p>
                 </div>
@@ -1365,9 +1365,9 @@ export default function AiWebsiteProHome() {
                     'Full time social media marketing (video editor, marketing planner, and executionist)',
                     'Technical consultation',
                   ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
+                    <li key={i} className="flex items-start gap-3 text-base">
                       <CheckCircle2
-                        className={`w-4 h-4 shrink-0 mt-0.5 ${
+                        className={`w-5 h-5 shrink-0 mt-0.5 ${
                           i === 0 ? 'text-gray-500' : 'text-orange-400'
                         }`}
                       />
@@ -1380,18 +1380,18 @@ export default function AiWebsiteProHome() {
                   type="button"
                   size="lg"
                   onClick={() => scrollToContact('elite')}
-                  className="w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white font-black text-lg h-14 shadow-[0_0_36px_-6px_rgba(239,68,68,0.75)] hover:scale-[1.02] transition-all duration-200 border border-red-400/30 gap-0"
+                  className="w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-500 hover:from-red-500 hover:via-orange-500 hover:to-orange-400 text-white font-black text-xl h-14 shadow-[0_0_36px_-6px_rgba(239,68,68,0.75)] hover:scale-[1.02] transition-all duration-200 border border-red-400/30 gap-0"
                 >
                   Go Elite AI <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
                 </Button>
-                <p className="text-xs text-center text-orange-400/55 mt-3">For businesses that refuse to lose</p>
+                <p className="text-sm text-center text-orange-400/55 mt-3">For businesses that refuse to lose</p>
               </div>
             </motion.div>
 
           </div>
 
           {/* Bottom note */}
-          <p className="text-center text-sm text-gray-600 mt-10">
+          <p className="text-center text-base text-gray-600 mt-10">
             All plans include instant activation. Team reaches out within 24 hours to begin.
           </p>
         </div>
@@ -1438,7 +1438,7 @@ export default function AiWebsiteProHome() {
         <div className="container relative z-10 mx-auto px-6">
             <div className="max-w-5xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start lg:items-center">
-                <div className="space-y-8">
+                <div className="order-2 space-y-8 lg:order-1">
                   <div className="space-y-5">
                     {leftCopy.bullets.map(({ Icon, text }) => (
                       <div key={text} className={cn('flex items-center gap-4 group', theme.leftFeatureText)}>
@@ -1451,13 +1451,13 @@ export default function AiWebsiteProHome() {
                         >
                           <Icon className={cn('w-5 h-5', theme.leftFeatureIcon)} />
                         </div>
-                        <span className="font-medium">{text}</span>
+                        <span className="font-medium text-lg leading-snug">{text}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="relative lg:pt-2 rounded-3xl">
+                <div className="relative order-1 lg:order-2 lg:pt-2 rounded-3xl">
                   <motion.div
                     className={cn(
                       'absolute -inset-px rounded-3xl blur-2xl -z-10 pointer-events-none transition-colors duration-500',
@@ -1511,10 +1511,10 @@ export default function AiWebsiteProHome() {
                         >
                           <CheckCircle2 className={cn('w-10 h-10', theme.successIcon)} />
                         </div>
-                        <h3 className={cn('text-2xl font-black font-heading', theme.successTitle)}>
+                        <h3 className={cn('text-3xl font-black font-heading', theme.successTitle)}>
                           You&apos;re in the queue
                         </h3>
-                        <p className={cn('max-w-xs', theme.successSub)}>Our agency team will reach out shortly.</p>
+                        <p className={cn('max-w-sm text-lg', theme.successSub)}>Our agency team will reach out shortly.</p>
                         <Button
                           type="button"
                           onClick={() => setIsSuccess(false)}
@@ -1542,10 +1542,10 @@ export default function AiWebsiteProHome() {
                             className="h-11 w-11 object-contain shrink-0 drop-shadow-[0_0_16px_rgba(59,130,246,0.45)]"
                           />
                           <div className="min-w-0">
-                            <p className="text-xl font-black font-heading tracking-tight text-white">aiWebDF</p>
+                            <p className="text-2xl font-black font-heading tracking-tight text-white">aiWebDF</p>
                             <p
                               className={cn(
-                                'text-[11px] font-bold uppercase tracking-[0.2em] mt-0.5 transition-colors duration-500',
+                                'text-xs font-bold uppercase tracking-[0.2em] mt-0.5 transition-colors duration-500',
                                 theme.formHeaderSub,
                               )}
                             >
@@ -1557,7 +1557,7 @@ export default function AiWebsiteProHome() {
                         <div>
                           <label
                             className={cn(
-                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              'text-sm font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
                               theme.label,
                             )}
                           >
@@ -1595,7 +1595,7 @@ export default function AiWebsiteProHome() {
                             })}
                           </div>
                           {errors.plan && (
-                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.plan.message}</p>
+                            <p className={cn('text-base mt-1.5', theme.error)}>{errors.plan.message}</p>
                           )}
                         </div>
 
@@ -1603,7 +1603,7 @@ export default function AiWebsiteProHome() {
                           <div>
                             <label
                               className={cn(
-                                'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                                'text-sm font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
                                 theme.label,
                               )}
                             >
@@ -1611,13 +1611,13 @@ export default function AiWebsiteProHome() {
                             </label>
                             <Input placeholder="John Doe" className={cn(theme.input)} {...register('name')} />
                             {errors.name && (
-                              <p className={cn('text-sm mt-1.5', theme.error)}>{errors.name.message}</p>
+                              <p className={cn('text-base mt-1.5', theme.error)}>{errors.name.message}</p>
                             )}
                           </div>
                           <div>
                             <label
                               className={cn(
-                                'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                                'text-sm font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
                                 theme.label,
                               )}
                             >
@@ -1625,7 +1625,7 @@ export default function AiWebsiteProHome() {
                             </label>
                             <Input placeholder="(555) 555-0123" className={cn(theme.input)} {...register('phone')} />
                             {errors.phone && (
-                              <p className={cn('text-sm mt-1.5', theme.error)}>{errors.phone.message}</p>
+                              <p className={cn('text-base mt-1.5', theme.error)}>{errors.phone.message}</p>
                             )}
                           </div>
                         </div>
@@ -1633,7 +1633,7 @@ export default function AiWebsiteProHome() {
                         <div>
                           <label
                             className={cn(
-                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              'text-sm font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
                               theme.label,
                             )}
                           >
@@ -1646,14 +1646,14 @@ export default function AiWebsiteProHome() {
                             {...register('email')}
                           />
                           {errors.email && (
-                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.email.message}</p>
+                            <p className={cn('text-base mt-1.5', theme.error)}>{errors.email.message}</p>
                           )}
                         </div>
 
                         <div>
                           <label
                             className={cn(
-                              'text-xs font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
+                              'text-sm font-bold uppercase tracking-wider block mb-2 transition-colors duration-500',
                               theme.label,
                             )}
                           >
@@ -1661,11 +1661,11 @@ export default function AiWebsiteProHome() {
                           </label>
                           <Textarea
                             placeholder="Anything we should know before we reach out?"
-                            className={cn(theme.input, 'h-auto min-h-[100px] resize-y')}
+                            className={cn(theme.input, 'h-auto min-h-[120px] resize-y')}
                             {...register('notes')}
                           />
                           {errors.notes && (
-                            <p className={cn('text-sm mt-1.5', theme.error)}>{errors.notes.message}</p>
+                            <p className={cn('text-base mt-1.5', theme.error)}>{errors.notes.message}</p>
                           )}
                         </div>
 
@@ -1706,7 +1706,7 @@ export default function AiWebsiteProHome() {
       </section>
       
       {/* Footer */}
-      <footer className="py-8 bg-[#0a0a0f] border-t border-white/5 text-center text-gray-500 text-sm">
+      <footer className="py-8 bg-[#0a0a0f] border-t border-white/5 text-center text-gray-500 text-base">
         <div className="container mx-auto px-6">
           <p>© {new Date().getFullYear()} aiWebDF. All rights reserved.</p>
         </div>
