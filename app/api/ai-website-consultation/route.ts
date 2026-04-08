@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const email = typeof body.email === 'string' ? body.email.trim() : '';
     const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
     const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : '';
-    const plan = parsePlan(body.plan);
+    const plan = parsePlan(body.plan) ?? 'advanced';
 
     if (name.length < 2) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -42,9 +42,6 @@ export async function POST(request: NextRequest) {
     const phoneDigits = phone.replace(/\D/g, '');
     if (phoneDigits.length < 10) {
       return NextResponse.json({ error: 'Valid phone is required' }, { status: 400 });
-    }
-    if (!plan) {
-      return NextResponse.json({ error: 'Valid plan is required' }, { status: 400 });
     }
 
     const planLabel = PLAN_LABEL[plan];
