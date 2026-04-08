@@ -174,7 +174,7 @@ function BookContent() {
           {/* Left: details */}
           <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 sm:p-7 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)]">
             <h1 className="text-3xl sm:text-4xl font-black font-heading mb-2">Book a call</h1>
-            <p className="text-[#00d4ff] text-sm font-semibold mb-6">All times are US Eastern (ET).</p>
+            <p className="text-[#00d4ff] text-sm font-semibold mb-6">All times are US Eastern (EST).</p>
 
             <div className="space-y-3">
               <div>
@@ -235,7 +235,9 @@ function BookContent() {
           <div className="rounded-3xl border border-white/10 bg-[#0d0d1a] overflow-hidden">
             <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
               <div>
-                <p className="text-sm font-bold text-white">Select a day</p>
+                <p className="text-sm font-bold text-white">
+                  {selectedDate ? `Selected: ${selectedDate}` : 'Select a day'}
+                </p>
                 <p className="text-xs text-gray-500">Then choose a time</p>
               </div>
               <div className="flex items-center gap-2">
@@ -314,7 +316,8 @@ function BookContent() {
                                 available
                                   ? 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
                                   : 'border-transparent bg-white/0 text-white/20 cursor-not-allowed',
-                                picked && 'bg-[#0066ff] border-[#0066ff] text-white hover:bg-[#0066ff]',
+                                picked &&
+                                  'bg-[#0066ff] border-[#0066ff] text-white hover:bg-[#0066ff] ring-2 ring-[#00d4ff]/60 ring-offset-2 ring-offset-[#0d0d1a]',
                                 isToday && !picked && 'ring-1 ring-[#00d4ff]/30',
                               )}
                               aria-label={`${ymd}${available ? '' : ' (unavailable)'}`}
@@ -337,7 +340,7 @@ function BookContent() {
                 ) : (daysByDate.get(selectedDate)?.length ?? 0) === 0 ? (
                   <p className="text-sm text-gray-500">No times on this day.</p>
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {(daysByDate.get(selectedDate) || []).map((s) => {
                       const picked = selected === s.startsAt;
                       return (
@@ -346,7 +349,7 @@ function BookContent() {
                           type="button"
                           onClick={() => setSelected(s.startsAt)}
                           className={classNames(
-                            'w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
+                            'w-full rounded-2xl border px-3 py-2.5 text-center text-sm font-semibold transition-all',
                             picked
                               ? 'bg-[#0066ff] border-[#0066ff] text-white'
                               : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-gray-200',

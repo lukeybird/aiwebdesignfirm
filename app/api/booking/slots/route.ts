@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
         slots: slots.map((s) => ({
           startsAt: s.startsAt.toISOString(),
           endsAt: s.endsAt.toISOString(),
-          label: formatInTimeZone(s.startsAt, BOOKING_TZ, 'h:mm a') + ' ET',
+          label: formatInTimeZone(s.startsAt, BOOKING_TZ, 'h:mm a') + ' EST',
         })),
       });
     }
