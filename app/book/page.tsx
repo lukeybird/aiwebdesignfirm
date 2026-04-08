@@ -5,6 +5,27 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  isSameDay,
+  startOfMonth,
+  subMonths,
+} from 'date-fns';
+
+type Slot = { startsAt: string; endsAt: string; label: string };
+type DaySlots = { date: string; slots: Slot[] };
+
+function ymdToDate(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map((n) => parseInt(n, 10));
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function classNames(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ');
+}
 
 function BookContent() {
   const searchParams = useSearchParams();
@@ -18,11 +39,10 @@ function BookContent() {
   const [error, setError] = useState<string | null>(null);
   const [alreadyBooked, setAlreadyBooked] = useState(false);
 
-  const [days, setDays] = useState<
-    { date: string; slots: { startsAt: string; endsAt: string; label: string }[] }[]
-  >([]);
+  const [days, setDays] = useState<DaySlots[]>([]);
   const [intervalMinutes, setIntervalMinutes] = useState(30);
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -36,7 +56,7 @@ function BookContent() {
   const loadSlots = useCallback(async () => {
     const em = email.trim().toLowerCase();
     const q = em ? `&email=${encodeURIComponent(em)}` : '';
-    const r = await fetch(`/api/booking/slots?days=21${q}`);
+    const r = await fetch(`/api/booking/slots?days=45${q}`);
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       if ((j as { error?: string }).error === 'Already booked') {
@@ -69,6 +89,26 @@ function BookContent() {
 
   const phoneDigits = phone.replace(/\D/g, '');
   const phoneOk = phoneDigits.length >= 10;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const nameOk = name.trim().length >= 2;
+
+  const daysByDate = new Map<string, Slot[]>();
+  for (const d of days) daysByDate.set(d.date, d.slots);
+
+  // Calendar month state defaults to the first available day (or today)
+  const firstAvailableYmd = days.find((d) => d.slots.length > 0)?.date;
+  const defaultMonthBase = firstAvailableYmd ? ymdToDate(firstAvailableYmd) : new Date();
+  const [monthBase, setMonthBase] = useState<Date>(startOfMonth(defaultMonthBase));
+
+  useEffect(() => {
+    // When availability loads the first time, auto-select the first available day
+    if (!selectedDate && firstAvailableYmd) {
+      setSelectedDate(firstAvailableYmd);
+      setSelected(null);
+      setMonthBase(startOfMonth(ymdToDate(firstAvailableYmd)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstAvailableYmd]);
 
   async function confirm() {
     if (!selected || !phoneOk) return;
@@ -92,6 +132,7 @@ function BookContent() {
         return;
       }
       setDone(true);
+      setSelected(null);
     } finally {
       setBooking(false);
     }
@@ -124,79 +165,213 @@ function BookContent() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0f] text-white px-6 py-16 sm:py-24">
-      <div className="mx-auto max-w-lg">
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 mb-10 inline-block">
+    <div className="min-h-[100dvh] bg-[#0a0a0f] text-white px-6 py-12 sm:py-16">
+      <div className="mx-auto max-w-6xl">
+        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 mb-8 inline-block">
           ← aiWebDF
         </Link>
-        <h1 className="text-3xl sm:text-4xl font-black font-heading mb-2">Schedule your call</h1>
-        <p className="text-[#00d4ff] text-sm font-semibold mb-6">All times are US Eastern (ET).</p>
+        <div className="grid gap-8 lg:grid-cols-[420px_1fr] items-start">
+          {/* Left: details */}
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 sm:p-7 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)]">
+            <h1 className="text-3xl sm:text-4xl font-black font-heading mb-2">Book a call</h1>
+            <p className="text-[#00d4ff] text-sm font-semibold mb-6">All times are US Eastern (ET).</p>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-8 space-y-3 text-sm">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full name"
-            className="bg-[#1c1c1e] border-white/10 text-white"
-          />
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="bg-[#1c1c1e] border-white/10 text-white"
-          />
-          <Input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone"
-            className="bg-[#1c1c1e] border-white/10 text-white"
-          />
-        </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Name</label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Full name"
+                  className="bg-[#121218] border-white/10 text-white rounded-2xl h-12"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Email</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  className="bg-[#121218] border-white/10 text-white rounded-2xl h-12"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Phone</label>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone"
+                  className="bg-[#121218] border-white/10 text-white rounded-2xl h-12"
+                />
+                {!phoneOk && phone.trim() ? (
+                  <p className="text-xs text-red-400 mt-2">Enter a valid phone number.</p>
+                ) : null}
+              </div>
+            </div>
 
-        {error ? <p className="text-red-400 text-sm mb-6">{error}</p> : null}
+            {plan ? (
+              <p className="text-xs text-gray-500 mt-5">
+                Plan: <span className="text-gray-300 font-medium">{plan}</span>
+              </p>
+            ) : null}
 
-        {loading ? (
-          <p className="text-gray-400">Loading times…</p>
-        ) : days.length === 0 && !error ? (
-          <p className="text-gray-400">No open slots in the next few weeks. We&apos;ll reach out by email.</p>
-        ) : (
-          <div className="space-y-8">
-            {days.map((d) => (
-              <div key={d.date}>
-                <h2 className="text-lg font-bold text-gray-300 mb-3">{d.date}</h2>
-                <div className="flex flex-wrap gap-2">
-                  {d.slots.map((s) => (
-                    <button
-                      key={s.startsAt}
-                      type="button"
-                      onClick={() => setSelected(s.startsAt)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
-                        selected === s.startsAt
-                          ? 'bg-[#0066ff] border-[#0066ff] text-white'
-                          : 'border-white/15 bg-white/5 hover:border-white/30'
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+            {error ? <p className="text-red-400 text-sm mt-5">{error}</p> : null}
+
+            <Button
+              type="button"
+              disabled={!selected || booking || !nameOk || !emailOk || !phoneOk}
+              onClick={confirm}
+              className="mt-6 w-full rounded-2xl h-12 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold"
+            >
+              {booking ? 'Booking…' : selected ? 'Confirm booking' : 'Select a time'}
+            </Button>
+
+            <p className="text-xs text-gray-600 mt-4">Slots are {intervalMinutes} minutes each.</p>
+          </div>
+
+          {/* Right: calendar + times */}
+          <div className="rounded-3xl border border-white/10 bg-[#0d0d1a] overflow-hidden">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
+              <div>
+                <p className="text-sm font-bold text-white">Select a day</p>
+                <p className="text-xs text-gray-500">Then choose a time</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMonthBase((d) => startOfMonth(subMonths(d, 1)))}
+                  className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                  aria-label="Previous month"
+                >
+                  ‹
+                </button>
+                <div className="min-w-[140px] text-center text-sm font-semibold text-gray-200">
+                  {format(monthBase, 'MMMM yyyy')}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMonthBase((d) => startOfMonth(addMonths(d, 1)))}
+                  className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                  aria-label="Next month"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-0 lg:grid-cols-[1fr_320px]">
+              {/* Calendar */}
+              <div className="p-5 sm:p-6">
+                {loading ? (
+                  <p className="text-gray-400">Loading availability…</p>
+                ) : days.length === 0 && !error ? (
+                  <p className="text-gray-400">No open slots in the next few weeks. We&apos;ll reach out by email.</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-7 text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                        <div key={d} className="text-center">
+                          {d}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-2">
+                      {(() => {
+                        const start = startOfMonth(monthBase);
+                        const end = endOfMonth(monthBase);
+                        const daysInMonth = eachDayOfInterval({ start, end });
+                        const pad = start.getDay(); // 0..6
+                        const cells: Array<{ date?: Date; ymd?: string }> = [
+                          ...Array.from({ length: pad }).map(() => ({})),
+                          ...daysInMonth.map((date) => ({ date, ymd: format(date, 'yyyy-MM-dd') })),
+                        ];
+
+                        const today = new Date();
+
+                        return cells.map((c, idx) => {
+                          if (!c.date || !c.ymd) {
+                            return <div key={`pad-${idx}`} />;
+                          }
+                          const ymd = c.ymd;
+                          const available = (daysByDate.get(ymd)?.length ?? 0) > 0;
+                          const picked = selectedDate === ymd;
+                          const isToday = isSameDay(c.date, today);
+
+                          return (
+                            <button
+                              key={ymd}
+                              type="button"
+                              disabled={!available}
+                              onClick={() => {
+                                setSelectedDate(ymd);
+                                setSelected(null);
+                              }}
+                              className={classNames(
+                                'h-11 rounded-2xl border text-sm font-semibold transition-all',
+                                available
+                                  ? 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+                                  : 'border-transparent bg-white/0 text-white/20 cursor-not-allowed',
+                                picked && 'bg-[#0066ff] border-[#0066ff] text-white hover:bg-[#0066ff]',
+                                isToday && !picked && 'ring-1 ring-[#00d4ff]/30',
+                              )}
+                              aria-label={`${ymd}${available ? '' : ' (unavailable)'}`}
+                            >
+                              {c.date.getDate()}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Times */}
+              <div className="border-t border-white/10 lg:border-t-0 lg:border-l border-white/10 p-5 sm:p-6">
+                <p className="text-sm font-bold text-white mb-3">Available times</p>
+                {!selectedDate ? (
+                  <p className="text-sm text-gray-500">Pick a day to see times.</p>
+                ) : (daysByDate.get(selectedDate)?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-gray-500">No times on this day.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {(daysByDate.get(selectedDate) || []).map((s) => {
+                      const picked = selected === s.startsAt;
+                      return (
+                        <button
+                          key={s.startsAt}
+                          type="button"
+                          onClick={() => setSelected(s.startsAt)}
+                          className={classNames(
+                            'w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
+                            picked
+                              ? 'bg-[#0066ff] border-[#0066ff] text-white'
+                              : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-gray-200',
+                          )}
+                        >
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Selection</p>
+                  <p className="text-sm text-gray-200">
+                    {selectedDate ? selectedDate : 'No day selected'}
+                    {selected ? (
+                      <span className="text-gray-400"> · {daysByDate.get(selectedDate || '')?.find((x) => x.startsAt === selected)?.label}</span>
+                    ) : null}
+                  </p>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        )}
-
-        <p className="text-xs text-gray-600 mt-8">Slots are {intervalMinutes} minutes each.</p>
-
-        <Button
-          type="button"
-          disabled={!selected || booking || !name.trim() || !email.trim() || !phoneOk}
-          onClick={confirm}
-          className="mt-8 w-full rounded-full h-12 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold"
-        >
-          {booking ? 'Booking…' : 'Book'}
-        </Button>
+        </div>
       </div>
     </div>
   );
