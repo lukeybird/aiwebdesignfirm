@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql, initDatabase } from '@/lib/db';
+import { initBookingTables } from '@/lib/booking/init-tables';
 import {
   getTeamNotifyEmails,
   sendConsultationThankYou,
@@ -79,6 +80,24 @@ export async function POST(request: NextRequest) {
         INSERT INTO lead_notes (lead_id, text)
         VALUES (${lead.id}, ${noteText})
       `;
+    }
+
+    try {
+      await initBookingTables(sql);
+      await sql`
+        INSERT INTO booking_leads (name, email, phone, plan, notes, status, crm_lead_id)
+        VALUES (
+          ${name},
+          ${email},
+          ${phone || null},
+          ${plan},
+          ${notes || null},
+          ${'new'},
+          ${lead?.id ?? null}
+        )
+      `;
+    } catch (be) {
+      console.error('ai-website-consultation: booking_lead insert failed (CRM lead still saved):', be);
     }
 
     const textBody = [

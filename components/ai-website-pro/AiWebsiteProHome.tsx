@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -13,7 +13,6 @@ import {
   BarChart3,
   MessageSquare,
   Globe,
-  ArrowUpRight,
   Flame,
   Phone,
   Smartphone,
@@ -206,11 +205,11 @@ const PLAN_LEFT_COPY: Record<
   starter: {
     BadgeIcon: Bot,
     bullets: [
-      { Icon: Bot, text: 'An AI Q&A chatbot that strengthens your SEO' },
+      { Icon: Bot, text: 'An AI Q&A Chatbot that strengthens your SEO' },
       { Icon: Zap, text: 'Site built out in 7 days or less' },
       { Icon: Search, text: 'Submission to Google & major search engines' },
       { Icon: Palette, text: 'Web design makeover included' },
-      { Icon: MessageSquare, text: 'Virtual support via our Q&A chatbot' },
+      { Icon: MessageSquare, text: 'Virtual support via our Q&A Chatbot' },
       { Icon: FileText, text: 'Detailed documents on how to best effectively use the tool' },
       { Icon: Mail, text: '2 custom emails' },
     ],
@@ -221,7 +220,7 @@ const PLAN_LEFT_COPY: Record<
       { Icon: Smartphone, text: 'One Basic Custom App Build Out (generic)' },
       { Icon: Phone, text: 'AI Phone Receptionist (books appointments)' },
       { Icon: MessageSquare, text: 'Appointment Booking App (sends SMS reminders)' },
-      { Icon: Bot, text: 'Custom design for AI chatbot' },
+      { Icon: Bot, text: 'Custom design for AI Chatbot' },
       { Icon: RefreshCw, text: 'Free tweaks and changes' },
       { Icon: BookOpen, text: 'Online Blog (generic)' },
       { Icon: ShoppingBag, text: 'Online Store (generic)' },
@@ -254,12 +253,6 @@ const PLAN_LEFT_COPY: Record<
   },
 };
 
-const SUBMIT_LABEL: Record<PlanId, string> = {
-  starter: 'Request Starter AI consultation',
-  advanced: 'Request Advanced AI consultation',
-  elite: 'Request Elite AI consultation',
-};
-
 const formSchema = z.object({
   plan: z.enum(['starter', 'advanced', 'elite']),
   name: z.string().min(2, "Name is required"),
@@ -274,8 +267,11 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function AiWebsiteProHome() {
+  /** “Consumers don’t Google anymore” / query-behavior shift block — set true to show again */
+  const showConsumersShiftSection = false;
+
   const defaultFormValues: FormValues = {
-    plan: 'elite',
+    plan: 'advanced',
     name: '',
     email: '',
     phone: '',
@@ -294,18 +290,60 @@ export default function AiWebsiteProHome() {
     defaultValues: defaultFormValues,
   });
 
-  const selectedPlan: PlanId = watch('plan') ?? 'elite';
+  const selectedPlan: PlanId = watch('plan') ?? 'advanced';
   const theme = PLAN_THEMES[selectedPlan];
   const leftCopy = PLAN_LEFT_COPY[selectedPlan];
   const LeftBadgeIcon = leftCopy.BadgeIcon;
 
+  const scrollToSectionId = useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: instant ? 'instant' : 'smooth', block: 'start', inline: 'nearest' });
+  }, []);
+
   const scrollToContact = (planId: PlanId) => {
     setValue('plan', planId, { shouldValidate: true });
-    document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToSectionId('contact');
   };
 
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest?.('a[href^="#"]');
+      if (!a || !(a instanceof HTMLAnchorElement)) return;
+      const href = a.getAttribute('href');
+      if (!href || href === '#') return;
+      const id = decodeURIComponent(href.slice(1));
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      e.preventDefault();
+      const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.scrollIntoView({ behavior: instant ? 'instant' : 'smooth', block: 'start', inline: 'nearest' });
+      try {
+        history.pushState(null, '', href);
+      } catch {
+        /* ignore */
+      }
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
+
+  useEffect(() => {
+    const raw = window.location.hash.slice(1);
+    if (!raw) return;
+    const id = decodeURIComponent(raw);
+    const el = document.getElementById(id);
+    if (!el) return;
+    const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const t = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: instant ? 'instant' : 'smooth', block: 'start', inline: 'nearest' });
+    });
+    return () => cancelAnimationFrame(t);
+  }, []);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
@@ -328,17 +366,13 @@ export default function AiWebsiteProHome() {
       };
 
       if (response.ok && payload.success) {
-        setIsSuccess(true);
-        reset({ ...defaultFormValues, plan: submittedPlan });
         const teamOk = payload.emailSent === true;
         const thanksOk = payload.thankYouSent === true;
-        const fullyOk =
-          payload.allEmailsSent === true || (teamOk && thanksOk);
+        const fullyOk = payload.allEmailsSent === true || (teamOk && thanksOk);
 
         if (fullyOk) {
-          toast.success('Request received', {
-            description:
-              "Check your inbox for a confirmation — we'll reach out shortly about your AI website.",
+          toast.success('Next: schedule your call', {
+            description: 'Pick a time below (US Eastern).',
           });
         } else {
           const parts: string[] = [];
@@ -364,10 +398,18 @@ export default function AiWebsiteProHome() {
                 : 'Confirmation email to you did not send.',
             );
           }
-          toast.warning('Request saved — some email did not send', {
+          toast.warning('Saved — pick a time; some email may not have sent', {
             description: parts.join(' '),
           });
         }
+
+        const q = new URLSearchParams();
+        q.set('name', data.name.trim());
+        q.set('email', data.email.trim());
+        q.set('phone', data.phone.trim());
+        q.set('plan', data.plan);
+        window.location.href = `/book?${q.toString()}`;
+        return;
       } else {
         throw new Error(payload.error || 'Failed to submit');
       }
@@ -395,130 +437,8 @@ export default function AiWebsiteProHome() {
     }
   };
 
-  const faqs = [
-    {
-      q: "How does this help me get more customers?",
-      a: "Your AI chatbot engages every visitor instantly — answering questions, capturing leads, and qualifying prospects 24/7. While competitors sleep, your website is closing deals."
-    },
-    {
-      q: "Will I show up in ChatGPT searches?",
-      a: "Yes. We structure your content so AI tools like ChatGPT, Claude, and Grok recognize your business as an authoritative source. When someone asks AI for a recommendation in your industry, you show up."
-    },
-    {
-      q: "How fast can I get started?",
-      a: "Same day. After activating your account, our team begins building within 24 hours and you're live within 7 days or less — fully optimized for both Google and AI search."
-    },
-    {
-      q: "What makes this different from a regular website?",
-      a: "A regular website waits. Yours hunts. The AI chatbot proactively engages visitors, answers their exact questions, captures their info, and alerts you the moment a hot lead arrives."
-    }
-  ];
-
-  const CANNED_FREE_REPLY =
-    "I don't have the answer to that question right now, but if you provide your email we will get back to you as soon as I do.";
-
-  type ChatMessage = { role: "user" | "ai"; text: string };
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [userDraft, setUserDraft] = useState("");
-  const [chatPhase, setChatPhase] = useState<"idle" | "typing-q" | "thinking" | "typing-a">("idle");
-  const [activeChat, setActiveChat] = useState<number | null>(null);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
-  const chatMessagesRef = useRef<HTMLDivElement>(null);
-  const chatSectionRef = useRef<HTMLElement>(null);
-  const chatIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const el = chatMessagesRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [chatMessages, inputText, userDraft, chatPhase]);
-
-  const handleUserSend = () => {
-    if (chatPhase !== "idle") return;
-    const trimmed = userDraft.trim();
-    if (!trimmed) return;
-    if (chatIntervalRef.current) clearTimeout(chatIntervalRef.current);
-
-    setActiveChat(null);
-    setUserDraft("");
-    setChatMessages((prev) => [...prev, { role: "user", text: trimmed }]);
-    setChatPhase("thinking");
-
-    chatIntervalRef.current = setTimeout(() => {
-      setChatPhase("typing-a");
-      setChatMessages((prev) => [...prev, { role: "ai", text: "" }]);
-      let aIdx = 0;
-      const typeCanned = () => {
-        aIdx++;
-        setChatMessages((prev) => {
-          const msgs = [...prev];
-          msgs[msgs.length - 1] = { role: "ai", text: CANNED_FREE_REPLY.slice(0, aIdx) };
-          return msgs;
-        });
-        if (aIdx < CANNED_FREE_REPLY.length) {
-          chatIntervalRef.current = setTimeout(typeCanned, 16);
-        } else {
-          setChatPhase("idle");
-        }
-      };
-      chatIntervalRef.current = setTimeout(typeCanned, 80);
-    }, 900);
-  };
-
-  const handleFaqClick = (index: number) => {
-    if (chatPhase !== "idle") return;
-    if (chatIntervalRef.current) clearTimeout(chatIntervalRef.current);
-
-    setActiveChat(index);
-    setChatMessages([]);
-    setInputText("");
-    setUserDraft("");
-    setChatPhase("typing-q");
-
-    chatSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-
-    const question = faqs[index].q;
-    const answer = faqs[index].a;
-    let qIdx = 0;
-
-    const typeQuestion = () => {
-      qIdx++;
-      setInputText(question.slice(0, qIdx));
-      if (qIdx < question.length) {
-        chatIntervalRef.current = setTimeout(typeQuestion, 28);
-      } else {
-        chatIntervalRef.current = setTimeout(() => {
-          setInputText("");
-          setChatMessages([{ role: "user", text: question }]);
-          setChatPhase("thinking");
-          chatIntervalRef.current = setTimeout(() => {
-            setChatPhase("typing-a");
-            let aIdx = 0;
-            setChatMessages(prev => [...prev, { role: "ai", text: "" }]);
-            const typeAnswer = () => {
-              aIdx++;
-              setChatMessages(prev => {
-                const msgs = [...prev];
-                msgs[msgs.length - 1] = { role: "ai", text: answer.slice(0, aIdx) };
-                return msgs;
-              });
-              if (aIdx < answer.length) {
-                chatIntervalRef.current = setTimeout(typeAnswer, 18);
-              } else {
-                setChatPhase("idle");
-              }
-            };
-            chatIntervalRef.current = setTimeout(typeAnswer, 80);
-          }, 1200);
-        }, 300);
-      }
-    };
-
-    chatIntervalRef.current = setTimeout(typeQuestion, 100);
-  };
-
   return (
-    <div className="min-h-[100dvh] w-full max-w-none bg-[#0a0a0f] text-white overflow-x-hidden selection:bg-[#00d4ff]/30 selection:text-white">
+    <div className="min-h-[100dvh] w-full max-w-none bg-[#0a0a0f] text-white overflow-x-clip selection:bg-[#00d4ff]/30 selection:text-white">
       {/* Sticky Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-20 w-full max-w-none items-center justify-between px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
@@ -545,8 +465,8 @@ export default function AiWebsiteProHome() {
               </a>
             </div>
             <Button asChild className="bg-white text-black hover:bg-gray-200 font-medium text-base px-5 md:px-6 rounded-full transition-all duration-300 shrink-0">
-              <a href="https://square.link/u/AIWebsitePro" target="_blank" rel="noopener noreferrer">
-                Get Started
+              <a href="#contact" aria-label="Book a call — go to contact form">
+                Book A Call
               </a>
             </Button>
           </div>
@@ -594,14 +514,13 @@ export default function AiWebsiteProHome() {
                 className="w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
               >
                 <a href="#journey" aria-label="See how we fix that">
-                  How?
+                  How so?
                 </a>
               </Button>
               <a
-                href="https://square.link/u/AIWebsitePro"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#contact"
                 className="text-base text-gray-500 hover:text-gray-300 transition-colors"
+                aria-label="Already convinced — go to contact form"
               >
                 Already convinced — get started →
               </a>
@@ -611,8 +530,9 @@ export default function AiWebsiteProHome() {
       </section>
 
       {/* Journey / How — value breakdown */}
-      <section id="journey" className="py-24 bg-[#0a0a0f] border-y border-white/5 scroll-mt-24">
+      <section className="py-24 bg-[#0a0a0f] border-y border-white/5">
         <div className="mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+          <div id="journey" className="h-0 w-full overflow-hidden pointer-events-none" aria-hidden="true" />
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -622,9 +542,9 @@ export default function AiWebsiteProHome() {
           >
             <motion.h2
               variants={fadeIn}
-              className="text-5xl sm:text-6xl lg:text-7xl font-black font-heading text-white mb-2"
+              className="max-w-5xl mx-auto text-balance text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black font-heading text-white mb-2 leading-tight"
             >
-              How?
+              The Ways You Could Be Losing Money
             </motion.h2>
           </motion.div>
 
@@ -633,27 +553,27 @@ export default function AiWebsiteProHome() {
               {
                 n: '1',
                 title: 'Instant Replies',
-                body: 'Every second you wait loses money—AI replies instantly and converts while interest is highest',
+                body: "If you don't reply instantly, you are losing leads. Every second you wait loses money—AI replies instantly and converts while interest is highest",
               },
               {
                 n: '2',
-                title: 'SEO Rank',
-                body: 'Every question your customers ask becomes SEO fuel—our AI generates real, human answers that push you higher on Google and inside ChatGPT results',
+                title: 'SEO Ranking',
+                body: "If you don't have extremely detailed FAQ's you are losing a chance to get on top of the search engines. Every question your customers ask should become SEO fuel— Our AI Q&A Chatbot answers questions the way you want them to be answered, and if it doesn't have the answer you only need to manually answer it once, then it's forever locked in place and given to Google and ChatGPT for higher SEO Ranking!",
               },
               {
                 n: '3',
-                title: 'Replaces Employees',
-                body: 'Eliminate missed calls, slow responses, and human error—AI handles it all instantly and flawlessly',
+                title: 'Catches Human Errors',
+                body: 'If you ever miss a single call, text, or email, you are losing a lead. Eliminate missed calls, slow responses, and human error—AI handles it all instantly and flawlessly',
               },
               {
                 n: '4',
                 title: 'AI Works 24/7',
-                body: 'Most businesses lose after-hours leads—you capture and convert them with AI working 24/7',
+                body: "If you sleep, you're losing leads. Our AI Systems work night and day to convert new leads into sales.",
               },
               {
                 n: '5',
-                title: 'Be There Before the Competition',
-                body: 'The businesses adopting AI now will dominate—everyone else will struggle to catch up',
+                title: 'Be There First',
+                body: "The gun has been shot for the race on AI and if you are still on the starting line you're not winning the race!",
               },
             ].map((block, i) => (
               <motion.div
@@ -712,313 +632,91 @@ export default function AiWebsiteProHome() {
         </div>
       </section>
 
-      {/* The Pain — layout aligned with aiwebdesignfirm.com; fills viewport height responsively */}
-      <section className="relative flex min-h-[72svh] flex-col justify-center border-y border-white/5 bg-[#0d0d1a] py-12 sm:min-h-[76svh] sm:py-16 md:min-h-[78svh] md:py-20 lg:min-h-[80svh] lg:py-24">
-        <div className="relative z-10 mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={staggerContainer}
-            className="grid items-center gap-10 sm:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20"
-          >
-            <div>
-              <motion.h2 variants={fadeIn} className="text-4xl lg:text-6xl font-bold font-heading mb-6">
-                Consumers don&apos;t Google anymore. <br />
-                <span className="text-gray-500">They ask ChatGPT.</span>
-              </motion.h2>
-              <motion.p variants={fadeIn} className="text-lg text-gray-400 mb-8">
-                The shift is already here. People are typing &quot;what&apos;s the best plumber near me&quot; into AI
-                platforms instead of search engines. If your business isn&apos;t optimized for AI, you are completely
-                invisible to the next generation of buyers.
-              </motion.p>
-              <motion.div variants={fadeIn} className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-6 h-6 text-red-500" />
+      {showConsumersShiftSection && (
+        /* The Pain — layout aligned with aiwebdesignfirm.com; fills viewport height responsively */
+        <section className="relative flex min-h-[72svh] flex-col justify-center border-y border-white/5 bg-[#0d0d1a] py-12 sm:min-h-[76svh] sm:py-16 md:min-h-[78svh] md:py-20 lg:min-h-[80svh] lg:py-24">
+          <div className="relative z-10 mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-100px' }}
+              variants={staggerContainer}
+              className="grid items-center gap-10 sm:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20"
+            >
+              <div>
+                <motion.h2 variants={fadeIn} className="text-4xl lg:text-6xl font-bold font-heading mb-6">
+                  Consumers don&apos;t Google anymore. <br />
+                  <span className="text-gray-500">They ask ChatGPT.</span>
+                </motion.h2>
+                <motion.p variants={fadeIn} className="text-lg text-gray-400 mb-8">
+                  The shift is already here. People are typing &quot;what&apos;s the best plumber near me&quot; into AI
+                  platforms instead of search engines. If your business isn&apos;t optimized for AI, you are completely
+                  invisible to the next generation of buyers.
+                </motion.p>
+                <motion.div variants={fadeIn} className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                      <TrendingUp className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-bold mb-2">Rising Ad Costs</h4>
+                      <p className="text-lg text-gray-400">Traditional PPC is becoming unsustainable for local businesses.</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-2xl font-bold mb-2">Rising Ad Costs</h4>
-                    <p className="text-lg text-gray-400">Traditional PPC is becoming unsustainable for local businesses.</p>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                      <Globe className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-bold mb-2">Algorithm Chaos</h4>
+                      <p className="text-lg text-gray-400">Google updates are burying honest businesses beneath aggregators.</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
-                    <Globe className="w-6 h-6 text-red-500" />
+                </motion.div>
+              </div>
+
+              <motion.div variants={fadeIn} className="relative">
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#0066ff]/20 to-transparent rounded-3xl blur-2xl"></div>
+                <div className="relative bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 shadow-2xl">
+                  <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/10">
+                    <Search className="w-5 h-5 text-gray-400" />
+                    <div className="text-gray-400 font-mono text-sm">Query behavior shift (2023-2025)</div>
                   </div>
-                  <div>
-                    <h4 className="text-2xl font-bold mb-2">Algorithm Chaos</h4>
-                    <p className="text-lg text-gray-400">Google updates are burying honest businesses beneath aggregators.</p>
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <span className="font-medium text-lg">Traditional Search (Google)</span>
+                        <span className="text-red-400">-24%</span>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-red-500/50 w-[76%] rounded-full"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <span className="font-medium text-lg">Generative AI (ChatGPT, Claude)</span>
+                        <span className="text-[#00d4ff]">+415%</span>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] w-full rounded-full"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
-            </div>
-
-            <motion.div variants={fadeIn} className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-[#0066ff]/20 to-transparent rounded-3xl blur-2xl"></div>
-              <div className="relative bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 shadow-2xl">
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/10">
-                  <Search className="w-5 h-5 text-gray-400" />
-                  <div className="text-gray-400 font-mono text-sm">Query behavior shift (2023-2025)</div>
-                </div>
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium text-lg">Traditional Search (Google)</span>
-                      <span className="text-red-400">-24%</span>
-                    </div>
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-red-500/50 w-[76%] rounded-full"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium text-lg">Generative AI (ChatGPT, Claude)</span>
-                      <span className="text-[#00d4ff]">+415%</span>
-                    </div>
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] w-full rounded-full"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* The Solution */}
-      <section className="py-24 relative">
-        <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-[#0066ff]/20 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 relative z-10">
-          <div className="mx-auto mb-16 w-full max-w-none text-center">
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-[#00d4ff] mb-3">The fix</p>
-            <h2 className="text-5xl lg:text-6xl font-bold font-heading mb-6">What we actually ship</h2>
-            <p className="text-2xl text-gray-400">
-              A site built to convert, plus an AI Q&amp;A layer that supports SEO and how people discover you in AI
-              tools—not a generic template with a chat bubble glued on.
-            </p>
           </div>
-
-          <div className="grid gap-8 md:grid-cols-3 md:gap-10 xl:gap-12">
-            {[
-              {
-                icon: <Bot className="w-8 h-8 text-[#00d4ff]" />,
-                title: "24/7 AI Sales Rep",
-                desc: "An intelligent chatbot that answers questions, handles objections, and captures leads while you sleep."
-              },
-              {
-                icon: <Search className="w-8 h-8 text-[#0066ff]" />,
-                title: "LLM Optimization",
-                desc: "Structured data specifically designed so ChatGPT, Claude, and Grok recommend your business."
-              },
-              {
-                icon: <BarChart3 className="w-8 h-8 text-[#0066ff]" />,
-                title: "Traditional SEO Boost",
-                desc: "The FAQ approach naturally dominates long-tail Google searches and featured snippets."
-              }
-            ].map((feature, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-[#0d0d1a] border border-white/5 rounded-2xl p-8 hover:border-[#00d4ff]/30 transition-colors group"
-              >
-                <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  {feature.icon}
-                </div>
-                <h3 className="text-3xl font-bold mb-4">{feature.title}</h3>
-                <p className="text-lg text-gray-400 leading-relaxed">{feature.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Live AI Chat Demo */}
-      <section ref={chatSectionRef} className="py-24 bg-[#0d0d1a] border-y border-white/5 overflow-hidden">
-        <div className="mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
-            <div>
-              <h2 className="text-5xl lg:text-6xl font-bold font-heading mb-6">See It In Action.</h2>
-              <p className="text-2xl text-gray-400 mb-8">
-                This is how your website will engage visitors. Tap a question and watch the AI respond in real time.
-              </p>
-              <div className="space-y-3">
-                {faqs.map((faq, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleFaqClick(i)}
-                    disabled={chatPhase !== "idle"}
-                    className={`w-full text-left p-4 rounded-xl border transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      activeChat === i
-                      ? 'border-[#00d4ff] bg-[#00d4ff]/10 text-white'
-                      : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:bg-white/8'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-lg">{faq.q}</span>
-                      <ArrowUpRight className={`w-5 h-5 shrink-0 ml-3 ${activeChat === i ? 'text-[#00d4ff]' : 'text-gray-500'}`} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* iPhone-style chat window */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0066ff]/20 to-[#00d4ff]/20 rounded-[2.5rem] blur-2xl"></div>
-              <div className="relative bg-[#1c1c1e] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col h-[580px] shadow-2xl" style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08)' }}>
-
-                {/* iPhone-style status bar */}
-                <div className="px-6 pt-4 pb-2 flex items-center justify-between text-xs text-white/50 bg-[#1c1c1e]">
-                  <span className="font-semibold">9:41</span>
-                  <div className="flex items-center gap-1">
-                    <div className="flex gap-[2px] items-end h-3">
-                      <div className="w-[3px] h-1 bg-white/50 rounded-sm"></div>
-                      <div className="w-[3px] h-2 bg-white/50 rounded-sm"></div>
-                      <div className="w-[3px] h-3 bg-white/50 rounded-sm"></div>
-                      <div className="w-[3px] h-3 bg-white/30 rounded-sm"></div>
-                    </div>
-                    <svg className="w-4 h-3 fill-white/50" viewBox="0 0 24 12"><rect x="0" y="2" width="22" height="9" rx="2" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" fill="none"/><rect x="22" y="4.5" width="2" height="3" rx="1" fill="white" fillOpacity="0.5"/><rect x="1.5" y="3.5" width="16" height="6" rx="1" fill="white" fillOpacity="0.5"/></svg>
-                  </div>
-                </div>
-
-                {/* Header */}
-                <div className="px-4 pb-3 flex flex-col items-center border-b border-white/5 bg-[#1c1c1e]">
-                  <div className="relative mb-1">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#0066ff] to-[#00d4ff] flex items-center justify-center shadow-lg shadow-[#00d4ff]/20">
-                      <Bot className="w-7 h-7 text-white" />
-                    </div>
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#1c1c1e]"></div>
-                  </div>
-                  <span className="font-semibold text-base text-white">AI Assistant</span>
-                  <span className="text-[10px] text-green-400">Online</span>
-                </div>
-
-                {/* Chat Area */}
-                <div ref={chatMessagesRef} className="flex-1 px-4 py-4 overflow-y-auto flex flex-col gap-3 bg-[#1c1c1e]">
-                  {/* Initial greeting bubble */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="flex items-end gap-2 max-w-[80%]"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#0066ff] to-[#00d4ff] flex items-center justify-center shrink-0 mb-1">
-                      <Bot className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <div className="bg-[#2c2c2e] text-white/90 rounded-[18px] rounded-bl-[4px] px-4 py-2.5 text-base leading-relaxed shadow-sm">
-                      Hi! Ask me anything about getting more customers with AI. Tap a question to the left to see how I respond.
-                    </div>
-                  </motion.div>
-
-                  {/* Dynamic messages */}
-                  {chatMessages.map((msg, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, scale: 0.92, y: 6 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse self-end max-w-[80%]" : "max-w-[80%]"}`}
-                    >
-                      {msg.role === "ai" && (
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#0066ff] to-[#00d4ff] flex items-center justify-center shrink-0 mb-1">
-                          <Bot className="w-3.5 h-3.5 text-white" />
-                        </div>
-                      )}
-                      <div className={`px-4 py-2.5 text-base leading-relaxed shadow-sm ${
-                        msg.role === "user"
-                          ? "bg-[#0066ff] text-white rounded-[18px] rounded-br-[4px]"
-                          : "bg-[#2c2c2e] text-white/90 rounded-[18px] rounded-bl-[4px]"
-                      }`}>
-                        {msg.text}
-                        {msg.role === "ai" && chatPhase === "typing-a" && i === chatMessages.length - 1 && (
-                          <span className="inline-block w-0.5 h-3.5 bg-white/70 ml-0.5 align-middle animate-pulse" />
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-
-                  {/* Thinking dots */}
-                  {chatPhase === "thinking" && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex items-end gap-2 max-w-[80%]"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#0066ff] to-[#00d4ff] flex items-center justify-center shrink-0 mb-1">
-                        <Bot className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <div className="bg-[#2c2c2e] rounded-[18px] rounded-bl-[4px] px-4 py-3 flex gap-1 items-center">
-                        {[0, 1, 2].map(dot => (
-                          <motion.div
-                            key={dot}
-                            className="w-2 h-2 rounded-full bg-white/50"
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ duration: 0.6, repeat: Infinity, delay: dot * 0.15, ease: "easeInOut" }}
-                          />
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  <div ref={chatBottomRef} />
-                </div>
-
-                {/* Input Area */}
-                <div className="px-4 py-3 border-t border-white/5 bg-[#1c1c1e]">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={chatPhase === "typing-q" ? inputText : userDraft}
-                        onChange={(e) => {
-                          if (chatPhase === "idle") setUserDraft(e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && chatPhase === "idle" && userDraft.trim()) {
-                            e.preventDefault();
-                            handleUserSend();
-                          }
-                        }}
-                        placeholder={chatPhase === "idle" ? "Type a message…" : "iMessage"}
-                        readOnly={chatPhase !== "idle"}
-                        className="w-full bg-[#2c2c2e] border border-white/10 rounded-full py-2.5 px-4 text-base text-white placeholder:text-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4ff]/50 caret-[#00d4ff] disabled:opacity-70"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleUserSend}
-                      disabled={chatPhase !== "idle" || !userDraft.trim()}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
-                        chatPhase === "idle" && userDraft.trim()
-                          ? "bg-[#0066ff] shadow-lg shadow-[#0066ff]/40 scale-105"
-                          : "bg-[#2c2c2e]"
-                      } disabled:opacity-50 disabled:scale-100`}
-                    >
-                      <ArrowRight
-                        className={`w-4 h-4 transition-colors ${
-                          chatPhase === "idle" && userDraft.trim() ? "text-white" : "text-white/30"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Pricing */}
-      <section id="plans" className="py-32 relative overflow-hidden scroll-mt-24">
+      <section className="pt-14 pb-28 sm:pt-16 sm:pb-32 lg:pt-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-[#0d0d1a] to-[#0a0a0f]"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-[#0066ff]/10 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 relative z-10">
-          <div className="mx-auto mb-16 w-full max-w-none text-center">
-            <h2 className="text-5xl lg:text-6xl font-bold font-heading">Choose Your Advantage</h2>
+        <div className="relative z-10 mx-auto flex w-full max-w-none flex-col px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+          <div id="plans" className="h-0 w-full shrink-0 overflow-hidden pointer-events-none" aria-hidden="true" />
+          <div className="mx-auto mb-12 flex w-full flex-col items-center justify-center py-5 text-center sm:mb-14 sm:py-6 lg:mb-16 lg:py-7">
+            <h2 className="text-5xl font-bold font-heading lg:text-6xl">Choose Your Advantage</h2>
           </div>
 
           <div className="mx-auto grid w-full max-w-none grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
@@ -1060,11 +758,11 @@ export default function AiWebsiteProHome() {
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
-                    "An AI Q&A chatbot that strengthens your SEO",
+                    "An AI Q&A Chatbot that strengthens your SEO",
                     "Site built out in 7 days or less",
                     "Submission to Google & major search engines",
                     "Web design makeover included",
-                    "Virtual support via our Q&A chatbot",
+                    "Virtual support via our Q&A Chatbot",
                     "Detailed documents on how to best effectively use the tool",
                     "2 custom emails",
                   ].map((item, i) => (
@@ -1126,7 +824,7 @@ export default function AiWebsiteProHome() {
                     "One Basic Custom App Build Out (generic)",
                     "AI Phone Receptionist (books appointments)",
                     "Appointment Booking App (sends SMS reminders)",
-                    "Custom design for AI chatbot",
+                    "Custom design for AI Chatbot",
                     "Free tweaks and changes",
                     "Online Blog (generic)",
                     "Online Store (generic)",
@@ -1226,16 +924,15 @@ export default function AiWebsiteProHome() {
 
           {/* Bottom note */}
           <p className="text-center text-base text-gray-600 mt-10">
-            All plans include instant activation. Team reaches out within 24 hours to begin.
+            All plans are a manual onboarding process to set reasonable expectations and goals for your specific business.
           </p>
         </div>
       </section>
 
       {/* Lead capture — plan-themed contact */}
       <section
-        id="contact"
         className={cn(
-          'relative overflow-hidden border-t scroll-mt-24 pt-12 pb-16 md:pt-16 md:pb-24 transition-colors duration-500',
+          'relative overflow-hidden border-t pt-12 pb-16 md:pt-16 md:pb-24 transition-colors duration-500',
           theme.sectionBorder,
         )}
       >
@@ -1270,6 +967,7 @@ export default function AiWebsiteProHome() {
         </div>
 
         <div className="relative z-10 mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+            <div id="contact" className="h-0 w-full overflow-hidden pointer-events-none" aria-hidden="true" />
             <div className="mx-auto w-full max-w-none">
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start lg:items-center">
                 <div className="order-2 space-y-8 lg:order-1">
@@ -1325,41 +1023,7 @@ export default function AiWebsiteProHome() {
                       )}
                     />
 
-                    {isSuccess ? (
-                      <div className="relative flex flex-col items-center justify-center text-center space-y-5 py-10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <img
-                            src="/blueBall.png"
-                            alt=""
-                            width={32}
-                            height={32}
-                            className="h-8 w-8 object-contain opacity-90"
-                          />
-                          <span className="font-heading font-bold text-white tracking-tight">aiWebDF</span>
-                        </div>
-                        <div
-                          className={cn(
-                            'w-20 h-20 rounded-full flex items-center justify-center shadow-[0_0_32px_-4px_rgba(0,0,0,0.35)] transition-all duration-500',
-                            theme.successRing,
-                          )}
-                        >
-                          <CheckCircle2 className={cn('w-10 h-10', theme.successIcon)} />
-                        </div>
-                        <h3 className={cn('text-3xl font-black font-heading', theme.successTitle)}>
-                          You&apos;re in the queue
-                        </h3>
-                        <p className={cn('max-w-sm text-lg', theme.successSub)}>Our agency team will reach out shortly.</p>
-                        <Button
-                          type="button"
-                          onClick={() => setIsSuccess(false)}
-                          variant="outline"
-                          className={cn('mt-2 transition-colors duration-500', theme.successBtn)}
-                        >
-                          Send another
-                        </Button>
-                      </div>
-                    ) : (
-                      <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-5">
+                    <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-5">
                         <div className="flex items-center gap-3 pb-4 mb-1 relative">
                           <div
                             className={cn(
@@ -1526,12 +1190,11 @@ export default function AiWebsiteProHome() {
                           ) : (
                             <>
                               <LeftBadgeIcon className="w-5 h-5 shrink-0" />
-                              {SUBMIT_LABEL[selectedPlan]}
+                              Book A Call!
                             </>
                           )}
                         </Button>
                       </form>
-                    )}
                   </div>
                 </div>
               </div>

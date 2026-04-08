@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import { initBookingTables } from '@/lib/booking/init-tables';
 
 type SqlClient = ReturnType<typeof postgres>;
 
@@ -314,6 +315,8 @@ export async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
+
+    await initBookingTables(sql);
 
     console.log('Database initialized successfully');
   } catch (error) {

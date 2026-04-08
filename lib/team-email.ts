@@ -14,8 +14,8 @@ function escHtml(s: string) {
     .replace(/"/g, '&quot;');
 }
 
-/** One recipient — used for team loops and lead thank-yous. */
-async function deliverEmail(opts: {
+/** One recipient — used for team loops, thank-yous, and booking emails. */
+export async function deliverEmail(opts: {
   to: string;
   subject: string;
   text: string;
