@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { UseCasesMarqueeBackdrop } from '@/components/ai-website-pro/UseCasesMarqueeBackdrop';
 
 /** Default when no plan is chosen in the UI (booking + CRM still expect a plan id). */
 const DEFAULT_CONSULTATION_PLAN = 'advanced' as const;
@@ -335,6 +336,9 @@ export default function AiWebsiteProHome() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/65 via-[#0a0a0f]/88 to-[#0a0a0f]"></div>
           <div className="absolute top-1/4 left-1/2 h-[min(100vw,800px)] w-[min(100vw,800px)] -translate-x-1/2 rounded-full bg-[#0066ff]/15 blur-[120px] mix-blend-screen"></div>
+          <div className="absolute inset-0 z-[1] flex flex-col justify-center overflow-hidden">
+            <UseCasesMarqueeBackdrop />
+          </div>
         </div>
 
         <div className="relative z-10 mx-auto flex w-full max-w-none flex-col items-center justify-center">
@@ -492,6 +496,9 @@ export default function AiWebsiteProHome() {
               transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
             />
           </motion.div>
+          <div className="absolute inset-0 z-[1] flex flex-col justify-center overflow-hidden py-8">
+            <UseCasesMarqueeBackdrop />
+          </div>
         </div>
 
         <div className="relative z-10 mx-auto w-full max-w-none px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
