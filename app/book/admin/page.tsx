@@ -11,7 +11,6 @@ import {
   startOfMonth,
   subMonths,
 } from 'date-fns';
-import { BusinessCardGenerator } from '@/components/booking/BusinessCardGenerator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -36,7 +35,7 @@ function cnSlots(...parts: Array<string | false | null | undefined>) {
 
 export default function BookingAdminPage() {
   const [boot, setBoot] = useState<Bootstrap | null>(null);
-  const [tab, setTab] = useState<'up' | 'past' | 'leads' | 'hours' | 'demand' | 'qr' | 'card'>('up');
+  const [tab, setTab] = useState<'up' | 'past' | 'leads' | 'hours' | 'demand' | 'qr'>('up');
   const [qrSeedUrl, setQrSeedUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [callLinkId, setCallLinkId] = useState<number | null>(null);
@@ -120,7 +119,7 @@ export default function BookingAdminPage() {
         </p>
       </div>
       <div className="max-w-6xl mx-auto flex flex-wrap items-center gap-2 mb-8">
-        {(['up', 'past', 'leads', 'hours', 'demand', 'qr', 'card'] as const).map((k) => (
+        {(['up', 'past', 'leads', 'hours', 'demand', 'qr'] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -139,9 +138,7 @@ export default function BookingAdminPage() {
                     ? 'Hours'
                     : k === 'demand'
                       ? 'Demand holds'
-                      : k === 'qr'
-                        ? 'QR link'
-                        : 'Business card'}
+                      : 'QR link'}
           </button>
         ))}
         <Button variant="outline" size="sm" onClick={load} className="rounded-full border-white/20">
@@ -187,8 +184,6 @@ export default function BookingAdminPage() {
         <SlotDemandTab onError={setErr} />
       ) : tab === 'qr' ? (
         <QrLinkTab seedUrl={qrSeedUrl} onConsumedSeed={clearQrSeed} onError={setErr} />
-      ) : tab === 'card' ? (
-        <BusinessCardGenerator />
       ) : !boot ? (
         <p className="text-gray-500">Loading…</p>
       ) : tab === 'hours' ? (
