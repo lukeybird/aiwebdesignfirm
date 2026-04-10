@@ -13,92 +13,21 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { UseCasesMarqueeBackdrop } from '@/components/ai-website-pro/UseCasesMarqueeBackdrop';
+import {
+  CONTACT_SECTION_THEME,
+  AI_WEB_SECTION_GUTTER_X,
+  AI_WEB_SECTION_PAD_Y,
+  AI_WEB_FOOTER_PAD_Y,
+  AI_WEB_TYPE_SECTION_TITLE,
+  AI_WEB_TYPE_BODY,
+  AI_WEB_FORM_LABEL,
+  AI_WEB_FORM_BRAND_TITLE,
+  AI_WEB_FORM_BRAND_SUB,
+  AI_WEB_TYPE_META,
+} from '@/lib/ai-website-pro-contact-theme';
 
 /** Default when no plan is chosen in the UI (booking + CRM still expect a plan id). */
 const DEFAULT_CONSULTATION_PLAN = 'advanced' as const;
-
-type ContactTheme = {
-  sectionBg: string;
-  sectionBorder: string;
-  blurTop: string;
-  blurBottom: string;
-  radial: string;
-  leftFeatureShell: string;
-  leftFeatureShadowHover: string;
-  leftFeatureIcon: string;
-  leftFeatureText: string;
-  formGlowMotion: string;
-  formGlowStatic: string;
-  formCard: string;
-  formBlobTL: string;
-  formBlobBR: string;
-  divider: string;
-  formHeaderSub: string;
-  label: string;
-  input: string;
-  error: string;
-  submit: string;
-  successRing: string;
-  successTitle: string;
-  successSub: string;
-  successBtn: string;
-  successIcon: string;
-};
-
-const CONTACT_SECTION_THEME: ContactTheme = {
-  sectionBg: 'bg-gradient-to-b from-[#050a14] via-[#070d18] to-[#0a0a0f]',
-  sectionBorder: 'border-[#0066ff]/25',
-  blurTop: 'bg-[#0066ff]/28',
-  blurBottom: 'bg-[#00d4ff]/20',
-  radial: 'bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(0,102,255,0.2),transparent)]',
-  leftFeatureShell:
-    'bg-gradient-to-br from-[#0066ff]/35 to-[#00d4ff]/18 border border-[#00d4ff]/35',
-  leftFeatureShadowHover:
-    'shadow-[0_0_20px_-6px_rgba(0,102,255,0.5)] group-hover:shadow-[0_0_28px_-4px_rgba(0,212,255,0.45)]',
-  leftFeatureIcon: 'text-[#7dd3fc]',
-  leftFeatureText: 'text-cyan-100/85',
-  formGlowMotion: 'bg-gradient-to-b from-[#0066ff]/40 via-[#00d4ff]/28 to-[#0052cc]/15',
-  formGlowStatic: 'bg-gradient-to-br from-[#0066ff]/22 via-[#00d4ff]/12 to-transparent',
-  formCard:
-    'bg-gradient-to-b from-[#0a1525] via-[#060d18] to-[#050810] border-2 border-[#0066ff]/60 shadow-[0_0_64px_-10px_rgba(0,102,255,0.45),0_0_28px_-10px_rgba(0,212,255,0.25)] ring-1 ring-[#00d4ff]/22',
-  formBlobTL: 'bg-[#00d4ff]/12',
-  formBlobBR: 'bg-[#0066ff]/18',
-  divider: 'bg-gradient-to-r from-transparent via-[#00d4ff]/35 to-transparent',
-  formHeaderSub: 'text-[#7dd3fc]/90',
-  label: 'text-[#a5f3fc]/90',
-  input:
-    'bg-black/50 border-[#0066ff]/35 text-white text-base placeholder:text-cyan-200/20 h-12 rounded-xl focus-visible:ring-2 focus-visible:ring-[#00d4ff]/70 focus-visible:border-[#00d4ff]/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
-  error: 'text-cyan-200',
-  submit:
-    'w-full h-14 rounded-xl text-lg font-black uppercase tracking-wide bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:from-[#0052cc] hover:to-[#00bfff] text-black shadow-[0_0_40px_-6px_rgba(0,212,255,0.75),0_0_20px_-8px_rgba(0,102,255,0.4)] border border-[#00d4ff]/35 hover:scale-[1.01] active:scale-[0.99] transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100',
-  successRing:
-    'bg-gradient-to-br from-[#00d4ff]/28 to-[#0066ff]/28 border border-[#00d4ff]/45',
-  successTitle:
-    'text-transparent bg-clip-text bg-gradient-to-r from-white to-[#a5f3fc]',
-  successSub: 'text-cyan-200/60',
-  successBtn:
-    'border-[#00d4ff]/40 text-cyan-200 hover:bg-[#061428]/55 hover:text-white',
-  successIcon: 'text-[#00d4ff]',
-};
-
-/** Horizontal gutter: same on nav, hero, sections, footer */
-const SECTION_GUTTER_X = 'px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20';
-/** Vertical padding for major stacked sections */
-const SECTION_PAD_Y = 'py-20 sm:py-24 md:py-28';
-/** Footer vertical rhythm (matches section ladder) */
-const FOOTER_PAD_Y = 'py-16 sm:py-20 md:py-24';
-/** Section headings (when used) */
-const TYPE_SECTION_TITLE = 'text-3xl sm:text-4xl md:text-5xl font-bold font-heading tracking-tight';
-/** Default body / supporting copy */
-const TYPE_BODY = 'text-base sm:text-lg leading-relaxed text-gray-400';
-/** Form field labels (overlines) */
-const FORM_LABEL = 'text-xs sm:text-sm font-bold uppercase tracking-[0.12em] block mb-2 transition-colors duration-500';
-/** Form card brand line */
-const FORM_BRAND_TITLE = 'text-xl sm:text-2xl md:text-3xl font-black font-heading tracking-tight text-white';
-/** Small caps subtitle under brand */
-const FORM_BRAND_SUB = 'text-xs sm:text-sm font-bold uppercase tracking-[0.18em] mt-0.5 transition-colors duration-500';
-/** Inline hint / availability */
-const TYPE_META = 'text-xs sm:text-sm font-medium tracking-wide';
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -324,7 +253,7 @@ export default function AiWebsiteProHome() {
     <div className="min-h-[100dvh] w-full max-w-none bg-[#0a0a0f] text-white overflow-x-clip selection:bg-[#00d4ff]/30 selection:text-white">
       {/* Sticky Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl">
-        <div className={cn('mx-auto flex h-20 w-full max-w-none items-center justify-between', SECTION_GUTTER_X)}>
+        <div className={cn('mx-auto flex h-20 w-full max-w-none items-center justify-between', AI_WEB_SECTION_GUTTER_X)}>
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <img
               src="/blueBall.png"
@@ -352,7 +281,7 @@ export default function AiWebsiteProHome() {
       <section
         className={cn(
           'relative flex min-h-[100dvh] w-full max-w-none flex-col items-center justify-center overflow-hidden',
-          SECTION_GUTTER_X,
+          AI_WEB_SECTION_GUTTER_X,
           'pt-[calc(5rem+env(safe-area-inset-top,0px))] pb-20 sm:pt-28 sm:pb-24 md:pt-32 md:pb-28 max-sm:pb-[max(5rem,env(safe-area-inset-bottom,0px))]',
         )}
       >
@@ -446,10 +375,10 @@ export default function AiWebsiteProHome() {
         <section
           className={cn(
             'relative flex min-h-[72svh] flex-col justify-center border-y border-white/5 bg-[#0d0d1a] sm:min-h-[76svh] md:min-h-[78svh] lg:min-h-[80svh]',
-            SECTION_PAD_Y,
+            AI_WEB_SECTION_PAD_Y,
           )}
         >
-          <div className={cn('relative z-10 mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
+          <div className={cn('relative z-10 mx-auto w-full max-w-none', AI_WEB_SECTION_GUTTER_X)}>
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -458,11 +387,11 @@ export default function AiWebsiteProHome() {
               className="grid items-center gap-10 sm:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20"
             >
               <div>
-                <motion.h2 variants={fadeIn} className={cn(TYPE_SECTION_TITLE, 'mb-6')}>
+                <motion.h2 variants={fadeIn} className={cn(AI_WEB_TYPE_SECTION_TITLE, 'mb-6')}>
                   Consumers don&apos;t Google anymore. <br />
                   <span className="text-gray-500">They ask ChatGPT.</span>
                 </motion.h2>
-                <motion.p variants={fadeIn} className={cn(TYPE_BODY, 'mb-8')}>
+                <motion.p variants={fadeIn} className={cn(AI_WEB_TYPE_BODY, 'mb-8')}>
                   The shift is already here. People are typing &quot;what&apos;s the best plumber near me&quot; into AI
                   platforms instead of search engines. If your business isn&apos;t optimized for AI, you are completely
                   invisible to the next generation of buyers.
@@ -474,7 +403,7 @@ export default function AiWebsiteProHome() {
                     </div>
                     <div>
                       <h4 className="text-xl sm:text-2xl font-bold font-heading mb-2">Rising Ad Costs</h4>
-                      <p className={TYPE_BODY}>Traditional PPC is becoming unsustainable for local businesses.</p>
+                      <p className={AI_WEB_TYPE_BODY}>Traditional PPC is becoming unsustainable for local businesses.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -483,7 +412,7 @@ export default function AiWebsiteProHome() {
                     </div>
                     <div>
                       <h4 className="text-xl sm:text-2xl font-bold font-heading mb-2">Algorithm Chaos</h4>
-                      <p className={TYPE_BODY}>Google updates are burying honest businesses beneath aggregators.</p>
+                      <p className={AI_WEB_TYPE_BODY}>Google updates are burying honest businesses beneath aggregators.</p>
                     </div>
                   </div>
                 </motion.div>
@@ -494,12 +423,12 @@ export default function AiWebsiteProHome() {
                 <div className="relative bg-[#0a0a0f] border border-white/10 rounded-3xl p-8 shadow-2xl">
                   <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/10">
                     <Search className="w-5 h-5 text-gray-400" />
-                    <div className={cn('text-gray-400 font-mono', TYPE_META)}>Query behavior shift (2023-2025)</div>
+                    <div className={cn('text-gray-400 font-mono', AI_WEB_TYPE_META)}>Query behavior shift (2023-2025)</div>
                   </div>
                   <div className="space-y-6">
                     <div>
                       <div className="flex justify-between mb-2">
-                        <span className={cn('font-medium', TYPE_BODY, 'text-white/90')}>Traditional Search (Google)</span>
+                        <span className={cn('font-medium', AI_WEB_TYPE_BODY, 'text-white/90')}>Traditional Search (Google)</span>
                         <span className="text-red-400">-24%</span>
                       </div>
                       <div className="h-2 bg-white/5 rounded-full overflow-hidden">
@@ -508,7 +437,7 @@ export default function AiWebsiteProHome() {
                     </div>
                     <div>
                       <div className="flex justify-between mb-2">
-                        <span className={cn('font-medium', TYPE_BODY, 'text-white/90')}>Generative AI (ChatGPT, Claude)</span>
+                        <span className={cn('font-medium', AI_WEB_TYPE_BODY, 'text-white/90')}>Generative AI (ChatGPT, Claude)</span>
                         <span className="text-[#00d4ff]">+415%</span>
                       </div>
                       <div className="h-2 bg-white/5 rounded-full overflow-hidden">
@@ -527,7 +456,7 @@ export default function AiWebsiteProHome() {
       <section
         className={cn(
           'relative overflow-hidden border-t transition-colors duration-500',
-          SECTION_PAD_Y,
+          AI_WEB_SECTION_PAD_Y,
           theme.sectionBorder,
         )}
       >
@@ -563,11 +492,11 @@ export default function AiWebsiteProHome() {
           </div>
         </div>
 
-        <div className={cn('relative z-10 mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
+        <div className={cn('relative z-10 mx-auto w-full max-w-none', AI_WEB_SECTION_GUTTER_X)}>
             <div id="contact" className="h-0 w-full overflow-hidden pointer-events-none" aria-hidden="true" />
             <div className="mx-auto w-full max-w-lg text-center mb-3">
               {!fridayAvailLoading && fridayAvail != null ? (
-                <p className={cn(TYPE_META, 'text-red-500')}>
+                <p className={cn(AI_WEB_TYPE_META, 'text-red-500')}>
                   <span className="sr-only">Call slots still available to book.</span>
                   Only{' '}
                   <span className="tabular-nums font-semibold">
@@ -629,21 +558,21 @@ export default function AiWebsiteProHome() {
                             className="h-11 w-11 object-contain shrink-0 drop-shadow-[0_0_16px_rgba(59,130,246,0.45)]"
                           />
                           <div className="min-w-0">
-                            <p className={FORM_BRAND_TITLE}>aiWebDF</p>
-                            <p className={cn(FORM_BRAND_SUB, theme.formHeaderSub)}>Book a call</p>
+                            <p className={AI_WEB_FORM_BRAND_TITLE}>aiWebDF</p>
+                            <p className={cn(AI_WEB_FORM_BRAND_SUB, theme.formHeaderSub)}>Book a call</p>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className={cn(FORM_LABEL, theme.label)}>Name</label>
+                            <label className={cn(AI_WEB_FORM_LABEL, theme.label)}>Name</label>
                             <Input placeholder="John Doe" className={cn(theme.input)} {...register('name')} />
                             {errors.name && (
                               <p className={cn('text-sm sm:text-base mt-1.5', theme.error)}>{errors.name.message}</p>
                             )}
                           </div>
                           <div>
-                            <label className={cn(FORM_LABEL, theme.label)}>Phone</label>
+                            <label className={cn(AI_WEB_FORM_LABEL, theme.label)}>Phone</label>
                             <Input placeholder="(555) 555-0123" className={cn(theme.input)} {...register('phone')} />
                             {errors.phone && (
                               <p className={cn('text-sm sm:text-base mt-1.5', theme.error)}>{errors.phone.message}</p>
@@ -652,7 +581,7 @@ export default function AiWebsiteProHome() {
                         </div>
 
                         <div>
-                          <label className={cn(FORM_LABEL, theme.label)}>Email</label>
+                          <label className={cn(AI_WEB_FORM_LABEL, theme.label)}>Email</label>
                           <Input
                             placeholder="john@example.com"
                             type="email"
@@ -665,7 +594,7 @@ export default function AiWebsiteProHome() {
                         </div>
 
                         <div>
-                          <label className={cn(FORM_LABEL, theme.label)}>
+                          <label className={cn(AI_WEB_FORM_LABEL, theme.label)}>
                             About Your Business{' '}
                             <span className="opacity-60 font-normal normal-case">(optional)</span>
                           </label>
@@ -710,10 +639,10 @@ export default function AiWebsiteProHome() {
       <footer
         className={cn(
           'bg-[#0a0a0f] border-t border-white/5 text-center text-gray-500 text-sm sm:text-base',
-          FOOTER_PAD_Y,
+          AI_WEB_FOOTER_PAD_Y,
         )}
       >
-        <div className={cn('mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
+        <div className={cn('mx-auto w-full max-w-none', AI_WEB_SECTION_GUTTER_X)}>
           <p>© {new Date().getFullYear()} aiWebDF. All rights reserved.</p>
         </div>
       </footer>
