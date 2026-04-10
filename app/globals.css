@@ -69,11 +69,17 @@ body {
 }
 
 .ai-use-case-marquee-ltr {
-  animation: ai-use-case-marquee-ltr 100s linear infinite;
+  animation-name: ai-use-case-marquee-ltr;
+  animation-duration: 100s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 .ai-use-case-marquee-rtl {
-  animation: ai-use-case-marquee-rtl 110s linear infinite;
+  animation-name: ai-use-case-marquee-rtl;
+  animation-duration: 110s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -336,8 +336,8 @@ export default function AiWebsiteProHome() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/65 via-[#0a0a0f]/88 to-[#0a0a0f]"></div>
           <div className="absolute top-1/4 left-1/2 h-[min(100vw,800px)] w-[min(100vw,800px)] -translate-x-1/2 rounded-full bg-[#0066ff]/15 blur-[120px] mix-blend-screen"></div>
-          <div className="absolute inset-0 z-[1] flex flex-col justify-center overflow-hidden">
-            <UseCasesMarqueeBackdrop />
+          <div className="absolute inset-0 z-[1] flex min-h-0 flex-col overflow-hidden py-2 sm:py-4">
+            <UseCasesMarqueeBackdrop className="min-h-0 flex-1" />
           </div>
         </div>
 
@@ -348,38 +348,60 @@ export default function AiWebsiteProHome() {
             variants={staggerContainer}
             className="flex w-full max-w-none flex-col items-center text-center"
           >
-            <motion.p
+            <motion.div
               variants={fadeIn}
-              className="mx-auto mb-10 w-full max-w-[min(100%,calc(100vw-2rem))] text-balance font-black font-heading tracking-tight text-white text-[clamp(1.7rem,5.2vw+0.65rem,2.35rem)] leading-[1.2] sm:mb-12 sm:max-w-[min(100%,48rem)] sm:text-5xl sm:leading-[1.1] md:mb-14 md:max-w-[min(100%,60rem)] md:text-6xl md:leading-[1.08] lg:max-w-[min(100%,min(96vw,76rem))] lg:text-7xl lg:leading-[1.05] xl:max-w-[min(100%,min(96vw,88rem))] xl:text-8xl xl:leading-[1.03] 2xl:max-w-[min(100%,min(98vw,100rem))] 2xl:text-9xl 2xl:leading-[1.02]"
+              className="relative z-[1] mx-auto mb-10 w-full max-w-[min(100%,calc(100vw-2rem))] sm:mb-12 sm:max-w-[min(100%,48rem)] md:mb-14 md:max-w-[min(100%,60rem)] lg:max-w-[min(100%,min(96vw,76rem))] xl:max-w-[min(100%,min(96vw,88rem))] 2xl:max-w-[min(100%,min(98vw,100rem))]"
             >
-              You&apos;re{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-300 to-red-500">
-                losing money
-              </span>{' '}
-              if you haven&apos;t{' '}
-              <br className="hidden lg:block" aria-hidden="true" />
-              implemented{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#0066ff]">AI</span>{' '}
-              yet.
-            </motion.p>
+              {/* Blue glow stack — same palette as Advanced / contact form card */}
+              <motion.div
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[min(100%,clamp(10rem,32vw,16rem))] w-[min(108%,56rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-b from-[#0066ff]/40 via-[#00d4ff]/28 to-[#0052cc]/15 blur-3xl sm:h-[min(100%,clamp(11rem,30vw,18rem))] sm:w-[min(105%,52rem)] md:blur-[64px]"
+                animate={{ opacity: [0.55, 0.85, 0.55] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[min(100%,clamp(8.5rem,28vw,14rem))] w-[min(100%,50rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-[#0066ff]/22 via-[#00d4ff]/12 to-transparent blur-2xl sm:blur-3xl"
+              />
+              <p className="relative z-[1] text-balance font-black font-heading tracking-tight text-white text-[clamp(1.7rem,5.2vw+0.65rem,2.35rem)] leading-[1.2] sm:text-5xl sm:leading-[1.1] md:text-6xl md:leading-[1.08] lg:text-7xl lg:leading-[1.05] xl:text-8xl xl:leading-[1.03] 2xl:text-9xl 2xl:leading-[1.02]">
+                You&apos;re{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-300 to-red-500">
+                  losing money
+                </span>{' '}
+                if you haven&apos;t{' '}
+                <br className="hidden lg:block" aria-hidden="true" />
+                implemented{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#0066ff]">AI</span>{' '}
+                yet.
+              </p>
+            </motion.div>
 
-            <motion.div variants={fadeIn} className="flex w-full flex-col items-center justify-center gap-6 sm:gap-8">
-              <Button
-                asChild
-                size="lg"
-                className="w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
-              >
-                <a href="#contact" aria-label="Book call now — go to contact form">
-                  Book call now!
-                </a>
-              </Button>
-              <a
-                href="#contact"
-                className="text-base text-gray-500 hover:text-gray-300 transition-colors"
-                aria-label="Already convinced — go to contact form"
-              >
-                Already convinced — get started →
-              </a>
+            <motion.div variants={fadeIn} className="relative z-[1] flex w-full flex-col items-center justify-center">
+              <div className="relative w-full sm:w-auto">
+                <motion.div
+                  className={cn(
+                    'pointer-events-none absolute -inset-3 -z-10 rounded-full blur-2xl sm:-inset-4',
+                    theme.formGlowMotion,
+                  )}
+                  animate={{ opacity: [0.55, 0.85, 0.55] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <div
+                  className={cn(
+                    'pointer-events-none absolute -inset-2 -z-10 rounded-full blur-xl sm:-inset-3',
+                    theme.formGlowStatic,
+                  )}
+                />
+                <Button
+                  asChild
+                  size="lg"
+                  className="relative z-10 w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
+                >
+                  <a href="#contact" aria-label="Book Call Now — go to contact form">
+                    Book Call Now!
+                  </a>
+                </Button>
+              </div>
             </motion.div>
           </motion.div>
         </div>
@@ -496,8 +518,8 @@ export default function AiWebsiteProHome() {
               transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
             />
           </motion.div>
-          <div className="absolute inset-0 z-[1] flex flex-col justify-center overflow-hidden py-8">
-            <UseCasesMarqueeBackdrop />
+          <div className="absolute inset-0 z-[1] flex min-h-0 flex-col overflow-hidden py-4 sm:py-8">
+            <UseCasesMarqueeBackdrop className="min-h-0 flex-1" />
           </div>
         </div>
 
