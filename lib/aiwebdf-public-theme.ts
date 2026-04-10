@@ -1,5 +1,5 @@
 /**
- * Shared visual tokens for the aiWebDF contact form and public booking page.
+ * Shared visual tokens for aiWebDF marketing surfaces (home, /book, etc.).
  */
 export type ContactTheme = {
   sectionBg: string;
@@ -11,8 +11,6 @@ export type ContactTheme = {
   leftFeatureShadowHover: string;
   leftFeatureIcon: string;
   leftFeatureText: string;
-  /** Soft wide halo behind the card (outer backlight) */
-  formBacklightBleed: string;
   formGlowMotion: string;
   formGlowStatic: string;
   formCard: string;
@@ -43,8 +41,6 @@ export const CONTACT_SECTION_THEME: ContactTheme = {
     'shadow-[0_0_20px_-6px_rgba(0,102,255,0.5)] group-hover:shadow-[0_0_28px_-4px_rgba(0,212,255,0.45)]',
   leftFeatureIcon: 'text-[#7dd3fc]',
   leftFeatureText: 'text-cyan-100/85',
-  formBacklightBleed:
-    'pointer-events-none absolute -inset-8 sm:-inset-12 rounded-[2.25rem] sm:rounded-[2.75rem] -z-20 bg-gradient-to-b from-[#0066ff]/32 via-[#00d4ff]/16 to-transparent opacity-[0.85] blur-[48px] sm:blur-[64px]',
   formGlowMotion: 'bg-gradient-to-b from-[#0066ff]/40 via-[#00d4ff]/28 to-[#0052cc]/15',
   formGlowStatic: 'bg-gradient-to-br from-[#0066ff]/22 via-[#00d4ff]/12 to-transparent',
   formCard:
@@ -69,18 +65,16 @@ export const CONTACT_SECTION_THEME: ContactTheme = {
   successIcon: 'text-[#00d4ff]',
 };
 
-/** Match marketing page horizontal rhythm */
-export const AI_WEB_SECTION_GUTTER_X = 'px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20';
-export const AI_WEB_SECTION_PAD_Y = 'py-20 sm:py-24 md:py-28';
-
-export const AI_WEB_FORM_LABEL =
-  'text-xs sm:text-sm font-bold uppercase tracking-[0.12em] block mb-2 transition-colors duration-500';
-export const AI_WEB_FORM_BRAND_TITLE =
-  'text-xl sm:text-2xl md:text-3xl font-black font-heading tracking-tight text-white';
-export const AI_WEB_FORM_BRAND_SUB =
-  'text-xs sm:text-sm font-bold uppercase tracking-[0.18em] mt-0.5 transition-colors duration-500';
-export const AI_WEB_TYPE_BODY = 'text-base sm:text-lg leading-relaxed text-gray-400';
-export const AI_WEB_TYPE_META = 'text-xs sm:text-sm font-medium tracking-wide';
-export const AI_WEB_FOOTER_PAD_Y = 'py-16 sm:py-20 md:py-24';
-export const AI_WEB_TYPE_SECTION_TITLE =
+export const SECTION_GUTTER_X = 'px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20';
+export const SECTION_PAD_Y = 'py-20 sm:py-24 md:py-28';
+export const FOOTER_PAD_Y = 'py-16 sm:py-20 md:py-24';
+export const TYPE_SECTION_TITLE =
   'text-3xl sm:text-4xl md:text-5xl font-bold font-heading tracking-tight';
+export const TYPE_BODY = 'text-base sm:text-lg leading-relaxed text-gray-400';
+export const FORM_LABEL =
+  'text-xs sm:text-sm font-bold uppercase tracking-[0.12em] block mb-2 transition-colors duration-500';
+export const FORM_BRAND_TITLE =
+  'text-xl sm:text-2xl md:text-3xl font-black font-heading tracking-tight text-white';
+export const FORM_BRAND_SUB =
+  'text-xs sm:text-sm font-bold uppercase tracking-[0.18em] mt-0.5 transition-colors duration-500';
+export const TYPE_META = 'text-xs sm:text-sm font-medium tracking-wide';
