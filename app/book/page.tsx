@@ -1,21 +1,9 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { CalendarClock, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UseCasesMarqueeBackdrop } from '@/components/ai-website-pro/UseCasesMarqueeBackdrop';
-import { cn } from '@/lib/utils';
-import {
-  CONTACT_SECTION_THEME,
-  FOOTER_PAD_Y,
-  FORM_BRAND_SUB,
-  FORM_BRAND_TITLE,
-  SECTION_GUTTER_X,
-  TYPE_BODY,
-} from '@/lib/aiwebdf-public-theme';
 import {
   addMonths,
   eachDayOfInterval,
@@ -36,92 +24,6 @@ function ymdToDate(ymd: string): Date {
 
 function classNames(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
-}
-
-const theme = CONTACT_SECTION_THEME;
-const cardRingOffset = 'ring-offset-[#050810]';
-
-function BookSiteChrome({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-[100dvh] w-full max-w-none bg-[#0a0a0f] text-white overflow-x-clip selection:bg-[#00d4ff]/30 selection:text-white">
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl">
-        <div className={cn('mx-auto flex h-20 w-full max-w-none items-center justify-between', SECTION_GUTTER_X)}>
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <img
-              src="/blueBall.png"
-              alt=""
-              width={36}
-              height={36}
-              className="h-9 w-9 object-contain"
-            />
-            <span className="font-heading font-bold text-xl sm:text-2xl tracking-tight text-white">aiWebDF</span>
-          </Link>
-          <div className="flex items-center gap-4 md:gap-6">
-            <Button
-              asChild
-              className="bg-white text-black hover:bg-gray-200 font-medium text-sm sm:text-base px-5 md:px-6 rounded-full transition-all duration-300 shrink-0"
-            >
-              <Link href="/#contact" aria-label="Book a Call — go to contact form">
-                Book a Call!
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      <section
-        className={cn(
-          'relative overflow-hidden border-t transition-colors duration-500',
-          theme.sectionBorder,
-          'pt-[calc(5rem+env(safe-area-inset-top,0px))] pb-20 sm:pt-28 sm:pb-24 md:pt-32 md:pb-28',
-        )}
-      >
-        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0.88 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.38, ease: 'easeOut' }}
-            className="absolute inset-0"
-          >
-            <div className={cn('absolute inset-0', theme.sectionBg)} />
-            <div className={cn('absolute inset-0', theme.radial)} />
-            <motion.div
-              className={cn(
-                'absolute -top-32 right-0 w-[min(90vw,520px)] h-[520px] rounded-full blur-[100px]',
-                theme.blurTop,
-              )}
-              animate={{ opacity: [0.35, 0.65, 0.35], scale: [1, 1.08, 1] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className={cn(
-                'absolute bottom-0 left-0 w-[min(85vw,480px)] h-[480px] rounded-full blur-[110px]',
-                theme.blurBottom,
-              )}
-              animate={{ opacity: [0.3, 0.55, 0.3] }}
-              transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-            />
-          </motion.div>
-          <div className="absolute inset-0 z-[1] flex min-h-0 flex-col overflow-hidden py-4 sm:py-8">
-            <UseCasesMarqueeBackdrop className="min-h-0 flex-1" />
-          </div>
-        </div>
-
-        <div className={cn('relative z-10 mx-auto w-full max-w-none', SECTION_GUTTER_X)}>{children}</div>
-      </section>
-
-      <footer
-        className={cn(
-          'bg-[#0a0a0f] border-t border-white/5 text-center text-gray-500 text-sm sm:text-base',
-          FOOTER_PAD_Y,
-        )}
-      >
-        <div className={cn('mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
-          <p>© {new Date().getFullYear()} aiWebDF. All rights reserved.</p>
-        </div>
-      </footer>
-    </div>
-  );
 }
 
 function BookContent() {
@@ -192,11 +94,13 @@ function BookContent() {
   const daysByDate = new Map<string, Slot[]>();
   for (const d of days) daysByDate.set(d.date, d.slots);
 
+  // Calendar month state defaults to the first available day (or today)
   const firstAvailableYmd = days.find((d) => d.slots.length > 0)?.date;
   const defaultMonthBase = firstAvailableYmd ? ymdToDate(firstAvailableYmd) : new Date();
   const [monthBase, setMonthBase] = useState<Date>(startOfMonth(defaultMonthBase));
 
   useEffect(() => {
+    // When availability loads the first time, auto-select the first available day
     if (!selectedDate && firstAvailableYmd) {
       setSelectedDate(firstAvailableYmd);
       setSelected(null);
@@ -235,146 +139,80 @@ function BookContent() {
 
   if (done) {
     return (
-      <BookSiteChrome>
-        <div className="mx-auto flex min-h-[min(80dvh,720px)] max-w-lg flex-col items-center justify-center px-4 text-center">
-          <div className={cn('mb-6 rounded-full p-4', theme.successRing)}>
-            <CheckCircle2 className={cn('h-12 w-12', theme.successIcon)} aria-hidden />
-          </div>
-          <h1 className={cn('mb-4 text-3xl font-bold font-heading sm:text-4xl', theme.successTitle)}>
-            You&apos;re set
-          </h1>
-          <p className={cn('mb-8 max-w-md', theme.successSub)}>
-            We sent a confirmation email with your time (US Eastern). If you don&apos;t see it, check spam.
-          </p>
-          <Button asChild variant="outline" className={cn('rounded-full px-8', theme.successBtn)}>
-            <Link href="/">Return home</Link>
-          </Button>
-        </div>
-      </BookSiteChrome>
+      <div className="min-h-[100dvh] bg-[#0a0a0f] text-white flex flex-col items-center justify-center px-6 text-center">
+        <h1 className="text-3xl font-bold font-heading mb-4">You&apos;re set</h1>
+        <p className="text-gray-400 max-w-md mb-8">
+          We sent a confirmation email with your time (US Eastern). If you don&apos;t see it, check spam.
+        </p>
+        <Button asChild variant="outline" className="rounded-full border-white/20 text-white">
+          <Link href="/">Return home</Link>
+        </Button>
+      </div>
     );
   }
 
   if (alreadyBooked) {
     return (
-      <BookSiteChrome>
-        <div className="mx-auto flex min-h-[min(80dvh,720px)] max-w-lg flex-col items-center justify-center px-4 text-center">
-          <div className={cn('mb-6 rounded-full p-4', theme.successRing)}>
-            <CalendarClock className={cn('h-12 w-12', theme.successIcon)} aria-hidden />
-          </div>
-          <h1 className={cn('mb-4 text-2xl font-bold font-heading sm:text-3xl', theme.successTitle)}>
-            You already have a call scheduled
-          </h1>
-          <p className={cn('mb-8 max-w-md', theme.successSub)}>
-            Check your email for the time, or reply to reach us.
-          </p>
-          <Button asChild className={cn(theme.submit, 'rounded-full')}>
-            <Link href="/">Back to aiWebDF</Link>
-          </Button>
-        </div>
-      </BookSiteChrome>
+      <div className="min-h-[100dvh] bg-[#0a0a0f] text-white flex flex-col items-center justify-center px-6 text-center">
+        <h1 className="text-2xl font-bold font-heading mb-4">You already have a call scheduled</h1>
+        <p className="text-gray-400 max-w-md mb-8">Check your email for the time, or reply to reach us.</p>
+        <Button asChild className="rounded-full bg-white text-black">
+          <Link href="/">Back to aiWebDF</Link>
+        </Button>
+      </div>
     );
   }
 
   return (
-    <BookSiteChrome>
-      <div className="mx-auto max-w-6xl pb-4 pt-2 sm:pt-4">
-        <div className="relative mx-auto max-w-4xl rounded-3xl">
-          <motion.div
-            aria-hidden
-            className={cn(
-              'pointer-events-none absolute -inset-px -z-10 rounded-3xl blur-2xl transition-colors duration-500',
-              theme.formGlowMotion,
-            )}
-            animate={{ opacity: [0.55, 0.85, 0.55] }}
-            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <div
-            aria-hidden
-            className={cn(
-              'pointer-events-none absolute inset-0 -z-10 rounded-3xl blur-xl transition-colors duration-500',
-              theme.formGlowStatic,
-            )}
-          />
-          <div className={cn('relative overflow-hidden rounded-3xl', theme.formCard)}>
-            <div
-              className={cn(
-                'pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full blur-3xl transition-colors duration-500',
-                theme.formBlobTL,
-              )}
-            />
-            <div
-              className={cn(
-                'pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full blur-2xl transition-colors duration-500',
-                theme.formBlobBR,
-              )}
-            />
-
-            <div className="relative flex flex-col gap-0 border-b border-[#0066ff]/25 px-5 py-5 sm:px-6 sm:py-6">
-              <div className="relative flex items-center gap-3 pb-4">
-                <div
-                  className={cn(
-                    'pointer-events-none absolute bottom-0 left-0 right-0 h-px rounded-full',
-                    theme.divider,
-                  )}
-                  aria-hidden
-                />
-                <img
-                  src="/blueBall.png"
-                  alt=""
-                  width={44}
-                  height={44}
-                  className="h-11 w-11 shrink-0 object-contain drop-shadow-[0_0_16px_rgba(59,130,246,0.45)]"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className={FORM_BRAND_TITLE}>aiWebDF</p>
-                  <p className={cn(FORM_BRAND_SUB, theme.formHeaderSub)}>Pick a time for your call</p>
-                </div>
+    <div className="min-h-[100dvh] bg-[#0a0a0f] text-white px-6 py-12 sm:py-16">
+      <div className="mx-auto max-w-6xl">
+        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 mb-8 inline-block">
+          ← aiWebDF
+        </Link>
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-3xl border border-white/10 bg-[#0d0d1a] overflow-hidden">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
+              <div>
+                <p className="text-sm font-bold text-white">
+                  {selectedDate
+                    ? `Selected: ${format(ymdToDate(selectedDate), 'MMMM do, yyyy')}`
+                    : 'Select a day'}
+                </p>
+                <p className="text-xs text-gray-500">Then choose a time</p>
               </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#0066ff]/15 pt-5">
-                <div>
-                  <p className="text-sm font-bold text-white">
-                    {selectedDate
-                      ? `Selected: ${format(ymdToDate(selectedDate), 'MMMM do, yyyy')}`
-                      : 'Select a day'}
-                  </p>
-                  <p className={cn(TYPE_BODY, 'mt-0.5 text-sm')}>Then choose a time (US Eastern)</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMonthBase((d) => startOfMonth(subMonths(d, 1)))}
+                  className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                  aria-label="Previous month"
+                >
+                  ‹
+                </button>
+                <div className="min-w-[140px] text-center text-sm font-semibold text-gray-200">
+                  {format(monthBase, 'MMMM yyyy')}
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMonthBase((d) => startOfMonth(subMonths(d, 1)))}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#0066ff]/35 bg-black/40 text-lg text-cyan-100/90 transition-colors hover:bg-[#0066ff]/15"
-                    aria-label="Previous month"
-                  >
-                    ‹
-                  </button>
-                  <div className="min-w-[140px] text-center text-sm font-semibold text-cyan-100/90">
-                    {format(monthBase, 'MMMM yyyy')}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMonthBase((d) => startOfMonth(addMonths(d, 1)))}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#0066ff]/35 bg-black/40 text-lg text-cyan-100/90 transition-colors hover:bg-[#0066ff]/15"
-                    aria-label="Next month"
-                  >
-                    ›
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setMonthBase((d) => startOfMonth(addMonths(d, 1)))}
+                  className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                  aria-label="Next month"
+                >
+                  ›
+                </button>
               </div>
             </div>
 
-            <div className="relative grid gap-0 lg:grid-cols-[1fr_320px]">
+            <div className="grid gap-0 lg:grid-cols-[1fr_320px]">
+              {/* Calendar */}
               <div className="p-5 sm:p-6">
                 {loading ? (
-                  <p className={cn(TYPE_BODY, 'text-cyan-200/70')}>Loading availability…</p>
+                  <p className="text-gray-400">Loading availability…</p>
                 ) : days.length === 0 && !error ? (
-                  <p className={cn(TYPE_BODY, 'text-cyan-200/70')}>
-                    No open slots in the next few weeks. We&apos;ll reach out by email.
-                  </p>
+                  <p className="text-gray-400">No open slots in the next few weeks. We&apos;ll reach out by email.</p>
                 ) : (
                   <>
-                    <div className="mb-3 grid grid-cols-7 text-[11px] font-bold uppercase tracking-wider text-[#7dd3fc]/55">
+                    <div className="grid grid-cols-7 text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">
                       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
                         <div key={d} className="text-center">
                           {d}
@@ -387,7 +225,7 @@ function BookContent() {
                         const start = startOfMonth(monthBase);
                         const end = endOfMonth(monthBase);
                         const daysInMonth = eachDayOfInterval({ start, end });
-                        const pad = start.getDay();
+                        const pad = start.getDay(); // 0..6
                         const cells: Array<{ date?: Date; ymd?: string }> = [
                           ...Array.from({ length: pad }).map(() => ({})),
                           ...daysInMonth.map((date) => ({ date, ymd: format(date, 'yyyy-MM-dd') })),
@@ -417,12 +255,11 @@ function BookContent() {
                               className={classNames(
                                 'h-11 rounded-2xl border text-sm font-semibold transition-all',
                                 available
-                                  ? 'border-[#0066ff]/35 bg-black/35 text-cyan-50 hover:border-[#00d4ff]/45 hover:bg-[#0066ff]/12'
-                                  : 'cursor-not-allowed border-transparent bg-transparent text-white/20',
+                                  ? 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+                                  : 'border-transparent bg-white/0 text-white/20 cursor-not-allowed',
                                 picked &&
-                                  'border-[#0066ff] bg-gradient-to-br from-[#0066ff] to-[#0052cc] text-white shadow-[0_0_20px_-6px_rgba(0,212,255,0.5)] ring-2 ring-[#00d4ff]/60 ring-offset-2 ' +
-                                    cardRingOffset,
-                                isToday && !picked && 'ring-1 ring-[#00d4ff]/35',
+                                  'bg-[#0066ff] border-[#0066ff] text-white hover:bg-[#0066ff] ring-2 ring-[#00d4ff]/60 ring-offset-2 ring-offset-[#0d0d1a]',
+                                isToday && !picked && 'ring-1 ring-[#00d4ff]/30',
                               )}
                               aria-label={`${ymd}${available ? '' : ' (unavailable)'}`}
                             >
@@ -436,14 +273,15 @@ function BookContent() {
                 )}
               </div>
 
-              <div className="border-t border-[#0066ff]/20 p-5 sm:p-6 lg:border-l lg:border-t-0">
-                <p className="text-sm font-bold text-white">Available times</p>
+              {/* Times */}
+              <div className="border-t border-white/10 lg:border-t-0 lg:border-l border-white/10 p-5 sm:p-6">
+                <p className="text-sm font-bold text-white mb-3">Available times</p>
                 {!selectedDate ? (
-                  <p className={cn(TYPE_BODY, 'mt-3 text-sm')}>Pick a day to see times.</p>
+                  <p className="text-sm text-gray-500">Pick a day to see times.</p>
                 ) : (daysByDate.get(selectedDate)?.some((s) => !s.taken) ?? false) === false ? (
-                  <p className={cn(TYPE_BODY, 'mt-3 text-sm')}>No times on this day.</p>
+                  <p className="text-sm text-gray-500">No times on this day.</p>
                 ) : (
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {(daysByDate.get(selectedDate) || []).map((s) => {
                       const picked = selected === s.startsAt;
                       return (
@@ -455,10 +293,10 @@ function BookContent() {
                           className={classNames(
                             'w-full rounded-2xl border px-3 py-2.5 text-center text-sm font-semibold transition-all',
                             picked
-                              ? 'border-[#0066ff] bg-gradient-to-br from-[#0066ff] to-[#0052cc] text-white shadow-[0_0_16px_-4px_rgba(0,212,255,0.45)]'
+                              ? 'bg-[#0066ff] border-[#0066ff] text-white'
                               : s.taken
-                                ? 'cursor-not-allowed border-white/5 bg-transparent text-white/25 line-through'
-                                : 'border-[#0066ff]/30 bg-black/35 text-cyan-100/90 hover:border-[#00d4ff]/45 hover:bg-[#0066ff]/12',
+                                ? 'border-white/5 bg-white/0 text-white/25 cursor-not-allowed line-through'
+                                : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-gray-200',
                           )}
                         >
                           {s.label}
@@ -468,39 +306,34 @@ function BookContent() {
                   </div>
                 )}
 
-                <div className="mt-6 rounded-2xl border border-[#0066ff]/30 bg-black/40 p-4">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#a5f3fc]/80">Selection</p>
-                  <p className="text-sm text-cyan-50/95">
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Selection</p>
+                  <p className="text-sm text-gray-200">
                     {selectedDate ? selectedDate : 'No day selected'}
                     {selected ? (
-                      <span className="text-[#7dd3fc]/80">
-                        {' '}
-                        · {daysByDate.get(selectedDate || '')?.find((x) => x.startsAt === selected)?.label}
-                      </span>
+                      <span className="text-gray-400"> · {daysByDate.get(selectedDate || '')?.find((x) => x.startsAt === selected)?.label}</span>
                     ) : null}
                   </p>
                 </div>
 
-                {error ? <p className={cn('mt-6 text-sm', theme.error)}>{error}</p> : null}
+                {error ? <p className="text-red-400 text-sm mt-6">{error}</p> : null}
 
                 <Button
                   type="button"
                   disabled={!selected || booking || !nameOk || !emailOk || !phoneOk}
                   onClick={confirm}
-                  className={cn('mt-6', theme.submit)}
+                  className="mt-6 w-full rounded-2xl h-12 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold"
                 >
                   {booking ? 'Booking…' : selected ? 'Confirm booking' : 'Select a time'}
                 </Button>
 
-                <p className={cn(TYPE_BODY, 'mt-4 text-xs text-cyan-200/45')}>
-                  Slots are {intervalMinutes} minutes each.
-                </p>
+                <p className="text-xs text-gray-600 mt-4">Slots are {intervalMinutes} minutes each.</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </BookSiteChrome>
+    </div>
   );
 }
 
@@ -508,11 +341,9 @@ export default function BookPage() {
   return (
     <Suspense
       fallback={
-        <BookSiteChrome>
-          <div className="flex min-h-[50dvh] items-center justify-center">
-            <p className={cn(TYPE_BODY, 'text-cyan-200/70')}>Loading…</p>
-          </div>
-        </BookSiteChrome>
+        <div className="min-h-[100dvh] bg-[#0a0a0f] text-white flex items-center justify-center">
+          <p className="text-gray-400">Loading…</p>
+        </div>
       }
     >
       <BookContent />
