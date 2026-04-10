@@ -56,7 +56,7 @@ function MarqueeStrip({
             {items.map((label, idx) => (
               <span
                 key={`${dup}-${idx}-${label}`}
-                className="whitespace-nowrap font-heading text-base font-semibold uppercase tracking-[0.1em] text-white/[0.2] sm:text-lg md:text-xl"
+                className="whitespace-nowrap font-heading text-base font-semibold uppercase tracking-[0.1em] text-white/[0.09] sm:text-lg md:text-xl"
               >
                 {label}
               </span>
@@ -85,8 +85,8 @@ export function UseCasesMarqueeBackdrop({ className }: { className?: string }) {
       return {
         items: expanded,
         dir: Math.random() < 0.5 ? 'ltr' : 'rtl',
-        // Longer duration = slower scroll (was ~140–360s; now ~320–820s per loop)
-        durationSec: 320 + Math.random() * 500,
+        // Longer duration = slower scroll (~14–35 min per loop)
+        durationSec: 840 + Math.random() * 1260,
       };
     });
 
