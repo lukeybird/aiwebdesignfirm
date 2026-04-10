@@ -378,24 +378,18 @@ export default function AiWebsiteProHome() {
           >
             <motion.div
               variants={fadeIn}
-              className="relative z-[1] mx-auto mb-10 w-full max-w-[min(100%,calc(100vw-2rem))] rounded-3xl px-4 py-6 sm:mb-12 sm:max-w-[min(100%,48rem)] sm:px-6 sm:py-8 md:mb-14 md:max-w-[min(100%,60rem)] lg:max-w-[min(100%,min(96vw,76rem))] xl:max-w-[min(100%,min(96vw,88rem))] 2xl:max-w-[min(100%,min(98vw,100rem))]"
+              className="relative z-[1] mx-auto mb-10 w-full max-w-[min(100%,calc(100vw-2rem))] sm:mb-12 sm:max-w-[min(100%,48rem)] md:mb-14 md:max-w-[min(100%,60rem)] lg:max-w-[min(100%,min(96vw,76rem))] xl:max-w-[min(100%,min(96vw,88rem))] 2xl:max-w-[min(100%,min(98vw,100rem))]"
             >
-              {/* Same glow stack as contact form card */}
+              {/* Blue glow stack — same palette as Advanced / contact form card */}
               <motion.div
                 aria-hidden
-                className={cn(
-                  'pointer-events-none absolute -inset-px rounded-3xl blur-2xl -z-10 transition-colors duration-500',
-                  theme.formGlowMotion,
-                )}
+                className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[min(100%,clamp(10rem,32vw,16rem))] w-[min(108%,56rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-b from-[#0066ff]/40 via-[#00d4ff]/28 to-[#0052cc]/15 blur-3xl sm:h-[min(100%,clamp(11rem,30vw,18rem))] sm:w-[min(105%,52rem)] md:blur-[64px]"
                 animate={{ opacity: [0.55, 0.85, 0.55] }}
                 transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
               />
               <div
                 aria-hidden
-                className={cn(
-                  'pointer-events-none absolute inset-0 rounded-3xl blur-xl -z-10 transition-colors duration-500',
-                  theme.formGlowStatic,
-                )}
+                className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[min(100%,clamp(8.5rem,28vw,14rem))] w-[min(100%,50rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-[#0066ff]/22 via-[#00d4ff]/12 to-transparent blur-2xl sm:blur-3xl"
               />
               <p className="relative z-[1] text-balance font-black font-heading tracking-tight text-white text-[clamp(1.7rem,5.2vw+0.65rem,2.35rem)] leading-[1.2] sm:text-5xl sm:leading-[1.1] md:text-6xl md:leading-[1.08] lg:text-7xl lg:leading-[1.05] xl:text-8xl xl:leading-[1.03] 2xl:text-9xl 2xl:leading-[1.02]">
                 You&apos;re{' '}
@@ -411,10 +405,10 @@ export default function AiWebsiteProHome() {
             </motion.div>
 
             <motion.div variants={fadeIn} className="relative z-[1] flex w-full flex-col items-center justify-center">
-              <div className="relative w-full sm:w-auto rounded-3xl p-1">
+              <div className="relative w-full sm:w-auto">
                 <motion.div
                   className={cn(
-                    'pointer-events-none absolute -inset-px rounded-3xl blur-2xl -z-10 transition-colors duration-500',
+                    'pointer-events-none absolute -inset-3 -z-10 rounded-full blur-2xl sm:-inset-4',
                     theme.formGlowMotion,
                   )}
                   animate={{ opacity: [0.55, 0.85, 0.55] }}
@@ -422,14 +416,14 @@ export default function AiWebsiteProHome() {
                 />
                 <div
                   className={cn(
-                    'pointer-events-none absolute inset-0 rounded-3xl blur-xl -z-10 transition-colors duration-500',
+                    'pointer-events-none absolute -inset-2 -z-10 rounded-full blur-xl sm:-inset-3',
                     theme.formGlowStatic,
                   )}
                 />
                 <Button
                   asChild
                   size="lg"
-                  className="relative z-10 w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg border border-[#00d4ff]/35 shadow-[0_0_40px_-6px_rgba(0,212,255,0.75),0_0_20px_-8px_rgba(0,102,255,0.4)] transition-all duration-500"
+                  className="relative z-10 w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
                 >
                   <a href="#contact" aria-label="Book Call Now — go to contact form">
                     Book Call Now!
