@@ -11,6 +11,8 @@ export type ContactTheme = {
   leftFeatureShadowHover: string;
   leftFeatureIcon: string;
   leftFeatureText: string;
+  /** Soft wide halo behind the card (outer backlight) */
+  formBacklightBleed: string;
   formGlowMotion: string;
   formGlowStatic: string;
   formCard: string;
@@ -41,6 +43,8 @@ export const CONTACT_SECTION_THEME: ContactTheme = {
     'shadow-[0_0_20px_-6px_rgba(0,102,255,0.5)] group-hover:shadow-[0_0_28px_-4px_rgba(0,212,255,0.45)]',
   leftFeatureIcon: 'text-[#7dd3fc]',
   leftFeatureText: 'text-cyan-100/85',
+  formBacklightBleed:
+    'pointer-events-none absolute -inset-8 sm:-inset-12 rounded-[2.25rem] sm:rounded-[2.75rem] -z-20 bg-gradient-to-b from-[#0066ff]/32 via-[#00d4ff]/16 to-transparent opacity-[0.85] blur-[48px] sm:blur-[64px]',
   formGlowMotion: 'bg-gradient-to-b from-[#0066ff]/40 via-[#00d4ff]/28 to-[#0052cc]/15',
   formGlowStatic: 'bg-gradient-to-br from-[#0066ff]/22 via-[#00d4ff]/12 to-transparent',
   formCard:
