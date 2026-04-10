@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle2 } from 'lucide-react';
+import { Bot, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -254,7 +254,7 @@ function BookContent() {
   );
 
   const brandHeader = (
-    <div className="flex items-center gap-3 pb-4 mb-6 relative">
+    <div className="flex items-center gap-3 pb-4 mb-1 relative">
       <div
         className={cn(
           'absolute bottom-0 left-0 right-0 h-px rounded-full pointer-events-none transition-colors duration-500',
@@ -271,10 +271,10 @@ function BookContent() {
       />
       <div className="min-w-0">
         <p className={AI_WEB_FORM_BRAND_TITLE}>aiWebDF</p>
-        <p className={cn(AI_WEB_FORM_BRAND_SUB, theme.formHeaderSub)}>Book your call</p>
+        <p className={cn(AI_WEB_FORM_BRAND_SUB, theme.formHeaderSub)}>Book a call</p>
         {plan ? (
-          <p className={cn(AI_WEB_TYPE_META, 'text-cyan-200/55 mt-1 normal-case tracking-normal font-medium')}>
-            Plan: <span className="text-cyan-100/90">{plan}</span>
+          <p className={cn(AI_WEB_FORM_LABEL, theme.label, 'mt-2')}>
+            Plan <span className="opacity-60 font-normal normal-case tracking-normal">({plan})</span>
           </p>
         ) : null}
       </div>
@@ -344,103 +344,101 @@ function BookContent() {
   }
 
   return (
-    <BookingSectionLayout maxWidthClass="max-w-5xl">
+    <BookingSectionLayout maxWidthClass="max-w-lg">
       {backLink}
       <FormGlowCard>
-        {brandHeader}
+        <div className="relative space-y-6">
+          {brandHeader}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <div>
-            <label className={cn(AI_WEB_FORM_LABEL, theme.label)} htmlFor="book-name">
-              Name
-            </label>
-            <Input
-              id="book-name"
-              placeholder="John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={cn(theme.input)}
-            />
-          </div>
-          <div>
-            <label className={cn(AI_WEB_FORM_LABEL, theme.label)} htmlFor="book-phone">
-              Phone
-            </label>
-            <Input
-              id="book-phone"
-              placeholder="(555) 555-0123"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={cn(theme.input)}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={cn(AI_WEB_FORM_LABEL, theme.label)} htmlFor="book-email">
-              Email
-            </label>
-            <Input
-              id="book-email"
-              type="email"
-              placeholder="john@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={cn(theme.input)}
-            />
-            <p className={cn('mt-2', AI_WEB_TYPE_META, 'text-cyan-200/45')}>
-              Availability loads for this email. Use the same one you used on the contact form.
-            </p>
-          </div>
-        </div>
-
-        <div
-          className={cn(
-            'rounded-2xl border-2 overflow-hidden',
-            'border-[#0066ff]/40 bg-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
-          )}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 border-b border-[#0066ff]/25">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <p className={cn(AI_WEB_FORM_LABEL, theme.label, 'mb-1')}>Calendar</p>
-              <p className="text-sm font-semibold text-white">
-                {selectedDate
-                  ? format(ymdToDate(selectedDate), 'MMMM do, yyyy')
-                  : 'Select a day'}
-              </p>
-              <p className={cn(AI_WEB_TYPE_META, theme.formHeaderSub, 'mt-0.5')}>
-                Times shown in US Eastern — then choose a slot
-              </p>
+              <label className={cn(AI_WEB_FORM_LABEL, theme.label)} htmlFor="book-name">
+                Name
+              </label>
+              <Input
+                id="book-name"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={cn(theme.input)}
+              />
             </div>
-            <div className="flex items-center justify-center sm:justify-end gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setMonthBase((d) => startOfMonth(subMonths(d, 1)))}
-                className={cn(
-                  'h-9 w-9 rounded-xl border transition-colors',
-                  'border-[#0066ff]/35 bg-black/50 hover:border-[#00d4ff]/55 hover:bg-[#061428]/80',
-                )}
-                aria-label="Previous month"
-              >
-                ‹
-              </button>
-              <div className={cn('min-w-[140px] text-center text-sm font-bold', theme.formHeaderSub)}>
-                {format(monthBase, 'MMMM yyyy')}
-              </div>
-              <button
-                type="button"
-                onClick={() => setMonthBase((d) => startOfMonth(addMonths(d, 1)))}
-                className={cn(
-                  'h-9 w-9 rounded-xl border transition-colors',
-                  'border-[#0066ff]/35 bg-black/50 hover:border-[#00d4ff]/55 hover:bg-[#061428]/80',
-                )}
-                aria-label="Next month"
-              >
-                ›
-              </button>
+            <div>
+              <label className={cn(AI_WEB_FORM_LABEL, theme.label)} htmlFor="book-phone">
+                Phone
+              </label>
+              <Input
+                id="book-phone"
+                placeholder="(555) 555-0123"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={cn(theme.input)}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={cn(AI_WEB_FORM_LABEL, theme.label)} htmlFor="book-email">
+                Email
+              </label>
+              <Input
+                id="book-email"
+                type="email"
+                placeholder="john@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={cn(theme.input)}
+              />
+              <p className={cn('mt-2', AI_WEB_TYPE_META, 'text-cyan-200/45 normal-case tracking-normal')}>
+                Availability loads for this email — use the same one as on the contact form.
+              </p>
             </div>
           </div>
 
-          <div className="grid gap-0 lg:grid-cols-[1fr_320px]">
-            <div className="p-5 sm:p-6">
+          <div className="relative pt-2">
+            <div
+              className={cn(
+                'absolute top-0 left-0 right-0 h-px rounded-full pointer-events-none transition-colors duration-500',
+                theme.divider,
+              )}
+              aria-hidden
+            />
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 pt-4">
+              <div>
+                <p className={cn(AI_WEB_FORM_LABEL, theme.label)}>Pick a day</p>
+                <p className="text-sm font-semibold text-white">
+                  {selectedDate
+                    ? format(ymdToDate(selectedDate), 'MMMM do, yyyy')
+                    : 'Select a day'}
+                </p>
+                <p className={cn(AI_WEB_TYPE_META, theme.formHeaderSub, 'mt-0.5 normal-case tracking-normal')}>
+                  Times are US Eastern
+                </p>
+              </div>
+              <div className="flex items-center justify-center sm:justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setMonthBase((d) => startOfMonth(subMonths(d, 1)))}
+                  className={cn(theme.input, 'h-9 w-9 p-0 flex items-center justify-center shrink-0')}
+                  aria-label="Previous month"
+                >
+                  ‹
+                </button>
+                <div className={cn('min-w-[132px] text-center text-sm font-bold', theme.formHeaderSub)}>
+                  {format(monthBase, 'MMMM yyyy')}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMonthBase((d) => startOfMonth(addMonths(d, 1)))}
+                  className={cn(theme.input, 'h-9 w-9 p-0 flex items-center justify-center shrink-0')}
+                  aria-label="Next month"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,200px)] lg:gap-5">
+            <div>
               {loading ? (
                 <p className={cn(AI_WEB_TYPE_BODY, 'text-cyan-200/60')}>Loading availability…</p>
               ) : days.length === 0 && !error ? (
@@ -449,7 +447,7 @@ function BookContent() {
                 </p>
               ) : (
                 <>
-                  <div className="grid grid-cols-7 text-[11px] font-bold uppercase tracking-wider text-cyan-200/40 mb-3">
+                  <div className="grid grid-cols-7 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-cyan-200/40 mb-2">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
                       <div key={d} className="text-center">
                         {d}
@@ -457,7 +455,7 @@ function BookContent() {
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                     {(() => {
                       const start = startOfMonth(monthBase);
                       const end = endOfMonth(monthBase);
@@ -490,7 +488,7 @@ function BookContent() {
                               setSelected(null);
                             }}
                             className={cn(
-                              'h-11 rounded-2xl border text-sm font-semibold transition-all',
+                              'h-9 sm:h-10 rounded-xl border text-xs sm:text-sm font-semibold transition-all',
                               available
                                 ? 'border-[#0066ff]/30 bg-black/40 text-gray-100 hover:border-[#00d4ff]/45 hover:bg-[#061428]/90'
                                 : 'border-transparent bg-transparent text-white/20 cursor-not-allowed',
@@ -510,14 +508,14 @@ function BookContent() {
               )}
             </div>
 
-            <div className="border-t border-[#0066ff]/25 lg:border-t-0 lg:border-l lg:border-[#0066ff]/25 p-5 sm:p-6 bg-black/20">
+            <div className="relative border-t border-[#0066ff]/20 pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5 lg:border-l-[#0066ff]/20">
               <p className={cn(AI_WEB_FORM_LABEL, theme.label)}>Available times</p>
               {!selectedDate ? (
                 <p className={cn('text-sm', AI_WEB_TYPE_BODY, 'text-cyan-200/50')}>Pick a day to see times.</p>
               ) : (daysByDate.get(selectedDate)?.some((s) => !s.taken) ?? false) === false ? (
                 <p className={cn('text-sm', AI_WEB_TYPE_BODY, 'text-cyan-200/50')}>No times on this day.</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {(daysByDate.get(selectedDate) || []).map((s) => {
                     const picked = selected === s.startsAt;
                     return (
@@ -542,12 +540,7 @@ function BookContent() {
                 </div>
               )}
 
-              <div
-                className={cn(
-                  'mt-6 rounded-xl border p-4',
-                  'border-[#0066ff]/35 bg-black/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
-                )}
-              >
+              <div className={cn('mt-6 rounded-xl p-4', theme.input, 'h-auto min-h-0 shadow-none')}>
                 <p className={cn(AI_WEB_FORM_LABEL, theme.label, 'mb-2')}>Selection</p>
                 <p className="text-sm text-cyan-100/90">
                   {selectedDate ? selectedDate : 'No day selected'}
@@ -575,10 +568,13 @@ function BookContent() {
                 {booking ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 border-2 rounded-full animate-spin border-black/25 border-t-black" />
-                    Booking…
+                    Sending…
                   </span>
                 ) : selected ? (
-                  'Confirm booking'
+                  <>
+                    <Bot className="w-5 h-5 shrink-0" />
+                    Book A Call!
+                  </>
                 ) : (
                   'Select a time'
                 )}
