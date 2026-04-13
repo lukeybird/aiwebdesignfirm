@@ -403,7 +403,7 @@ export default function AiWebsiteProHome() {
                 yet.
               </p>
               <p className="relative z-[1] mt-3 text-balance text-[0.7rem] font-medium leading-snug tracking-wide text-white/55 sm:mt-4 sm:text-xs md:text-sm md:text-white/60">
-                Save up to 50% on operational costs.
+                Save up to 50% or more on expenses and potentially 10X your business.
               </p>
             </motion.div>
 
