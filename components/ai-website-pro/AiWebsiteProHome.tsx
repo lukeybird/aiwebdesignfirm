@@ -402,6 +402,9 @@ export default function AiWebsiteProHome() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#0066ff]">AI</span>{' '}
                 yet.
               </p>
+              <p className="relative z-[1] mt-3 text-balance text-[0.7rem] font-medium leading-snug tracking-wide text-white/55 sm:mt-4 sm:text-xs md:text-sm md:text-white/60">
+                Save up to 50% on operational costs.
+              </p>
             </motion.div>
 
             <motion.div variants={fadeIn} className="relative z-[1] flex w-full flex-col items-center justify-center">
