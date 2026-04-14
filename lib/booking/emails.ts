@@ -22,19 +22,19 @@ export async function sendBookingConfirmed(params: {
   const subject = `Call confirmed — ${when}`;
   const text = `Hi ${first},
 
-Your call with aiWebDF is confirmed for:
+Your call with AiWebDesignFirm is confirmed for:
 ${when}
 (All times are US Eastern.)
 
 We look forward to speaking with you.
 
-— aiWebDF`;
+— AiWebDesignFirm`;
   const html = `<p>Hi ${esc(first)},</p>
-<p>Your call with <strong>aiWebDF</strong> is confirmed for:</p>
+<p>Your call with <strong>AiWebDesignFirm</strong> is confirmed for:</p>
 <p><strong>${esc(when)}</strong></p>
 <p><em>All times are US Eastern.</em></p>
 <p>We look forward to speaking with you.</p>
-<p>— aiWebDF</p>`;
+<p>— AiWebDesignFirm</p>`;
   return deliverEmail({ to: params.to, subject, text, html });
 }
 
@@ -68,20 +68,20 @@ export async function sendBookingReminder(params: {
 }): Promise<{ ok: boolean; error?: string }> {
   const when = formatEtSlot(params.startsAt);
   const first = params.name.trim().split(/\s+/)[0] || 'there';
-  const subject = `${params.label}: your aiWebDF call — ${when}`;
+  const subject = `${params.label}: your AiWebDesignFirm call — ${when}`;
   const text = `Hi ${first},
 
-Reminder: your scheduled call with aiWebDF is ${params.label.toLowerCase()}.
+Reminder: your scheduled call with AiWebDesignFirm is ${params.label.toLowerCase()}.
 
 ${when}
 (All times are US Eastern.)
 
-— aiWebDF`;
+— AiWebDesignFirm`;
   const html = `<p>Hi ${esc(first)},</p>
-<p>Reminder: your scheduled call with <strong>aiWebDF</strong> is <strong>${esc(params.label)}</strong>.</p>
+<p>Reminder: your scheduled call with <strong>AiWebDesignFirm</strong> is <strong>${esc(params.label)}</strong>.</p>
 <p><strong>${esc(when)}</strong></p>
 <p><em>All times are US Eastern.</em></p>
-<p>— aiWebDF</p>`;
+<p>— AiWebDesignFirm</p>`;
   return deliverEmail({ to: params.to, subject, text, html });
 }
 
@@ -100,11 +100,11 @@ Here is your link for the scheduled call (${when} Eastern):
 
 ${params.link}
 
-— aiWebDF`;
+— AiWebDesignFirm`;
   const html = `<p>Hi ${esc(first)},</p>
 <p>Here is your link for the scheduled call (<strong>${esc(when)}</strong> Eastern):</p>
 <p><a href="${esc(params.link)}">${esc(params.link)}</a></p>
-<p>— aiWebDF</p>`;
+<p>— AiWebDesignFirm</p>`;
   return deliverEmail({ to: params.to, subject, text, html });
 }
 
@@ -114,7 +114,7 @@ export async function sendCallLinkMissingAlert(params: {
   startsAt: Date;
 }): Promise<{ ok: boolean; error?: string }> {
   const when = formatEtSlot(params.startsAt);
-  const subject = `[aiWebDF] Add call link — ${params.clientName} @ ${when}`;
+  const subject = `[AiWebDesignFirm] Add call link — ${params.clientName} @ ${when}`;
   const text = `15-minute reminder fired but no call link is set yet.
 
 Client: ${params.clientName}

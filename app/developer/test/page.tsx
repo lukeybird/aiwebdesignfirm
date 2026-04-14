@@ -61,7 +61,7 @@ export default function TestPage() {
                 className="w-10 h-10"
               />
               <span className={`text-xl font-black ${isStarkMode ? 'text-white' : 'text-gray-900'}`}>
-                AI Web Design Firm
+                AiWebDesignFirm
               </span>
             </Link>
             <button

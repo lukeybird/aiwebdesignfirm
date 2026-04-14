@@ -1,4 +1,4 @@
-# Advanced AI Web Design Firm - Landing Page
+# AiWebDesignFirm — Landing Page
 
 A modern, Apple-inspired landing page built with Next.js and React, showcasing fast turnarounds, high-quality work, and 15+ years of experience.
 

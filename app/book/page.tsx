@@ -157,7 +157,7 @@ function BookContent() {
         <h1 className="text-2xl font-bold font-heading mb-4">You already have a call scheduled</h1>
         <p className="text-gray-400 max-w-md mb-8">Check your email for the time, or reply to reach us.</p>
         <Button asChild className="rounded-full bg-white text-black">
-          <Link href="/">Back to aiWebDF</Link>
+          <Link href="/">Back to AiWebDesignFirm</Link>
         </Button>
       </div>
     );
@@ -167,7 +167,7 @@ function BookContent() {
     <div className="min-h-[100dvh] bg-[#0a0a0f] text-white px-6 py-12 sm:py-16">
       <div className="mx-auto max-w-6xl">
         <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 mb-8 inline-block">
-          ← aiWebDF
+          ← AiWebDesignFirm
         </Link>
         <div className="max-w-4xl mx-auto">
           <div className="rounded-3xl border border-white/10 bg-[#0d0d1a] overflow-hidden">

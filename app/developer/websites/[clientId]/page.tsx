@@ -147,7 +147,7 @@ export default function BuildWebsitePage() {
               <div className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter ${
                 isStarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                AI Web Design Firm
+                AiWebDesignFirm
               </div>
             </Link>
             <div className="flex items-center gap-4">

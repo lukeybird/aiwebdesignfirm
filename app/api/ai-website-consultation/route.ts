@@ -7,7 +7,7 @@ import {
   sendTeamNotification,
 } from '@/lib/team-email';
 
-const PLACEHOLDER_LISTING = 'aiWebDF — consultation request';
+const PLACEHOLDER_LISTING = 'AiWebDesignFirm — consultation request';
 
 const PLAN_OPTIONS = ['starter', 'advanced', 'elite'] as const;
 type PlanId = (typeof PLAN_OPTIONS)[number];
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const textBody = [
-      `aiWebDF — ${planLabel} consultation`,
+      `AiWebDesignFirm — ${planLabel} consultation`,
       ``,
       `Plan: ${planLabel}`,
       `Name: ${name}`,
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     const htmlBody = `
-      <h2>aiWebDF — ${esc(planLabel)} consultation</h2>
+      <h2>AiWebDesignFirm — ${esc(planLabel)} consultation</h2>
       <p><strong>Plan:</strong> ${esc(planLabel)}</p>
       <p><strong>Name:</strong> ${esc(name)}</p>
       <p><strong>Email:</strong> ${esc(email)}</p>
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const mail = await sendTeamNotification({
-      subject: `aiWebDF ${planLabel}: ${name}`,
+      subject: `AiWebDesignFirm ${planLabel}: ${name}`,
       text: textBody,
       html: htmlBody,
     });

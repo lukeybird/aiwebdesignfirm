@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         await transporter.sendMail({
           from: fromEmail,
           to: toEmail,
-          subject: 'Welcome to AI Web Design Firm',
+          subject: 'Welcome to AiWebDesignFirm',
           text: emailContent,
           html: htmlContent,
         });
@@ -207,7 +207,7 @@ You can view this client's account in the developer dashboard.
         const emailResult = await resend.emails.send({
           from: fromEmail,
           to: toEmail,
-          subject: 'Welcome to AI Web Design Firm',
+          subject: 'Welcome to AiWebDesignFirm',
           text: emailContent,
           html: htmlContent,
         });

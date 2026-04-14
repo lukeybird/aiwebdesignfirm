@@ -17,6 +17,9 @@ import { UseCasesMarqueeBackdrop } from '@/components/ai-website-pro/UseCasesMar
 /** Default when no plan is chosen in the UI (booking + CRM still expect a plan id). */
 const DEFAULT_CONSULTATION_PLAN = 'advanced' as const;
 
+/** Hero CTA scarcity line; change when you update availability. */
+const FREE_CONSULTATION_SPOTS_REMAINING = 3;
+
 type ContactTheme = {
   sectionBg: string;
   sectionBorder: string;
@@ -333,7 +336,7 @@ export default function AiWebsiteProHome() {
               height={36}
               className="h-9 w-9 object-contain"
             />
-            <span className="font-heading font-bold text-xl sm:text-2xl tracking-tight text-white">aiWebDF</span>
+            <span className="font-heading font-bold text-xl sm:text-2xl tracking-tight text-white">AiWebDesignFirm</span>
           </Link>
           <div className="flex items-center gap-4 md:gap-6">
             <Button
@@ -428,10 +431,16 @@ export default function AiWebsiteProHome() {
                   size="lg"
                   className="relative z-10 w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
                 >
-                  <a href="#contact" aria-label="Book Call Now — go to contact form">
-                    Book Call Now!
+                  <a href="#contact" aria-label="Free consultation — go to contact form">
+                    Free Consultation
                   </a>
                 </Button>
+                <p
+                  className="relative z-10 mt-3 w-full text-center text-sm font-extrabold tracking-tight text-red-500 sm:mt-3.5 sm:text-base md:text-lg"
+                  aria-live="polite"
+                >
+                  Only {FREE_CONSULTATION_SPOTS_REMAINING} spots left
+                </p>
               </div>
             </motion.div>
           </motion.div>
@@ -626,7 +635,7 @@ export default function AiWebsiteProHome() {
                             className="h-11 w-11 object-contain shrink-0 drop-shadow-[0_0_16px_rgba(59,130,246,0.45)]"
                           />
                           <div className="min-w-0">
-                            <p className={FORM_BRAND_TITLE}>aiWebDF</p>
+                            <p className={FORM_BRAND_TITLE}>AiWebDesignFirm</p>
                             <p className={cn(FORM_BRAND_SUB, theme.formHeaderSub)}>Book a call</p>
                           </div>
                         </div>
@@ -711,7 +720,7 @@ export default function AiWebsiteProHome() {
         )}
       >
         <div className={cn('mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
-          <p>© {new Date().getFullYear()} aiWebDF. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} AiWebDesignFirm. All rights reserved.</p>
         </div>
       </footer>
     </div>

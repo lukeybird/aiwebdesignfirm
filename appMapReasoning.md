@@ -1,5 +1,5 @@
 # Application Map & Reasoning
-## The Complete Story of AI Web Design Firm
+## The Complete Story of AiWebDesignFirm
 
 **Purpose**: This document serves as a comprehensive guide for any developer who needs to understand, maintain, or extend this application. It tells the story of how and why every decision was made.
 
@@ -22,14 +22,14 @@
 ## Project Overview
 
 ### What
-AI Web Design Firm is a full-stack web application that serves as both a marketing website and a client/developer management system. It includes:
+AiWebDesignFirm is a full-stack web application that serves as both a marketing website and a client/developer management system. It includes:
 - Public-facing marketing site with portfolio showcase
 - Client portal for file management and account management
 - Developer dashboard for lead management and client oversight
 - Template showcase system for barbershop designs
 
 ### Who
-Built for AI Web Design Firm, a web design agency specializing in custom websites for businesses.
+Built for AiWebDesignFirm, a web design agency specializing in custom websites for businesses.
 
 ### When
 Development began in 2024, with continuous iteration and feature additions.

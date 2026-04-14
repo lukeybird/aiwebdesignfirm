@@ -111,7 +111,7 @@ After that you will have a fully custom site up and running in less than 24 hour
                         <td style="padding: 35px 40px; text-align: center; border-top: 2px solid rgba(34, 211, 238, 0.3); position: relative;">
                           <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #22d3ee, transparent);"></div>
                           <p style="margin: 0; color: #9ca3af; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">
-                            AI Web Design Firm
+                            AiWebDesignFirm
                           </p>
                           <div style="margin-top: 15px; width: 40px; height: 2px; background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.5), transparent); margin-left: auto; margin-right: auto;"></div>
                         </td>

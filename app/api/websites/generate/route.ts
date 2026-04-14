@@ -90,7 +90,7 @@ TECHNICAL REQUIREMENTS:
 7. Fully responsive (mobile-first approach)
 8. Include a hero section, image gallery (if images provided), services section, and contact section
 9. Use professional typography and smooth animations
-10. Make it visually appealing and match the AI Web Design Firm aesthetic
+10. Make it visually appealing and match the AiWebDesignFirm aesthetic
 
 IMPORTANT: 
 - The HTML must be COMPLETE and ready to serve
