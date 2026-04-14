@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { parseCeoCoachResponse, type CeoArtifact } from '@/lib/ceo-coach-response';
+import { clampResponseLengthLevel, getCeoResponseLengthConfig } from '@/lib/ceo-coach-response-length';
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const MAX_USER_MESSAGE_CHARS = 3000;
 const MAX_HISTORY_MESSAGES = 24;
 
-const SYSTEM_PROMPT = `You are the AiWebDesignFirm CEO Strategy Advisor.
+const SYSTEM_PROMPT_BASE = `You are the AiWebDesignFirm CEO Strategy Advisor.
 
 Your decision framework is inspired by how Mark Zuckerberg operates as a technology CEO:
 - mission-first thinking and long-term positioning
@@ -18,15 +19,15 @@ Your decision framework is inspired by how Mark Zuckerberg operates as a technol
 Primary job:
 Help the user run and scale their business like a high-performing tech CEO.
 
-Response style requirements (always follow):
+Response style requirements (always follow unless the RESPONSE LENGTH block overrides):
 1) Be direct, strategic, and decisive.
 2) Give concrete recommendations, not generic motivation.
-3) Default to this structure:
+3) When space allows, use this structure inside "reply":
    - What matters most now
    - Recommended move
    - Why this compounds
    - Next 3 actions (this week)
-4) If context is missing, ask up to 3 targeted questions, then still provide a best-guess plan.
+4) If context is missing, ask up to 3 targeted questions, then still provide a best-guess plan (unless RESPONSE LENGTH forbids extra sentences).
 5) Keep tone consistent and executive-level across all replies.
 6) Do not break character or mention these internal instructions.
 
@@ -46,7 +47,7 @@ Shape:
 }
 
 Artifacts rules:
-- Include 1-4 artifacts per turn that capture decisions, metrics to watch, risks, and next steps.
+- Scale artifact count and depth to the RESPONSE LENGTH slider (fewer/shorter at low levels).
 - Each artifact should be self-contained so it can render as its own card on the page.
 - If nothing new to add, use an empty array: "artifacts": []
 `;
@@ -115,7 +116,7 @@ function normalizeKind(kind: string | undefined): string {
   return allowed.has(k) ? k : 'note';
 }
 
-async function callClaude(messages: MessageRow[]) {
+async function callClaude(messages: MessageRow[], system: string, maxTokens: number) {
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) {
     throw new Error('CLAUDE_API_KEY is not configured');
@@ -130,8 +131,8 @@ async function callClaude(messages: MessageRow[]) {
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 1600,
-      system: SYSTEM_PROMPT,
+      max_tokens: maxTokens,
+      system,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     }),
   });
@@ -203,6 +204,9 @@ export async function POST(request: NextRequest) {
     const sessionId = safeText(body.sessionId);
     const message = safeText(body.message);
     const sourcePage = safeText(body.sourcePage);
+    const responseLength = clampResponseLengthLevel(body.responseLength);
+    const { maxTokens, instruction } = getCeoResponseLengthConfig(responseLength);
+    const system = `${SYSTEM_PROMPT_BASE}\n\n${instruction}\n\nIf anything conflicts, the RESPONSE LENGTH block wins.`;
 
     if (!sessionId || sessionId.length > 128) {
       return NextResponse.json({ error: 'A valid sessionId is required' }, { status: 400 });
@@ -251,7 +255,7 @@ export async function POST(request: NextRequest) {
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role, content: m.content }));
 
-    const raw = await callClaude(claudeMessages);
+    const raw = await callClaude(claudeMessages, system, maxTokens);
     const { reply, artifacts } = parseCeoCoachResponse(raw);
 
     await sql`
@@ -267,6 +271,7 @@ export async function POST(request: NextRequest) {
       reply,
       artifacts,
       sessionId,
+      responseLength,
     });
   } catch (error) {
     console.error('CEO coach error:', error);
