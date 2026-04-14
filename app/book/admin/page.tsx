@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   addMonths,
   eachDayOfInterval,
@@ -33,7 +34,13 @@ function cnSlots(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
 
+function bookingAdminFetch(input: RequestInfo | URL, init?: RequestInit) {
+  return fetch(input, { ...init, credentials: 'include' });
+}
+
 export default function BookingAdminPage() {
+  const router = useRouter();
+  const [devGateOk, setDevGateOk] = useState(false);
   const [boot, setBoot] = useState<Bootstrap | null>(null);
   const [tab, setTab] = useState<'up' | 'past' | 'leads' | 'hours' | 'demand' | 'qr'>('up');
   const [qrSeedUrl, setQrSeedUrl] = useState<string | null>(null);
@@ -44,28 +51,49 @@ export default function BookingAdminPage() {
   const clearQrSeed = useCallback(() => setQrSeedUrl(null), []);
 
   const load = useCallback(async () => {
-    const r = await fetch('/api/booking/admin/bootstrap');
+    const r = await bookingAdminFetch('/api/booking/admin/bootstrap');
     const j = await r.json().catch(() => ({}));
+    if (r.status === 401) {
+      router.replace('/login/developer?returnTo=/book/admin');
+      return;
+    }
     if (!r.ok) {
       setErr((j as { error?: string }).error || 'Load failed');
       return;
     }
     setBoot(j as Bootstrap);
     setErr(null);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const auth = localStorage.getItem('devAuth');
+    const authTime = localStorage.getItem('devAuthTime');
+    if (
+      !auth ||
+      !authTime ||
+      Date.now() - parseInt(authTime, 10) > 24 * 60 * 60 * 1000
+    ) {
+      router.replace('/login/developer?returnTo=/book/admin');
+      return;
+    }
+    setDevGateOk(true);
+  }, [router]);
+
+  useEffect(() => {
+    if (!devGateOk) return;
     load();
-  }, [load]);
+  }, [devGateOk, load]);
 
   useEffect(() => {
+    if (!devGateOk) return;
     const tick = () => {
-      fetch('/api/booking/admin/reminders/tick', { method: 'POST' }).catch(() => {});
+      bookingAdminFetch('/api/booking/admin/reminders/tick', { method: 'POST' }).catch(() => {});
     };
     tick();
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
-  }, []);
+  }, [devGateOk]);
 
   async function saveHours(e: React.FormEvent) {
     e.preventDefault();
@@ -80,7 +108,7 @@ export default function BookingAdminPage() {
       (document.getElementById('slot-int') as HTMLSelectElement)?.value || '30',
       10,
     );
-    const r = await fetch('/api/booking/admin/availability', {
+    const r = await bookingAdminFetch('/api/booking/admin/availability', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rules, slotIntervalMinutes }),
@@ -95,7 +123,7 @@ export default function BookingAdminPage() {
 
   async function sendCallLink() {
     if (!callLinkId || !callLinkUrl.trim()) return;
-    const r = await fetch('/api/booking/admin/send-call-link', {
+    const r = await bookingAdminFetch('/api/booking/admin/send-call-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ appointmentId: callLinkId, link: callLinkUrl.trim() }),
@@ -110,12 +138,20 @@ export default function BookingAdminPage() {
     await load();
   }
 
+  if (!devGateOk) {
+    return (
+      <div className="min-h-[100dvh] bg-[#0a0a0f] text-white flex items-center justify-center px-4">
+        <p className="text-sm text-gray-500">Checking access…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0f] text-white px-4 py-8 sm:px-8">
       <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold">Booking admin</h1>
         <p className="text-xs text-gray-500 w-full sm:w-auto">
-          Private link — not indexed. Anyone with the URL can view or change availability.
+          Developer only — sign in at /login/developer. APIs require a valid session cookie.
         </p>
       </div>
       <div className="max-w-6xl mx-auto flex flex-wrap items-center gap-2 mb-8">
@@ -287,7 +323,7 @@ function AppointmentsTable({
                     type="checkbox"
                     defaultChecked={Boolean(r.no_show)}
                     onChange={async (e) => {
-                      await fetch(`/api/booking/admin/appointments/${id}`, {
+                      await bookingAdminFetch(`/api/booking/admin/appointments/${id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -320,7 +356,7 @@ function AppointmentsTable({
                     className="rounded-full text-xs block"
                     onClick={async () => {
                       if (!confirm('Cancel this appointment?')) return;
-                      await fetch(`/api/booking/admin/appointments/${id}`, {
+                      await bookingAdminFetch(`/api/booking/admin/appointments/${id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -369,7 +405,7 @@ function SlotDemandTab({ onError }: { onError: (msg: string | null) => void }) {
     setLoading(true);
     onError(null);
     try {
-      const r = await fetch('/api/booking/admin/slot-overview?days=45');
+      const r = await bookingAdminFetch('/api/booking/admin/slot-overview?days=45');
       const j = (await r.json().catch(() => ({}))) as {
         days?: OverviewDay[];
         error?: string;
@@ -410,14 +446,14 @@ function SlotDemandTab({ onError }: { onError: (msg: string | null) => void }) {
     onError(null);
     try {
       if (s.held && s.holdId != null) {
-        const r = await fetch(`/api/booking/admin/holds/${s.holdId}`, { method: 'DELETE' });
+        const r = await bookingAdminFetch(`/api/booking/admin/holds/${s.holdId}`, { method: 'DELETE' });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) {
           onError((j as { error?: string }).error || 'Could not remove hold');
           return;
         }
       } else {
-        const r = await fetch('/api/booking/admin/holds', {
+        const r = await bookingAdminFetch('/api/booking/admin/holds', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ startsAt: s.startsAt }),
@@ -630,7 +666,7 @@ function QrLinkTab({
       setPreview(null);
     }
     try {
-      const r = await fetch('/api/booking/admin/qr', {
+      const r = await bookingAdminFetch('/api/booking/admin/qr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -769,7 +805,7 @@ function ManualLeadForm({ onDone }: { onDone: () => void }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const r = await fetch('/api/booking/admin/leads', {
+    const r = await bookingAdminFetch('/api/booking/admin/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone }),

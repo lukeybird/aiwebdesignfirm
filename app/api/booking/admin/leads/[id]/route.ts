@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { initBookingTables } from '@/lib/booking/init-tables';
+import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
 const STATUSES = ['new', 'contacted', 'booked', 'completed', 'lost'] as const;
 
@@ -8,6 +9,8 @@ export async function PATCH(
   request: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const denied = assertBookingAdmin(request);
+  if (denied) return denied;
   try {
     await initBookingTables(sql);
 

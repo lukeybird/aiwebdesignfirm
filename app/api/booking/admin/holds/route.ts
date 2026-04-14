@@ -9,9 +9,12 @@ import {
   type WeekdayRule,
   weekdaySun0Et,
 } from '@/lib/booking/et';
+import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
 /** Create a demand hold on a single slot (must match a real bookable window). */
 export async function POST(request: NextRequest) {
+  const denied = assertBookingAdmin(request);
+  if (denied) return denied;
   try {
     await initBookingTables(sql);
     const body = await request.json().catch(() => ({}));

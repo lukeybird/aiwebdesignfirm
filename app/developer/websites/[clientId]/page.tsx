@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { logoutDeveloperClient } from '@/lib/developer-auth-client';
 
 interface Client {
   id: number;
@@ -40,8 +41,8 @@ export default function BuildWebsitePage() {
       const auth = localStorage.getItem('devAuth');
       const authTime = localStorage.getItem('devAuthTime');
       
-      if (!auth || !authTime || Date.now() - parseInt(authTime) > 24 * 60 * 60 * 1000) {
-        router.push('/login/developer');
+      if (!auth || !authTime || Date.now() - parseInt(authTime, 10) > 24 * 60 * 60 * 1000) {
+        void logoutDeveloperClient().then(() => router.push('/login/developer'));
       }
     }
   }, [router]);

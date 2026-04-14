@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { initBookingTables } from '@/lib/booking/init-tables';
+import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = assertBookingAdmin(request);
+  if (denied) return denied;
   try {
     await initBookingTables(sql);
 

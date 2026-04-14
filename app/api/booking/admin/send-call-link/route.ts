@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { initBookingTables } from '@/lib/booking/init-tables';
 import { sendCallLinkEmail } from '@/lib/booking/emails';
+import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
 export async function POST(request: NextRequest) {
+  const denied = assertBookingAdmin(request);
+  if (denied) return denied;
   try {
     await initBookingTables(sql);
 

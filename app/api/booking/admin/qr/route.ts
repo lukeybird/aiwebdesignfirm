@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import QRCode from 'qrcode';
+import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
 const MAX_URL_LENGTH = 2048;
 
@@ -19,6 +20,8 @@ function parseTargetUrl(raw: unknown): string | null {
 
 /** Server-side QR PNG for arbitrary links (booking admin tools). */
 export async function POST(request: NextRequest) {
+  const denied = assertBookingAdmin(request);
+  if (denied) return denied;
   try {
     const body = await request.json().catch(() => ({}));
     const target = parseTargetUrl(body.url);

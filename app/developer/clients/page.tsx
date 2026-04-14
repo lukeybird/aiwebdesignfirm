@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { logoutDeveloperClient } from '@/lib/developer-auth-client';
 
 interface Client {
   id: string;
@@ -68,10 +69,8 @@ export default function ClientsPage() {
       const authTime = localStorage.getItem('devAuthTime');
       
       // Check if authenticated and session is valid (24 hours)
-      if (!auth || !authTime || Date.now() - parseInt(authTime) > 24 * 60 * 60 * 1000) {
-        localStorage.removeItem('devAuth');
-        localStorage.removeItem('devAuthTime');
-        router.push('/login/developer');
+      if (!auth || !authTime || Date.now() - parseInt(authTime, 10) > 24 * 60 * 60 * 1000) {
+        void logoutDeveloperClient().then(() => router.push('/login/developer'));
       }
     }
   }, [router]);
@@ -170,11 +169,8 @@ export default function ClientsPage() {
     loadClientFiles();
   }, [selectedClient]);
 
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('devAuth');
-      localStorage.removeItem('devAuthTime');
-    }
+  const handleLogout = async () => {
+    await logoutDeveloperClient();
     router.push('/login/developer');
   };
 
@@ -529,6 +525,16 @@ export default function ClientsPage() {
               }`}
             >
               Support
+            </Link>
+            <Link
+              href="/book/admin"
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                isStarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-cyan-500/20'
+                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300/60'
+              }`}
+            >
+              Booking app
             </Link>
             <Link
               href="/developer/analytics"
