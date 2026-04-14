@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
+import { GaPageView } from "@/components/analytics/GaPageView";
 import "./globals.css";
 
 const GA_MEASUREMENT_ID =
@@ -46,6 +48,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="font-sans antialiased min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7]">
         {children}
+        <Suspense fallback={null}>
+          <GaPageView />
+        </Suspense>
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
