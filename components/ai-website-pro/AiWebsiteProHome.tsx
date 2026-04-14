@@ -327,7 +327,7 @@ export default function AiWebsiteProHome() {
     <div className="min-h-[100dvh] w-full max-w-none bg-[#0a0a0f] text-white overflow-x-clip selection:bg-[#00d4ff]/30 selection:text-white">
       {/* Sticky Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl">
-        <div className={cn('mx-auto flex h-20 w-full max-w-none items-center justify-between', SECTION_GUTTER_X)}>
+        <div className={cn('mx-auto flex h-20 w-full max-w-none items-center justify-start', SECTION_GUTTER_X)}>
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <img
               src="/blueBall.png"
@@ -338,16 +338,6 @@ export default function AiWebsiteProHome() {
             />
             <span className="font-heading font-bold text-xl sm:text-2xl tracking-tight text-white">AiWebDesignFirm</span>
           </Link>
-          <div className="flex items-center gap-4 md:gap-6">
-            <Button
-              asChild
-              className="bg-white text-black hover:bg-gray-200 font-medium text-sm sm:text-base px-5 md:px-6 rounded-full transition-all duration-300 shrink-0"
-            >
-              <a href="#contact" aria-label="Book a Call — go to contact form">
-                Book a Call!
-              </a>
-            </Button>
-          </div>
         </div>
       </nav>
 
