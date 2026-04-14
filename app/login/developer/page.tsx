@@ -4,11 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-function safeReturnPath(raw: string | null): string {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/developer/dashboard';
-  return raw;
-}
-
 export default function DeveloperLogin() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -31,30 +26,16 @@ export default function DeveloperLogin() {
     setError('');
     setIsLoading(true);
 
-    try {
-      const res = await fetch('/api/auth/developer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username, password }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) {
-        setError(data.error || 'Invalid username or password');
-        setIsLoading(false);
-        return;
-      }
+    // Simple authentication check
+    if (username === 'luke@webstarts.com' && password === 'Dev74589900!') {
+      // Store authentication in localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('devAuth', 'authenticated');
         localStorage.setItem('devAuthTime', Date.now().toString());
-        const next = safeReturnPath(
-          new URLSearchParams(window.location.search).get('returnTo'),
-        );
-        router.push(next);
       }
-    } catch {
-      setError('Something went wrong. Try again.');
-    } finally {
+      router.push('/developer/dashboard');
+    } else {
+      setError('Invalid username or password');
       setIsLoading(false);
     }
   };

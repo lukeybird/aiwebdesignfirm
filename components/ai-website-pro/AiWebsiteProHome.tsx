@@ -632,7 +632,7 @@ export default function AiWebsiteProHome() {
                           />
                           <div className="min-w-0">
                             <p className={FORM_BRAND_TITLE}>AiWebDesignFirm</p>
-                            <p className={cn(FORM_BRAND_SUB, theme.formHeaderSub)}>Book Free Consultation</p>
+                            <p className={cn(FORM_BRAND_SUB, theme.formHeaderSub)}>Book a call</p>
                           </div>
                         </div>
 
@@ -697,7 +697,7 @@ export default function AiWebsiteProHome() {
                           ) : (
                             <>
                               <Bot className="w-5 h-5 shrink-0" />
-                              Book Free Consultation
+                              Book A Call!
                             </>
                           )}
                         </Button>

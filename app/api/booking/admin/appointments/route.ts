@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { initBookingTables } from '@/lib/booking/init-tables';
-import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
 /** Manual create appointment (admin). */
 export async function POST(request: NextRequest) {
-  const denied = assertBookingAdmin(request);
-  if (denied) return denied;
   try {
     await initBookingTables(sql);
 

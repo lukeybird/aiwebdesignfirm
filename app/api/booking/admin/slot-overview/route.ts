@@ -12,12 +12,9 @@ import {
   type WeekdayRule,
   weekdaySun0Et,
 } from '@/lib/booking/et';
-import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
 /** Admin: calendar grid with booked vs demand-hold per slot */
 export async function GET(request: NextRequest) {
-  const denied = assertBookingAdmin(request);
-  if (denied) return denied;
   try {
     await initBookingTables(sql);
 

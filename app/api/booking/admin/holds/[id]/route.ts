@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { initBookingTables } from '@/lib/booking/init-tables';
-import { assertBookingAdmin } from '@/lib/booking/require-dev-auth';
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
-  const denied = assertBookingAdmin(request);
-  if (denied) return denied;
   try {
     await initBookingTables(sql);
     const { id: idRaw } = await ctx.params;

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { GA4_REPORTS_URL } from '@/lib/ga-reports-url';
-import { logoutDeveloperClient } from '@/lib/developer-auth-client';
 
 const GA_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? 'G-C8ZNJX36W8';
@@ -19,7 +18,9 @@ export default function DeveloperAnalyticsPage() {
     const auth = localStorage.getItem('devAuth');
     const authTime = localStorage.getItem('devAuthTime');
     if (!auth || !authTime || Date.now() - parseInt(authTime, 10) > 24 * 60 * 60 * 1000) {
-      void logoutDeveloperClient().then(() => router.replace('/login/developer'));
+      localStorage.removeItem('devAuth');
+      localStorage.removeItem('devAuthTime');
+      router.replace('/login/developer');
       return;
     }
     setReady(true);
@@ -64,7 +65,9 @@ export default function DeveloperAnalyticsPage() {
             <button
               type="button"
               onClick={() => {
-                void logoutDeveloperClient().then(() => router.push('/login/developer'));
+                localStorage.removeItem('devAuth');
+                localStorage.removeItem('devAuthTime');
+                router.push('/login/developer');
               }}
               className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
                 isStarkMode
@@ -88,9 +91,6 @@ export default function DeveloperAnalyticsPage() {
             </Link>
             <Link href="/developer/support" className={inactive}>
               Support
-            </Link>
-            <Link href="/book/admin" className={inactive}>
-              Booking app
             </Link>
             <Link href="/developer/analytics" className={active}>
               Analytics
