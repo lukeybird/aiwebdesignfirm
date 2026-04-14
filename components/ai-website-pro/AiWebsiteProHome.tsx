@@ -88,8 +88,9 @@ const CONTACT_SECTION_THEME: ContactTheme = {
 const SECTION_GUTTER_X = 'px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20';
 /** Vertical padding for major stacked sections */
 const SECTION_PAD_Y = 'py-20 sm:py-24 md:py-28';
-/** Footer vertical rhythm (matches section ladder) */
-const FOOTER_PAD_Y = 'py-16 sm:py-20 md:py-24';
+/** Top nav + bottom bar: dark blue glass (matches site blues, slightly see-through) */
+const CHROME_BAR =
+  'border-[#0066ff]/20 bg-[#0a1528]/70 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[#0a1528]/55';
 /** Section headings (when used) */
 const TYPE_SECTION_TITLE = 'text-3xl sm:text-4xl md:text-5xl font-bold font-heading tracking-tight';
 /** Default body / supporting copy */
@@ -326,7 +327,12 @@ export default function AiWebsiteProHome() {
   return (
     <div className="min-h-[100dvh] w-full max-w-none bg-[#0a0a0f] text-white overflow-x-clip selection:bg-[#00d4ff]/30 selection:text-white">
       {/* Sticky Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl">
+      <nav
+        className={cn(
+          'fixed top-0 left-0 right-0 z-50 border-b',
+          CHROME_BAR,
+        )}
+      >
         <div className={cn('mx-auto flex h-20 w-full max-w-none items-center justify-start', SECTION_GUTTER_X)}>
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <img
@@ -702,14 +708,14 @@ export default function AiWebsiteProHome() {
           </div>
       </section>
       
-      {/* Footer */}
+      {/* Footer — same height + glass treatment as top nav */}
       <footer
         className={cn(
-          'bg-[#0a0a0f] border-t border-white/5 text-center text-gray-500 text-sm sm:text-base',
-          FOOTER_PAD_Y,
+          'flex h-20 w-full max-w-none items-center border-t text-center text-sm text-gray-400 sm:text-base',
+          CHROME_BAR,
         )}
       >
-        <div className={cn('mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
+        <div className={cn('mx-auto flex h-full w-full max-w-none items-center justify-center', SECTION_GUTTER_X)}>
           <p>© {new Date().getFullYear()} AiWebDesignFirm. All rights reserved.</p>
         </div>
       </footer>
