@@ -17,9 +17,6 @@ import { UseCasesMarqueeBackdrop } from '@/components/ai-website-pro/UseCasesMar
 /** Default when no plan is chosen in the UI (booking + CRM still expect a plan id). */
 const DEFAULT_CONSULTATION_PLAN = 'advanced' as const;
 
-/** Hero CTA scarcity line; change when you update availability. */
-const FREE_CONSULTATION_SPOTS_REMAINING = 3;
-
 type ContactTheme = {
   sectionBg: string;
   sectionBorder: string;
@@ -431,12 +428,18 @@ export default function AiWebsiteProHome() {
                     Free Consultation
                   </a>
                 </Button>
-                <p
-                  className="relative z-10 mt-3 w-full text-center text-sm font-extrabold tracking-tight text-red-500 sm:mt-3.5 sm:text-base md:text-lg"
-                  aria-live="polite"
-                >
-                  Only {FREE_CONSULTATION_SPOTS_REMAINING} spots left
-                </p>
+                {!fridayAvailLoading && fridayAvail != null ? (
+                  <p
+                    className="relative z-10 mt-3 w-full text-center text-sm font-extrabold tracking-tight text-red-500 sm:mt-3.5 sm:text-base md:text-lg"
+                    aria-live="polite"
+                  >
+                    Only{' '}
+                    <span className="tabular-nums">
+                      {fridayAvail.hoursEnabled && fridayAvail.total > 0 ? fridayAvail.available : 0}
+                    </span>{' '}
+                    spots left
+                  </p>
+                ) : null}
               </div>
             </motion.div>
           </motion.div>
