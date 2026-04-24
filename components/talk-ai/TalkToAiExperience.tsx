@@ -333,16 +333,63 @@ export function TalkToAiExperience() {
         const current = onboardingFlow[onboardingIndex];
         if (!current) return;
 
-        const updated: Profile = { ...profile, [current.key]: current.key === 'websiteUrl' ? normalizeWebsite(input) : input };
-        setProfile(updated);
         setHistory((prev) => [...prev, { id: `u_${Date.now()}`, role: 'user', text: input }]);
+        setIsThinking(true);
+        try {
+          const r = await fetch('/api/ceo-coach', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: getSessionId(),
+              intent: 'intake_map',
+              targetField: current.key,
+              message: input,
+              sourcePage: '/talk-to-ai',
+              profile: {
+                name: profile.name,
+                phone: profile.phone,
+                email: profile.email,
+                businessName: profile.businessName,
+                businessDescription: profile.businessDescription,
+                biggestProblem: profile.biggestProblem,
+                websiteUrl: profile.websiteUrl,
+              },
+            }),
+          });
+          const payload = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            throw new Error((payload as { error?: string }).error || 'Could not map intake answer');
+          }
 
-        const nextIndex = onboardingIndex + 1;
-        if (nextIndex < onboardingFlow.length) {
-          setOnboardingIndex(nextIndex);
-          appendAssistant(onboardingFlow[nextIndex].question);
-        } else {
-          await finalizeOnboardingAndKickoff(updated);
+          const merged: Profile = {
+            ...profile,
+            ...(payload.profile || {}),
+            websiteUrl: typeof payload?.profile?.websiteUrl === 'string' ? payload.profile.websiteUrl : profile.websiteUrl,
+          };
+          setProfile(merged);
+
+          const nextField = (payload as { nextField?: OnboardingField | null }).nextField ?? null;
+          const done = Boolean((payload as { completed?: boolean }).completed) || !nextField;
+          const prompt =
+            typeof (payload as { assistantPrompt?: string }).assistantPrompt === 'string'
+              ? (payload as { assistantPrompt?: string }).assistantPrompt
+              : done
+                ? 'Great, profile complete.'
+                : onboardingFlow.find((f) => f.key === nextField)?.question || 'Thanks, next question.';
+          appendAssistant(prompt);
+
+          if (done) {
+            await finalizeOnboardingAndKickoff(merged);
+          } else {
+            const idx = onboardingFlow.findIndex((f) => f.key === nextField);
+            if (idx >= 0) setOnboardingIndex(idx);
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : 'Could not process intake';
+          setError(msg);
+          appendAssistant(`I want to put that in the right place. ${current.question}`);
+        } finally {
+          setIsThinking(false);
         }
         return;
       }

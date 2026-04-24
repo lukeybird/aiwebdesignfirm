@@ -67,6 +67,16 @@ type CoachProfile = {
   websiteUrl?: string;
 };
 
+const INTAKE_FIELDS: Array<keyof CoachProfile> = [
+  'name',
+  'phone',
+  'email',
+  'businessName',
+  'businessDescription',
+  'biggestProblem',
+  'websiteUrl',
+];
+
 let ceoTablesReady = false;
 
 async function ensureCeoCoachTables() {
@@ -188,6 +198,138 @@ function inferProfileFromMessage(message: string): CoachProfile {
   if (problemMatch?.[1]) out.biggestProblem = problemMatch[1].trim();
 
   return out;
+}
+
+function nextMissingField(profile: CoachProfile): keyof CoachProfile | null {
+  for (const key of INTAKE_FIELDS) {
+    const value = profile[key];
+    if (!value || !String(value).trim()) return key;
+  }
+  return null;
+}
+
+function parseJsonFromModelText(text: string): Record<string, unknown> | null {
+  const trimmed = text.trim();
+  try {
+    const direct = JSON.parse(trimmed) as Record<string, unknown>;
+    if (direct && typeof direct === 'object') return direct;
+  } catch {}
+
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+  if (fenced) {
+    try {
+      const j = JSON.parse(fenced.trim()) as Record<string, unknown>;
+      if (j && typeof j === 'object') return j;
+    } catch {}
+  }
+
+  const m = trimmed.match(/\{[\s\S]*\}/);
+  if (m) {
+    try {
+      const j = JSON.parse(m[0]) as Record<string, unknown>;
+      if (j && typeof j === 'object') return j;
+    } catch {}
+  }
+  return null;
+}
+
+async function mapIntakeAnswerWithClaude(
+  message: string,
+  profile: CoachProfile,
+  targetField: keyof CoachProfile | null
+): Promise<{ updates: CoachProfile; assistantPrompt: string; consumed: boolean }> {
+  const apiKey = process.env.CLAUDE_API_KEY;
+  if (!apiKey) throw new Error('CLAUDE_API_KEY is not configured');
+
+  const system = `You map one user utterance into a strict lead-form funnel.
+
+Rules:
+1) targetField is the field we are collecting now. Prefer updating only targetField.
+2) Only fill non-target fields if user explicitly states them ("my email is...", "phone is...", etc.).
+3) If utterance is ambiguous for targetField, return no updates and ask a focused clarification.
+4) Never put generic discussion into contact fields.
+5) If user says no website, set websiteUrl to empty string.
+6) Output JSON only, no prose.
+
+Output schema:
+{
+  "updates": {
+    "name": "",
+    "phone": "",
+    "email": "",
+    "businessName": "",
+    "businessDescription": "",
+    "biggestProblem": "",
+    "websiteUrl": ""
+  },
+  "assistantPrompt": "short next question",
+  "consumed": true
+}`;
+
+  const user = `Current profile:
+${JSON.stringify(profile)}
+
+targetField: ${targetField ?? 'none'}
+userUtterance: ${message}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 500,
+      system,
+      messages: [{ role: 'user', content: user }],
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Claude intake-map failed (${response.status}): ${text}`);
+  }
+
+  const data = await response.json();
+  const text = data?.content?.[0]?.text;
+  if (!text || typeof text !== 'string') {
+    return {
+      updates: {},
+      assistantPrompt: 'Can you answer that one field directly so I can put it in the right spot?',
+      consumed: false,
+    };
+  }
+
+  const j = parseJsonFromModelText(text);
+  if (!j) {
+    return {
+      updates: {},
+      assistantPrompt: 'Can you answer that one field directly so I can put it in the right spot?',
+      consumed: false,
+    };
+  }
+
+  const raw = (j.updates && typeof j.updates === 'object' ? j.updates : {}) as Record<string, unknown>;
+  const updates: CoachProfile = {};
+  for (const key of INTAKE_FIELDS) {
+    const v = raw[key];
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t) updates[key] = t;
+      if (key === 'websiteUrl' && /^(no|none|no website)$/i.test(t)) updates.websiteUrl = '';
+    }
+  }
+
+  return {
+    updates,
+    assistantPrompt:
+      typeof j.assistantPrompt === 'string' && j.assistantPrompt.trim()
+        ? j.assistantPrompt.trim()
+        : 'Thanks. Next question.',
+    consumed: Boolean(j.consumed),
+  };
 }
 
 function normalizeWebsiteUrl(input?: string): string | null {
@@ -420,6 +562,8 @@ export async function POST(request: NextRequest) {
     const sessionId = safeText(body.sessionId);
     const message = safeText(body.message);
     const sourcePage = safeText(body.sourcePage);
+    const intent = safeText(body.intent);
+    const targetField = safeText(body.targetField) as keyof CoachProfile;
     const incomingProfile = cleanProfile(body.profile);
     const responseLength = clampResponseLengthLevel(body.responseLength);
     const { maxTokens, instruction } = getCeoResponseLengthConfig(responseLength);
@@ -471,6 +615,56 @@ export async function POST(request: NextRequest) {
       WHERE id = ${sessionId}
       LIMIT 1
     `;
+
+    if (intent === 'intake_map') {
+      const profileNow: CoachProfile = {
+        name: incomingProfile.name || existing[0]?.name || '',
+        phone: incomingProfile.phone || existing[0]?.phone || '',
+        email: incomingProfile.email || existing[0]?.email || '',
+        businessName: incomingProfile.businessName || existing[0]?.business_name || '',
+        businessDescription: incomingProfile.businessDescription || existing[0]?.business_description || '',
+        biggestProblem: incomingProfile.biggestProblem || existing[0]?.biggest_problem || '',
+        websiteUrl:
+          normalizeWebsiteUrl(incomingProfile.websiteUrl) ||
+          normalizeWebsiteUrl(existing[0]?.website_url ?? undefined) ||
+          '',
+      };
+
+      const mapped = await mapIntakeAnswerWithClaude(message, profileNow, targetField || nextMissingField(profileNow));
+      const merged: CoachProfile = { ...profileNow, ...mapped.updates };
+      const normalizedWebsite = normalizeWebsiteUrl(merged.websiteUrl);
+      merged.websiteUrl = normalizedWebsite || '';
+
+      let websiteContext = existing[0]?.website_context || '';
+      if (normalizedWebsite && normalizedWebsite !== normalizeWebsiteUrl(existing[0]?.website_url ?? undefined)) {
+        websiteContext = (await fetchWebsiteContext(normalizedWebsite)) || '';
+      }
+
+      await sql`
+        UPDATE ceo_coach_sessions
+        SET
+          name = ${merged.name || null},
+          phone = ${merged.phone || null},
+          email = ${merged.email || null},
+          business_name = ${merged.businessName || null},
+          business_description = ${merged.businessDescription || null},
+          biggest_problem = ${merged.biggestProblem || null},
+          website_url = ${merged.websiteUrl || null},
+          website_context = ${websiteContext || null},
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${sessionId}
+      `;
+
+      const remaining = nextMissingField(merged);
+      return NextResponse.json({
+        updates: mapped.updates,
+        profile: merged,
+        assistantPrompt: mapped.assistantPrompt,
+        consumed: mapped.consumed,
+        completed: !remaining,
+        nextField: remaining,
+      });
+    }
 
     const mergedProfile = {
       name: incomingProfile.name || existing[0]?.name || '',
