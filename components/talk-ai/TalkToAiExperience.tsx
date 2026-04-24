@@ -370,12 +370,13 @@ export function TalkToAiExperience() {
 
           const nextField = (payload as { nextField?: OnboardingField | null }).nextField ?? null;
           const done = Boolean((payload as { completed?: boolean }).completed) || !nextField;
-          const prompt =
-            typeof (payload as { assistantPrompt?: string }).assistantPrompt === 'string'
-              ? (payload as { assistantPrompt?: string }).assistantPrompt
+          const assistantPrompt = (payload as { assistantPrompt?: unknown }).assistantPrompt;
+          const prompt: string =
+            typeof assistantPrompt === 'string' && assistantPrompt.trim().length > 0
+              ? assistantPrompt
               : done
                 ? 'Great, profile complete.'
-                : onboardingFlow.find((f) => f.key === nextField)?.question || 'Thanks, next question.';
+                : onboardingFlow.find((f) => f.key === nextField)?.question ?? 'Thanks, next question.';
           appendAssistant(prompt);
 
           if (done) {
