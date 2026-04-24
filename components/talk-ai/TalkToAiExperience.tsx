@@ -3,11 +3,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, MicOff, Video, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 type ChatTurn = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+};
+
+type Profile = {
+  name: string;
+  phone: string;
+  email: string;
+  businessName: string;
+  businessDescription: string;
+  biggestProblem: string;
+  websiteUrl: string;
+};
+
+type OnboardingField = keyof Profile;
+
+type ApiArtifact = {
+  id: number;
+  title: string;
+  body: string;
+  kind: string;
 };
 
 declare global {
@@ -41,6 +61,36 @@ declare global {
 
 const SESSION_KEY = 'talk_to_ai_session_id';
 
+const onboardingFlow: Array<{ key: OnboardingField; question: string }> = [
+  { key: 'name', question: 'Great. First, what is your full name?' },
+  { key: 'phone', question: 'What is the best phone number to reach you?' },
+  { key: 'email', question: 'What is your email address?' },
+  { key: 'businessName', question: 'What is your business called?' },
+  {
+    key: 'businessDescription',
+    question: 'What does your business do? Give me a short summary so I can tailor recommendations.',
+  },
+  {
+    key: 'biggestProblem',
+    question: 'What is the biggest problem you are facing in your business right now?',
+  },
+  {
+    key: 'websiteUrl',
+    question:
+      'Do you have a website? Share the URL so I can learn about your business from it. If not, say "no website".',
+  },
+];
+
+const defaultProfile: Profile = {
+  name: '',
+  phone: '',
+  email: '',
+  businessName: '',
+  businessDescription: '',
+  biggestProblem: '',
+  websiteUrl: '',
+};
+
 function getSessionId(): string {
   if (typeof window === 'undefined') return 'server';
   const existing = window.localStorage.getItem(SESSION_KEY);
@@ -65,13 +115,11 @@ function buildFaceDots() {
       if (ellipse > 1) continue;
 
       const wave = 0.5 + 0.5 * Math.sin((x + 1) * 0.9 + y * 0.35);
-      const size = 3 + wave * 2.6;
-      const opacity = 0.35 + wave * 0.55;
       dots.push({
         left: `${(x / (cols - 1)) * 100}%`,
         top: `${(y / (rows - 1)) * 100}%`,
-        opacity,
-        size,
+        opacity: 0.35 + wave * 0.55,
+        size: 3 + wave * 2.6,
       });
     }
   }
@@ -80,16 +128,35 @@ function buildFaceDots() {
 
 const FACE_DOTS = buildFaceDots();
 
+function inferPlan(problem: string): 'starter' | 'advanced' | 'elite' {
+  const p = problem.toLowerCase();
+  if (/scale|multi|team|enterprise|complex|automation|pipeline|crm|integrat/.test(p)) return 'elite';
+  if (/lead|sales|marketing|follow.?up|booking|support|ops|operation/.test(p)) return 'advanced';
+  return 'starter';
+}
+
+function normalizeWebsite(raw: string): string {
+  const v = raw.trim();
+  if (!v || /^(no|none|no website)$/i.test(v)) return '';
+  if (/^https?:\/\//i.test(v)) return v;
+  return `https://${v}`;
+}
+
 export function TalkToAiExperience() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [isSubmittingMeeting, setIsSubmittingMeeting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [meetingSuccess, setMeetingSuccess] = useState<string | null>(null);
   const [partialTranscript, setPartialTranscript] = useState('');
   const [history, setHistory] = useState<ChatTurn[]>([]);
+  const [artifacts, setArtifacts] = useState<ApiArtifact[]>([]);
+  const [profile, setProfile] = useState<Profile>(defaultProfile);
+  const [onboardingIndex, setOnboardingIndex] = useState(0);
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<{
     continuous: boolean;
     interimResults: boolean;
@@ -107,12 +174,7 @@ export function TalkToAiExperience() {
     return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
   }, []);
 
-  const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  }, []);
-
-  const speakWithBrowser = useCallback((text: string) => {
+  const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -122,43 +184,21 @@ export function TalkToAiExperience() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
-  const speak = useCallback(
-    async (text: string) => {
-      if (typeof window === 'undefined') return;
-
-      try {
-        const response = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
-        });
-
-        if (!response.ok) {
-          throw new Error('TTS route failed');
-        }
-
-        const blob = await response.blob();
-        if (!blob.size) throw new Error('Empty TTS audio');
-
-        const url = URL.createObjectURL(blob);
-        if (!audioRef.current) {
-          audioRef.current = new Audio();
-        }
-        const player = audioRef.current;
-        player.pause();
-        player.src = url;
-        player.onended = () => URL.revokeObjectURL(url);
-        player.onerror = () => URL.revokeObjectURL(url);
-        await player.play();
-      } catch {
-        speakWithBrowser(text);
-      }
+  const appendAssistant = useCallback(
+    (text: string) => {
+      setHistory((prev) => [...prev, { id: `a_${Date.now()}_${Math.random()}`, role: 'assistant', text }]);
+      speak(text);
     },
-    [speakWithBrowser],
+    [speak],
   );
 
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  }, []);
+
   const askAssistant = useCallback(
-    async (message: string) => {
+    async (message: string, nextProfile: Profile) => {
       const clean = message.trim();
       if (!clean) return;
 
@@ -175,16 +215,32 @@ export function TalkToAiExperience() {
             message: clean,
             sourcePage: '/talk-to-ai',
             responseLength: 2,
+            profile: {
+              name: nextProfile.name,
+              phone: nextProfile.phone,
+              email: nextProfile.email,
+              businessName: nextProfile.businessName,
+              businessDescription: nextProfile.businessDescription,
+              biggestProblem: nextProfile.biggestProblem,
+              websiteUrl: nextProfile.websiteUrl,
+            },
           }),
         });
+
         const payload = await response.json();
         if (!response.ok) {
           throw new Error(payload?.error || 'AI response failed');
         }
 
-        const reply = (payload.reply as string) || 'I can help you move this forward. Tell me your biggest bottleneck right now.';
-        setHistory((prev) => [...prev, { id: `a_${Date.now()}`, role: 'assistant', text: reply }]);
-        void speak(reply);
+        const reply =
+          (payload.reply as string) ||
+          'AI can usually remove repetitive work, speed response times, and lift revenue. I recommend booking a strategy call next.';
+
+        appendAssistant(reply);
+
+        if (Array.isArray(payload.artifacts)) {
+          setArtifacts(payload.artifacts as ApiArtifact[]);
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Request failed';
         setError(msg);
@@ -192,7 +248,45 @@ export function TalkToAiExperience() {
         setIsThinking(false);
       }
     },
-    [speak],
+    [appendAssistant],
+  );
+
+  const finalizeOnboardingAndKickoff = useCallback(
+    async (nextProfile: Profile) => {
+      setOnboardingDone(true);
+      const kickoff = `Profile summary: ${nextProfile.name}, ${nextProfile.email}, ${nextProfile.phone}. Business: ${nextProfile.businessName}. What they do: ${nextProfile.businessDescription}. Biggest problem: ${nextProfile.biggestProblem}. Website: ${nextProfile.websiteUrl || 'none provided'}. Explain why AI is critical for this business and propose immediate steps. End by prompting them to book a strategy call.`;
+      await askAssistant(kickoff, nextProfile);
+      appendAssistant('I can help you keep refining this plan. When you are ready, submit the booking form below and we will schedule your strategy call.');
+    },
+    [appendAssistant, askAssistant],
+  );
+
+  const handleSpokenInput = useCallback(
+    async (rawInput: string) => {
+      const input = rawInput.trim();
+      if (!input) return;
+
+      if (!onboardingDone) {
+        const current = onboardingFlow[onboardingIndex];
+        if (!current) return;
+
+        const updated: Profile = { ...profile, [current.key]: current.key === 'websiteUrl' ? normalizeWebsite(input) : input };
+        setProfile(updated);
+        setHistory((prev) => [...prev, { id: `u_${Date.now()}`, role: 'user', text: input }]);
+
+        const nextIndex = onboardingIndex + 1;
+        if (nextIndex < onboardingFlow.length) {
+          setOnboardingIndex(nextIndex);
+          appendAssistant(onboardingFlow[nextIndex].question);
+        } else {
+          await finalizeOnboardingAndKickoff(updated);
+        }
+        return;
+      }
+
+      await askAssistant(input, profile);
+    },
+    [appendAssistant, askAssistant, finalizeOnboardingAndKickoff, onboardingDone, onboardingIndex, profile],
   );
 
   const startListening = useCallback(() => {
@@ -219,7 +313,7 @@ export function TalkToAiExperience() {
       setPartialTranscript(interim.trim());
       if (finals.length > 0) {
         setPartialTranscript('');
-        void askAssistant(finals.join(' '));
+        void handleSpokenInput(finals.join(' '));
       }
     };
 
@@ -247,7 +341,7 @@ export function TalkToAiExperience() {
       setIsListening(false);
       recognitionRef.current = null;
     }
-  }, [askAssistant, isListening, supportsSpeechRec]);
+  }, [handleSpokenInput, isListening, supportsSpeechRec]);
 
   const enableExperience = useCallback(async () => {
     setError(null);
@@ -259,36 +353,83 @@ export function TalkToAiExperience() {
         await videoRef.current.play().catch(() => {});
       }
       setIsEnabled(true);
-      void speak('Hi, I am the AI.');
+      appendAssistant('Hi, I am the AI. I am going to build your profile first, then help you see exactly how AI can transform your business.');
+      appendAssistant(onboardingFlow[0].question);
       startListening();
     } catch {
       setError('Please allow camera and microphone permissions to use Talk to AI.');
     }
-  }, [speak, startListening]);
+  }, [appendAssistant, startListening]);
 
   useEffect(() => {
     return () => {
       stopListening();
       recognitionRef.current = null;
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
       if (typeof window !== 'undefined') {
         window.speechSynthesis?.cancel();
       }
     };
   }, [stopListening]);
 
+  const bookingPlan = inferPlan(profile.biggestProblem || profile.businessDescription);
+  const bookingNotes = [
+    profile.businessName ? `Business: ${profile.businessName}` : null,
+    profile.businessDescription ? `What they do: ${profile.businessDescription}` : null,
+    profile.biggestProblem ? `Biggest problem: ${profile.biggestProblem}` : null,
+    profile.websiteUrl ? `Website: ${profile.websiteUrl}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const canSubmitMeeting =
+    onboardingDone &&
+    profile.name.trim().length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email.trim()) &&
+    profile.phone.replace(/\D/g, '').length >= 10;
+
+  async function submitMeeting() {
+    if (!canSubmitMeeting || isSubmittingMeeting) return;
+    setIsSubmittingMeeting(true);
+    setError(null);
+    setMeetingSuccess(null);
+
+    try {
+      const r = await fetch('/api/ai-website-consultation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          plan: bookingPlan,
+          notes: bookingNotes,
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw new Error((j as { error?: string }).error || 'Failed to book meeting');
+      }
+
+      setMeetingSuccess('Meeting request submitted. Check your email for next steps and scheduling confirmation.');
+      appendAssistant('Great move. Your strategy call request is in. We can keep refining your AI plan while you wait for the meeting.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to submit meeting';
+      setError(msg);
+    } finally {
+      setIsSubmittingMeeting(false);
+    }
+  }
+
   return (
     <main className='min-h-[100dvh] bg-[#02040a] text-white'>
-      <div className='mx-auto w-full max-w-[min(100%,96rem)] px-5 py-8 sm:px-8 lg:px-12'>
+      <div className='mx-auto w-full max-w-[min(100%,104rem)] px-5 py-8 sm:px-8 lg:px-12'>
         <header className='mb-8 rounded-3xl border border-cyan-400/25 bg-[#071326]/80 p-6 backdrop-blur-md sm:p-8'>
           <p className='text-sm font-bold uppercase tracking-[0.22em] text-cyan-300/80'>Talk to AI</p>
-          <h1 className='mt-3 text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl'>Live voice AI assistant</h1>
-          <p className='mt-4 max-w-4xl text-xl leading-relaxed text-cyan-100/85'>
-            Grant camera + microphone access, then talk naturally. I transcribe your voice and the AI responds back out loud.
+          <h1 className='mt-3 text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl'>Live voice AI advisor + profile builder</h1>
+          <p className='mt-4 max-w-5xl text-xl leading-relaxed text-cyan-100/85'>
+            I will gather your profile (name, phone, email, business, biggest problem, website), explain how AI solves your bottlenecks,
+            and guide you into booking a strategy meeting.
           </p>
         </header>
 
@@ -358,12 +499,12 @@ export function TalkToAiExperience() {
             <div className='mb-4 flex items-center justify-between'>
               <h2 className='text-2xl font-black'>Conversation</h2>
               <span className='inline-flex items-center gap-2 text-sm text-cyan-200/70'>
-                <Volume2 className='h-4 w-4' /> Audio replies on
+                <Volume2 className='h-4 w-4' /> Browser voice on
               </span>
             </div>
-            <div className='max-h-[32rem] space-y-3 overflow-y-auto pr-1'>
+            <div className='max-h-[22rem] space-y-3 overflow-y-auto pr-1'>
               {history.length === 0 ? (
-                <p className='text-lg text-cyan-200/65'>Say something after enabling permissions. I will transcribe and answer.</p>
+                <p className='text-lg text-cyan-200/65'>Enable permissions, then I will start profile intake questions.</p>
               ) : (
                 history.map((turn) => (
                   <div key={turn.id} className={turn.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
@@ -380,6 +521,46 @@ export function TalkToAiExperience() {
                 ))
               )}
             </div>
+
+            <div className='mt-5 grid gap-3 rounded-2xl border border-cyan-300/25 bg-[#0a1d34]/55 p-4 sm:grid-cols-2'>
+              <Input value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} placeholder='Name' className='bg-black/40 text-white' />
+              <Input value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} placeholder='Phone' className='bg-black/40 text-white' />
+              <Input value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} placeholder='Email' className='bg-black/40 text-white' />
+              <Input value={profile.businessName} onChange={(e) => setProfile((p) => ({ ...p, businessName: e.target.value }))} placeholder='Business name' className='bg-black/40 text-white' />
+              <Input value={profile.businessDescription} onChange={(e) => setProfile((p) => ({ ...p, businessDescription: e.target.value }))} placeholder='What do you do?' className='bg-black/40 text-white sm:col-span-2' />
+              <Input value={profile.biggestProblem} onChange={(e) => setProfile((p) => ({ ...p, biggestProblem: e.target.value }))} placeholder='Biggest problem' className='bg-black/40 text-white sm:col-span-2' />
+              <Input value={profile.websiteUrl} onChange={(e) => setProfile((p) => ({ ...p, websiteUrl: e.target.value }))} placeholder='Website URL (optional)' className='bg-black/40 text-white sm:col-span-2' />
+            </div>
+
+            {onboardingDone ? (
+              <div className='mt-5 rounded-2xl border border-cyan-300/25 bg-[#0a1a2f] p-4'>
+                <p className='mb-3 text-sm font-semibold uppercase tracking-wider text-cyan-200/80'>Book strategy meeting</p>
+                <p className='mb-4 text-sm text-cyan-100/70'>Autofilled from your profile. Plan category selected automatically.</p>
+                <Button
+                  type='button'
+                  size='lg'
+                  className='h-12 rounded-full bg-cyan-400 px-6 text-black hover:bg-cyan-300 disabled:opacity-60'
+                  disabled={!canSubmitMeeting || isSubmittingMeeting}
+                  onClick={submitMeeting}
+                >
+                  {isSubmittingMeeting ? 'Submitting…' : `Book ${bookingPlan.toUpperCase()} meeting`}
+                </Button>
+                {meetingSuccess ? <p className='mt-3 text-sm text-emerald-300'>{meetingSuccess}</p> : null}
+              </div>
+            ) : (
+              <p className='mt-5 text-sm text-cyan-100/60'>I will unlock booking right after profile intake is complete.</p>
+            )}
+
+            {artifacts.length > 0 ? (
+              <div className='mt-5 space-y-2'>
+                {artifacts.slice(-3).map((a) => (
+                  <div key={a.id} className='rounded-xl border border-cyan-300/20 bg-white/5 p-3'>
+                    <p className='text-sm font-bold text-cyan-100'>{a.title}</p>
+                    <p className='text-sm text-cyan-50/85'>{a.body}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             <div className='mt-5 overflow-hidden rounded-2xl border border-cyan-300/30 bg-black/35'>
               <video ref={videoRef} autoPlay muted playsInline className='h-52 w-full object-cover' />

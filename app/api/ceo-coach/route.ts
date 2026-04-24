@@ -57,6 +57,16 @@ type MessageRow = {
   content: string;
 };
 
+type CoachProfile = {
+  name?: string;
+  phone?: string;
+  email?: string;
+  businessName?: string;
+  businessDescription?: string;
+  biggestProblem?: string;
+  websiteUrl?: string;
+};
+
 let ceoTablesReady = false;
 
 async function ensureCeoCoachTables() {
@@ -68,6 +78,14 @@ async function ensureCeoCoachTables() {
       source_page TEXT,
       user_agent TEXT,
       ip_address TEXT,
+      name TEXT,
+      phone TEXT,
+      email TEXT,
+      business_name TEXT,
+      business_description TEXT,
+      biggest_problem TEXT,
+      website_url TEXT,
+      website_context TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -98,6 +116,14 @@ async function ensureCeoCoachTables() {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_ceo_coach_messages_session_created ON ceo_coach_messages(session_id, created_at)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_ceo_coach_artifacts_session_created ON ceo_coach_artifacts(session_id, created_at)`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS name TEXT`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS phone TEXT`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS email TEXT`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS business_name TEXT`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS business_description TEXT`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS biggest_problem TEXT`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS website_url TEXT`;
+  await sql`ALTER TABLE ceo_coach_sessions ADD COLUMN IF NOT EXISTS website_context TEXT`;
   ceoTablesReady = true;
 }
 
@@ -114,6 +140,54 @@ function normalizeKind(kind: string | undefined): string {
   const allowed = new Set(['plan', 'checklist', 'metric', 'note', 'risk', 'next_step']);
   const k = (kind ?? 'note').toLowerCase();
   return allowed.has(k) ? k : 'note';
+}
+
+function cleanProfile(raw: unknown): CoachProfile {
+  if (!raw || typeof raw !== 'object') return {};
+  const p = raw as Record<string, unknown>;
+  const str = (k: string, max = 1000) =>
+    typeof p[k] === 'string' ? p[k].trim().slice(0, max) : undefined;
+  return {
+    name: str('name', 120),
+    phone: str('phone', 60),
+    email: str('email', 180),
+    businessName: str('businessName', 180),
+    businessDescription: str('businessDescription', 2000),
+    biggestProblem: str('biggestProblem', 2000),
+    websiteUrl: str('websiteUrl', 400),
+  };
+}
+
+function normalizeWebsiteUrl(input?: string): string | null {
+  if (!input) return null;
+  const v = input.trim();
+  if (!v || v.toLowerCase() === 'no' || v.toLowerCase() === 'none') return null;
+  const withProtocol = /^https?:\/\//i.test(v) ? v : `https://${v}`;
+  try {
+    const url = new URL(withProtocol);
+    if (!/^https?:$/.test(url.protocol)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchWebsiteContext(websiteUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(websiteUrl, { headers: { 'user-agent': 'AiWebDesignFirmBot/1.0' } });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const plain = html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!plain) return null;
+    return plain.slice(0, 6000);
+  } catch {
+    return null;
+  }
 }
 
 async function callClaude(messages: MessageRow[], system: string, maxTokens: number) {
@@ -170,6 +244,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'sessionId query param is required' }, { status: 400 });
     }
 
+    const session = await sql<
+      {
+        name: string | null;
+        phone: string | null;
+        email: string | null;
+        business_name: string | null;
+        business_description: string | null;
+        biggest_problem: string | null;
+        website_url: string | null;
+      }[]
+    >`
+      SELECT name, phone, email, business_name, business_description, biggest_problem, website_url
+      FROM ceo_coach_sessions
+      WHERE id = ${sessionId}
+      LIMIT 1
+    `;
+
     const messages = await sql<
       { id: number; role: string; content: string; created_at: string }[]
     >`
@@ -188,7 +279,20 @@ export async function GET(request: NextRequest) {
       ORDER BY created_at ASC, id ASC
     `;
 
-    return NextResponse.json({ sessionId, messages, artifacts });
+    return NextResponse.json({
+      sessionId,
+      messages,
+      artifacts,
+      profile: {
+        name: session[0]?.name ?? '',
+        phone: session[0]?.phone ?? '',
+        email: session[0]?.email ?? '',
+        businessName: session[0]?.business_name ?? '',
+        businessDescription: session[0]?.business_description ?? '',
+        biggestProblem: session[0]?.biggest_problem ?? '',
+        websiteUrl: session[0]?.website_url ?? '',
+      },
+    });
   } catch (error) {
     console.error('CEO coach GET error:', error);
     const message = error instanceof Error ? error.message : 'Failed to load session';
@@ -204,9 +308,9 @@ export async function POST(request: NextRequest) {
     const sessionId = safeText(body.sessionId);
     const message = safeText(body.message);
     const sourcePage = safeText(body.sourcePage);
+    const incomingProfile = cleanProfile(body.profile);
     const responseLength = clampResponseLengthLevel(body.responseLength);
     const { maxTokens, instruction } = getCeoResponseLengthConfig(responseLength);
-    const system = `${SYSTEM_PROMPT_BASE}\n\n${instruction}\n\nIf anything conflicts, the RESPONSE LENGTH block wins.`;
 
     if (!sessionId || sessionId.length > 128) {
       return NextResponse.json({ error: 'A valid sessionId is required' }, { status: 400 });
@@ -236,6 +340,85 @@ export async function POST(request: NextRequest) {
         ip_address = EXCLUDED.ip_address,
         updated_at = CURRENT_TIMESTAMP
     `;
+
+    const existing = await sql<
+      {
+        name: string | null;
+        phone: string | null;
+        email: string | null;
+        business_name: string | null;
+        business_description: string | null;
+        biggest_problem: string | null;
+        website_url: string | null;
+        website_context: string | null;
+      }[]
+    >`
+      SELECT
+        name, phone, email, business_name, business_description, biggest_problem, website_url, website_context
+      FROM ceo_coach_sessions
+      WHERE id = ${sessionId}
+      LIMIT 1
+    `;
+
+    const mergedProfile = {
+      name: incomingProfile.name || existing[0]?.name || '',
+      phone: incomingProfile.phone || existing[0]?.phone || '',
+      email: incomingProfile.email || existing[0]?.email || '',
+      businessName: incomingProfile.businessName || existing[0]?.business_name || '',
+      businessDescription: incomingProfile.businessDescription || existing[0]?.business_description || '',
+      biggestProblem: incomingProfile.biggestProblem || existing[0]?.biggest_problem || '',
+      websiteUrl:
+        normalizeWebsiteUrl(incomingProfile.websiteUrl) ||
+        normalizeWebsiteUrl(existing[0]?.website_url ?? undefined) ||
+        '',
+    };
+
+    let websiteContext = existing[0]?.website_context || '';
+    const normalizedIncomingWebsite = normalizeWebsiteUrl(incomingProfile.websiteUrl);
+    if (normalizedIncomingWebsite && normalizedIncomingWebsite !== normalizeWebsiteUrl(existing[0]?.website_url ?? undefined)) {
+      websiteContext = (await fetchWebsiteContext(normalizedIncomingWebsite)) || '';
+    } else if (mergedProfile.websiteUrl && !websiteContext) {
+      websiteContext = (await fetchWebsiteContext(mergedProfile.websiteUrl)) || '';
+    }
+
+    await sql`
+      UPDATE ceo_coach_sessions
+      SET
+        name = ${mergedProfile.name || null},
+        phone = ${mergedProfile.phone || null},
+        email = ${mergedProfile.email || null},
+        business_name = ${mergedProfile.businessName || null},
+        business_description = ${mergedProfile.businessDescription || null},
+        biggest_problem = ${mergedProfile.biggestProblem || null},
+        website_url = ${mergedProfile.websiteUrl || null},
+        website_context = ${websiteContext || null},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${sessionId}
+    `;
+
+    const system = `${SYSTEM_PROMPT_BASE}
+
+${instruction}
+
+Business profile (authoritative context from onboarding):
+- Name: ${mergedProfile.name || 'unknown'}
+- Phone: ${mergedProfile.phone || 'unknown'}
+- Email: ${mergedProfile.email || 'unknown'}
+- Business: ${mergedProfile.businessName || 'unknown'}
+- Business description: ${mergedProfile.businessDescription || 'unknown'}
+- Biggest problem: ${mergedProfile.biggestProblem || 'unknown'}
+- Website: ${mergedProfile.websiteUrl || 'none provided'}
+
+Website extracted context (if available):
+${websiteContext || 'No website content extracted yet.'}
+
+Sales intent:
+- Explain why AI is high-value for this exact business and problem.
+- Be persuasive but not deceptive.
+- Keep conversation moving toward booking a strategy call.
+- If user asks next steps, include a clear nudge to book the meeting.
+
+If anything conflicts, the RESPONSE LENGTH block wins.`;
 
     await sql`
       INSERT INTO ceo_coach_messages (session_id, role, content)
@@ -272,6 +455,7 @@ export async function POST(request: NextRequest) {
       artifacts,
       sessionId,
       responseLength,
+      profile: mergedProfile,
     });
   } catch (error) {
     console.error('CEO coach error:', error);
