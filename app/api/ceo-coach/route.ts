@@ -158,6 +158,38 @@ function cleanProfile(raw: unknown): CoachProfile {
   };
 }
 
+function inferProfileFromMessage(message: string): CoachProfile {
+  const out: CoachProfile = {};
+  const text = message.trim();
+  if (!text) return out;
+
+  const email = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)?.[0];
+  if (email) out.email = email;
+
+  const phone = text.match(/(?:\+?\d[\d\s().-]{8,}\d)/)?.[0];
+  if (phone) out.phone = phone;
+
+  const website = text.match(/\b(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+\.[a-z]{2,}(?:\/[^\s]*)?/i)?.[0];
+  if (website) out.websiteUrl = website;
+
+  const nameMatch =
+    text.match(/\b(?:my name is|i am|i'm)\s+([A-Za-z][A-Za-z\s'-]{1,60})/i) ||
+    text.match(/\bname:\s*([A-Za-z][A-Za-z\s'-]{1,60})/i);
+  if (nameMatch?.[1]) out.name = nameMatch[1].trim();
+
+  const bizMatch =
+    text.match(/\b(?:my business is|our business is|company name is)\s+([A-Za-z0-9&.,' -]{2,120})/i) ||
+    text.match(/\bbusiness name:\s*([A-Za-z0-9&.,' -]{2,120})/i);
+  if (bizMatch?.[1]) out.businessName = bizMatch[1].trim();
+
+  const problemMatch =
+    text.match(/\b(?:biggest problem is|main problem is|our problem is)\s+(.{8,2000})/i) ||
+    text.match(/\bproblem:\s*(.{8,2000})/i);
+  if (problemMatch?.[1]) out.biggestProblem = problemMatch[1].trim();
+
+  return out;
+}
+
 function normalizeWebsiteUrl(input?: string): string | null {
   if (!input) return null;
   const v = input.trim();
@@ -310,6 +342,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const incomingProfile = cleanProfile(body.profile);
+    const inferredProfile = inferProfileFromMessage(message);
     const existing = await sql<
       {
         name: string | null;
@@ -330,14 +363,15 @@ export async function PATCH(request: NextRequest) {
     `;
 
     const mergedProfile = {
-      name: incomingProfile.name || existing[0]?.name || '',
-      phone: incomingProfile.phone || existing[0]?.phone || '',
-      email: incomingProfile.email || existing[0]?.email || '',
-      businessName: incomingProfile.businessName || existing[0]?.business_name || '',
+      name: incomingProfile.name || inferredProfile.name || existing[0]?.name || '',
+      phone: incomingProfile.phone || inferredProfile.phone || existing[0]?.phone || '',
+      email: incomingProfile.email || inferredProfile.email || existing[0]?.email || '',
+      businessName: incomingProfile.businessName || inferredProfile.businessName || existing[0]?.business_name || '',
       businessDescription: incomingProfile.businessDescription || existing[0]?.business_description || '',
-      biggestProblem: incomingProfile.biggestProblem || existing[0]?.biggest_problem || '',
+      biggestProblem: incomingProfile.biggestProblem || inferredProfile.biggestProblem || existing[0]?.biggest_problem || '',
       websiteUrl:
         normalizeWebsiteUrl(incomingProfile.websiteUrl) ||
+        normalizeWebsiteUrl(inferredProfile.websiteUrl) ||
         normalizeWebsiteUrl(existing[0]?.website_url ?? undefined) ||
         '',
     };

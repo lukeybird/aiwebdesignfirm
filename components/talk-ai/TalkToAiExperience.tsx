@@ -284,6 +284,26 @@ export function TalkToAiExperience() {
         if (Array.isArray(payload.artifacts)) {
           setArtifacts(payload.artifacts as ApiArtifact[]);
         }
+        if (payload?.profile && typeof payload.profile === 'object') {
+          setProfile((prev) => ({
+            ...prev,
+            name: typeof payload.profile.name === 'string' ? payload.profile.name : prev.name,
+            phone: typeof payload.profile.phone === 'string' ? payload.profile.phone : prev.phone,
+            email: typeof payload.profile.email === 'string' ? payload.profile.email : prev.email,
+            businessName:
+              typeof payload.profile.businessName === 'string' ? payload.profile.businessName : prev.businessName,
+            businessDescription:
+              typeof payload.profile.businessDescription === 'string'
+                ? payload.profile.businessDescription
+                : prev.businessDescription,
+            biggestProblem:
+              typeof payload.profile.biggestProblem === 'string'
+                ? payload.profile.biggestProblem
+                : prev.biggestProblem,
+            websiteUrl:
+              typeof payload.profile.websiteUrl === 'string' ? payload.profile.websiteUrl : prev.websiteUrl,
+          }));
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Request failed';
         setError(msg);
