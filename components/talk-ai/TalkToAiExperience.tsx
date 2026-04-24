@@ -89,6 +89,7 @@ export function TalkToAiExperience() {
   const [history, setHistory] = useState<ChatTurn[]>([]);
 
   const streamRef = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<{
     continuous: boolean;
     interimResults: boolean;
@@ -111,7 +112,7 @@ export function TalkToAiExperience() {
     setIsListening(false);
   }, []);
 
-  const speak = useCallback((text: string) => {
+  const speakWithBrowser = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -120,6 +121,41 @@ export function TalkToAiExperience() {
     utterance.lang = 'en-US';
     window.speechSynthesis.speak(utterance);
   }, []);
+
+  const speak = useCallback(
+    async (text: string) => {
+      if (typeof window === 'undefined') return;
+
+      try {
+        const response = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+
+        if (!response.ok) {
+          throw new Error('TTS route failed');
+        }
+
+        const blob = await response.blob();
+        if (!blob.size) throw new Error('Empty TTS audio');
+
+        const url = URL.createObjectURL(blob);
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
+        }
+        const player = audioRef.current;
+        player.pause();
+        player.src = url;
+        player.onended = () => URL.revokeObjectURL(url);
+        player.onerror = () => URL.revokeObjectURL(url);
+        await player.play();
+      } catch {
+        speakWithBrowser(text);
+      }
+    },
+    [speakWithBrowser],
+  );
 
   const askAssistant = useCallback(
     async (message: string) => {
@@ -148,7 +184,7 @@ export function TalkToAiExperience() {
 
         const reply = (payload.reply as string) || 'I can help you move this forward. Tell me your biggest bottleneck right now.';
         setHistory((prev) => [...prev, { id: `a_${Date.now()}`, role: 'assistant', text: reply }]);
-        speak(reply);
+        void speak(reply);
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Request failed';
         setError(msg);
@@ -223,7 +259,7 @@ export function TalkToAiExperience() {
         await videoRef.current.play().catch(() => {});
       }
       setIsEnabled(true);
-      speak('Hi, I am the AI.');
+      void speak('Hi, I am the AI.');
       startListening();
     } catch {
       setError('Please allow camera and microphone permissions to use Talk to AI.');
@@ -235,6 +271,10 @@ export function TalkToAiExperience() {
       stopListening();
       recognitionRef.current = null;
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       if (typeof window !== 'undefined') {
         window.speechSynthesis?.cancel();
       }
