@@ -342,7 +342,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     const incomingProfile = cleanProfile(body.profile);
-    const inferredProfile = inferProfileFromMessage(message);
     const existing = await sql<
       {
         name: string | null;
@@ -363,15 +362,14 @@ export async function PATCH(request: NextRequest) {
     `;
 
     const mergedProfile = {
-      name: incomingProfile.name || inferredProfile.name || existing[0]?.name || '',
-      phone: incomingProfile.phone || inferredProfile.phone || existing[0]?.phone || '',
-      email: incomingProfile.email || inferredProfile.email || existing[0]?.email || '',
-      businessName: incomingProfile.businessName || inferredProfile.businessName || existing[0]?.business_name || '',
+      name: incomingProfile.name || existing[0]?.name || '',
+      phone: incomingProfile.phone || existing[0]?.phone || '',
+      email: incomingProfile.email || existing[0]?.email || '',
+      businessName: incomingProfile.businessName || existing[0]?.business_name || '',
       businessDescription: incomingProfile.businessDescription || existing[0]?.business_description || '',
       biggestProblem: incomingProfile.biggestProblem || inferredProfile.biggestProblem || existing[0]?.biggest_problem || '',
       websiteUrl:
         normalizeWebsiteUrl(incomingProfile.websiteUrl) ||
-        normalizeWebsiteUrl(inferredProfile.websiteUrl) ||
         normalizeWebsiteUrl(existing[0]?.website_url ?? undefined) ||
         '',
     };
