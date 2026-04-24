@@ -116,6 +116,8 @@ type FormValues = z.infer<typeof formSchema>;
 export default function AiWebsiteProHome() {
   /** “Consumers don’t Google anymore” / query-behavior shift block — set true to show again */
   const showConsumersShiftSection = false;
+  /** Lead capture form visibility toggle (hidden for now). */
+  const showLeadCaptureSection = false;
 
   const defaultFormValues: FormValues = {
     name: '',
@@ -424,22 +426,10 @@ export default function AiWebsiteProHome() {
                   size="lg"
                   className="relative z-10 w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
                 >
-                  <a href="#contact" aria-label="Free consultation — go to contact form">
-                    Free Consultation
+                  <a href="/ceo-advisor" aria-label="Talk to AI — open CEO advisor page">
+                    Talk to AI
                   </a>
                 </Button>
-                {!fridayAvailLoading && fridayAvail != null ? (
-                  <p
-                    className="relative z-10 mt-3 w-full text-center text-sm font-extrabold tracking-tight text-red-500 sm:mt-3.5 sm:text-base md:text-lg"
-                    aria-live="polite"
-                  >
-                    Only{' '}
-                    <span className="tabular-nums">
-                      {fridayAvail.hoursEnabled && fridayAvail.total > 0 ? fridayAvail.available : 0}
-                    </span>{' '}
-                    spots left
-                  </p>
-                ) : null}
               </div>
             </motion.div>
           </motion.div>
@@ -529,6 +519,7 @@ export default function AiWebsiteProHome() {
       )}
 
       {/* Lead capture */}
+      {showLeadCaptureSection && (
       <section
         className={cn(
           'relative overflow-hidden border-t transition-colors duration-500',
@@ -710,6 +701,7 @@ export default function AiWebsiteProHome() {
             </div>
           </div>
       </section>
+      )}
       
       {/* Footer — same height + glass treatment as top nav */}
       <footer
