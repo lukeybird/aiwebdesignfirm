@@ -426,7 +426,7 @@ export default function AiWebsiteProHome() {
                   size="lg"
                   className="relative z-10 w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
                 >
-                  <a href="/ceo-advisor" aria-label="Talk to AI — open CEO advisor page">
+                  <a href="/talk-to-ai" aria-label="Talk to AI — open live voice AI page">
                     Talk to AI
                   </a>
                 </Button>
