@@ -300,6 +300,86 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    await ensureCeoCoachTables();
+    const body = await request.json();
+    const sessionId = safeText(body.sessionId);
+    if (!sessionId || sessionId.length > 128) {
+      return NextResponse.json({ error: 'A valid sessionId is required' }, { status: 400 });
+    }
+
+    const incomingProfile = cleanProfile(body.profile);
+    const existing = await sql<
+      {
+        name: string | null;
+        phone: string | null;
+        email: string | null;
+        business_name: string | null;
+        business_description: string | null;
+        biggest_problem: string | null;
+        website_url: string | null;
+        website_context: string | null;
+      }[]
+    >`
+      SELECT
+        name, phone, email, business_name, business_description, biggest_problem, website_url, website_context
+      FROM ceo_coach_sessions
+      WHERE id = ${sessionId}
+      LIMIT 1
+    `;
+
+    const mergedProfile = {
+      name: incomingProfile.name || existing[0]?.name || '',
+      phone: incomingProfile.phone || existing[0]?.phone || '',
+      email: incomingProfile.email || existing[0]?.email || '',
+      businessName: incomingProfile.businessName || existing[0]?.business_name || '',
+      businessDescription: incomingProfile.businessDescription || existing[0]?.business_description || '',
+      biggestProblem: incomingProfile.biggestProblem || existing[0]?.biggest_problem || '',
+      websiteUrl:
+        normalizeWebsiteUrl(incomingProfile.websiteUrl) ||
+        normalizeWebsiteUrl(existing[0]?.website_url ?? undefined) ||
+        '',
+    };
+
+    let websiteContext = existing[0]?.website_context || '';
+    const normalizedIncomingWebsite = normalizeWebsiteUrl(incomingProfile.websiteUrl);
+    if (normalizedIncomingWebsite && normalizedIncomingWebsite !== normalizeWebsiteUrl(existing[0]?.website_url ?? undefined)) {
+      websiteContext = (await fetchWebsiteContext(normalizedIncomingWebsite)) || '';
+    } else if (mergedProfile.websiteUrl && !websiteContext) {
+      websiteContext = (await fetchWebsiteContext(mergedProfile.websiteUrl)) || '';
+    }
+
+    await sql`
+      INSERT INTO ceo_coach_sessions (id, updated_at)
+      VALUES (${sessionId}, CURRENT_TIMESTAMP)
+      ON CONFLICT (id)
+      DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+    `;
+
+    await sql`
+      UPDATE ceo_coach_sessions
+      SET
+        name = ${mergedProfile.name || null},
+        phone = ${mergedProfile.phone || null},
+        email = ${mergedProfile.email || null},
+        business_name = ${mergedProfile.businessName || null},
+        business_description = ${mergedProfile.businessDescription || null},
+        biggest_problem = ${mergedProfile.biggestProblem || null},
+        website_url = ${mergedProfile.websiteUrl || null},
+        website_context = ${websiteContext || null},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${sessionId}
+    `;
+
+    return NextResponse.json({ success: true, profile: mergedProfile });
+  } catch (error) {
+    console.error('CEO coach PATCH error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to save profile';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await ensureCeoCoachTables();

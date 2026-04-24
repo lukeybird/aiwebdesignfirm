@@ -149,6 +149,8 @@ export function TalkToAiExperience() {
   const [isSubmittingMeeting, setIsSubmittingMeeting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [meetingSuccess, setMeetingSuccess] = useState<string | null>(null);
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [partialTranscript, setPartialTranscript] = useState('');
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [artifacts, setArtifacts] = useState<ApiArtifact[]>([]);
@@ -173,6 +175,47 @@ export function TalkToAiExperience() {
     if (typeof window === 'undefined') return false;
     return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
   }, []);
+
+  const loadSessionProfile = useCallback(async () => {
+    try {
+      const sessionId = getSessionId();
+      const res = await fetch(`/api/ceo-coach?sessionId=${encodeURIComponent(sessionId)}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      if (data?.profile && typeof data.profile === 'object') {
+        setProfile((prev) => ({
+          ...prev,
+          name: typeof data.profile.name === 'string' ? data.profile.name : prev.name,
+          phone: typeof data.profile.phone === 'string' ? data.profile.phone : prev.phone,
+          email: typeof data.profile.email === 'string' ? data.profile.email : prev.email,
+          businessName: typeof data.profile.businessName === 'string' ? data.profile.businessName : prev.businessName,
+          businessDescription:
+            typeof data.profile.businessDescription === 'string'
+              ? data.profile.businessDescription
+              : prev.businessDescription,
+          biggestProblem:
+            typeof data.profile.biggestProblem === 'string' ? data.profile.biggestProblem : prev.biggestProblem,
+          websiteUrl: typeof data.profile.websiteUrl === 'string' ? data.profile.websiteUrl : prev.websiteUrl,
+        }));
+      }
+      if (Array.isArray(data?.messages) && data.messages.length > 0) {
+        setHistory(
+          data.messages
+            .filter((m: any) => m.role === 'user' || m.role === 'assistant')
+            .map((m: any) => ({ id: `db_${m.id}`, role: m.role, text: m.content })),
+        );
+      }
+      if (Array.isArray(data?.artifacts)) {
+        setArtifacts(data.artifacts);
+      }
+    } catch {
+      // ignore profile hydration errors in UI
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSessionProfile();
+  }, [loadSessionProfile]);
 
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -421,6 +464,44 @@ export function TalkToAiExperience() {
     }
   }
 
+  async function saveProfile() {
+    if (isSavingProfile) return;
+    setIsSavingProfile(true);
+    setProfileSaveSuccess(null);
+    setError(null);
+    try {
+      const r = await fetch('/api/ceo-coach', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: getSessionId(),
+          profile: {
+            name: profile.name,
+            phone: profile.phone,
+            email: profile.email,
+            businessName: profile.businessName,
+            businessDescription: profile.businessDescription,
+            biggestProblem: profile.biggestProblem,
+            websiteUrl: profile.websiteUrl,
+          },
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw new Error((j as { error?: string }).error || 'Failed to save profile');
+      }
+      if ((j as any).profile) {
+        setProfile((j as any).profile);
+      }
+      setProfileSaveSuccess('Profile saved.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to save profile';
+      setError(msg);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
   return (
     <main className='min-h-[100dvh] bg-[#02040a] text-white'>
       <div className='mx-auto w-full max-w-[min(100%,104rem)] px-5 py-8 sm:px-8 lg:px-12'>
@@ -522,7 +603,20 @@ export function TalkToAiExperience() {
               )}
             </div>
 
-            <div className='mt-5 grid gap-3 rounded-2xl border border-cyan-300/25 bg-[#0a1d34]/55 p-4 sm:grid-cols-2'>
+            <div className='mt-5 rounded-2xl border border-cyan-300/25 bg-[#0a1d34]/55 p-4'>
+              <div className='mb-3 flex items-center justify-between gap-3'>
+                <p className='text-sm font-semibold uppercase tracking-wider text-cyan-200/80'>Profile (editable)</p>
+                <Button
+                  type='button'
+                  size='sm'
+                  className='h-9 rounded-full bg-cyan-400 px-4 text-black hover:bg-cyan-300 disabled:opacity-60'
+                  onClick={saveProfile}
+                  disabled={isSavingProfile}
+                >
+                  {isSavingProfile ? 'Saving…' : 'Save profile'}
+                </Button>
+              </div>
+              <div className='grid gap-3 sm:grid-cols-2'>
               <Input value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} placeholder='Name' className='bg-black/40 text-white' />
               <Input value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} placeholder='Phone' className='bg-black/40 text-white' />
               <Input value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} placeholder='Email' className='bg-black/40 text-white' />
@@ -530,6 +624,8 @@ export function TalkToAiExperience() {
               <Input value={profile.businessDescription} onChange={(e) => setProfile((p) => ({ ...p, businessDescription: e.target.value }))} placeholder='What do you do?' className='bg-black/40 text-white sm:col-span-2' />
               <Input value={profile.biggestProblem} onChange={(e) => setProfile((p) => ({ ...p, biggestProblem: e.target.value }))} placeholder='Biggest problem' className='bg-black/40 text-white sm:col-span-2' />
               <Input value={profile.websiteUrl} onChange={(e) => setProfile((p) => ({ ...p, websiteUrl: e.target.value }))} placeholder='Website URL (optional)' className='bg-black/40 text-white sm:col-span-2' />
+              </div>
+              {profileSaveSuccess ? <p className='mt-2 text-xs text-emerald-300'>{profileSaveSuccess}</p> : null}
             </div>
 
             {onboardingDone ? (
