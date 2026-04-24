@@ -13,42 +13,29 @@ type ChatTurn = {
 declare global {
   interface Window {
     webkitSpeechRecognition?: {
-      new (): SpeechRecognition;
+      new (): {
+        continuous: boolean;
+        interimResults: boolean;
+        lang: string;
+        onresult: ((event: any) => void) | null;
+        onerror: ((event: Event) => void) | null;
+        onend: (() => void) | null;
+        start(): void;
+        stop(): void;
+      };
     };
     SpeechRecognition?: {
-      new (): SpeechRecognition;
+      new (): {
+        continuous: boolean;
+        interimResults: boolean;
+        lang: string;
+        onresult: ((event: any) => void) | null;
+        onerror: ((event: Event) => void) | null;
+        onend: (() => void) | null;
+        start(): void;
+        stop(): void;
+      };
     };
-  }
-
-  interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    onresult: ((event: SpeechRecognitionEvent) => void) | null;
-    onerror: ((event: Event) => void) | null;
-    onend: (() => void) | null;
-    start(): void;
-    stop(): void;
-  }
-
-  interface SpeechRecognitionEvent extends Event {
-    resultIndex: number;
-    results: SpeechRecognitionResultList;
-  }
-
-  interface SpeechRecognitionResultList {
-    length: number;
-    [index: number]: SpeechRecognitionResult;
-  }
-
-  interface SpeechRecognitionResult {
-    isFinal: boolean;
-    length: number;
-    [index: number]: SpeechRecognitionAlternative;
-  }
-
-  interface SpeechRecognitionAlternative {
-    transcript: string;
   }
 }
 
@@ -102,7 +89,16 @@ export function TalkToAiExperience() {
   const [history, setHistory] = useState<ChatTurn[]>([]);
 
   const streamRef = useRef<MediaStream | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<{
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult: ((event: any) => void) | null;
+    onerror: ((event: Event) => void) | null;
+    onend: (() => void) | null;
+    start(): void;
+    stop(): void;
+  } | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const supportsSpeechRec = useMemo(() => {
@@ -174,7 +170,7 @@ export function TalkToAiExperience() {
     rec.interimResults = true;
     rec.lang = 'en-US';
 
-    rec.onresult = (event: SpeechRecognitionEvent) => {
+    rec.onresult = (event: any) => {
       let interim = '';
       const finals: string[] = [];
       for (let i = event.resultIndex; i < event.results.length; i++) {
