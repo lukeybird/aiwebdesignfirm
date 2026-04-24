@@ -333,7 +333,6 @@ export function TalkToAiExperience() {
         const current = onboardingFlow[onboardingIndex];
         if (!current) return;
 
-        setHistory((prev) => [...prev, { id: `u_${Date.now()}`, role: 'user', text: input }]);
         setIsThinking(true);
         try {
           const r = await fetch('/api/ceo-coach', {
@@ -377,11 +376,11 @@ export function TalkToAiExperience() {
               : done
                 ? 'Great, profile complete.'
                 : onboardingFlow.find((f) => f.key === nextField)?.question ?? 'Thanks, next question.';
-          appendAssistant(prompt);
-
           if (done) {
             await finalizeOnboardingAndKickoff(merged);
           } else {
+            await askAssistant(input, merged);
+            appendAssistant(prompt);
             const idx = onboardingFlow.findIndex((f) => f.key === nextField);
             if (idx >= 0) setOnboardingIndex(idx);
           }
