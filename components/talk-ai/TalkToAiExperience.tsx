@@ -159,6 +159,7 @@ export function TalkToAiExperience() {
   const [meetingSuccess, setMeetingSuccess] = useState<string | null>(null);
   const [profileSaveSuccess, setProfileSaveSuccess] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [partialTranscript, setPartialTranscript] = useState('');
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [artifacts, setArtifacts] = useState<ApiArtifact[]>([]);
@@ -167,6 +168,7 @@ export function TalkToAiExperience() {
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
+  const shouldResumeListeningRef = useRef(false);
   const recognitionRef = useRef<{
     continuous: boolean;
     interimResults: boolean;
@@ -227,13 +229,48 @@ export function TalkToAiExperience() {
 
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    if (!text.trim()) return;
+    synth.cancel();
+
+    // Prevent speech recognition from stepping on spoken output.
+    shouldResumeListeningRef.current = isListening;
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.98;
     utterance.pitch = 1.02;
     utterance.lang = 'en-US';
-    window.speechSynthesis.speak(utterance);
-  }, []);
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      if (shouldResumeListeningRef.current) {
+        shouldResumeListeningRef.current = false;
+        try {
+          recognitionRef.current?.start();
+          setIsListening(true);
+        } catch {
+          // ignore resume failures
+        }
+      }
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      if (shouldResumeListeningRef.current) {
+        shouldResumeListeningRef.current = false;
+        try {
+          recognitionRef.current?.start();
+          setIsListening(true);
+        } catch {
+          // ignore resume failures
+        }
+      }
+    };
+    synth.speak(utterance);
+  }, [isListening]);
 
   const appendAssistant = useCallback(
     (text: string, options?: { speakOut?: boolean }) => {
@@ -436,7 +473,19 @@ export function TalkToAiExperience() {
   );
 
   const startListening = useCallback(() => {
-    if (!supportsSpeechRec || recognitionRef.current) return;
+    if (!supportsSpeechRec) return;
+
+    if (recognitionRef.current) {
+      if (!isListening) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch {
+          setError('Could not start voice recognition in this browser.');
+        }
+      }
+      return;
+    }
 
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Ctor) return;
@@ -648,7 +697,15 @@ export function TalkToAiExperience() {
                 </div>
               </div>
               <p className='mt-4 text-center text-lg font-semibold text-cyan-100/85'>
-                {isThinking ? 'Thinking...' : isListening ? 'Listening...' : isEnabled ? 'Ready' : 'Awaiting permission'}
+                {isSpeaking
+                  ? 'Speaking...'
+                  : isThinking
+                    ? 'Thinking...'
+                    : isListening
+                      ? 'Listening...'
+                      : isEnabled
+                        ? 'Ready'
+                        : 'Awaiting permission'}
               </p>
             </div>
 
