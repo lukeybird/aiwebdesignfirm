@@ -91,6 +91,14 @@ const defaultProfile: Profile = {
   websiteUrl: '',
 };
 
+function nextMissingOnboardingIndex(profile: Profile): number {
+  const idx = onboardingFlow.findIndex((step) => {
+    const value = profile[step.key];
+    return !value || !String(value).trim();
+  });
+  return idx === -1 ? onboardingFlow.length : idx;
+}
+
 function getSessionId(): string {
   if (typeof window === 'undefined') return 'server';
   const existing = window.localStorage.getItem(SESSION_KEY);
@@ -369,27 +377,50 @@ export function TalkToAiExperience() {
           };
           setProfile(merged);
 
-          const nextField = (payload as { nextField?: OnboardingField | null }).nextField ?? null;
-          const done = Boolean((payload as { completed?: boolean }).completed) || !nextField;
+          const nextFieldFromApi = (payload as { nextField?: OnboardingField | null }).nextField ?? null;
+
+          // Fallback: if the mapper did not fill the current field, use this utterance once and move forward.
+          const currentKey = current.key;
+          const hasCurrentValue =
+            typeof merged[currentKey] === 'string' && Boolean((merged[currentKey] as string).trim());
+          if (!hasCurrentValue) {
+            const fallbackValue = currentKey === 'websiteUrl' ? normalizeWebsite(input) : input;
+            merged[currentKey] = fallbackValue;
+            setProfile({ ...merged });
+          }
+
+          const nextIndex = nextMissingOnboardingIndex(merged);
+          const done = nextIndex >= onboardingFlow.length;
           const assistantPrompt = (payload as { assistantPrompt?: unknown }).assistantPrompt;
           const prompt: string =
             typeof assistantPrompt === 'string' && assistantPrompt.trim().length > 0
               ? assistantPrompt
               : done
                 ? 'Great, profile complete.'
-                : onboardingFlow.find((f) => f.key === nextField)?.question ?? 'Thanks, next question.';
+                : onboardingFlow[nextIndex]?.question ?? 'Thanks, next question.';
           if (done) {
             await finalizeOnboardingAndKickoff(merged);
           } else {
             await askAssistant(input, merged, { duringIntake: true });
+            // Keep the funnel smooth: ask each field once, then advance.
             appendAssistant(prompt);
-            const idx = onboardingFlow.findIndex((f) => f.key === nextField);
-            if (idx >= 0) setOnboardingIndex(idx);
+            setOnboardingIndex(nextIndex);
           }
         } catch (e) {
           const msg = e instanceof Error ? e.message : 'Could not process intake';
           setError(msg);
-          appendAssistant(`I want to put that in the right place. ${current.question}`);
+          // Do not loop on confirmations; move forward with best-effort capture.
+          const fallbackValue = current.key === 'websiteUrl' ? normalizeWebsite(input) : input;
+          const merged = { ...profile, [current.key]: fallbackValue };
+          setProfile(merged);
+          const nextIndex = nextMissingOnboardingIndex(merged);
+          if (nextIndex >= onboardingFlow.length) {
+            await finalizeOnboardingAndKickoff(merged);
+          } else {
+            await askAssistant(input, merged, { duringIntake: true });
+            appendAssistant(onboardingFlow[nextIndex].question);
+            setOnboardingIndex(nextIndex);
+          }
         } finally {
           setIsThinking(false);
         }
@@ -466,12 +497,19 @@ export function TalkToAiExperience() {
       }
       setIsEnabled(true);
       appendAssistant('Hi, I am the AI. I am going to build your profile first, then help you see exactly how AI can transform your business.');
-      appendAssistant(onboardingFlow[0].question);
+      const startIdx = nextMissingOnboardingIndex(profile);
+      if (startIdx < onboardingFlow.length) {
+        setOnboardingIndex(startIdx);
+        appendAssistant(onboardingFlow[startIdx].question);
+      } else {
+        setOnboardingDone(true);
+        appendAssistant('I already have your core profile. Tell me your current priority and I will guide you.');
+      }
       startListening();
     } catch {
       setError('Please allow camera and microphone permissions to use Talk to AI.');
     }
-  }, [appendAssistant, startListening]);
+  }, [appendAssistant, profile, startListening]);
 
   useEffect(() => {
     return () => {
