@@ -91,12 +91,21 @@ const defaultProfile: Profile = {
   websiteUrl: '',
 };
 
-function nextMissingOnboardingIndex(profile: Profile): number {
-  const idx = onboardingFlow.findIndex((step) => {
-    const value = profile[step.key];
-    return !value || !String(value).trim();
-  });
-  return idx === -1 ? onboardingFlow.length : idx;
+const orderedIntakeKeys: OnboardingField[] = [
+  'name',
+  'phone',
+  'email',
+  'businessName',
+  'businessDescription',
+  'biggestProblem',
+  'websiteUrl',
+];
+
+function nextMissingProfileField(profile: Profile): OnboardingField | null {
+  for (const key of orderedIntakeKeys) {
+    if (!String(profile[key] ?? '').trim()) return key;
+  }
+  return null;
 }
 
 function getSessionId(): string {
@@ -159,7 +168,6 @@ export function TalkToAiExperience() {
   const [meetingSuccess, setMeetingSuccess] = useState<string | null>(null);
   const [profileSaveSuccess, setProfileSaveSuccess] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [partialTranscript, setPartialTranscript] = useState('');
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [artifacts, setArtifacts] = useState<ApiArtifact[]>([]);
@@ -168,7 +176,6 @@ export function TalkToAiExperience() {
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
-  const shouldResumeListeningRef = useRef(false);
   const recognitionRef = useRef<{
     continuous: boolean;
     interimResults: boolean;
@@ -193,20 +200,29 @@ export function TalkToAiExperience() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return;
       if (data?.profile && typeof data.profile === 'object') {
+        const hydrated: Profile = {
+          ...defaultProfile,
+          name: typeof data.profile.name === 'string' ? data.profile.name : '',
+          phone: typeof data.profile.phone === 'string' ? data.profile.phone : '',
+          email: typeof data.profile.email === 'string' ? data.profile.email : '',
+          businessName: typeof data.profile.businessName === 'string' ? data.profile.businessName : '',
+          businessDescription:
+            typeof data.profile.businessDescription === 'string' ? data.profile.businessDescription : '',
+          biggestProblem: typeof data.profile.biggestProblem === 'string' ? data.profile.biggestProblem : '',
+          websiteUrl: typeof data.profile.websiteUrl === 'string' ? data.profile.websiteUrl : '',
+        };
         setProfile((prev) => ({
           ...prev,
-          name: typeof data.profile.name === 'string' ? data.profile.name : prev.name,
-          phone: typeof data.profile.phone === 'string' ? data.profile.phone : prev.phone,
-          email: typeof data.profile.email === 'string' ? data.profile.email : prev.email,
-          businessName: typeof data.profile.businessName === 'string' ? data.profile.businessName : prev.businessName,
-          businessDescription:
-            typeof data.profile.businessDescription === 'string'
-              ? data.profile.businessDescription
-              : prev.businessDescription,
-          biggestProblem:
-            typeof data.profile.biggestProblem === 'string' ? data.profile.biggestProblem : prev.biggestProblem,
-          websiteUrl: typeof data.profile.websiteUrl === 'string' ? data.profile.websiteUrl : prev.websiteUrl,
+          ...hydrated,
         }));
+        const next = nextMissingProfileField(hydrated);
+        if (next) {
+          const idx = onboardingFlow.findIndex((f) => f.key === next);
+          if (idx >= 0) setOnboardingIndex(idx);
+          setOnboardingDone(false);
+        } else {
+          setOnboardingDone(true);
+        }
       }
       if (Array.isArray(data?.messages) && data.messages.length > 0) {
         setHistory(
@@ -229,55 +245,18 @@ export function TalkToAiExperience() {
 
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const synth = window.speechSynthesis;
-    if (!text.trim()) return;
-    synth.cancel();
-
-    // Prevent speech recognition from stepping on spoken output.
-    shouldResumeListeningRef.current = isListening;
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    }
-
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.98;
     utterance.pitch = 1.02;
     utterance.lang = 'en-US';
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      if (shouldResumeListeningRef.current) {
-        shouldResumeListeningRef.current = false;
-        try {
-          recognitionRef.current?.start();
-          setIsListening(true);
-        } catch {
-          // ignore resume failures
-        }
-      }
-    };
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      if (shouldResumeListeningRef.current) {
-        shouldResumeListeningRef.current = false;
-        try {
-          recognitionRef.current?.start();
-          setIsListening(true);
-        } catch {
-          // ignore resume failures
-        }
-      }
-    };
-    synth.speak(utterance);
-  }, [isListening]);
+    window.speechSynthesis.speak(utterance);
+  }, []);
 
   const appendAssistant = useCallback(
-    (text: string, options?: { speakOut?: boolean }) => {
+    (text: string) => {
       setHistory((prev) => [...prev, { id: `a_${Date.now()}_${Math.random()}`, role: 'assistant', text }]);
-      if (options?.speakOut !== false) {
-        speak(text);
-      }
+      speak(text);
     },
     [speak],
   );
@@ -416,51 +395,20 @@ export function TalkToAiExperience() {
           };
           setProfile(merged);
 
-          const nextFieldFromApi = (payload as { nextField?: OnboardingField | null }).nextField ?? null;
-
-          // Fallback: if the mapper did not fill the current field, use this utterance once and move forward.
-          const currentKey = current.key;
-          const hasCurrentValue =
-            typeof merged[currentKey] === 'string' && Boolean((merged[currentKey] as string).trim());
-          if (!hasCurrentValue) {
-            const fallbackValue = currentKey === 'websiteUrl' ? normalizeWebsite(input) : input;
-            merged[currentKey] = fallbackValue;
-            setProfile({ ...merged });
-          }
-
-          const nextIndex = nextMissingOnboardingIndex(merged);
-          const done = nextIndex >= onboardingFlow.length;
-          const assistantPrompt = (payload as { assistantPrompt?: unknown }).assistantPrompt;
-          const prompt: string =
-            typeof assistantPrompt === 'string' && assistantPrompt.trim().length > 0
-              ? assistantPrompt
-              : done
-                ? 'Great, profile complete.'
-                : onboardingFlow[nextIndex]?.question ?? 'Thanks, next question.';
+          const nextField = nextMissingProfileField(merged);
+          const done = !nextField;
           if (done) {
             await finalizeOnboardingAndKickoff(merged);
           } else {
             await askAssistant(input, merged, { duringIntake: true });
-            // Keep the funnel smooth: ask each field once, then advance.
-            // Show prompt in chat, but don't interrupt spoken AI reply.
-            appendAssistant(prompt, { speakOut: false });
-            setOnboardingIndex(nextIndex);
+            appendAssistant(onboardingFlow.find((f) => f.key === nextField)?.question ?? 'Next question.');
+            const idx = onboardingFlow.findIndex((f) => f.key === nextField);
+            if (idx >= 0) setOnboardingIndex(idx);
           }
         } catch (e) {
           const msg = e instanceof Error ? e.message : 'Could not process intake';
           setError(msg);
-          // Do not loop on confirmations; move forward with best-effort capture.
-          const fallbackValue = current.key === 'websiteUrl' ? normalizeWebsite(input) : input;
-          const merged = { ...profile, [current.key]: fallbackValue };
-          setProfile(merged);
-          const nextIndex = nextMissingOnboardingIndex(merged);
-          if (nextIndex >= onboardingFlow.length) {
-            await finalizeOnboardingAndKickoff(merged);
-          } else {
-            await askAssistant(input, merged, { duringIntake: true });
-            appendAssistant(onboardingFlow[nextIndex].question, { speakOut: false });
-            setOnboardingIndex(nextIndex);
-          }
+          appendAssistant(`I want to put that in the right place. ${current.question}`);
         } finally {
           setIsThinking(false);
         }
@@ -473,19 +421,7 @@ export function TalkToAiExperience() {
   );
 
   const startListening = useCallback(() => {
-    if (!supportsSpeechRec) return;
-
-    if (recognitionRef.current) {
-      if (!isListening) {
-        try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch {
-          setError('Could not start voice recognition in this browser.');
-        }
-      }
-      return;
-    }
+    if (!supportsSpeechRec || recognitionRef.current) return;
 
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Ctor) return;
@@ -549,19 +485,12 @@ export function TalkToAiExperience() {
       }
       setIsEnabled(true);
       appendAssistant('Hi, I am the AI. I am going to build your profile first, then help you see exactly how AI can transform your business.');
-      const startIdx = nextMissingOnboardingIndex(profile);
-      if (startIdx < onboardingFlow.length) {
-        setOnboardingIndex(startIdx);
-        appendAssistant(onboardingFlow[startIdx].question);
-      } else {
-        setOnboardingDone(true);
-        appendAssistant('I already have your core profile. Tell me your current priority and I will guide you.');
-      }
+      appendAssistant(onboardingFlow[0].question);
       startListening();
     } catch {
       setError('Please allow camera and microphone permissions to use Talk to AI.');
     }
-  }, [appendAssistant, profile, startListening]);
+  }, [appendAssistant, startListening]);
 
   useEffect(() => {
     return () => {
@@ -697,15 +626,7 @@ export function TalkToAiExperience() {
                 </div>
               </div>
               <p className='mt-4 text-center text-lg font-semibold text-cyan-100/85'>
-                {isSpeaking
-                  ? 'Speaking...'
-                  : isThinking
-                    ? 'Thinking...'
-                    : isListening
-                      ? 'Listening...'
-                      : isEnabled
-                        ? 'Ready'
-                        : 'Awaiting permission'}
+                {isThinking ? 'Thinking...' : isListening ? 'Listening...' : isEnabled ? 'Ready' : 'Awaiting permission'}
               </p>
             </div>
 
