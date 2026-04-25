@@ -236,9 +236,11 @@ export function TalkToAiExperience() {
   }, []);
 
   const appendAssistant = useCallback(
-    (text: string) => {
+    (text: string, options?: { speakOut?: boolean }) => {
       setHistory((prev) => [...prev, { id: `a_${Date.now()}_${Math.random()}`, role: 'assistant', text }]);
-      speak(text);
+      if (options?.speakOut !== false) {
+        speak(text);
+      }
     },
     [speak],
   );
@@ -403,7 +405,8 @@ export function TalkToAiExperience() {
           } else {
             await askAssistant(input, merged, { duringIntake: true });
             // Keep the funnel smooth: ask each field once, then advance.
-            appendAssistant(prompt);
+            // Show prompt in chat, but don't interrupt spoken AI reply.
+            appendAssistant(prompt, { speakOut: false });
             setOnboardingIndex(nextIndex);
           }
         } catch (e) {
@@ -418,7 +421,7 @@ export function TalkToAiExperience() {
             await finalizeOnboardingAndKickoff(merged);
           } else {
             await askAssistant(input, merged, { duringIntake: true });
-            appendAssistant(onboardingFlow[nextIndex].question);
+            appendAssistant(onboardingFlow[nextIndex].question, { speakOut: false });
             setOnboardingIndex(nextIndex);
           }
         } finally {
