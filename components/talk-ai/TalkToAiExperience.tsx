@@ -241,7 +241,7 @@ export function TalkToAiExperience() {
   }, []);
 
   const askAssistant = useCallback(
-    async (message: string, nextProfile: Profile) => {
+    async (message: string, nextProfile: Profile, opts?: { duringIntake?: boolean }) => {
       const clean = message.trim();
       if (!clean) return;
 
@@ -255,7 +255,9 @@ export function TalkToAiExperience() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionId: getSessionId(),
-            message: clean,
+            message: opts?.duringIntake
+              ? `${clean}\n\n[INTAKE MODE: Give a short helpful response in 1-2 sentences. Do not ask for name/phone/email/business/problem/website again. The form funnel handles those prompts.]`
+              : clean,
             sourcePage: '/talk-to-ai',
             responseLength: 2,
             profile: {
@@ -379,7 +381,7 @@ export function TalkToAiExperience() {
           if (done) {
             await finalizeOnboardingAndKickoff(merged);
           } else {
-            await askAssistant(input, merged);
+            await askAssistant(input, merged, { duringIntake: true });
             appendAssistant(prompt);
             const idx = onboardingFlow.findIndex((f) => f.key === nextField);
             if (idx >= 0) setOnboardingIndex(idx);
