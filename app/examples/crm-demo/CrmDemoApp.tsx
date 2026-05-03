@@ -232,7 +232,7 @@ export default function CrmDemoApp() {
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-white">Demo CRM</p>
-              <p className="truncate text-xs text-cyan-200/60">Sample data — nothing is saved</p>
+              <p className="truncate text-xs text-cyan-200/60">This is a sample CRM — nothing is saved</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -281,7 +281,7 @@ export default function CrmDemoApp() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Dashboard</h1>
-                <p className="mt-1 text-sm text-gray-400">Snapshot of your pipeline — all numbers are fictional.</p>
+                <p className="mt-1 text-sm text-gray-400">Snapshot of your pipeline — sample numbers for illustration.</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
@@ -344,7 +344,7 @@ export default function CrmDemoApp() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Contacts</h1>
-                  <p className="mt-1 text-sm text-gray-400">Click a row to open a profile (demo only).</p>
+                  <p className="mt-1 text-sm text-gray-400">Click a row to open a sample contact profile.</p>
                 </div>
                 <div className="relative max-w-md flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
@@ -457,7 +457,7 @@ export default function CrmDemoApp() {
             <div className="space-y-4">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Deals</h1>
-                <p className="mt-1 text-sm text-gray-400">Click a card for details. Stages are fixed for this demo.</p>
+                <p className="mt-1 text-sm text-gray-400">Click a card for details. Stages are fixed in this sample.</p>
               </div>
               <div className="grid gap-3 lg:grid-cols-4">
                 {STAGES.map((col) => (
@@ -538,7 +538,9 @@ export default function CrmDemoApp() {
             <div className="space-y-4">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Tasks</h1>
-                <p className="mt-1 text-sm text-gray-400">Check items off — changes reset when you refresh the page.</p>
+                <p className="mt-1 text-sm text-gray-400">
+                  You can check items off here; reloading restores this sample list.
+                </p>
               </div>
               <ul className="space-y-2">
                 {tasks.map((t) => (

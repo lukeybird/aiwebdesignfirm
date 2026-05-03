@@ -462,7 +462,7 @@ export default function AiWebsiteProHome() {
                 href="/examples/crm-demo"
                 className="text-sm font-semibold text-[#7dd3fc] underline-offset-4 transition-colors hover:text-[#a5f3fc] hover:underline sm:text-base"
               >
-                Try a sample CRM (fake data, click around)
+                Try this sample CRM
               </Link>
             </motion.div>
           </motion.div>

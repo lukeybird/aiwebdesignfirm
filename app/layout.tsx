@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 import { GaPageView } from "@/components/analytics/GaPageView";
-import { AiImplementationChatWidget } from "@/components/chat/AiImplementationChatWidget";
+import AiImplementationChatWidget from "@/components/chat/AiImplementationChatWidget";
 import "./globals.css";
 
 const GA_MEASUREMENT_ID =
@@ -52,9 +52,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <GaPageView />
         </Suspense>
-        <Suspense fallback={null}>
-          <AiImplementationChatWidget />
-        </Suspense>
+        <AiImplementationChatWidget />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
