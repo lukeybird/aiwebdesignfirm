@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Bot, Search, TrendingUp, Globe } from 'lucide-react';
+import { Bot, Code2, Search, TrendingUp, Globe } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -431,6 +431,59 @@ export default function AiWebsiteProHome() {
                   </a>
                 </Button>
               </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* What we do — services overview between hero and lead form */}
+      <section
+        className={cn(
+          'relative border-y border-white/5 bg-gradient-to-b from-[#080c14] via-[#0a0f18] to-[#080c14]',
+          SECTION_PAD_Y,
+        )}
+      >
+        <div className={cn('relative z-10 mx-auto w-full max-w-6xl', SECTION_GUTTER_X)}>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={staggerContainer}
+            className="mx-auto max-w-3xl text-center"
+          >
+            <motion.h2 variants={fadeIn} className={cn(TYPE_SECTION_TITLE, 'mb-10 sm:mb-12')}>
+              What we do!
+            </motion.h2>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={staggerContainer}
+            className="mx-auto mt-12 grid max-w-5xl gap-6 sm:gap-8 md:grid-cols-2 md:mt-14"
+          >
+            <motion.div
+              variants={fadeIn}
+              className="rounded-2xl border border-[#0066ff]/25 bg-[#0a1528]/60 p-7 text-left shadow-[0_0_40px_-16px_rgba(0,102,255,0.35)] backdrop-blur-sm sm:p-8"
+            >
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-[#00d4ff]/25 bg-[#0066ff]/12">
+                <Bot className="h-6 w-6 text-[#7dd3fc]" aria-hidden />
+              </div>
+              <p className="text-lg font-medium leading-relaxed text-white/90 sm:text-xl">
+                We implement the correct AI options for your business at an affordable rate.
+              </p>
+            </motion.div>
+            <motion.div
+              variants={fadeIn}
+              className="rounded-2xl border border-[#00d4ff]/20 bg-[#0a1528]/60 p-7 text-left shadow-[0_0_40px_-16px_rgba(0,212,255,0.22)] backdrop-blur-sm sm:p-8"
+            >
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-[#0066ff]/20 bg-[#00d4ff]/10">
+                <Code2 className="h-6 w-6 text-[#7dd3fc]" aria-hidden />
+              </div>
+              <p className="text-lg font-medium leading-relaxed text-white/90 sm:text-xl">
+                We also create custom software tailored for your specific needs.
+              </p>
             </motion.div>
           </motion.div>
         </div>
