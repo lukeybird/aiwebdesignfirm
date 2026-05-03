@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Bot, Search, TrendingUp, Globe } from 'lucide-react';
+import { Search, TrendingUp, Globe } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -709,10 +709,7 @@ export default function AiWebsiteProHome() {
                               Sending…
                             </span>
                           ) : (
-                            <>
-                              <Bot className="w-5 h-5 shrink-0" />
-                              Book A Call!
-                            </>
+                            'Book A Call!'
                           )}
                         </Button>
                       </form>
