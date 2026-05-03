@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { UseCasesMarqueeBackdrop } from '@/components/ai-website-pro/UseCasesMarqueeBackdrop';
+import { HomeAiWhyChat } from '@/components/ai-website-pro/HomeAiWhyChat';
 
 /** Default when no plan is chosen in the UI (booking + CRM still expect a plan id). */
 const DEFAULT_CONSULTATION_PLAN = 'advanced' as const;
@@ -464,6 +465,9 @@ export default function AiWebsiteProHome() {
               >
                 Try this sample CRM
               </Link>
+            </motion.div>
+            <motion.div variants={fadeIn} className="mx-auto mt-10 w-full max-w-xl sm:mt-12">
+              <HomeAiWhyChat />
             </motion.div>
           </motion.div>
         </div>
