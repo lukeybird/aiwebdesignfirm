@@ -443,16 +443,21 @@ export default function AiWebsiteProHome() {
         )}
       >
         <div className={cn('relative z-10 mx-auto w-full max-w-3xl', SECTION_GUTTER_X)}>
-          <motion.p
+          <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
-            variants={fadeIn}
-            className={cn(TYPE_BODY, 'text-balance text-gray-300 sm:text-xl sm:leading-relaxed')}
+            variants={staggerContainer}
+            className="text-center sm:text-left"
           >
-            we do CRM&apos;s, we do online store apps, we do ai chat bots, we do ai receptionists, and we take
-            advantage of every cutting edge resource available.
-          </motion.p>
+            <motion.h2 variants={fadeIn} className={cn(TYPE_SECTION_TITLE, 'mb-6 sm:mb-8')}>
+              We Build Custom Software and Implement AI
+            </motion.h2>
+            <motion.p variants={fadeIn} className={cn(TYPE_BODY, 'text-balance text-gray-300 sm:text-xl sm:leading-relaxed')}>
+              We do CRMs, we do online store apps, we do AI chatbots, we do AI receptionists, and we take advantage of
+              every cutting-edge resource available.
+            </motion.p>
+          </motion.div>
         </div>
       </section>
 
