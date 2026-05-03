@@ -436,7 +436,6 @@ export default function AiWebsiteProHome() {
         </div>
       </section>
 
-      {/* What we do — plain editorial copy, no cards or icons */}
       <section
         className={cn(
           'relative border-t border-white/[0.06] bg-[#0a0a0f]',
@@ -444,31 +443,16 @@ export default function AiWebsiteProHome() {
         )}
       >
         <div className={cn('relative z-10 mx-auto w-full max-w-3xl', SECTION_GUTTER_X)}>
-          <motion.div
+          <motion.p
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
-            variants={staggerContainer}
-            className="text-center sm:text-left"
+            variants={fadeIn}
+            className={cn(TYPE_BODY, 'text-balance text-gray-300 sm:text-xl sm:leading-relaxed')}
           >
-            <motion.h2 variants={fadeIn} className={cn(TYPE_SECTION_TITLE, 'mb-8 sm:mb-10')}>
-              What we do
-            </motion.h2>
-            <motion.div variants={fadeIn} className="space-y-6 sm:space-y-7">
-              <p className={cn(TYPE_BODY, 'text-balance text-gray-300 sm:text-xl sm:leading-relaxed')}>
-                We build the systems that keep your business running smoothly—custom{' '}
-                <span className="font-medium text-white/90">CRMs</span>,{' '}
-                <span className="font-medium text-white/90">online store apps</span>,{' '}
-                <span className="font-medium text-white/90">AI chatbots</span>, and{' '}
-                <span className="font-medium text-white/90">AI receptionists</span>
-                —so customers get answers fast and your team spends time on what actually matters.
-              </p>
-              <p className={cn(TYPE_BODY, 'text-balance text-gray-400 sm:text-lg sm:leading-relaxed')}>
-                We stay current with every cutting-edge resource that can help you, then choose and implement what
-                fits your situation—no fluff, just tools that earn their place.
-              </p>
-            </motion.div>
-          </motion.div>
+            we do CRM&apos;s, we do online store apps, we do ai chat bots, we do ai receptionists, and we take
+            advantage of every cutting edge resource available.
+          </motion.p>
         </div>
       </section>
 
