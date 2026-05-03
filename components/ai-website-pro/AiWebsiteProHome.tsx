@@ -116,8 +116,8 @@ type FormValues = z.infer<typeof formSchema>;
 export default function AiWebsiteProHome() {
   /** “Consumers don’t Google anymore” / query-behavior shift block — set true to show again */
   const showConsumersShiftSection = false;
-  /** Lead capture form visibility toggle (hidden for now). */
-  const showLeadCaptureSection = false;
+  /** Lead capture form at bottom of homepage (booking). */
+  const showLeadCaptureSection = true;
 
   const defaultFormValues: FormValues = {
     name: '',
@@ -426,8 +426,8 @@ export default function AiWebsiteProHome() {
                   size="lg"
                   className="relative z-10 w-full !h-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-bold text-black hover:scale-[1.02] hover:from-[#0052cc] hover:to-[#00bfff] sm:w-auto sm:text-lg"
                 >
-                  <a href="/talk-to-ai" aria-label="Talk to AI — open live voice AI page">
-                    Talk to AI
+                  <a href="#contact" aria-label="Free consultation — scroll to booking form">
+                    Free Consultation
                   </a>
                 </Button>
               </div>
@@ -521,8 +521,9 @@ export default function AiWebsiteProHome() {
       {/* Lead capture */}
       {showLeadCaptureSection && (
       <section
+        id="contact"
         className={cn(
-          'relative overflow-hidden border-t transition-colors duration-500',
+          'relative scroll-mt-24 overflow-hidden border-t transition-colors duration-500',
           SECTION_PAD_Y,
           theme.sectionBorder,
         )}
@@ -560,7 +561,6 @@ export default function AiWebsiteProHome() {
         </div>
 
         <div className={cn('relative z-10 mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
-            <div id="contact" className="h-0 w-full overflow-hidden pointer-events-none" aria-hidden="true" />
             <div className="mx-auto w-full max-w-lg text-center mb-3">
               {!fridayAvailLoading && fridayAvail != null ? (
                 <p className={cn(TYPE_META, 'text-red-500')}>
