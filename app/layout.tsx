@@ -52,7 +52,9 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <GaPageView />
         </Suspense>
-        <AiImplementationChatWidget />
+        <Suspense fallback={null}>
+          <AiImplementationChatWidget />
+        </Suspense>
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"

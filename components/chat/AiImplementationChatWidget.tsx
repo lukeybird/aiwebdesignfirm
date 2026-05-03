@@ -94,7 +94,7 @@ export function AiImplementationChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-[120] flex flex-col items-end gap-3">
+    <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(1.25rem,env(safe-area-inset-right,0px))] z-[200] flex flex-col items-end gap-3">
       {open ? (
         <div className="w-[min(92vw,24rem)] rounded-2xl border border-cyan-400/25 bg-[#071325]/95 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)] backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-cyan-300/15 px-4 py-3">
