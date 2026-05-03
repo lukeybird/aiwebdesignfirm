@@ -457,6 +457,14 @@ export default function AiWebsiteProHome() {
               We do CRMs, we do online store apps, we do AI chatbots, we do AI receptionists, and we take advantage of
               every cutting-edge resource available.
             </motion.p>
+            <motion.div variants={fadeIn} className="mt-8">
+              <Link
+                href="/examples/crm-demo"
+                className="text-sm font-semibold text-[#7dd3fc] underline-offset-4 transition-colors hover:text-[#a5f3fc] hover:underline sm:text-base"
+              >
+                Try a sample CRM (fake data, click around)
+              </Link>
+            </motion.div>
           </motion.div>
         </div>
       </section>
