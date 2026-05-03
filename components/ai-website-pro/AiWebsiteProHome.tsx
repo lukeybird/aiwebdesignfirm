@@ -436,55 +436,163 @@ export default function AiWebsiteProHome() {
         </div>
       </section>
 
-      {/* What we do — services overview between hero and lead form */}
+      {/* What we do — same layer stack + card language as contact section */}
       <section
         className={cn(
-          'relative border-y border-white/5 bg-gradient-to-b from-[#080c14] via-[#0a0f18] to-[#080c14]',
+          'relative overflow-hidden border-t transition-colors duration-500',
           SECTION_PAD_Y,
+          theme.sectionBorder,
         )}
       >
-        <div className={cn('relative z-10 mx-auto w-full max-w-6xl', SECTION_GUTTER_X)}>
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0.88 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.38, ease: 'easeOut' }}
+            className="absolute inset-0"
+          >
+            <div className={cn('absolute inset-0', theme.sectionBg)} />
+            <div className={cn('absolute inset-0', theme.radial)} />
+            <motion.div
+              className={cn(
+                'absolute -top-32 right-0 h-[520px] w-[min(90vw,520px)] rounded-full blur-[100px]',
+                theme.blurTop,
+              )}
+              animate={{ opacity: [0.35, 0.65, 0.35], scale: [1, 1.08, 1] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className={cn(
+                'absolute bottom-0 left-0 h-[480px] w-[min(85vw,480px)] rounded-full blur-[110px]',
+                theme.blurBottom,
+              )}
+              animate={{ opacity: [0.3, 0.55, 0.3] }}
+              transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+            />
+          </motion.div>
+          <div className="absolute inset-0 z-[1] flex min-h-0 flex-col overflow-hidden py-4 sm:py-8">
+            <UseCasesMarqueeBackdrop className="min-h-0 flex-1" />
+          </div>
+        </div>
+
+        <div className={cn('relative z-10 mx-auto w-full max-w-none', SECTION_GUTTER_X)}>
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
             variants={staggerContainer}
-            className="mx-auto max-w-3xl text-center"
+            className="mx-auto max-w-6xl"
           >
-            <motion.h2 variants={fadeIn} className={cn(TYPE_SECTION_TITLE, 'mb-10 sm:mb-12')}>
-              What we do!
-            </motion.h2>
-          </motion.div>
+            <div className="mx-auto max-w-3xl text-center">
+              <motion.h2 variants={fadeIn} className={cn(TYPE_SECTION_TITLE, 'mb-5 sm:mb-6')}>
+                What we do!
+              </motion.h2>
+              <motion.div variants={fadeIn} className="mx-auto mb-10 h-px max-w-md sm:mb-12 sm:max-w-lg" aria-hidden>
+                <div className={cn('h-full w-full rounded-full', theme.divider)} />
+              </motion.div>
+            </div>
 
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-60px' }}
-            variants={staggerContainer}
-            className="mx-auto mt-12 grid max-w-5xl gap-6 sm:gap-8 md:grid-cols-2 md:mt-14"
-          >
-            <motion.div
-              variants={fadeIn}
-              className="rounded-2xl border border-[#0066ff]/25 bg-[#0a1528]/60 p-7 text-left shadow-[0_0_40px_-16px_rgba(0,102,255,0.35)] backdrop-blur-sm sm:p-8"
-            >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-[#00d4ff]/25 bg-[#0066ff]/12">
-                <Bot className="h-6 w-6 text-[#7dd3fc]" aria-hidden />
-              </div>
-              <p className="text-lg font-medium leading-relaxed text-white/90 sm:text-xl">
-                We implement the correct AI options for your business at an affordable rate.
-              </p>
-            </motion.div>
-            <motion.div
-              variants={fadeIn}
-              className="rounded-2xl border border-[#00d4ff]/20 bg-[#0a1528]/60 p-7 text-left shadow-[0_0_40px_-16px_rgba(0,212,255,0.22)] backdrop-blur-sm sm:p-8"
-            >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-[#0066ff]/20 bg-[#00d4ff]/10">
-                <Code2 className="h-6 w-6 text-[#7dd3fc]" aria-hidden />
-              </div>
-              <p className="text-lg font-medium leading-relaxed text-white/90 sm:text-xl">
-                We also create custom software tailored for your specific needs.
-              </p>
-            </motion.div>
+            <div className="grid gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-10 xl:gap-12">
+              <motion.article variants={fadeIn} className="group relative">
+                <motion.div
+                  className={cn(
+                    'pointer-events-none absolute -inset-3 -z-10 rounded-3xl blur-2xl sm:-inset-4',
+                    theme.formGlowMotion,
+                  )}
+                  animate={{ opacity: [0.55, 0.85, 0.55] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <div
+                  className={cn(
+                    'pointer-events-none absolute -inset-2 -z-10 rounded-3xl blur-xl sm:-inset-3',
+                    theme.formGlowStatic,
+                  )}
+                />
+                <div
+                  className={cn(
+                    'relative overflow-hidden rounded-3xl p-8 transition-all duration-500 sm:p-9',
+                    theme.formCard,
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full blur-3xl',
+                      theme.formBlobTL,
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      'pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full blur-2xl',
+                      theme.formBlobBR,
+                    )}
+                  />
+                  <div className="relative flex flex-col gap-5 sm:gap-6">
+                    <div
+                      className={cn(
+                        'flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-shadow duration-500',
+                        theme.leftFeatureShell,
+                        theme.leftFeatureShadowHover,
+                      )}
+                    >
+                      <Bot className={cn('h-7 w-7', theme.leftFeatureIcon)} aria-hidden />
+                    </div>
+                    <p className={cn(TYPE_BODY, 'text-left text-gray-300 sm:text-lg')}>
+                      We implement the correct AI options for your business at an affordable rate.
+                    </p>
+                  </div>
+                </div>
+              </motion.article>
+
+              <motion.article variants={fadeIn} className="group relative">
+                <motion.div
+                  className={cn(
+                    'pointer-events-none absolute -inset-3 -z-10 rounded-3xl blur-2xl sm:-inset-4',
+                    theme.formGlowMotion,
+                  )}
+                  animate={{ opacity: [0.55, 0.85, 0.55] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+                />
+                <div
+                  className={cn(
+                    'pointer-events-none absolute -inset-2 -z-10 rounded-3xl blur-xl sm:-inset-3',
+                    theme.formGlowStatic,
+                  )}
+                />
+                <div
+                  className={cn(
+                    'relative overflow-hidden rounded-3xl p-8 transition-all duration-500 sm:p-9',
+                    theme.formCard,
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full blur-3xl',
+                      theme.formBlobTL,
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      'pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full blur-2xl',
+                      theme.formBlobBR,
+                    )}
+                  />
+                  <div className="relative flex flex-col gap-5 sm:gap-6">
+                    <div
+                      className={cn(
+                        'flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-shadow duration-500',
+                        theme.leftFeatureShell,
+                        theme.leftFeatureShadowHover,
+                      )}
+                    >
+                      <Code2 className={cn('h-7 w-7', theme.leftFeatureIcon)} aria-hidden />
+                    </div>
+                    <p className={cn(TYPE_BODY, 'text-left text-gray-300 sm:text-lg')}>
+                      We also create custom software tailored for your specific needs.
+                    </p>
+                  </div>
+                </div>
+              </motion.article>
+            </div>
           </motion.div>
         </div>
       </section>
