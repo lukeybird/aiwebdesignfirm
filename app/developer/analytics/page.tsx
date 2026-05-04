@@ -92,6 +92,9 @@ export default function DeveloperAnalyticsPage() {
             <Link href="/developer/support" className={inactive}>
               Support
             </Link>
+            <Link href="/businesses" className={inactive}>
+              Businesses
+            </Link>
             <Link href="/developer/analytics" className={active}>
               Analytics
             </Link>
