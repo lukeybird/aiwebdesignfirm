@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,6 +47,8 @@ export default function BusinessesWorkspace() {
   const [roadmapDraft, setRoadmapDraft] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const [draggingStepId, setDraggingStepId] = useState<string | null>(null);
+  const [dragOverStepId, setDragOverStepId] = useState<string | null>(null);
 
   const refreshBusinesses = useCallback(async () => {
     const res = await fetch('/api/business-ideas');
@@ -143,6 +145,42 @@ export default function BusinessesWorkspace() {
       setError(e instanceof Error ? e.message : 'Could not add step');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function reorderSteps(draggedStepId: string, targetStepId: string) {
+    if (!selected || busy || draggedStepId === targetStepId) return;
+    const steps = selected.roadmap;
+    const fromIndex = steps.findIndex((s) => s.id === draggedStepId);
+    const toIndex = steps.findIndex((s) => s.id === targetStepId);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+    const reordered = [...steps];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+
+    // Optimistic reorder for immediate feedback.
+    setBusinesses((prev) =>
+      prev.map((b) => (b.id === selected.id ? { ...b, roadmap: reordered } : b)),
+    );
+
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${selected.id}/roadmap`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedStepIds: reordered.map((s) => s.id) }),
+      });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not reorder steps');
+      await refreshBusinesses();
+    } finally {
+      setBusy(false);
+      setDraggingStepId(null);
+      setDragOverStepId(null);
     }
   }
 
@@ -388,8 +426,39 @@ export default function BusinessesWorkspace() {
                     selected.roadmap.map((s) => (
                       <li
                         key={s.id}
-                        className="flex items-start gap-3 rounded-lg border border-white/10 bg-[#0c1220] px-3 py-2.5"
+                        draggable={!busy}
+                        onDragStart={() => {
+                          setDraggingStepId(s.id);
+                          setDragOverStepId(s.id);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (dragOverStepId !== s.id) setDragOverStepId(s.id);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const dragged = draggingStepId;
+                          if (dragged) void reorderSteps(dragged, s.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingStepId(null);
+                          setDragOverStepId(null);
+                        }}
+                        className={cn(
+                          'flex items-start gap-3 rounded-lg border bg-[#0c1220] px-3 py-2.5 transition-colors',
+                          dragOverStepId === s.id && draggingStepId !== s.id
+                            ? 'border-cyan-300/70 bg-cyan-500/10'
+                            : 'border-white/10',
+                        )}
                       >
+                        <button
+                          type="button"
+                          disabled={busy}
+                          className="mt-0.5 shrink-0 cursor-grab rounded p-1 text-gray-500 hover:bg-white/5 hover:text-cyan-200 active:cursor-grabbing"
+                          aria-label="Drag to reorder"
+                        >
+                          <GripVertical className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           type="button"
                           disabled={busy}

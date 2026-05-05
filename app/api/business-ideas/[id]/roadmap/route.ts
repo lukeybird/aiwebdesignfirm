@@ -33,8 +33,16 @@ export async function POST(
     }
 
     const rows = await sql`
-      INSERT INTO business_idea_roadmap_steps (business_id, title)
-      VALUES (${businessId}, ${title})
+      INSERT INTO business_idea_roadmap_steps (business_id, title, position)
+      VALUES (
+        ${businessId},
+        ${title},
+        (
+          SELECT COALESCE(MAX(position), 0) + 1
+          FROM business_idea_roadmap_steps
+          WHERE business_id = ${businessId}
+        )
+      )
       RETURNING id, title, done
     `;
 
@@ -62,7 +70,42 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
     }
 
-    const body = (await request.json()) as { stepId?: string; done?: boolean };
+    const body = (await request.json()) as {
+      stepId?: string;
+      done?: boolean;
+      orderedStepIds?: string[];
+    };
+
+    if (Array.isArray(body.orderedStepIds)) {
+      const parsed = body.orderedStepIds
+        .map((v) => Number.parseInt(String(v), 10))
+        .filter((v) => Number.isFinite(v) && v > 0);
+      if (parsed.length === 0) {
+        return NextResponse.json({ error: 'orderedStepIds must contain valid ids' }, { status: 400 });
+      }
+
+      const existing = await sql`
+        SELECT id
+        FROM business_idea_roadmap_steps
+        WHERE business_id = ${businessId}
+      `;
+      const existingIds = new Set(existing.map((r) => Number(r.id)));
+      if (parsed.some((id) => !existingIds.has(id)) || parsed.length !== existingIds.size) {
+        return NextResponse.json({ error: 'orderedStepIds must include all roadmap steps exactly once' }, { status: 400 });
+      }
+
+      for (let i = 0; i < parsed.length; i += 1) {
+        await sql`
+          UPDATE business_idea_roadmap_steps
+          SET position = ${i + 1}
+          WHERE id = ${parsed[i]} AND business_id = ${businessId}
+        `;
+      }
+
+      await touchBusiness(businessId);
+      return NextResponse.json({ success: true });
+    }
+
     const stepId = Number.parseInt(String(body.stepId ?? ''), 10);
     if (!Number.isFinite(stepId) || stepId <= 0) {
       return NextResponse.json({ error: 'stepId is required' }, { status: 400 });

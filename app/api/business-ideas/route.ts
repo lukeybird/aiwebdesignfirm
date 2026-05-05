@@ -8,7 +8,7 @@ function toIso(v: unknown): string {
 }
 
 type IdeaRow = { id: number; name: string; created_at: Date | string; updated_at: Date | string };
-type StepRow = { id: number; business_id: number; title: string; done: boolean };
+type StepRow = { id: number; business_id: number; title: string; done: boolean; position: number };
 type NoteRow = { id: number; business_id: number; body: string; created_at: Date | string };
 
 function assembleBusinesses(ideas: IdeaRow[], steps: StepRow[], notes: NoteRow[]) {
@@ -43,10 +43,10 @@ export async function GET() {
     }
 
     const steps = (await sql`
-      SELECT id, business_id, title, done
+      SELECT id, business_id, title, done, position
       FROM business_idea_roadmap_steps
       WHERE business_id = ANY(${ids})
-      ORDER BY id ASC
+      ORDER BY position ASC, id ASC
     `) as unknown as StepRow[];
 
     const notes = (await sql`

@@ -331,6 +331,7 @@ export async function initDatabase() {
         business_id INTEGER NOT NULL REFERENCES business_ideas(id) ON DELETE CASCADE,
         title TEXT NOT NULL,
         done BOOLEAN DEFAULT FALSE,
+        position INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
@@ -344,6 +345,33 @@ export async function initDatabase() {
     `;
     await sql`CREATE INDEX IF NOT EXISTS idx_business_idea_roadmap_business ON business_idea_roadmap_steps(business_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_business_idea_notes_business ON business_idea_notes(business_id)`;
+    // Migration: make sure existing DBs have the roadmap position column
+    try {
+      const positionCol = await sql`
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'business_idea_roadmap_steps'
+          AND column_name = 'position'
+      `;
+      if (positionCol.length === 0) {
+        await sql`ALTER TABLE business_idea_roadmap_steps ADD COLUMN position INTEGER NOT NULL DEFAULT 0`;
+      }
+      // Normalize existing rows so each business has a deterministic order.
+      await sql`
+        WITH ranked AS (
+          SELECT id, ROW_NUMBER() OVER (PARTITION BY business_id ORDER BY id ASC) AS rn
+          FROM business_idea_roadmap_steps
+        )
+        UPDATE business_idea_roadmap_steps s
+        SET position = ranked.rn
+        FROM ranked
+        WHERE s.id = ranked.id
+          AND (s.position IS NULL OR s.position = 0)
+      `;
+    } catch (error: any) {
+      console.error('Error ensuring business roadmap position column:', error?.message ?? error);
+    }
 
     await initBookingTables(sql);
 
