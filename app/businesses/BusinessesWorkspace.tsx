@@ -8,8 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
-const STORAGE_KEY = 'adf_businesses_workspace_v1';
-
 type RoadmapStep = {
   id: string;
   title: string;
@@ -30,109 +28,197 @@ type Business = {
   notes: NoteEntry[];
 };
 
-function newId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+async function parseJsonError(res: Response): Promise<string> {
+  try {
+    const j = (await res.json()) as { error?: string };
+    return j.error || res.statusText;
+  } catch {
+    return res.statusText;
+  }
 }
 
 export default function BusinessesWorkspace() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newBusinessName, setNewBusinessName] = useState('');
   const [showAddInput, setShowAddInput] = useState(false);
   const [roadmapDraft, setRoadmapDraft] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Business[];
-        if (Array.isArray(parsed)) setBusinesses(parsed);
-      }
-    } catch {
-      /* ignore */
+  const refreshBusinesses = useCallback(async () => {
+    const res = await fetch('/api/business-ideas');
+    const j = (await res.json()) as { businesses?: Business[]; error?: string };
+    if (!res.ok) {
+      throw new Error(j.error || (await parseJsonError(res)));
     }
-    setHydrated(true);
+    const list = Array.isArray(j.businesses) ? j.businesses : [];
+    setBusinesses(list);
+    setSelectedId((cur) => (cur && list.some((b) => b.id === cur) ? cur : null));
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(businesses));
-    } catch {
-      /* ignore */
-    }
-  }, [businesses, hydrated]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await refreshBusinesses();
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Failed to load businesses');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshBusinesses]);
 
   const selected = useMemo(
     () => businesses.find((b) => b.id === selectedId) ?? null,
     [businesses, selectedId],
   );
 
-  const updateBusiness = useCallback((id: string, fn: (b: Business) => Business) => {
-    setBusinesses((prev) => prev.map((b) => (b.id === id ? fn(b) : b)));
-  }, []);
-
-  function addBusiness() {
+  async function addBusiness() {
     const name = newBusinessName.trim();
-    if (!name) return;
-    const b: Business = {
-      id: newId(),
-      name,
-      createdAt: new Date().toISOString(),
-      roadmap: [],
-      notes: [],
-    };
-    setBusinesses((prev) => [...prev, b]);
-    setSelectedId(b.id);
-    setNewBusinessName('');
-    setShowAddInput(false);
+    if (!name || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/business-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const j = (await res.json()) as { business?: Business; error?: string };
+      if (!res.ok) throw new Error(j.error || (await parseJsonError(res)));
+      await refreshBusinesses();
+      if (j.business?.id) setSelectedId(j.business.id);
+      setNewBusinessName('');
+      setShowAddInput(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not add business');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function removeBusiness(id: string) {
-    setBusinesses((prev) => prev.filter((b) => b.id !== id));
-    setSelectedId((cur) => (cur === id ? null : cur));
+  async function removeBusiness(id: string) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      setSelectedId((cur) => (cur === id ? null : cur));
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete business');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function addRoadmapStep() {
-    if (!selected) return;
+  async function addRoadmapStep() {
+    if (!selected || busy) return;
     const title = roadmapDraft.trim();
     if (!title) return;
-    const step: RoadmapStep = { id: newId(), title, done: false };
-    updateBusiness(selected.id, (b) => ({ ...b, roadmap: [...b.roadmap, step] }));
-    setRoadmapDraft('');
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${selected.id}/roadmap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      setRoadmapDraft('');
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not add step');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function toggleStep(stepId: string) {
-    if (!selected) return;
-    updateBusiness(selected.id, (b) => ({
-      ...b,
-      roadmap: b.roadmap.map((s) => (s.id === stepId ? { ...s, done: !s.done } : s)),
-    }));
+  async function toggleStep(stepId: string, currentDone: boolean) {
+    if (!selected || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${selected.id}/roadmap`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stepId, done: !currentDone }),
+      });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not update step');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function removeStep(stepId: string) {
-    if (!selected) return;
-    updateBusiness(selected.id, (b) => ({
-      ...b,
-      roadmap: b.roadmap.filter((s) => s.id !== stepId),
-    }));
+  async function removeStep(stepId: string) {
+    if (!selected || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${selected.id}/roadmap?stepId=${encodeURIComponent(stepId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not remove step');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function addNote() {
-    if (!selected) return;
+  async function addNote() {
+    if (!selected || busy) return;
     const body = noteDraft.trim();
     if (!body) return;
-    const note: NoteEntry = { id: newId(), body, createdAt: new Date().toISOString() };
-    updateBusiness(selected.id, (b) => ({ ...b, notes: [note, ...b.notes] }));
-    setNoteDraft('');
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${selected.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body }),
+      });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      setNoteDraft('');
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not add note');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function removeNote(noteId: string) {
-    if (!selected) return;
-    updateBusiness(selected.id, (b) => ({ ...b, notes: b.notes.filter((n) => n.id !== noteId) }));
+  async function removeNote(noteId: string) {
+    if (!selected || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${selected.id}/notes?noteId=${encodeURIComponent(noteId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete note');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -150,6 +236,19 @@ export default function BusinessesWorkspace() {
         </div>
       </header>
 
+      {error ? (
+        <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+          {error}
+          <button
+            type="button"
+            className="ml-3 underline hover:text-white"
+            onClick={() => setError(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         {/* Left: list */}
         <aside className="flex w-full shrink-0 flex-col border-b border-white/10 bg-[#070b12] md:w-72 md:border-b-0 md:border-r">
@@ -161,6 +260,7 @@ export default function BusinessesWorkspace() {
               variant="outline"
               className="h-8 w-8 shrink-0 border-[#0066ff]/40 bg-[#0066ff]/10 text-cyan-100 hover:bg-[#0066ff]/20"
               aria-label="Add business"
+              disabled={loading || busy}
               onClick={() => {
                 setShowAddInput(true);
                 setTimeout(() => {
@@ -183,7 +283,7 @@ export default function BusinessesWorkspace() {
                 value={newBusinessName}
                 onChange={(e) => setNewBusinessName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') addBusiness();
+                  if (e.key === 'Enter') void addBusiness();
                   if (e.key === 'Escape') {
                     setShowAddInput(false);
                     setNewBusinessName('');
@@ -197,8 +297,8 @@ export default function BusinessesWorkspace() {
                   type="button"
                   size="sm"
                   className="bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black hover:opacity-95"
-                  onClick={addBusiness}
-                  disabled={!newBusinessName.trim()}
+                  onClick={() => void addBusiness()}
+                  disabled={!newBusinessName.trim() || busy}
                 >
                   Add
                 </Button>
@@ -219,7 +319,9 @@ export default function BusinessesWorkspace() {
           ) : null}
 
           <ul className="max-h-[40vh] overflow-y-auto md:max-h-none md:flex-1">
-            {businesses.length === 0 ? (
+            {loading ? (
+              <li className="px-3 py-8 text-center text-sm text-gray-500">Loading…</li>
+            ) : businesses.length === 0 ? (
               <li className="px-3 py-8 text-center text-sm text-gray-500">No businesses yet. Tap + to add one.</li>
             ) : (
               businesses.map((b) => (
@@ -227,11 +329,13 @@ export default function BusinessesWorkspace() {
                   <button
                     type="button"
                     onClick={() => setSelectedId(b.id)}
+                    disabled={busy}
                     className={cn(
                       'flex w-full items-center justify-between gap-2 border-b border-white/5 px-3 py-3 text-left text-sm font-medium transition-colors',
                       selectedId === b.id
                         ? 'bg-[#0066ff]/20 text-white'
                         : 'text-gray-300 hover:bg-white/[0.04] hover:text-white',
+                      busy && 'opacity-60',
                     )}
                   >
                     <span className="min-w-0 truncate">{b.name}</span>
@@ -257,7 +361,7 @@ export default function BusinessesWorkspace() {
               <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
                 <div className="min-w-0">
                   <h2 className="text-2xl font-bold tracking-tight text-white">{selected.name}</h2>
-                  <p className="mt-1 text-xs text-gray-500">Stored in this browser only (local).</p>
+                  <p className="mt-1 text-xs text-gray-500">Saved in your Postgres database (same as the rest of the app).</p>
                 </div>
                 <Button
                   type="button"
@@ -265,7 +369,8 @@ export default function BusinessesWorkspace() {
                   variant="ghost"
                   className="shrink-0 text-gray-500 hover:bg-red-500/10 hover:text-red-400"
                   aria-label={`Delete ${selected.name}`}
-                  onClick={() => removeBusiness(selected.id)}
+                  disabled={busy}
+                  onClick={() => void removeBusiness(selected.id)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -287,7 +392,8 @@ export default function BusinessesWorkspace() {
                       >
                         <button
                           type="button"
-                          onClick={() => toggleStep(s.id)}
+                          disabled={busy}
+                          onClick={() => void toggleStep(s.id, s.done)}
                           className={cn(
                             'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border',
                             s.done
@@ -303,7 +409,8 @@ export default function BusinessesWorkspace() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => removeStep(s.id)}
+                          disabled={busy}
+                          onClick={() => void removeStep(s.id)}
                           className="shrink-0 rounded p-1 text-gray-600 hover:bg-white/5 hover:text-red-400"
                           aria-label="Remove step"
                         >
@@ -322,16 +429,17 @@ export default function BusinessesWorkspace() {
                       id="roadmap-draft"
                       value={roadmapDraft}
                       onChange={(e) => setRoadmapDraft(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && addRoadmapStep()}
+                      onKeyDown={(e) => e.key === 'Enter' && void addRoadmapStep()}
                       placeholder="Next step on the roadmap…"
+                      disabled={busy}
                       className="border-white/15 bg-black/40 text-sm text-white placeholder:text-gray-500"
                     />
                   </div>
                   <Button
                     type="button"
                     className="shrink-0 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black hover:opacity-95 sm:w-auto"
-                    onClick={addRoadmapStep}
-                    disabled={!roadmapDraft.trim()}
+                    onClick={() => void addRoadmapStep()}
+                    disabled={!roadmapDraft.trim() || busy}
                   >
                     Add step
                   </Button>
@@ -352,13 +460,14 @@ export default function BusinessesWorkspace() {
                       onChange={(e) => setNoteDraft(e.target.value)}
                       placeholder="Write a note…"
                       rows={3}
+                      disabled={busy}
                       className="border-white/15 bg-black/40 text-sm text-white placeholder:text-gray-500"
                     />
                     <Button
                       type="button"
                       className="mt-2 bg-white/10 text-white hover:bg-white/15"
-                      onClick={addNote}
-                      disabled={!noteDraft.trim()}
+                      onClick={() => void addNote()}
+                      disabled={!noteDraft.trim() || busy}
                     >
                       Add note
                     </Button>
@@ -383,7 +492,8 @@ export default function BusinessesWorkspace() {
                             </time>
                             <button
                               type="button"
-                              onClick={() => removeNote(n.id)}
+                              disabled={busy}
+                              onClick={() => void removeNote(n.id)}
                               className="rounded p-1 text-gray-600 hover:bg-white/5 hover:text-red-400"
                               aria-label="Delete note"
                             >

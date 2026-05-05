@@ -316,6 +316,35 @@ export async function initDatabase() {
       )
     `;
 
+    // Developer "business ideas" workspace (/businesses) — same Postgres as rest of app
+    await sql`
+      CREATE TABLE IF NOT EXISTS business_ideas (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(500) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS business_idea_roadmap_steps (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES business_ideas(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        done BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS business_idea_notes (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER NOT NULL REFERENCES business_ideas(id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_business_idea_roadmap_business ON business_idea_roadmap_steps(business_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_business_idea_notes_business ON business_idea_notes(business_id)`;
+
     await initBookingTables(sql);
 
     console.log('Database initialized successfully');
