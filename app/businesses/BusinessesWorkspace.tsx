@@ -49,6 +49,8 @@ export default function BusinessesWorkspace() {
   const [busy, setBusy] = useState(false);
   const [draggingStepId, setDraggingStepId] = useState<string | null>(null);
   const [dragOverStepId, setDragOverStepId] = useState<string | null>(null);
+  const [editingStepId, setEditingStepId] = useState<string | null>(null);
+  const [editingStepDraft, setEditingStepDraft] = useState('');
 
   const refreshBusinesses = useCallback(async () => {
     const res = await fetch('/api/business-ideas');
@@ -215,6 +217,32 @@ export default function BusinessesWorkspace() {
       await refreshBusinesses();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not remove step');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveStepTitle(stepId: string) {
+    if (!selected || busy) return;
+    const title = editingStepDraft.trim();
+    if (!title) {
+      setError('Step text cannot be empty');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/business-ideas/${selected.id}/roadmap`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stepId, title }),
+      });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      setEditingStepId(null);
+      setEditingStepDraft('');
+      await refreshBusinesses();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not update step');
     } finally {
       setBusy(false);
     }
@@ -473,9 +501,65 @@ export default function BusinessesWorkspace() {
                         >
                           {s.done ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
                         </button>
-                        <span className={cn('min-w-0 flex-1 text-sm leading-snug', s.done && 'text-gray-500 line-through')}>
-                          {s.title}
-                        </span>
+                        {editingStepId === s.id ? (
+                          <div className="min-w-0 flex-1">
+                            <Input
+                              value={editingStepDraft}
+                              onChange={(e) => setEditingStepDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') void saveStepTitle(s.id);
+                                if (e.key === 'Escape') {
+                                  setEditingStepId(null);
+                                  setEditingStepDraft('');
+                                }
+                              }}
+                              placeholder="Step text…"
+                              disabled={busy}
+                              className="h-8 border-white/15 bg-black/40 text-sm text-white placeholder:text-gray-500"
+                            />
+                            <div className="mt-2 flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={busy || !editingStepDraft.trim()}
+                                className="h-7 bg-cyan-500 px-2.5 text-xs font-semibold text-black hover:bg-cyan-400"
+                                onClick={() => void saveStepTitle(s.id)}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white"
+                                onClick={() => {
+                                  setEditingStepId(null);
+                                  setEditingStepDraft('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className={cn('min-w-0 flex-1 text-sm leading-snug', s.done && 'text-gray-500 line-through')}>
+                            {s.title}
+                          </span>
+                        )}
+                        {editingStepId !== s.id ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setEditingStepId(s.id);
+                              setEditingStepDraft(s.title);
+                            }}
+                            className="shrink-0 rounded px-2 py-1 text-xs font-medium text-cyan-200/80 hover:bg-white/5 hover:text-cyan-100"
+                            aria-label="Edit step"
+                          >
+                            Edit
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           disabled={busy}

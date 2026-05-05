@@ -73,6 +73,7 @@ export async function PATCH(
     const body = (await request.json()) as {
       stepId?: string;
       done?: boolean;
+      title?: string;
       orderedStepIds?: string[];
     };
 
@@ -110,6 +111,28 @@ export async function PATCH(
     if (!Number.isFinite(stepId) || stepId <= 0) {
       return NextResponse.json({ error: 'stepId is required' }, { status: 400 });
     }
+
+    if (typeof body.title === 'string') {
+      const title = body.title.trim();
+      if (!title) {
+        return NextResponse.json({ error: 'title cannot be empty' }, { status: 400 });
+      }
+      const rows = await sql`
+        UPDATE business_idea_roadmap_steps
+        SET title = ${title}
+        WHERE id = ${stepId} AND business_id = ${businessId}
+        RETURNING id, title, done
+      `;
+      if (rows.length === 0) {
+        return NextResponse.json({ error: 'Step not found' }, { status: 404 });
+      }
+      await touchBusiness(businessId);
+      const row = rows[0] as { id: number; title: string; done: boolean };
+      return NextResponse.json({
+        step: { id: String(row.id), title: row.title, done: Boolean(row.done) },
+      });
+    }
+
     if (typeof body.done !== 'boolean') {
       return NextResponse.json({ error: 'done boolean is required' }, { status: 400 });
     }
