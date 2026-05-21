@@ -454,8 +454,8 @@ export default function AiWebsiteProHome() {
               We Build Custom Software and Implement AI
             </motion.h2>
             <motion.p variants={fadeIn} className={cn(TYPE_BODY, 'text-balance text-gray-300 sm:text-xl sm:leading-relaxed')}>
-              We do CRMs, we do online store apps, we do AI chatbots, we do AI receptionists, and we take advantage of
-              every cutting-edge resource available.
+              We do CRMs, online store apps, AI chatbots, AI receptionists, and take advantage of every cutting-edge
+              resource available.
             </motion.p>
             <motion.div variants={fadeIn} className="mt-8">
               <Link
