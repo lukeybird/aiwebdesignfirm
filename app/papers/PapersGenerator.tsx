@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { FileText, Printer } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FileText, Plus, Printer, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,14 @@ type PaperFields = {
   documentDate: string;
   serviceMethod: string;
   oplaAddress: string;
+};
+
+type PaperProfile = {
+  id: string;
+  profileName: string;
+  fields: PaperFields;
+  createdAt: string;
+  updatedAt: string;
 };
 
 const DEFAULT_FIELDS: PaperFields = {
@@ -88,12 +96,141 @@ function Lines({ value }: { value: string }) {
   );
 }
 
+async function parseJsonError(res: Response): Promise<string> {
+  try {
+    const j = (await res.json()) as { error?: string };
+    return j.error || res.statusText;
+  } catch {
+    return res.statusText;
+  }
+}
+
 export default function PapersGenerator() {
   const [fields, setFields] = useState<PaperFields>(DEFAULT_FIELDS);
+  const [profiles, setProfiles] = useState<PaperProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
+  const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const hydratedRef = useRef(false);
+  const profileName = fields.respondentName.trim() || 'New profile';
 
   const updateField = <K extends keyof PaperFields>(key: K, value: PaperFields[K]) => {
     setFields((prev) => ({ ...prev, [key]: value }));
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingProfiles(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/paper-profiles');
+        const j = (await res.json()) as { profiles?: PaperProfile[]; error?: string };
+        if (!res.ok) throw new Error(j.error || (await parseJsonError(res)));
+        if (cancelled) return;
+        const loaded = Array.isArray(j.profiles) ? j.profiles : [];
+        setProfiles(loaded);
+        if (loaded.length > 0) {
+          setSelectedProfileId(loaded[0].id);
+          setFields(loaded[0].fields);
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Could not load paper profiles');
+      } finally {
+        if (!cancelled) {
+          setLoadingProfiles(false);
+          hydratedRef.current = true;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydratedRef.current || !selectedProfileId) return;
+    setSavingStatus('saving');
+    const timeout = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/paper-profiles/${selectedProfileId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileName, fields }),
+        });
+        if (!res.ok) throw new Error(await parseJsonError(res));
+        setProfiles((prev) =>
+          prev.map((p) =>
+            p.id === selectedProfileId ? { ...p, profileName: profileName || fields.respondentName, fields } : p,
+          ),
+        );
+        setSavingStatus('saved');
+      } catch (e) {
+        setSavingStatus('error');
+        setError(e instanceof Error ? e.message : 'Could not auto-save profile');
+      }
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [fields, profileName, selectedProfileId]);
+
+  async function createProfile() {
+    setError(null);
+    setSavingStatus('saving');
+    const newFields = {
+      ...fields,
+      respondentName: fields.respondentName || 'New profile',
+    };
+    const newProfileName = fields.respondentName || 'New profile';
+    try {
+      const res = await fetch('/api/paper-profiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileName: newProfileName, fields: newFields }),
+      });
+      const j = (await res.json()) as { profile?: PaperProfile; error?: string };
+      if (!res.ok || !j.profile) throw new Error(j.error || (await parseJsonError(res)));
+      setProfiles((prev) => [j.profile!, ...prev]);
+      setSelectedProfileId(j.profile.id);
+      setFields(j.profile.fields);
+      setSavingStatus('saved');
+    } catch (e) {
+      setSavingStatus('error');
+      setError(e instanceof Error ? e.message : 'Could not create profile');
+    }
+  }
+
+  async function deleteProfile() {
+    if (!selectedProfileId) return;
+    setError(null);
+    setSavingStatus('saving');
+    try {
+      const res = await fetch(`/api/paper-profiles/${selectedProfileId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await parseJsonError(res));
+      const remaining = profiles.filter((p) => p.id !== selectedProfileId);
+      setProfiles(remaining);
+      if (remaining.length > 0) {
+        setSelectedProfileId(remaining[0].id);
+        setFields(remaining[0].fields);
+      } else {
+        setSelectedProfileId('');
+        setFields(DEFAULT_FIELDS);
+      }
+      setSavingStatus('saved');
+    } catch (e) {
+      setSavingStatus('error');
+      setError(e instanceof Error ? e.message : 'Could not delete profile');
+    }
+  }
+
+  function selectProfile(id: string) {
+    const profile = profiles.find((p) => p.id === id);
+    setSelectedProfileId(id);
+    if (profile) {
+      setFields(profile.fields);
+    }
+  }
 
   const respondentAddressLines = useMemo(() => fields.respondentAddress.split('\n').filter(Boolean), [fields.respondentAddress]);
 
@@ -141,7 +278,9 @@ export default function PapersGenerator() {
                 <FileText className="h-5 w-5 text-cyan-300" aria-hidden />
                 Papers
               </p>
-              <p className="mt-1 text-xs text-gray-400">Edit the highlighted fields once. The pages update automatically.</p>
+              <p className="mt-1 text-xs text-gray-400">
+                Create applicant profiles. Only the highlighted variables below are editable.
+              </p>
             </div>
             <Button
               type="button"
@@ -153,26 +292,84 @@ export default function PapersGenerator() {
             </Button>
           </div>
 
+          {error ? (
+            <div className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
+              {error}
+              <button type="button" className="ml-2 underline" onClick={() => setError(null)}>
+                Dismiss
+              </button>
+            </div>
+          ) : null}
+
+          <div className="mb-5 space-y-3 rounded-2xl border border-white/10 bg-black/25 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-200/70">Profile</span>
+              <span className="text-[11px] text-gray-400">
+                {loadingProfiles
+                  ? 'Loading...'
+                  : savingStatus === 'saving'
+                    ? 'Saving...'
+                    : savingStatus === 'saved'
+                      ? 'Saved'
+                      : savingStatus === 'error'
+                        ? 'Save error'
+                        : selectedProfileId
+                          ? 'Auto-save on'
+                          : 'Create profile to save'}
+              </span>
+            </div>
+            <select
+              value={selectedProfileId}
+              onChange={(e) => selectProfile(e.target.value)}
+              className="h-10 w-full rounded-md border border-white/15 bg-black/40 px-3 text-sm text-white"
+            >
+              <option value="">Unsaved draft</option>
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.profileName}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                className="flex-1 bg-cyan-500 text-black hover:bg-cyan-400"
+                onClick={() => void createProfile()}
+              >
+                <Plus className="h-4 w-4" />
+                New / Save Profile
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                disabled={!selectedProfileId}
+                onClick={() => void deleteProfile()}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-4">
-            <Field label="Court name" value={fields.courtName} onChange={(v) => updateField('courtName', v)} multiline />
             <Field label="Court address" value={fields.courtAddress} onChange={(v) => updateField('courtAddress', v)} multiline />
-            <Field label="Name" value={fields.respondentName} onChange={(v) => updateField('respondentName', v)} />
-            <Field label="File number" value={fields.fileNumber} onChange={(v) => updateField('fileNumber', v)} />
-            <Field label="Master hearing" value={fields.masterHearing} onChange={(v) => updateField('masterHearing', v)} />
-            <Field label="Judge" value={fields.judgeName} onChange={(v) => updateField('judgeName', v)} />
-            <Field label="Filing type" value={fields.filingType} onChange={(v) => updateField('filingType', v)} multiline />
-            <Field label="Re line" value={fields.reLine} onChange={(v) => updateField('reLine', v)} />
-            <Field label="Fee description" value={fields.feeDescription} onChange={(v) => updateField('feeDescription', v)} multiline />
-            <Field label="Payment amount" value={fields.paymentAmount} onChange={(v) => updateField('paymentAmount', v)} />
+            <Field label="Name of Judge (if applicable)" value={fields.judgeName} onChange={(v) => updateField('judgeName', v)} />
             <Field
-              label="Person address"
+              label="Time of Next Hearing (if applicable)"
+              value={fields.masterHearing}
+              onChange={(v) => updateField('masterHearing', v)}
+            />
+            <Field label="Applicant's Name" value={fields.respondentName} onChange={(v) => updateField('respondentName', v)} />
+            <Field label="Case Number" value={fields.fileNumber} onChange={(v) => updateField('fileNumber', v)} />
+            <Field label="Address (OPLA / Office of Chief Counsel)" value={fields.oplaAddress} onChange={(v) => updateField('oplaAddress', v)} multiline />
+            <Field
+              label="Applicant's Address"
               value={fields.respondentAddress}
               onChange={(v) => updateField('respondentAddress', v)}
               multiline
             />
-            <Field label="Date" value={fields.documentDate} onChange={(v) => updateField('documentDate', v)} />
-            <Field label="Service method" value={fields.serviceMethod} onChange={(v) => updateField('serviceMethod', v)} />
-            <Field label="OPLA address" value={fields.oplaAddress} onChange={(v) => updateField('oplaAddress', v)} multiline />
           </div>
         </section>
 
@@ -191,14 +388,18 @@ export default function PapersGenerator() {
                 <br />
                 File No: <strong>{fields.fileNumber}</strong>
               </p>
-              <p>
-                <strong>MASTER HEARING:</strong>
-                <br />
-                {fields.masterHearing}
-              </p>
-              <p>
-                Judge: <strong>{fields.judgeName}</strong>
-              </p>
+              {fields.masterHearing.trim() ? (
+                <p>
+                  <strong>MASTER HEARING:</strong>
+                  <br />
+                  {fields.masterHearing}
+                </p>
+              ) : null}
+              {fields.judgeName.trim() ? (
+                <p>
+                  Judge: <strong>{fields.judgeName}</strong>
+                </p>
+              ) : null}
               <p>
                 Filing Type:
                 <br />

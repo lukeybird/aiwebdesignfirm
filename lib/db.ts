@@ -373,6 +373,30 @@ export async function initDatabase() {
       console.error('Error ensuring business roadmap position column:', error?.message ?? error);
     }
 
+    // Papers PDF generator profiles (/papers)
+    await sql`
+      CREATE TABLE IF NOT EXISTS paper_profiles (
+        id SERIAL PRIMARY KEY,
+        profile_name VARCHAR(255) NOT NULL,
+        court_name TEXT NOT NULL,
+        court_address TEXT NOT NULL,
+        respondent_name VARCHAR(500) NOT NULL,
+        file_number VARCHAR(100) NOT NULL,
+        master_hearing VARCHAR(255) NOT NULL,
+        judge_name VARCHAR(255) NOT NULL,
+        filing_type TEXT NOT NULL,
+        re_line TEXT NOT NULL,
+        fee_description TEXT NOT NULL,
+        payment_amount VARCHAR(100) NOT NULL,
+        respondent_address TEXT NOT NULL,
+        document_date VARCHAR(100) NOT NULL,
+        service_method VARCHAR(255) NOT NULL,
+        opla_address TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
     await initBookingTables(sql);
 
     console.log('Database initialized successfully');
