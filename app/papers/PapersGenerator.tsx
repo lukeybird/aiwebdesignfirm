@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, Plus, Printer, Trash2 } from 'lucide-react';
+import { Download, FileText, Plus, Printer, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -232,6 +232,24 @@ export default function PapersGenerator() {
     }
   }
 
+  function openPrintDialog(mode: 'print' | 'save') {
+    const originalTitle = document.title;
+    if (mode === 'save') {
+      const safeName = [fields.respondentName, fields.fileNumber]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/[^a-z0-9-_ ]/gi, '')
+        .trim()
+        .replace(/\s+/g, '-');
+      document.title = safeName ? `${safeName}-papers` : 'papers';
+    }
+
+    window.print();
+    window.setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
+  }
+
   const respondentAddressLines = useMemo(() => fields.respondentAddress.split('\n').filter(Boolean), [fields.respondentAddress]);
 
   return (
@@ -282,14 +300,25 @@ export default function PapersGenerator() {
                 Create applicant profiles. Only the highlighted variables below are editable.
               </p>
             </div>
-            <Button
-              type="button"
-              onClick={() => window.print()}
-              className="shrink-0 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black hover:opacity-95"
-            >
-              <Printer className="h-4 w-4" />
-              PDF
-            </Button>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => openPrintDialog('print')}
+                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+              <Button
+                type="button"
+                onClick={() => openPrintDialog('save')}
+                className="bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black hover:opacity-95"
+              >
+                <Download className="h-4 w-4" />
+                Save PDF
+              </Button>
+            </div>
           </div>
 
           {error ? (
