@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ExternalLink, MapPin, Navigation, Route } from 'lucide-react';
+import { Edit2, ExternalLink, MapPin, Navigation, Plus, Route, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 type RouteStop = {
@@ -22,6 +23,12 @@ type RouteResult = {
   googleMapsUrl: string;
 };
 
+type AddressBookEntry = {
+  id: string;
+  label: string;
+  address: string;
+};
+
 type LeafletGlobal = {
   map: (element: HTMLElement, options?: Record<string, unknown>) => any;
   tileLayer: (url: string, options?: Record<string, unknown>) => any;
@@ -38,10 +45,36 @@ declare global {
   }
 }
 
-const SAMPLE_ADDRESSES = `401 W Peachtree St NW, Atlanta, GA 30308
-5701 Executive Center Dr, Charlotte, NC 28212
-15 Security Dr, Greenville, SC 29611
-3093 Everdale Dr, San Jose, CA 95148`;
+const ADDRESS_BOOK_STORAGE_KEY = 'routing_address_book_v1';
+const ROUTING_SETTINGS_STORAGE_KEY = 'routing_address_book_settings_v1';
+
+const SAMPLE_ADDRESSES: AddressBookEntry[] = [
+  {
+    id: 'sample-atlanta-court',
+    label: 'Atlanta Immigration Court',
+    address: '401 W Peachtree St NW, Atlanta, GA 30308',
+  },
+  {
+    id: 'sample-charlotte-court',
+    label: 'Charlotte Immigration Court',
+    address: '5701 Executive Center Dr, Charlotte, NC 28212',
+  },
+  {
+    id: 'sample-greenville',
+    label: 'Greenville Stop',
+    address: '15 Security Dr, Greenville, SC 29611',
+  },
+  {
+    id: 'sample-san-jose',
+    label: 'San Jose Stop',
+    address: '3093 Everdale Dr, San Jose, CA 95148',
+  },
+];
+
+function newId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `addr_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
 
 function loadLeaflet(): Promise<LeafletGlobal> {
   if (window.L) return Promise.resolve(window.L);
@@ -85,7 +118,12 @@ function formatDuration(minutes: number) {
 }
 
 export default function RoutingPlanner() {
-  const [addressesText, setAddressesText] = useState('');
+  const [addressBook, setAddressBook] = useState<AddressBookEntry[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [startAddressId, setStartAddressId] = useState<string>('');
+  const [newLabel, setNewLabel] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [returnToStart, setReturnToStart] = useState(false);
   const [result, setResult] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -95,13 +133,132 @@ export default function RoutingPlanner() {
   const layerRefs = useRef<any[]>([]);
 
   const parsedAddresses = useMemo(
-    () =>
-      addressesText
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean),
-    [addressesText],
+    () => {
+      const selectedEntries = selectedIds
+        .map((id) => addressBook.find((entry) => entry.id === id))
+        .filter(Boolean) as AddressBookEntry[];
+      const start = selectedEntries.find((entry) => entry.id === startAddressId);
+      const orderedEntries = start ? [start, ...selectedEntries.filter((entry) => entry.id !== start.id)] : selectedEntries;
+      return orderedEntries.map((entry) => entry.address.trim()).filter(Boolean);
+    },
+    [addressBook, selectedIds, startAddressId],
   );
+
+  const routeOrderIds = useMemo(() => {
+    const selected = selectedIds.filter((id) => addressBook.some((entry) => entry.id === id));
+    if (!startAddressId || !selected.includes(startAddressId)) return selected;
+    return [startAddressId, ...selected.filter((id) => id !== startAddressId)];
+  }, [addressBook, selectedIds, startAddressId]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADDRESS_BOOK_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as AddressBookEntry[];
+      if (Array.isArray(parsed)) {
+        const valid = parsed.filter((entry) => entry?.id && entry?.address);
+        setAddressBook(valid);
+        const settingsRaw = localStorage.getItem(ROUTING_SETTINGS_STORAGE_KEY);
+        const settings = settingsRaw
+          ? (JSON.parse(settingsRaw) as { selectedIds?: string[]; startAddressId?: string })
+          : null;
+        const validIds = new Set(valid.map((entry) => entry.id));
+        const storedSelected = Array.isArray(settings?.selectedIds)
+          ? settings.selectedIds.filter((id) => validIds.has(id))
+          : [];
+        const nextSelected = storedSelected.length > 0 ? storedSelected : valid.map((entry) => entry.id);
+        setSelectedIds(nextSelected);
+        setStartAddressId(
+          settings?.startAddressId && nextSelected.includes(settings.startAddressId)
+            ? settings.startAddressId
+            : nextSelected[0] || '',
+        );
+      }
+    } catch {
+      /* ignore broken browser storage */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ADDRESS_BOOK_STORAGE_KEY, JSON.stringify(addressBook));
+    } catch {
+      /* ignore storage failures */
+    }
+  }, [addressBook]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ROUTING_SETTINGS_STORAGE_KEY, JSON.stringify({ selectedIds, startAddressId }));
+    } catch {
+      /* ignore storage failures */
+    }
+  }, [selectedIds, startAddressId]);
+
+  useEffect(() => {
+    if (selectedIds.length === 0) {
+      if (startAddressId) setStartAddressId('');
+      return;
+    }
+
+    if (!selectedIds.includes(startAddressId)) {
+      setStartAddressId(selectedIds[0]);
+    }
+  }, [selectedIds, startAddressId]);
+
+  function resetEntryForm() {
+    setNewLabel('');
+    setNewAddress('');
+    setEditingId(null);
+  }
+
+  function saveAddressEntry() {
+    const address = newAddress.trim();
+    if (!address) {
+      setError('Enter an address before saving it.');
+      return;
+    }
+
+    const label = newLabel.trim() || address.split(',')[0] || 'Saved address';
+    if (editingId) {
+      setAddressBook((prev) => prev.map((entry) => (entry.id === editingId ? { ...entry, label, address } : entry)));
+      resetEntryForm();
+      return;
+    }
+
+    const entry: AddressBookEntry = { id: newId(), label, address };
+    setAddressBook((prev) => [...prev, entry]);
+    setSelectedIds((prev) => [...prev, entry.id]);
+    setStartAddressId((prev) => prev || entry.id);
+    resetEntryForm();
+  }
+
+  function editAddressEntry(entry: AddressBookEntry) {
+    setEditingId(entry.id);
+    setNewLabel(entry.label);
+    setNewAddress(entry.address);
+  }
+
+  function deleteAddressEntry(id: string) {
+    setAddressBook((prev) => prev.filter((entry) => entry.id !== id));
+    setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
+    if (startAddressId === id) setStartAddressId('');
+    if (editingId === id) resetEntryForm();
+  }
+
+  function toggleAddress(id: string) {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((selectedId) => selectedId !== id);
+      }
+      return [...prev, id];
+    });
+  }
+
+  function makeStartingAddress(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]));
+    setStartAddressId(id);
+  }
 
   async function optimizeRoute() {
     setLoading(true);
@@ -188,19 +345,127 @@ export default function RoutingPlanner() {
               Route Planner
             </p>
             <p className="mt-1 text-sm leading-relaxed text-gray-400">
-              Put one address per line. The first line is the starting point. If you do not return to start, the last line is the final destination.
+              Save addresses like an address book, check the stops you want, then create the best route.
             </p>
           </div>
 
-          <label className="block">
-            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-cyan-200/70">Addresses</span>
-            <Textarea
-              value={addressesText}
-              onChange={(e) => setAddressesText(e.target.value)}
-              placeholder="One address per line..."
-              className="min-h-[240px] resize-y border-white/15 bg-black/35 text-sm text-white placeholder:text-gray-500"
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-black/25 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-200/70">
+                {editingId ? 'Edit address' : 'Add address'}
+              </span>
+              {editingId ? (
+                <button type="button" className="text-xs text-gray-400 underline hover:text-white" onClick={resetEntryForm}>
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+            <Input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="Name / label (optional)"
+              className="border-white/15 bg-black/35 text-sm text-white placeholder:text-gray-500"
             />
-          </label>
+            <Textarea
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
+              placeholder="Full street address, city, state..."
+              className="min-h-[86px] resize-y border-white/15 bg-black/35 text-sm text-white placeholder:text-gray-500"
+            />
+            <Button
+              type="button"
+              className="w-full bg-cyan-500 text-black hover:bg-cyan-400"
+              disabled={!newAddress.trim()}
+              onClick={saveAddressEntry}
+            >
+              <Plus className="h-4 w-4" />
+              {editingId ? 'Save Address' : 'Add to Address Book'}
+            </Button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/25">
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-200/70">Saved addresses</span>
+              <span className="text-xs text-gray-500">{selectedIds.length} selected</span>
+            </div>
+            {addressBook.length === 0 ? (
+              <div className="p-4 text-sm leading-relaxed text-gray-500">
+                No saved addresses yet. Add one above, or use the sample button below.
+              </div>
+            ) : (
+              <ul className="max-h-[18rem] overflow-y-auto">
+                {addressBook.map((entry, index) => {
+                  const selected = selectedIds.includes(entry.id);
+                  const isStart = selected && startAddressId === entry.id;
+                  return (
+                    <li key={entry.id} className="border-b border-white/5 last:border-b-0">
+                      <div className="flex items-start gap-3 px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleAddress(entry.id)}
+                          className="mt-1 h-4 w-4 shrink-0 accent-cyan-400"
+                          aria-label={`Use ${entry.label} in route`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                            {selected ? (
+                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400 text-[11px] font-black text-black">
+                                {routeOrderIds.indexOf(entry.id) + 1}
+                              </span>
+                            ) : (
+                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/15 text-[11px] text-gray-500">
+                                {index + 1}
+                              </span>
+                            )}
+                            <span className="truncate">{entry.label}</span>
+                            {isStart ? (
+                              <span className="rounded-full bg-lime-400/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-lime-200">
+                                Start
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-gray-500">{entry.address}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => makeStartingAddress(entry.id)}
+                            className={
+                              isStart
+                                ? 'rounded-md bg-lime-400 px-2 py-1 text-[11px] font-black uppercase tracking-wide text-black'
+                                : 'rounded-md border border-white/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-300 hover:bg-white/5 hover:text-lime-200'
+                            }
+                            aria-label={`Set ${entry.label} as starting address`}
+                          >
+                            Start
+                          </button>
+                          <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => editAddressEntry(entry)}
+                            className="rounded-md p-1.5 text-gray-500 hover:bg-white/5 hover:text-cyan-200"
+                            aria-label={`Edit ${entry.label}`}
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteAddressEntry(entry.id)}
+                            className="rounded-md p-1.5 text-gray-500 hover:bg-red-500/10 hover:text-red-300"
+                            aria-label={`Delete ${entry.label}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
 
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/10 bg-black/25 p-3">
             <input
@@ -233,13 +498,22 @@ export default function RoutingPlanner() {
               type="button"
               variant="outline"
               className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-              onClick={() => setAddressesText(SAMPLE_ADDRESSES)}
+              onClick={() => {
+                setAddressBook(SAMPLE_ADDRESSES);
+                setSelectedIds(SAMPLE_ADDRESSES.map((entry) => entry.id));
+                setStartAddressId(SAMPLE_ADDRESSES[0].id);
+                resetEntryForm();
+              }}
             >
               Sample
             </Button>
           </div>
 
           <p className="mt-4 text-xs leading-relaxed text-gray-500">
+            Check the addresses to include, then click Start on the address you want first. If you do not return to
+            start, the last checked stop in the numbered order is the destination.
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-gray-500">
             Uses OpenStreetMap geocoding and OSRM driving routes. For heavy daily business use, this can be upgraded to Google Maps or Mapbox with an API key.
           </p>
         </section>
