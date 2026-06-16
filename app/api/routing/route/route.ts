@@ -29,7 +29,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function geocodeAddress(address: string): Promise<GeocodedStop> {
+async function geocodeWithNominatim(address: string): Promise<GeocodedStop | null> {
   const url = new URL('https://nominatim.openstreetmap.org/search');
   url.searchParams.set('format', 'jsonv2');
   url.searchParams.set('limit', '1');
@@ -43,7 +43,7 @@ async function geocodeAddress(address: string): Promise<GeocodedStop> {
   });
 
   if (!res.ok) {
-    throw new Error(`Could not geocode "${address}"`);
+    return null;
   }
 
   const data = (await res.json()) as Array<{
@@ -54,7 +54,7 @@ async function geocodeAddress(address: string): Promise<GeocodedStop> {
 
   const first = data[0];
   if (!first?.lat || !first?.lon) {
-    throw new Error(`No location found for "${address}"`);
+    return null;
   }
 
   return {
@@ -63,6 +63,52 @@ async function geocodeAddress(address: string): Promise<GeocodedStop> {
     lat: Number(first.lat),
     lon: Number(first.lon),
   };
+}
+
+async function geocodeWithCensus(address: string): Promise<GeocodedStop | null> {
+  const url = new URL('https://geocoding.geo.census.gov/geocoder/locations/onelineaddress');
+  url.searchParams.set('benchmark', 'Public_AR_Current');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('address', address);
+
+  const res = await fetch(url.toString(), {
+    headers: { Accept: 'application/json' },
+  });
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as {
+    result?: {
+      addressMatches?: Array<{
+        matchedAddress?: string;
+        coordinates?: {
+          x?: number;
+          y?: number;
+        };
+      }>;
+    };
+  };
+
+  const match = data.result?.addressMatches?.[0];
+  const lon = match?.coordinates?.x;
+  const lat = match?.coordinates?.y;
+  if (typeof lat !== 'number' || typeof lon !== 'number') return null;
+
+  return {
+    input: address,
+    displayName: match?.matchedAddress || address,
+    lat,
+    lon,
+  };
+}
+
+async function geocodeAddress(address: string): Promise<GeocodedStop> {
+  const nominatimResult = await geocodeWithNominatim(address);
+  if (nominatimResult) return nominatimResult;
+
+  const censusResult = await geocodeWithCensus(address);
+  if (censusResult) return censusResult;
+
+  throw new Error(`No location found for "${address}". Try adding city, state, and ZIP, or check spelling.`);
 }
 
 function buildGoogleMapsUrl(stops: GeocodedStop[], returnToStart: boolean) {
