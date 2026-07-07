@@ -149,6 +149,9 @@
     .btn-missile { background: #64748B; color: #fff; }
     .btn-mint { background: #FCD34D; color: #1a1a2e; }
     .btn-farm { background: #86EFAC; color: #14532d; }
+    .btn-barracks { background: #94a3b8; color: #0f172a; }
+    .btn-engineers { background: #f59e0b; color: #451a03; }
+    .btn-goblin { background: #4ade80; color: #14532d; }
     .btn-move { background: #94A3B8; color: #fff; }
     .btn-ready {
       background: linear-gradient(135deg, #22c55e, #16a34a);
@@ -1270,8 +1273,8 @@ const DEFAULT_GAME_RULES = {
   mintIncome: 42,
   bloopBounty: true,
   achievements: true,
-  units: { tank: true, speed: true, striker: true, sniper: true, bloop: true, peka: true },
-  towers: { turret: true, laser: true, spread: true, missile: true, mint: true, farm: true },
+  units: { tank: true, speed: true, striker: true, sniper: true, bloop: true, peka: true, goblin: false },
+  towers: { turret: true, laser: true, spread: true, missile: true, mint: true, farm: true, barracks: false, engineers: false },
 };
 
 let gameRules = JSON.parse(JSON.stringify(DEFAULT_GAME_RULES));
@@ -8770,13 +8773,22 @@ function updateUI() {
 
   const canUseTools = canPlayerBuildNow();
   const alwaysSelectableTools = isSurvivalLive() && phase === 'combat';
-  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) syncLiveArmyStructures();
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    LIVE_ARMY.syncBuildToolbar();
+    syncLiveArmyStructures();
+  }
   document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
     const tool = btn.dataset.tool;
+    const isLiveOnlyUnit = tool === 'goblin';
+    const isLiveOnlyTower = tool === 'barracks' || tool === 'engineers';
     if (UNIT_TYPES[tool]) {
-      btn.style.display = isUnitEnabled(tool) ? '' : 'none';
+      const show = isUnitEnabled(tool) && (!isLiveOnlyUnit || LIVE_ARMY?.isActive());
+      btn.style.display = show ? '' : 'none';
+      if (isLiveOnlyUnit) btn.classList.toggle('hidden', !show);
     } else if (TOWER_TYPES[tool]) {
-      btn.style.display = isTowerEnabled(tool) ? '' : 'none';
+      const show = isTowerEnabled(tool) && (!isLiveOnlyTower || LIVE_ARMY?.isActive());
+      btn.style.display = show ? '' : 'none';
+      if (isLiveOnlyTower) btn.classList.toggle('hidden', !show);
     } else {
       btn.style.display = '';
     }

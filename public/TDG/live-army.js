@@ -207,7 +207,11 @@ window.LIVE_ARMY = (function () {
   function decorateTower(t, ownerId) {
     if (!active) return t;
     if (t.towerType === 'missile' && !t.missileUpgrades) t.missileUpgrades = freshMissileUpgrades();
-    if (t.towerType === 'barracks') playersRef[ownerId].liveArmy.barracks.built = true;
+    if (t.towerType === 'barracks') {
+      const barracks = playersRef[ownerId].liveArmy.barracks;
+      barracks.built = true;
+      if ((barracks.unitTier || 0) < 1) barracks.unitTier = 1;
+    }
     if (t.towerType === 'engineers') playersRef[ownerId].liveArmy.engineers.built = true;
     const def = modifyTowerDef(t.towerType, { hp: 80, maxHp: 80 }, ownerId);
     t.hp = def.hp || t.hp;
@@ -258,6 +262,12 @@ window.LIVE_ARMY = (function () {
     return state;
   }
 
+  function setLiveToolbarButton(btn, show) {
+    if (!btn) return;
+    btn.classList.toggle('hidden', !show);
+    btn.style.display = show ? '' : 'none';
+  }
+
   function syncBuildToolbar() {
     const strikerBtn = document.querySelector('.btn-striker');
     const bloopBtn = document.querySelector('.btn-bloop');
@@ -273,9 +283,9 @@ window.LIVE_ARMY = (function () {
     }
     if (bloopBtn) bloopBtn.style.display = active ? 'none' : '';
     if (laserBtn && active) laserBtn.childNodes[0].textContent = '⚡ Rail Gun';
-    if (goblinBtn) goblinBtn.style.display = active ? '' : 'none';
-    if (barracksBtn) barracksBtn.style.display = active ? '' : 'none';
-    if (engineersBtn) engineersBtn.style.display = active ? '' : 'none';
+    setLiveToolbarButton(goblinBtn, active);
+    setLiveToolbarButton(barracksBtn, active);
+    setLiveToolbarButton(engineersBtn, active);
   }
 
   return {
@@ -299,6 +309,7 @@ window.LIVE_ARMY = (function () {
     decorateTower,
     missileStats,
     sanitizeSnapshotForOpponent,
+    syncBuildToolbar,
     freshMissileUpgrades,
     freshBarracks,
     freshEngineers,
