@@ -2384,7 +2384,7 @@ function buyEconomyUpgrade(pid, kind, target) {
   } else {
     return false;
   }
-  updateIncomeUpgradeUI();
+  updateIncomeUpgradeUI(true);
   updateUI();
   return true;
 }
@@ -2402,7 +2402,7 @@ function buyIncomeUpgradeLegacy(pid, type) {
   const def = INCOME_UPGRADE_DEFS[type];
   const newYield = survivalIncomeAmount(pid, type);
   addLog(`⬆️ ${p.name}: ${def.name} Lv${lvl + 1} (+${newYield}/${def.intervalLabel})`);
-  updateIncomeUpgradeUI();
+  updateIncomeUpgradeUI(true);
   updateUI();
   return true;
 }
@@ -2511,14 +2511,16 @@ function buyMissileUpgrade(pid, towerId, branch) {
   return true;
 }
 
-function updateBarracksUpgradeUI() {
+function updateBarracksUpgradeUI(force) {
   const list = document.getElementById('barracks-upgrade-list');
   if (!list || !LIVE_ARMY?.isActive()) return;
+  const panel = document.getElementById('barracks-upgrade-panel');
+  if (!force && panel?.classList.contains('hidden')) return;
   const pid = getLocalPlayerId();
   const p = players[pid];
   const b = p.liveArmy?.barracks;
   if (!b?.built) {
-    list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build a Barracks first.</p>';
+    setSkillListHtml('barracks-upgrade-list', '<p style="opacity:0.7;font-size:0.8rem">Build a Barracks first.</p>');
     return;
   }
 
@@ -2599,17 +2601,19 @@ function updateBarracksUpgradeUI() {
     html += '</div>';
   }
   html += '</div>';
-  list.innerHTML = html;
+  setSkillListHtml('barracks-upgrade-list', html);
 }
 
-function updateEngineersUpgradeUI() {
+function updateEngineersUpgradeUI(force) {
   const list = document.getElementById('engineers-upgrade-list');
   if (!list || !LIVE_ARMY?.isActive()) return;
+  const panel = document.getElementById('engineers-upgrade-panel');
+  if (!force && panel?.classList.contains('hidden')) return;
   const pid = getLocalPlayerId();
   const p = players[pid];
   const eng = p.liveArmy?.engineers;
   if (!eng?.built) {
-    list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build an Engineers Camp first.</p>';
+    setSkillListHtml('engineers-upgrade-list', '<p style="opacity:0.7;font-size:0.8rem">Build an Engineers Camp first.</p>');
     return;
   }
 
@@ -2665,7 +2669,7 @@ function updateEngineersUpgradeUI() {
   html += '</div>';
   html += '<p class="barracks-tree-footnote">Buffs cannons, rail guns, spreaders &amp; missiles</p>';
   html += '</div></div>';
-  list.innerHTML = html;
+  setSkillListHtml('engineers-upgrade-list', html);
 }
 
 function toggleBarracksPanel(show) {
@@ -2674,8 +2678,9 @@ function toggleBarracksPanel(show) {
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
   if (open) {
+    bindSkillListScrollMemory('barracks-upgrade-list');
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncBarracksPanelCopy?.();
-    updateBarracksUpgradeUI();
+    updateBarracksUpgradeUI(true);
   }
 }
 
@@ -2685,8 +2690,9 @@ function toggleEngineersPanel(show) {
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
   if (open) {
+    bindSkillListScrollMemory('engineers-upgrade-list');
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncEngineersPanelCopy?.();
-    updateEngineersUpgradeUI();
+    updateEngineersUpgradeUI(true);
   }
 }
 
@@ -2764,25 +2770,59 @@ function drawFloatTexts() {
   ctx.textAlign = 'left';
 }
 
+const skillPanelScrollTops = {};
+
+function skillListScrollEl(listEl) {
+  if (!listEl) return null;
+  return listEl.querySelector('.st-canvas, .barracks-forest, .engineers-skill-wrap') || listEl;
+}
+
+function bindSkillListScrollMemory(listId) {
+  const list = document.getElementById(listId);
+  if (!list || list.dataset.scrollBound) return;
+  list.dataset.scrollBound = '1';
+  const el = skillListScrollEl(list);
+  if (!el) return;
+  el.addEventListener('scroll', () => {
+    skillPanelScrollTops[listId] = el.scrollTop;
+  }, { passive: true });
+}
+
+function setSkillListHtml(listId, html) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const scrollEl = skillListScrollEl(list);
+  const scrollTop = scrollEl ? (skillPanelScrollTops[listId] ?? scrollEl.scrollTop) : 0;
+  list.innerHTML = html;
+  if (!scrollEl) return;
+  scrollEl.scrollTop = scrollTop;
+  requestAnimationFrame(() => {
+    scrollEl.scrollTop = scrollTop;
+  });
+}
+
 function toggleEconPanel(show) {
   const panel = document.getElementById('econ-upgrade-panel');
   if (!panel) return;
   const open = show === undefined ? panel.classList.contains('hidden') : show;
   panel.classList.toggle('hidden', !open);
   if (open) {
+    bindSkillListScrollMemory('econ-upgrade-list');
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncEconomyPanelCopy?.();
-    updateIncomeUpgradeUI();
+    updateIncomeUpgradeUI(true);
   }
 }
 
-function updateIncomeUpgradeUI() {
+function updateIncomeUpgradeUI(force) {
   const list = document.getElementById('econ-upgrade-list');
   if (!list || !isSurvivalLive()) return;
+  const panel = document.getElementById('econ-upgrade-panel');
+  if (!force && panel?.classList.contains('hidden')) return;
   const pid = getLocalPlayerId();
   const p = players[pid];
 
   if (!LIVE_ARMY?.isActive()) {
-    list.innerHTML = ['base', 'mint', 'farm'].map(type => {
+    setSkillListHtml('econ-upgrade-list', ['base', 'mint', 'farm'].map(type => {
       const def = INCOME_UPGRADE_DEFS[type];
       const lvl = incomeUpgradeLevel(pid, type);
       const cur = survivalIncomeAmount(pid, type);
@@ -2800,7 +2840,7 @@ function updateIncomeUpgradeUI() {
           ${atMax ? 'MAX' : `${cost}🪙`}
         </button>
       </div>`;
-    }).join('');
+    }).join(''));
     return;
   }
 
@@ -2879,7 +2919,7 @@ function updateIncomeUpgradeUI() {
 
   html += `<div class="st-footer"><span class="st-coins">${Math.floor(p.coins)} 🪙 AVAILABLE</span></div>`;
   html += '</div>';
-  list.innerHTML = html;
+  setSkillListHtml('econ-upgrade-list', html);
 }
 
 function setSurvivalSpeed(mult) {
@@ -9946,7 +9986,10 @@ function updateUI() {
     econBtn.classList.toggle('hidden', !(isSurvivalLive() && phase === 'combat'));
   }
   if (isSurvivalLive() && phase === 'combat') {
-    updateIncomeUpgradeUI();
+    const econPanel = document.getElementById('econ-upgrade-panel');
+    if (econPanel && !econPanel.classList.contains('hidden')) {
+      updateIncomeUpgradeUI();
+    }
   } else {
     toggleEconPanel(false);
   }
