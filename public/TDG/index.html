@@ -923,7 +923,7 @@
             <h3>⬆️ Income Upgrades</h3>
             <button id="econ-panel-close" type="button">✕</button>
           </div>
-          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Each level adds +1 yield (rounded up). Upgrade costs rise steeply — spend wisely.</p>
+          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrades add +2 yield per level (+3 for mint). Costs rise steeply — spend wisely.</p>
           <div id="econ-upgrade-list"></div>
         </div>
       </div>
@@ -1413,11 +1413,11 @@ function closeManual() {
 }
 
 const SURVIVAL_START_COINS = 85;
-const SURVIVAL_INCOME_INTERVAL = 4;
+const SURVIVAL_INCOME_INTERVAL = 3;
 const SURVIVAL_FARM_INTERVAL = 2;
-const SURVIVAL_BASE_INCOME = 5;
-const SURVIVAL_MINT_INCOME = 3;
-const SURVIVAL_FARM_INCOME = 1;
+const SURVIVAL_BASE_INCOME = 10;
+const SURVIVAL_MINT_INCOME = 5;
+const SURVIVAL_FARM_INCOME = 2;
 const SURVIVAL_AI_THINK_INTERVAL = 1;
 const SURVIVAL_AI_MAX_UNITS = 22;
 const SURVIVAL_AI_INCOME_MULT = {
@@ -1430,9 +1430,9 @@ const SURVIVAL_AI_PEACE_ATTACK_CHANCE = 0.25;
 const SURVIVAL_AI_PEACE_ATTACK_DELAY = 60;
 const INCOME_UPGRADE_MAX = 8;
 const INCOME_UPGRADE_DEFS = {
-  base: { name: 'Base Income', icon: '🏛', baseYield: 5, baseCost: 110, intervalLabel: '4s' },
-  mint: { name: 'Mint Yield', icon: '💰', baseYield: 3, baseCost: 165, intervalLabel: '4s' },
-  farm: { name: 'Farm Yield', icon: '🌾', baseYield: 1, baseCost: 90, intervalLabel: '2s' },
+  base: { name: 'Base Income', icon: '🏛', baseYield: 10, upgradeStep: 2, baseCost: 110, intervalLabel: '3s' },
+  mint: { name: 'Mint Yield', icon: '💰', baseYield: 5, upgradeStep: 3, baseCost: 165, intervalLabel: '3s' },
+  farm: { name: 'Farm Yield', icon: '🌾', baseYield: 2, upgradeStep: 2, baseCost: 90, intervalLabel: '2s' },
 };
 
 // ─── Survival mode (live RTS) ──────────────────────────────────────────────────
@@ -1475,7 +1475,8 @@ function incomeUpgradeLevel(pid, type) {
 function survivalIncomeAmountAtLevel(type, lvl) {
   const def = INCOME_UPGRADE_DEFS[type];
   if (!def) return 0;
-  return Math.ceil(def.baseYield + (lvl - 1));
+  const step = def.upgradeStep ?? 2;
+  return Math.ceil(def.baseYield + (lvl - 1) * step);
 }
 
 function survivalAiIncomeMult() {
@@ -1988,7 +1989,7 @@ function setupSurvivalLive() {
   resetCombatTracking();
   document.getElementById('bottom-panel').classList.remove('hidden');
   selectedTool = firstEnabledDeployTool();
-  addLog('⚔️ Base +5/4s · mint +3/4s · farm +1/2s. Upgrades +1 per level!');
+  addLog('⚔️ Base +10/3s · mint +5/3s · farm +2/2s. Upgrades +2 (+3 mint)!');
   updateUI();
 }
 
@@ -5754,7 +5755,7 @@ function farmIncomePerFarm(pid = activePlayer ?? 0) {
 }
 
 function mintIncomeLabel() {
-  return isSurvivalLive() ? '/4s' : '/rnd';
+  return isSurvivalLive() ? '/3s' : '/rnd';
 }
 
 function countLivingMints(p) {
@@ -8152,7 +8153,7 @@ function updateUI() {
   const roundEl = document.getElementById('round-display');
   if (gameMode === 'survival' || gameMode === 'survival-pvp') {
     roundLabel.textContent = 'Income';
-    roundEl.textContent = `+${survivalIncomeAmount(pid, 'base')}/4s base`;
+    roundEl.textContent = `+${survivalIncomeAmount(pid, 'base')}/3s base`;
   } else {
     roundLabel.textContent = 'Round';
     roundEl.textContent = round;
@@ -8352,7 +8353,7 @@ function startSurvivalLive(difficulty) {
   const mult = survivalAiIncomeMult();
   showBanner(
     `Live Battle — ${survivalDifficultyLabel()}`,
-    `Tight economy — every coin counts.\n\n🏛 Base: +5🪙 every 4 seconds\n🌾 Farm: +1🪙 every 2 seconds\n💰 Mint: +3🪙 every 4 seconds\n\nUpgrades add +1 per level. Enemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
+    `Faster economy — build quick!\n\n🏛 Base: +10🪙 every 3 seconds\n🌾 Farm: +2🪙 every 2 seconds\n💰 Mint: +5🪙 every 3 seconds\n\nUpgrades add +2 per level (+3 for mint). Enemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
     'Fight!'
   );
 }
