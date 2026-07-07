@@ -1092,35 +1092,23 @@
     }
 
     .st-canvas {
-      overflow-y: auto;
-      overflow-x: hidden;
-      max-height: 62vh;
+      overflow: visible;
+      max-height: none;
       padding: 16px 20px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0;
-      background:
-        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(56, 80, 140, 0.14) 0%, transparent 55%),
-        repeating-linear-gradient(60deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px),
-        linear-gradient(180deg, #0a0e1a 0%, #060810 100%);
     }
 
     .st-grid-scroll {
-      overflow-y: auto;
-      overflow-x: hidden;
-      max-height: 62vh;
-      padding: 16px 14px 20px;
+      overflow: visible;
+      max-height: none;
+      padding: 0;
       width: 100%;
-      background:
-        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(56, 80, 140, 0.14) 0%, transparent 55%),
-        repeating-linear-gradient(60deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px),
-        linear-gradient(180deg, #0a0e1a 0%, #060810 100%);
     }
 
     .st-grid-scroll > .st-canvas {
-      overflow: visible;
-      max-height: none;
       padding: 0 6px 8px;
     }
 
@@ -1386,7 +1374,69 @@
     #econ-upgrade-list {
       flex: 1;
       min-height: 0;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 14px 20px;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(56, 80, 140, 0.14) 0%, transparent 55%),
+        repeating-linear-gradient(60deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px),
+        linear-gradient(180deg, #0a0e1a 0%, #060810 100%);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .st-scroll-wrap {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      gap: 10px;
+      padding: 0 12px 8px;
+      align-items: stretch;
+      max-height: 62vh;
+    }
+
+    .st-scroll-nav {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      flex-shrink: 0;
+      padding: 8px 0;
+    }
+
+    .st-scroll-btn {
+      width: 48px;
+      height: 56px;
+      border: 2px solid #c9a227;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #3d2e12 0%, #1a1408 100%);
+      color: #f0d060;
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12);
+      transition: transform 0.1s, background 0.12s, opacity 0.12s;
+    }
+
+    .st-scroll-btn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #5a4518 0%, #2a2010 100%);
+      transform: scale(1.05);
+    }
+
+    .st-scroll-btn:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    .st-scroll-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .st-panel-footer {
+      flex-shrink: 0;
+      padding: 8px 16px 12px;
+      text-align: center;
+      border-top: 1px solid rgba(201, 162, 39, 0.25);
+      background: rgba(0, 0, 0, 0.25);
     }
 
     .st-unit-col {
@@ -1923,7 +1973,13 @@
             <button id="barracks-panel-close" class="st-header-close" type="button">✕</button>
           </div>
           <p id="barracks-upgrade-desc" class="st-panel-desc">Recruit units, then upgrade speed, attack, and health along each branch.</p>
-          <div id="barracks-upgrade-list"></div>
+          <div class="st-scroll-wrap">
+            <div id="barracks-upgrade-list" class="st-skill-scroll"></div>
+            <div class="st-scroll-nav" aria-label="Scroll barracks tree">
+              <button type="button" class="st-scroll-btn st-scroll-up" data-list="barracks-upgrade-list" title="Scroll up">▲</button>
+              <button type="button" class="st-scroll-btn st-scroll-down" data-list="barracks-upgrade-list" title="Scroll down">▼</button>
+            </div>
+          </div>
         </div>
       </div>
       <div id="engineers-upgrade-panel" class="hidden">
@@ -1934,7 +1990,14 @@
             <button id="engineers-panel-close" class="st-header-close" type="button">✕</button>
           </div>
           <p id="engineers-upgrade-desc" class="st-panel-desc">Power up every combat tower. Each branch grows stronger at higher cost.</p>
-          <div id="engineers-upgrade-list"></div>
+          <div class="st-scroll-wrap">
+            <div id="engineers-upgrade-list" class="st-skill-scroll"></div>
+            <div class="st-scroll-nav" aria-label="Scroll engineers tree">
+              <button type="button" class="st-scroll-btn st-scroll-up" data-list="engineers-upgrade-list" title="Scroll up">▲</button>
+              <button type="button" class="st-scroll-btn st-scroll-down" data-list="engineers-upgrade-list" title="Scroll down">▼</button>
+            </div>
+          </div>
+          <div id="engineers-upgrade-footer" class="st-panel-footer"></div>
         </div>
       </div>
       <div id="missile-upgrade-panel" class="hidden">
@@ -1955,7 +2018,14 @@
             <button id="econ-panel-close" class="st-header-close" type="button">✕</button>
           </div>
           <p id="economy-upgrade-desc" class="st-panel-desc">Unlock buildings at the top, then grow each branch outward — deeper tiers cost more.</p>
-          <div id="econ-upgrade-list"></div>
+          <div class="st-scroll-wrap">
+            <div id="econ-upgrade-list" class="st-skill-scroll"></div>
+            <div class="st-scroll-nav" aria-label="Scroll economy tree">
+              <button type="button" class="st-scroll-btn st-scroll-up" data-list="econ-upgrade-list" title="Scroll up">▲</button>
+              <button type="button" class="st-scroll-btn st-scroll-down" data-list="econ-upgrade-list" title="Scroll down">▼</button>
+            </div>
+          </div>
+          <div id="econ-upgrade-footer" class="st-panel-footer"></div>
         </div>
       </div>
       <div id="achievement-panel" class="hidden">
@@ -3065,9 +3135,9 @@ function updateEngineersUpgradeUI(force) {
 
   html += '<p class="st-footnote">Buffs cannons, rail guns, spreaders &amp; missiles</p>';
   html += '</div>';
-  html += `<div class="st-footer"><span class="st-coins">${Math.floor(p.coins)} 🪙 AVAILABLE</span></div>`;
   html += '</div></div>';
   setSkillListHtml('engineers-upgrade-list', html);
+  updateSkillPanelFooter('engineers-upgrade-footer', p.coins);
 }
 
 function toggleBarracksPanel(show) {
@@ -3076,7 +3146,7 @@ function toggleBarracksPanel(show) {
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
   if (open) {
-    bindSkillListScrollMemory('barracks-upgrade-list');
+    bindSkillPanelScrollNav('barracks-upgrade-list');
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncBarracksPanelCopy?.();
     updateBarracksUpgradeUI(true);
   }
@@ -3088,7 +3158,7 @@ function toggleEngineersPanel(show) {
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
   if (open) {
-    bindSkillListScrollMemory('engineers-upgrade-list');
+    bindSkillPanelScrollNav('engineers-upgrade-list');
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncEngineersPanelCopy?.();
     updateEngineersUpgradeUI(true);
   }
@@ -3169,33 +3239,112 @@ function drawFloatTexts() {
 }
 
 const skillPanelScrollTops = {};
+const SKILL_SCROLL_STEP = 140;
+const skillScrollHoldTimers = new WeakMap();
 
-function skillListScrollEl(listEl) {
-  if (!listEl) return null;
-  return listEl.querySelector('.st-canvas, .st-grid-scroll, .barracks-forest, .engineers-skill-wrap') || listEl;
+function updateSkillPanelFooter(footerId, coins) {
+  const el = document.getElementById(footerId);
+  if (el) el.innerHTML = `<span class="st-coins">${Math.floor(coins)} 🪙 AVAILABLE</span>`;
+}
+
+function updateSkillScrollButtons(listId) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const wrap = list.closest('.st-scroll-wrap');
+  if (!wrap) return;
+  const up = wrap.querySelector('.st-scroll-up');
+  const down = wrap.querySelector('.st-scroll-down');
+  const max = Math.max(0, list.scrollHeight - list.clientHeight);
+  const top = list.scrollTop;
+  if (up) up.disabled = max <= 0 || top <= 1;
+  if (down) down.disabled = max <= 0 || top >= max - 1;
+}
+
+function skillPanelStepScroll(listId, dir) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const max = Math.max(0, list.scrollHeight - list.clientHeight);
+  const step = SKILL_SCROLL_STEP * (dir < 0 ? -1 : 1);
+  const next = Math.max(0, Math.min(max, list.scrollTop + step));
+  list.scrollTop = next;
+  skillPanelScrollTops[listId] = next;
+  updateSkillScrollButtons(listId);
+}
+
+function clearSkillScrollHold(btn) {
+  const timer = skillScrollHoldTimers.get(btn);
+  if (timer) {
+    clearInterval(timer);
+    skillScrollHoldTimers.delete(btn);
+  }
+}
+
+function startSkillScrollHold(btn) {
+  if (!btn || btn.disabled) return;
+  const listId = btn.dataset.list;
+  const dir = btn.classList.contains('st-scroll-up') ? -1 : 1;
+  skillPanelStepScroll(listId, dir);
+  clearSkillScrollHold(btn);
+  skillScrollHoldTimers.set(btn, setInterval(() => skillPanelStepScroll(listId, dir), 85));
+}
+
+function openSkillPanelListId() {
+  if (!document.getElementById('econ-upgrade-panel')?.classList.contains('hidden')) return 'econ-upgrade-list';
+  if (!document.getElementById('barracks-upgrade-panel')?.classList.contains('hidden')) return 'barracks-upgrade-list';
+  if (!document.getElementById('engineers-upgrade-panel')?.classList.contains('hidden')) return 'engineers-upgrade-list';
+  return null;
+}
+
+function bindSkillPanelScrollNav(listId) {
+  const list = document.getElementById(listId);
+  if (!list || list.dataset.navBound) return;
+  list.dataset.navBound = '1';
+  list.addEventListener('scroll', () => {
+    skillPanelScrollTops[listId] = list.scrollTop;
+    updateSkillScrollButtons(listId);
+  }, { passive: true });
+
+  const wrap = list.closest('.st-scroll-wrap');
+  if (wrap && !wrap.dataset.wheelBound) {
+    wrap.dataset.wheelBound = '1';
+    wrap.addEventListener('wheel', (e) => {
+      const scrollList = wrap.querySelector('.st-skill-scroll');
+      if (!scrollList || scrollList.scrollHeight <= scrollList.clientHeight) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const max = scrollList.scrollHeight - scrollList.clientHeight;
+      const next = Math.max(0, Math.min(max, scrollList.scrollTop + e.deltaY));
+      scrollList.scrollTop = next;
+      skillPanelScrollTops[scrollList.id] = next;
+      updateSkillScrollButtons(scrollList.id);
+    }, { passive: false });
+  }
+  updateSkillScrollButtons(listId);
 }
 
 function bindSkillListScrollMemory(listId) {
-  const list = document.getElementById(listId);
-  if (!list || list.dataset.scrollBound) return;
-  list.dataset.scrollBound = '1';
-  const el = skillListScrollEl(list);
-  if (!el) return;
-  el.addEventListener('scroll', () => {
-    skillPanelScrollTops[listId] = el.scrollTop;
-  }, { passive: true });
+  bindSkillPanelScrollNav(listId);
 }
 
 function setSkillListHtml(listId, html) {
   const list = document.getElementById(listId);
   if (!list) return;
-  const scrollEl = skillListScrollEl(list);
-  const scrollTop = scrollEl ? (skillPanelScrollTops[listId] ?? scrollEl.scrollTop) : 0;
+  bindSkillPanelScrollNav(listId);
+  if (list.dataset.skillHtml === html) {
+    updateSkillScrollButtons(listId);
+    return;
+  }
+  const scrollTop = skillPanelScrollTops[listId] ?? list.scrollTop ?? 0;
+  list.dataset.skillHtml = html;
   list.innerHTML = html;
-  if (!scrollEl) return;
-  scrollEl.scrollTop = scrollTop;
+  const restore = () => { list.scrollTop = scrollTop; };
+  restore();
   requestAnimationFrame(() => {
-    scrollEl.scrollTop = scrollTop;
+    restore();
+    requestAnimationFrame(() => {
+      restore();
+      updateSkillScrollButtons(listId);
+    });
   });
 }
 
@@ -3205,7 +3354,7 @@ function toggleEconPanel(show) {
   const open = show === undefined ? panel.classList.contains('hidden') : show;
   panel.classList.toggle('hidden', !open);
   if (open) {
-    bindSkillListScrollMemory('econ-upgrade-list');
+    bindSkillPanelScrollNav('econ-upgrade-list');
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncEconomyPanelCopy?.();
     updateIncomeUpgradeUI(true);
   }
@@ -3345,9 +3494,9 @@ function updateIncomeUpgradeUI(force) {
 
   html += '</div>';
 
-  html += `<div class="st-footer"><span class="st-coins">${Math.floor(p.coins)} 🪙 AVAILABLE</span></div>`;
   html += '</div></div>';
   setSkillListHtml('econ-upgrade-list', html);
+  updateSkillPanelFooter('econ-upgrade-footer', p.coins);
 }
 
 function setSurvivalSpeed(mult) {
@@ -10518,6 +10667,27 @@ document.getElementById('achievement-panel').addEventListener('click', (e) => {
 });
 
 document.getElementById('econ-upgrade-btn').addEventListener('click', () => toggleEconPanel());
+
+document.addEventListener('mousedown', (e) => {
+  const btn = e.target.closest('.st-scroll-btn');
+  if (!btn || btn.disabled) return;
+  e.preventDefault();
+  startSkillScrollHold(btn);
+});
+document.addEventListener('mouseup', () => {
+  document.querySelectorAll('.st-scroll-btn').forEach(clearSkillScrollHold);
+});
+document.addEventListener('touchstart', (e) => {
+  const btn = e.target.closest('.st-scroll-btn');
+  if (!btn || btn.disabled) return;
+  startSkillScrollHold(btn);
+}, { passive: true });
+document.addEventListener('touchend', () => {
+  document.querySelectorAll('.st-scroll-btn').forEach(clearSkillScrollHold);
+});
+document.addEventListener('touchcancel', () => {
+  document.querySelectorAll('.st-scroll-btn').forEach(clearSkillScrollHold);
+});
 document.getElementById('econ-panel-close').addEventListener('click', () => toggleEconPanel(false));
 document.getElementById('econ-upgrade-panel').addEventListener('click', (e) => {
   if (e.target.id === 'econ-upgrade-panel') toggleEconPanel(false);
@@ -10711,6 +10881,12 @@ document.getElementById('btn-free2p').addEventListener('click', () => {
 });
 
 window.addEventListener('keydown', (e) => {
+  const skillList = openSkillPanelListId();
+  if (skillList && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
+    e.preventDefault();
+    skillPanelStepScroll(skillList, e.code === 'ArrowUp' ? -1 : 1);
+    return;
+  }
   if (phase === 'free2p') {
     if (['KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyE', 'KeyQ', 'KeyI', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyO'].includes(e.code)) {
       e.preventDefault();
