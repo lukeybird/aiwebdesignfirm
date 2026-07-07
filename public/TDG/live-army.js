@@ -243,13 +243,15 @@ window.LIVE_ARMY = (function () {
     else if (type === 'spread') { d.size = COMBAT_TOWER_SIZE; d.knockback = 24; d.name = 'Spreader'; }
     else if (type === 'turret') { d.size = COMBAT_TOWER_SIZE; d.hp = 140; d.damage = 24; d.name = 'Cannon'; }
 
-    if (ownerId != null && COMBAT_TOWERS.includes(type)) {
+    if (ownerId != null && COMBAT_TOWERS.includes(type) && playersRef?.[ownerId]) {
       const rec = towerRecord(playersRef[ownerId], type);
       if (rec.unlocked) {
-        d.damage = (d.damage || d.pelletDamage || 0) * (1 + (rec.damage || 0) * 0.18);
-        if (d.pelletDamage) d.pelletDamage = d.pelletDamage * (1 + (rec.damage || 0) * 0.18);
+        const dmgMult = 1 + (rec.damage || 0) * 0.18;
+        d.damage = (d.damage || d.pelletDamage || 0) * dmgMult;
+        if (d.pelletDamage) d.pelletDamage *= dmgMult;
         d.range = (d.range || 160) * (1 + (rec.range || 0) * 0.1);
         d.hp = (d.hp || 80) * (1 + (rec.health || 0) * 0.15);
+        d.fireRate = (d.fireRate || 1) * (1 + (rec.damage || 0) * 0.06);
         if (type === 'spread') d.knockback = (d.knockback || 24) * (1 + (rec.knockback || 0) * 0.12);
       }
     }

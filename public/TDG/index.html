@@ -3479,7 +3479,7 @@ function buyBarracksUpgrade(pid, kind, unitType, stat) {
 function buyEngineersUpgrade(pid, kind, towerType, branch) {
   const p = players[pid];
   const eng = p.liveArmy?.engineers;
-  if (!eng?.built) return false;
+  if (!eng?.built && !LIVE_ARMY?.hasEngineers(p)) return false;
   const rec = LIVE_ARMY.towerRecord(p, towerType);
   if (kind === 'unlock') {
     const cost = LIVE_ARMY.towerUnlockCost(towerType);
@@ -3497,12 +3497,25 @@ function buyEngineersUpgrade(pid, kind, towerType, branch) {
     const label = LIVE_ARMY.TOWER_LABELS[towerType] || towerType;
     const statLabel = LIVE_ARMY.ENGINEER_BRANCH_LABELS?.[branch] || branch;
     addLog(`🔧 ${p.name}: ${label} ${statLabel} Lv${rec[branch]}`);
+    if (branch === 'health') refreshLiveTowersOfType(pid, towerType);
   } else {
     return false;
   }
   updateEngineersUpgradeUI();
   updateUI();
   return true;
+}
+
+function refreshLiveTowersOfType(pid, towerType) {
+  const p = players[pid];
+  const def = towerDef(towerType, pid);
+  for (const t of p.turrets) {
+    if (t.towerType !== towerType || t.hp <= 0) continue;
+    const newMax = def.hp || t.maxHp;
+    const ratio = t.maxHp > 0 ? t.hp / t.maxHp : 1;
+    t.maxHp = newMax;
+    t.hp = Math.max(1, Math.min(newMax, Math.round(newMax * ratio)));
+  }
 }
 
 function buyMissileUpgrade(pid, towerId, branch) {
@@ -10008,7 +10021,7 @@ function detonateMissile(m) {
     const hitR = r + getUnitSize(u) * 0.4;
     if (d <= hitR) {
       const falloff = 1 - (d / hitR) * 0.6;
-      const dmg = towerAttackDamage('missile', u.type) * Math.max(0.3, falloff);
+      const dmg = m.damage * getCounter('missile', u.type) * Math.max(0.3, falloff);
       u.lastHitBy = ownerId;
       applyHpLoss(u, dmg);
       unitsHit++;
@@ -10670,8 +10683,8 @@ function fireSniperShot(unit, tgt) {
   spawnParticles(unit.x + Math.cos(unit.facing) * 14, unit.y + Math.sin(unit.facing) * 14, '#ffd54a', 3);
 }
 
-function towerAttackDamage(towerType, unitType, mult = 1) {
-  const def = towerDef(towerType);
+function towerAttackDamage(towerType, unitType, mult = 1, ownerId = null) {
+  const def = towerDef(towerType, ownerId);
   const counterKey = towerType === 'turret' ? 'turret' : towerType;
   const counter = getCounter(counterKey, unitType);
   const base = towerType === 'spread' ? def.pelletDamage : def.damage;
@@ -10679,7 +10692,7 @@ function towerAttackDamage(towerType, unitType, mult = 1) {
 }
 
 function spawnTowerPellet(tower, ownerId, angle, towerType, opts = {}) {
-  const def = towerDef(towerType);
+  const def = towerDef(towerType, ownerId);
   const speed = def.pelletSpeed || 380;
   const muzzle = def.size + 6;
   pellets.push({
@@ -10709,14 +10722,14 @@ function applySpreadParalysis(unit) {
 }
 
 function applyPelletHit(pellet, unit) {
-  const dmg = towerAttackDamage(pellet.towerType, unit.type, pellet.damageMult);
+  const dmg = towerAttackDamage(pellet.towerType, unit.type, pellet.damageMult, pellet.ownerId);
   const hpBefore = unit.hp;
   unit.lastHitBy = pellet.ownerId;
   applyHpLoss(unit, dmg);
   trackDamageDealt(pellet.ownerId, dmg, false);
   spawnParticles(unit.x, unit.y, pellet.color, 4);
   if (pellet.towerType === 'turret' && hpBefore > 0 && unit.hp <= 0) {
-    const def = towerDef('turret');
+    const def = towerDef('turret', pellet.ownerId);
     const shotDist = Math.hypot(unit.x - pellet.spawnX, unit.y - pellet.spawnY);
     if (shotDist >= def.range * 0.88) triggerAchievement(pellet.ownerId, 'cannon_snipe');
   }
@@ -10962,12 +10975,12 @@ function checkFieldAchievements(dt) {
 }
 
 function enemiesInRange(t, ownerId) {
-  const def = towerDef(t.towerType);
+  const def = towerDef(t.towerType, ownerId);
   const list = [];
   for (const u of combatUnits) {
     if (u.owner === ownerId || u.hp <= 0) continue;
     const d = dist(t, u);
-    if (def.style === 'laser' || d <= (def.range || 9999)) list.push({ unit: u, dist: d });
+    if (def.style === 'laser' || def.style === 'railgun' || d <= (def.range || 9999)) list.push({ unit: u, dist: d });
   }
   list.sort((a, b) => a.dist - b.dist);
   return list;
@@ -10996,7 +11009,7 @@ function updateTowers(dt) {
         const aim = inRange[0].unit;
         t.angle = Math.atan2(aim.y - t.y, aim.x - t.x);
         const cos = Math.cos(t.angle), sin = Math.sin(t.angle);
-        const beamLen = beamBoardLength(t.x, t.y, t.angle);
+        const beamLen = Math.min(beamBoardLength(t.x, t.y, t.angle), def.range || 2000);
         const pierced = unitsOnBeam(t.x, t.y, t.angle, beamLen, def.beamWidth, p.id);
 
         if (t.cooldown <= 0) {
@@ -11014,7 +11027,7 @@ function updateTowers(dt) {
           for (const hit of pierced) {
             if (hit.unit.type === 'goblin' && def.style === 'railgun') continue;
             hit.unit.lastHitBy = p.id;
-            const dmg = towerAttackDamage('laser', hit.unit.type);
+            const dmg = towerAttackDamage('laser', hit.unit.type, 1, p.id);
             applyHpLoss(hit.unit, dmg);
             spawnParticles(hit.unit.x, hit.unit.y, def.color, 2);
           }
