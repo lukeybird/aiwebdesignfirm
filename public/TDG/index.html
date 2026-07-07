@@ -135,8 +135,6 @@
     .tool-btn:active { transform: translateY(0); }
     .tool-btn.active { outline: 3px solid #fff; outline-offset: 2px; }
     .tool-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .tool-btn.tool-unaffordable { opacity: 0.72; }
-    .tool-btn.tool-locked { outline: 2px dashed rgba(251, 191, 36, 0.55); outline-offset: 1px; }
     .tool-btn .cost { font-size: 0.7rem; opacity: 0.8; }
 
     .btn-tank { background: #4ECDC4; }
@@ -8771,7 +8769,7 @@ function updateUI() {
       : (phaseNames[phase] || phase);
 
   const canUseTools = canPlayerBuildNow();
-  const liveFreeSelect = isSurvivalLive() && phase === 'combat';
+  const alwaysSelectableTools = isSurvivalLive() && phase === 'combat';
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) syncLiveArmyStructures();
   document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
     const tool = btn.dataset.tool;
@@ -8787,33 +8785,27 @@ function updateUI() {
     if (UNIT_TYPES[tool]) {
       const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, pid) : UNIT_TYPES[tool];
       if (costEl) costEl.textContent = ut.cost;
-      const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
-      if (liveFreeSelect) {
+      if (alwaysSelectableTools) {
         btn.disabled = false;
-        btn.classList.toggle('tool-unaffordable', p.coins < ut.cost);
-        btn.classList.toggle('tool-locked', !unlocked);
-        btn.title = !unlocked ? 'Requires Barracks unlock' : (p.coins < ut.cost ? 'Not enough coins' : '');
+        btn.title = '';
       } else {
-        btn.classList.remove('tool-unaffordable', 'tool-locked');
+        const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
         btn.disabled = !isUnitEnabled(tool) || !canUseTools || p.coins < ut.cost || !unlocked;
         btn.title = unlocked ? '' : 'Requires Barracks unlock';
       }
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
       if (costEl) costEl.textContent = price;
-      if (liveFreeSelect) {
+      if (alwaysSelectableTools) {
         btn.disabled = false;
-        btn.classList.toggle('tool-unaffordable', p.coins < price);
-        btn.classList.remove('tool-locked');
-        btn.title = p.coins < price ? 'Not enough coins' : '';
+        btn.title = '';
       } else {
-        btn.classList.remove('tool-unaffordable', 'tool-locked');
         btn.disabled = !isTowerEnabled(tool) || !canUseTools || p.coins < price;
         btn.title = '';
       }
     } else if (tool === 'move') {
-      btn.classList.remove('tool-unaffordable', 'tool-locked');
-      btn.disabled = liveFreeSelect ? false : !canUseTools;
+      btn.disabled = alwaysSelectableTools ? false : !canUseTools;
+      btn.title = '';
     }
   });
   ensureValidSelectedTool();
@@ -9006,12 +8998,7 @@ document.getElementById('missile-upgrade-list').addEventListener('click', (e) =>
 
 document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (isSurvivalLive() && phase === 'combat') {
-      selectedTool = btn.dataset.tool;
-      updateUI();
-      return;
-    }
-    if (!canPlayerBuildNow()) return;
+    if (!(isSurvivalLive() && phase === 'combat') && !canPlayerBuildNow()) return;
     selectedTool = btn.dataset.tool;
     updateUI();
   });
