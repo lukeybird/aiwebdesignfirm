@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pusher } from '@/lib/pusher';
-import { ensureTdgPvpTables, verifyRoomPlayer } from '@/lib/tdg-pvp';
+import { ensureTdgPvpTables, removeQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
       name: player.player_name,
       t: Date.now(),
     });
+
+    await removeQueueSession(sessionToken);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

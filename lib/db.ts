@@ -416,6 +416,15 @@ export async function initDatabase() {
       ON tdg_pvp_queue (status, created_at)
       WHERE status = 'waiting'
     `;
+    await sql`
+      ALTER TABLE tdg_pvp_queue
+      ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tdg_pvp_queue_alive
+      ON tdg_pvp_queue (status, last_seen_at)
+      WHERE status = 'waiting'
+    `;
 
     await initBookingTables(sql);
 

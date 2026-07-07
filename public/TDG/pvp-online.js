@@ -6,7 +6,10 @@
   let roomChannel = null;
   let session = null;
   let lastSyncAt = 0;
+  let heartbeatTimer = null;
+  let disconnecting = false;
   const SYNC_INTERVAL_MS = 120;
+  const HEARTBEAT_INTERVAL_MS = 10000;
 
   function $(id) {
     return document.getElementById(id);
@@ -50,6 +53,73 @@
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
+
+  async function pingSession() {
+    if (!session?.sessionToken) return true;
+    try {
+      const data = await fetchJson('/api/tdg-pvp/ping', {
+        method: 'POST',
+        body: JSON.stringify({ sessionToken: session.sessionToken }),
+      });
+      if (data.status === 'gone') {
+        handleSessionExpired('Your queue session expired. Please find a match again.');
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
+  function startHeartbeat() {
+    stopHeartbeat();
+    if (!session?.sessionToken) return;
+    void pingSession();
+    heartbeatTimer = setInterval(() => {
+      void pingSession();
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  function handleSessionExpired(message) {
+    if (disconnecting) return;
+    stopHeartbeat();
+    disconnectChannels();
+    clearSession();
+    hideOnlineScreens();
+    show($('menu-screen'));
+    if (message) alert(message);
+  }
+
+  function handleMatchCancelled() {
+    handleSessionExpired('Your opponent disconnected. Returning to menu.');
+  }
+
+  function sendLeaveBeacon() {
+    const stored = loadStoredSession();
+    if (!stored?.sessionToken) return;
+    const payload = JSON.stringify({ sessionToken: stored.sessionToken });
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/tdg-pvp/leave', new Blob([payload], { type: 'application/json' }));
+        return;
+      }
+    } catch {
+      // fall through
+    }
+    fetch('/api/tdg-pvp/leave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {});
   }
 
   async function ensurePusher() {
@@ -145,6 +215,9 @@
         playerName: session?.playerName || data.opponentName,
       });
     });
+    playerChannel.bind('match_cancelled', () => {
+      handleMatchCancelled();
+    });
   }
 
   function subscribeToRoomChannel(roomId) {
@@ -230,6 +303,7 @@
 
     await ensurePusher();
     subscribeToPlayerChannel(result.sessionToken);
+    startHeartbeat();
 
     if (result.status === 'matched') {
       showMatchScreen(result.playerName || name, result.opponentName);
@@ -244,6 +318,7 @@
   }
 
   async function leaveQueue() {
+    disconnecting = true;
     const stored = loadStoredSession();
     if (stored?.sessionToken) {
       try {
@@ -258,6 +333,7 @@
     cleanup();
     hideOnlineScreens();
     show($('menu-screen'));
+    disconnecting = false;
   }
 
   async function sendAction(action) {
@@ -309,10 +385,35 @@
   }
 
   function cleanup() {
+    stopHeartbeat();
+    const token = session?.sessionToken || loadStoredSession()?.sessionToken;
+    if (token) {
+      fetch('/api/tdg-pvp/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken: token }),
+        keepalive: true,
+      }).catch(() => {});
+    }
     disconnectChannels();
     clearSession();
     pusher?.disconnect();
     pusher = null;
+  }
+
+  async function forfeitMatch() {
+    if (!session?.roomId || !session?.sessionToken) return;
+    try {
+      await fetchJson('/api/tdg-pvp/forfeit', {
+        method: 'POST',
+        body: JSON.stringify({
+          roomId: session.roomId,
+          sessionToken: session.sessionToken,
+        }),
+      });
+    } catch {
+      // ignore
+    }
   }
 
   function bindUi() {
@@ -343,6 +444,13 @@
     $('online-name-input')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') $('btn-online-find')?.click();
     });
+
+    window.addEventListener('pagehide', () => {
+      if (loadStoredSession()?.sessionToken) sendLeaveBeacon();
+    });
+    window.addEventListener('beforeunload', () => {
+      if (loadStoredSession()?.sessionToken) sendLeaveBeacon();
+    });
   }
 
   window.TDG_PVP = {
@@ -351,6 +459,7 @@
     notifyGameOver,
     cleanup,
     leaveQueue,
+    forfeitMatch,
   };
 
   bindUi();

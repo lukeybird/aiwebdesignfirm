@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  cleanupStaleTdgQueue,
   ensureTdgPvpTables,
-  notifyOpponentSessionEnded,
-  removeQueueSession,
+  findQueueRowByToken,
+  touchQueueSession,
 } from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
@@ -16,18 +17,22 @@ export async function POST(request: NextRequest) {
     }
 
     await ensureTdgPvpTables();
+    await cleanupStaleTdgQueue();
 
-    const row = await removeQueueSession(sessionToken);
-    if (row?.room_id) {
-      await notifyOpponentSessionEnded(row, 'match_cancelled', {
-        reason: 'opponent_left',
-        t: Date.now(),
-      });
+    const row = await findQueueRowByToken(sessionToken);
+    if (!row) {
+      return NextResponse.json({ status: 'gone' });
     }
 
-    return NextResponse.json({ ok: true });
+    await touchQueueSession(sessionToken);
+
+    return NextResponse.json({
+      ok: true,
+      status: row.status,
+      roomId: row.room_id,
+    });
   } catch (error) {
-    console.error('tdg-pvp leave error:', error);
-    return NextResponse.json({ error: 'Could not leave queue.' }, { status: 500 });
+    console.error('tdg-pvp ping error:', error);
+    return NextResponse.json({ error: 'Ping failed.' }, { status: 500 });
   }
 }

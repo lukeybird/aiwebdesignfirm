@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pusher } from '@/lib/pusher';
-import { ensureTdgPvpTables, verifyRoomPlayer } from '@/lib/tdg-pvp';
+import { ensureTdgPvpTables, touchQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
     if (!player) {
       return NextResponse.json({ error: 'Not in this match.' }, { status: 403 });
     }
+
+    await touchQueueSession(sessionToken);
 
     await pusher.trigger(`tdg-room-${roomId}`, 'action', {
       action,
