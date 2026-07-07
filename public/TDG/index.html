@@ -2936,7 +2936,6 @@ let pvpOnline = null;
 
 // PvP lockstep (client-authoritative, deterministic inputs)
 const PVP_FIXED_DT = 1 / 60;
-const PVP_INPUT_DELAY_FRAMES = 5; // ~83ms at 60fps; reduces late-input rollbacks
 const PVP_SNAPSHOT_INTERVAL_FRAMES = 10;
 let pvpLock = null; // { frame, acc, queueByFrame: Map<number, {0:[],1:[]}>, history: Array<{frame,state}> }
 
@@ -4786,6 +4785,7 @@ function setupSurvivalLivePvp(opts) {
   pvpLock = {
     frame: 0,
     acc: 0,
+    serverTick: -1,
     queueByFrame: new Map(),
     history: [],
   };
@@ -4981,11 +4981,8 @@ function pvpEnqueueAction(fromPlayerId, payload) {
 
 function pvpSendLocalAction(action) {
   if (!pvpLock || !isSurvivalPvp() || !pvpOnline) return false;
-  const pid = getLocalPlayerId();
-  const frame = pvpLock.frame + PVP_INPUT_DELAY_FRAMES;
-  // Apply locally via queue so both sides follow identical timing.
-  pvpEnqueueAction(pid, { frame, action });
-  window.TDG_PVP?.sendAction?.({ frame, action });
+  // Server (Vercel) is authoritative for tick assignment and queue ordering.
+  window.TDG_PVP?.sendAction?.(action);
   return true;
 }
 
@@ -5036,9 +5033,10 @@ function pvpRollbackAndResim(targetFrame) {
 function pvpTick(rawDt) {
   if (!pvpLock) return;
   pvpLock.acc += rawDt;
-  const maxSteps = 6; // avoids spiral of death
+  if (pvpLock.serverTick < 0) return;
+  const maxSteps = 8; // avoids spiral of death while still catching up quickly
   let steps = 0;
-  while (pvpLock.acc >= PVP_FIXED_DT && steps < maxSteps) {
+  while (pvpLock.frame <= pvpLock.serverTick && pvpLock.acc >= PVP_FIXED_DT && steps < maxSteps) {
     pvpApplyActionsForFrame(pvpLock.frame);
     updateSurvivalLive(PVP_FIXED_DT);
     updateCombat(PVP_FIXED_DT);
@@ -5047,6 +5045,11 @@ function pvpTick(rawDt) {
     pvpLock.acc -= PVP_FIXED_DT;
     steps++;
   }
+}
+
+function setPvpNowTick(tick) {
+  if (!pvpLock || !Number.isFinite(tick)) return;
+  pvpLock.serverTick = Math.max(pvpLock.serverTick, Math.floor(tick));
 }
 
 function applyPvpAction(fromPlayerId, action) {
@@ -12387,6 +12390,7 @@ window.__TDG = {
   getPvpSnapshot,
   applyPvpSnapshot,
   applyPvpRemoteAction,
+  setPvpNowTick,
   isSurvivalPvp,
 };
 

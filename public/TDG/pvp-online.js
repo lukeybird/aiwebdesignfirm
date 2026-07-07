@@ -6,8 +6,11 @@
   let roomChannel = null;
   let session = null;
   let heartbeatTimer = null;
+  let pollTimer = null;
+  let lastTickSeen = -1;
   let disconnecting = false;
   const HEARTBEAT_INTERVAL_MS = 10000;
+  const POLL_INTERVAL_MS = 75;
 
   function $(id) {
     return document.getElementById(id);
@@ -57,6 +60,13 @@
     if (heartbeatTimer) {
       clearInterval(heartbeatTimer);
       heartbeatTimer = null;
+    }
+  }
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
     }
   }
 
@@ -223,10 +233,6 @@
     roomChannel.bind('state', (payload) => {
       // State snapshots are no longer used in lockstep PvP.
     });
-    roomChannel.bind('action', (payload) => {
-      if (!window.__TDG?.isSurvivalPvp?.()) return;
-      window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
-    });
     roomChannel.bind('forfeit', (payload) => {
       if (!window.__TDG?.isSurvivalPvp?.()) return;
       const snap = window.__TDG.getPvpSnapshot();
@@ -234,6 +240,42 @@
       if (snap?.players?.[loser]) snap.players[loser].baseHp = 0;
       window.__TDG.applyPvpSnapshot(snap);
     });
+  }
+
+  async function pollQueueOnce() {
+    if (!session?.roomId || !session?.sessionToken) return;
+    try {
+      const data = await fetchJson('/api/tdg-pvp/poll', {
+        method: 'POST',
+        body: JSON.stringify({
+          roomId: session.roomId,
+          sessionToken: session.sessionToken,
+          lastTick: lastTickSeen,
+        }),
+      });
+      if (!window.__TDG?.isSurvivalPvp?.()) return;
+      if (Array.isArray(data.actions) && data.actions.length) {
+        for (const entry of data.actions) {
+          window.__TDG.applyPvpRemoteAction(entry.from, { frame: entry.tick, action: entry.action });
+          lastTickSeen = Math.max(lastTickSeen, entry.tick);
+        }
+      }
+      if (Number.isFinite(data.nowTick)) {
+        window.__TDG?.setPvpNowTick?.(data.nowTick);
+        lastTickSeen = Math.max(lastTickSeen, data.nowTick - 1);
+      }
+    } catch {
+      // tolerate transient network failures
+    }
+  }
+
+  function startPolling() {
+    stopPolling();
+    lastTickSeen = -1;
+    void pollQueueOnce();
+    pollTimer = setInterval(() => {
+      void pollQueueOnce();
+    }, POLL_INTERVAL_MS);
   }
 
   function startOnlineMatch(match) {
@@ -257,6 +299,7 @@
         sessionToken: match.sessionToken,
         opponentName: match.opponentName,
       });
+      startPolling();
     });
   }
 
@@ -358,6 +401,7 @@
 
   function cleanup() {
     stopHeartbeat();
+    stopPolling();
     const token = session?.sessionToken || loadStoredSession()?.sessionToken;
     if (token) {
       fetch('/api/tdg-pvp/leave', {

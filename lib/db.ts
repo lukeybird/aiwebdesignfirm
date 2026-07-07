@@ -421,9 +421,27 @@ export async function initDatabase() {
       ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     `;
     await sql`
+      ALTER TABLE tdg_pvp_queue
+      ADD COLUMN IF NOT EXISTS match_started_at BIGINT
+    `;
+    await sql`
       CREATE INDEX IF NOT EXISTS idx_tdg_pvp_queue_alive
       ON tdg_pvp_queue (status, last_seen_at)
       WHERE status = 'waiting'
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS tdg_pvp_actions (
+        id SERIAL PRIMARY KEY,
+        room_id VARCHAR(64) NOT NULL,
+        tick INTEGER NOT NULL,
+        from_player SMALLINT NOT NULL,
+        action JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tdg_pvp_actions_room_tick
+      ON tdg_pvp_actions (room_id, tick, id)
     `;
 
     await initBookingTables(sql);
