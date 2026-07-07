@@ -2,16 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>Block Fortress — Tower Defense War</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@600;700&display=swap');
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html {
+      overflow: hidden;
+      overscroll-behavior: none;
+      height: 100%;
+    }
+
     body {
       background: radial-gradient(ellipse at 50% 0%, #2a3a2a 0%, #141a14 45%, #0a0e0a 100%);
       min-height: 100vh;
+      min-height: 100dvh;
+      height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -19,6 +28,24 @@
       font-family: 'Rajdhani', sans-serif;
       color: #e8ebe0;
       overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    body.mobile-device {
+      justify-content: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    body.mobile-device > h1,
+    body.mobile-device > .subtitle {
+      display: none;
+    }
+
+    body.mobile-device #game-wrapper {
+      border-radius: 0;
+      box-shadow: none;
     }
 
     h1 {
@@ -52,6 +79,9 @@
     canvas {
       display: block;
       cursor: crosshair;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     #ui-overlay {
@@ -2200,9 +2230,48 @@
     .ach-panel-row .ach-info-title { font-weight: 700; line-height: 1.2; }
     .ach-panel-row .ach-info-desc { opacity: 0.78; font-size: 0.65rem; margin-top: 2px; }
     .ach-panel-row .ach-info-reward { color: #FFE66D; font-weight: 600; margin-top: 3px; font-size: 0.65rem; }
+
+    #orientation-hint {
+      display: none;
+      position: fixed;
+      top: env(safe-area-inset-top, 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100001;
+      pointer-events: none;
+      max-width: min(360px, calc(100vw - 24px));
+    }
+
+    #orientation-hint.visible {
+      display: block;
+    }
+
+    #orientation-hint .orientation-hint-card {
+      background: rgba(0, 0, 0, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      line-height: 1.35;
+      text-align: center;
+      color: #e8ebe0;
+      backdrop-filter: blur(8px);
+    }
+
+    #orientation-hint .orientation-hint-icon {
+      display: block;
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+    }
   </style>
 </head>
 <body>
+  <div id="orientation-hint" aria-hidden="true">
+    <div class="orientation-hint-card">
+      <span class="orientation-hint-icon">📱 ↻</span>
+      Landscape is recommended. Portrait still works — the game scales to fit your screen.
+    </div>
+  </div>
   <h1>Block Fortress</h1>
   <p class="subtitle">Plan your blocks. Watch the battle unfold.</p>
 
@@ -12021,21 +12090,115 @@ function render(time) {
 let mousePos = null;
 canvas.addEventListener('mousemove', (e) => { mousePos = canvasPos(e); });
 
+let landscapeLockAttempted = false;
+
+function isPortraitViewport() {
+  const vp = window.visualViewport;
+  const width = vp?.width ?? window.innerWidth;
+  const height = vp?.height ?? window.innerHeight;
+  return height > width;
+}
+
+function isMobileLikeViewport() {
+  const vp = window.visualViewport;
+  const width = vp?.width ?? window.innerWidth;
+  return window.matchMedia('(pointer: coarse)').matches || width < 900;
+}
+
+function getLayoutViewport() {
+  const vp = window.visualViewport;
+  return {
+    width: vp?.width ?? window.innerWidth,
+    height: vp?.height ?? window.innerHeight,
+  };
+}
+
+async function tryLandscapeOrientationLock() {
+  if (landscapeLockAttempted || !screen.orientation?.lock) return;
+  landscapeLockAttempted = true;
+  try {
+    await screen.orientation.lock('landscape');
+  } catch (_) {
+    landscapeLockAttempted = false;
+  }
+}
+
+function updateOrientationHint() {
+  const hint = document.getElementById('orientation-hint');
+  if (!hint) return;
+  const show = isMobileLikeViewport() && isPortraitViewport();
+  hint.classList.toggle('visible', show);
+  hint.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
+function bindCanvasViewportGuards() {
+  const blockCanvasGesture = (e) => {
+    if (e.touches?.length > 1 || e.type.startsWith('gesture')) e.preventDefault();
+  };
+
+  canvas.addEventListener('touchstart', blockCanvasGesture, { passive: false });
+  canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  canvas.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+  canvas.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+  canvas.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+  let lastTouchEnd = 0;
+  canvas.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  canvas.addEventListener('wheel', (e) => {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+}
+
+function setupViewportHandling() {
+  bindCanvasViewportGuards();
+
+  window.addEventListener('orientationchange', () => setTimeout(resize, 120));
+  window.visualViewport?.addEventListener('resize', resize);
+  window.visualViewport?.addEventListener('scroll', () => {
+    if (window.visualViewport) {
+      window.scrollTo(0, 0);
+    }
+  });
+
+  document.getElementById('game-wrapper')?.addEventListener('pointerdown', () => {
+    if (isMobileLikeViewport()) tryLandscapeOrientationLock();
+  }, { passive: true });
+}
+
 // Scale the whole game shell so UI and canvas stay proportional on any screen.
 function resize() {
   const stage = document.getElementById('game-stage');
   const wrapper = document.getElementById('game-wrapper');
-  const maxW = window.innerWidth - 40;
-  const maxH = window.innerHeight - 120;
-  const scale = Math.min(maxW / W, maxH / H, 1);
+  const mobile = isMobileLikeViewport();
+  const portrait = isPortraitViewport();
+  const { width: vpW, height: vpH } = getLayoutViewport();
+
+  document.body.classList.toggle('mobile-device', mobile);
+  document.body.classList.toggle('portrait-mobile', mobile && portrait);
+  document.body.classList.toggle('landscape-mobile', mobile && !portrait);
+
+  const padX = mobile ? 4 : 40;
+  const padY = mobile ? 4 : 120;
+  const availW = Math.max(1, vpW - padX);
+  const availH = Math.max(1, vpH - padY);
+  const scale = Math.min(availW / W, availH / H, mobile ? Infinity : 1);
 
   stage.style.width = `${W * scale}px`;
   stage.style.height = `${H * scale}px`;
   wrapper.style.transform = `scale(${scale})`;
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
+
+  updateOrientationHint();
 }
+
 window.addEventListener('resize', resize);
+setupViewportHandling();
 resize();
 
 window.__TDG = {
