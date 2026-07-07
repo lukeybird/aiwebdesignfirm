@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureTdgPvpTables, touchQueueSession, verifyRoomPlayer, currentServerTick, TDG_INPUT_DELAY_TICKS } from '@/lib/tdg-pvp';
-import { sql } from '@/lib/db';
+import { pusher } from '@/lib/pusher';
+import { ensureTdgPvpTables, touchQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
     }
 
     await touchQueueSession(sessionToken);
-    const nowTick = await currentServerTick(roomId);
-    const tick = nowTick + TDG_INPUT_DELAY_TICKS;
-    await sql`
-      INSERT INTO tdg_pvp_actions (room_id, tick, from_player, action)
-      VALUES (${roomId}, ${tick}, ${player.player_slot}, ${JSON.stringify(action)}::jsonb)
-    `;
 
-    return NextResponse.json({ ok: true, tick, nowTick });
+    await pusher.trigger(`tdg-room-${roomId}`, 'action', {
+      action,
+      from: player.player_slot,
+      t: Date.now(),
+    });
+
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('tdg-pvp action error:', error);
     return NextResponse.json({ error: 'Action failed.' }, { status: 500 });

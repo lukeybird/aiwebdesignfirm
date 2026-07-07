@@ -37,15 +37,6 @@ async function tryResumeExistingSession(existingToken: string) {
   if (!row) return null;
 
   if (row.status === 'matched' && row.room_id && row.player_slot !== null) {
-    if (!row.match_started_at) {
-      const fallbackStart = Date.now() + 1200;
-      await sql`
-        UPDATE tdg_pvp_queue
-        SET match_started_at = ${fallbackStart}
-        WHERE room_id = ${row.room_id}
-      `;
-      row.match_started_at = fallbackStart;
-    }
     const opponent = row.opponent_token
       ? await findQueueRowByToken(row.opponent_token)
       : null;
@@ -67,7 +58,6 @@ async function tryResumeExistingSession(existingToken: string) {
       opponentName: row.opponent_name,
       isHost: row.player_slot === 0,
       playerName: row.player_name,
-      startsAt: row.match_started_at ?? Date.now() + 1200,
     });
   }
 
@@ -107,7 +97,6 @@ export async function POST(request: NextRequest) {
     const waiting = await findLiveWaitingPartner(sessionToken);
     if (waiting) {
       const roomId = makeRoomId();
-      const startsAt = Date.now() + 4500;
       const updated = (await sql`
         UPDATE tdg_pvp_queue
         SET status = 'matched',
@@ -115,7 +104,6 @@ export async function POST(request: NextRequest) {
             player_slot = 0,
             opponent_name = ${name},
             opponent_token = ${sessionToken},
-            match_started_at = ${startsAt},
             last_seen_at = CURRENT_TIMESTAMP
         WHERE id = ${waiting.id}
           AND status = 'waiting'
@@ -128,9 +116,9 @@ export async function POST(request: NextRequest) {
 
         await sql`
           INSERT INTO tdg_pvp_queue (
-            session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, match_started_at, last_seen_at
+            session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, last_seen_at
           ) VALUES (
-            ${sessionToken}, ${name}, 'matched', ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, ${startsAt}, CURRENT_TIMESTAMP
+            ${sessionToken}, ${name}, 'matched', ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
           )
           ON CONFLICT (session_token) DO UPDATE SET
             player_name = EXCLUDED.player_name,
@@ -139,13 +127,12 @@ export async function POST(request: NextRequest) {
             player_slot = EXCLUDED.player_slot,
             opponent_name = EXCLUDED.opponent_name,
             opponent_token = EXCLUDED.opponent_token,
-            match_started_at = EXCLUDED.match_started_at,
             last_seen_at = CURRENT_TIMESTAMP
         `;
 
         const matchPayload = {
           roomId,
-          startsAt,
+          startsAt: Date.now() + 4500,
         };
 
         await Promise.all([
