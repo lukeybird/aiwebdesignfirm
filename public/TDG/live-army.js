@@ -12,8 +12,9 @@ window.LIVE_ARMY = (function () {
     tank: 'Tank', speed: 'Speed', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'PEKA',
   };
   const UNIT_UNLOCK_COST = {
-    tank: 26, speed: 18, striker: 30, sniper: 40, goblin: 35, peka: 175,
+    tank: 145, speed: 115, striker: 155, sniper: 190, goblin: 170, peka: 550,
   };
+  const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 5;
 
   let active = false;
@@ -80,8 +81,8 @@ window.LIVE_ARMY = (function () {
     const el = document.getElementById('barracks-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Buy units to unlock them, then upgrade speed, damage, and health. Stat levels are hidden from your opponent.'
-      : 'Buy any unit to unlock it, then upgrade speed, damage, and health.';
+      ? 'Grow each unit down its skill tree. Deeper tiers cost more. Stat levels are hidden from your opponent.'
+      : 'Unlock units at the top, then climb each branch — speed, attack, and health get pricier every tier.';
   }
 
   function initPlayer(p) {
@@ -211,7 +212,8 @@ window.LIVE_ARMY = (function () {
 
   function statUpgradeCost(p, type, stat) {
     const rec = unitRecord(p, type);
-    return 45 + (rec[stat] || 0) * 55;
+    const lvl = rec[stat] || 0;
+    return Math.floor(65 * Math.pow(1.68, lvl) + lvl * 25);
   }
 
   function canPlaceStructure(p, towerType) {
@@ -356,6 +358,7 @@ window.LIVE_ARMY = (function () {
     UNIT_ORDER,
     UNIT_LABELS,
     UNIT_UNLOCK_COST,
+    STAT_BRANCHES,
     STAT_MAX,
     STRUCTURE_SIZE,
     FARM_SIZE,

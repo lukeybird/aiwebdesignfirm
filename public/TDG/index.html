@@ -766,40 +766,205 @@
     #barracks-upgrade-panel.hidden,
     #engineers-upgrade-panel.hidden { display: none; }
 
-    .barracks-map {
+    .barracks-panel-inner {
+      background: linear-gradient(165deg, #1a2438 0%, #121820 55%, #0f1410 100%);
+      border: 3px solid #94a3b8;
+      border-radius: 18px;
+      width: min(960px, 96%);
+      max-height: 84%;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      overflow-y: auto;
-      max-height: 52vh;
-      padding-right: 4px;
+      padding: 14px 18px 16px;
+      box-shadow: 0 20px 56px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06);
     }
 
-    .barracks-unit-card {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(148,163,184,0.25);
-      border-radius: 12px;
-      padding: 10px 12px;
+    .barracks-panel-desc {
+      font-size: 0.72rem;
+      opacity: 0.75;
+      margin: 0 0 10px;
+      line-height: 1.4;
     }
 
-    .barracks-unit-card.locked { opacity: 0.85; }
-
-    .barracks-unit-title {
-      font-weight: 700;
-      font-size: 0.9rem;
-      margin-bottom: 8px;
-      color: #e2e8f0;
+    #barracks-panel-close {
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
     }
 
-    .barracks-stat-row {
+    .barracks-forest {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      justify-content: center;
+      gap: 14px 10px;
+      overflow-y: auto;
+      max-height: 62vh;
+      padding: 4px 2px 8px;
     }
 
-    .barracks-stat-row .econ-upgrade-buy {
-      flex: 1 1 calc(50% - 6px);
-      min-width: 140px;
+    .barracks-tree-col {
+      width: 148px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(0,0,0,0.22);
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 14px;
+      padding: 8px 6px 10px;
+    }
+
+    .barracks-tree-col.is-locked { opacity: 0.92; }
+
+    .barracks-tree-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .skill-connector {
+      width: 2px;
+      height: 10px;
+      background: linear-gradient(180deg, rgba(148,163,184,0.5), rgba(148,163,184,0.15));
+      margin: 2px 0;
+    }
+
+    .skill-fork {
+      width: 78%;
+      height: 10px;
+      border: 2px solid rgba(148,163,184,0.22);
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      margin-bottom: 2px;
+    }
+
+    .skill-branches {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .skill-branch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .skill-branch-label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .skill-vline {
+      width: 2px;
+      height: 6px;
+      background: rgba(148,163,184,0.2);
+    }
+
+    .skill-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      border: none;
+      background: transparent;
+      padding: 2px;
+      cursor: default;
+      font-family: inherit;
+      color: inherit;
+    }
+
+    button.skill-node { cursor: pointer; }
+    button.skill-node:not(:disabled):hover .skill-gem { transform: scale(1.08); filter: brightness(1.12); }
+
+    .skill-gem {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.22), rgba(15,23,42,0.85) 68%);
+      border: 2px solid rgba(100,116,139,0.55);
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.25);
+      transition: transform 0.14s, filter 0.14s, box-shadow 0.14s;
+      position: relative;
+    }
+
+    .skill-gem.tier-1 { width: 34px; height: 34px; font-size: 0.95rem; border-radius: 9px; }
+    .skill-gem.tier-2 { width: 38px; height: 38px; font-size: 1.05rem; border-radius: 10px; }
+    .skill-gem.tier-3 { width: 42px; height: 42px; font-size: 1.15rem; border-radius: 11px; }
+    .skill-gem.tier-4 { width: 46px; height: 46px; font-size: 1.28rem; border-radius: 12px; }
+    .skill-gem.tier-5 { width: 50px; height: 50px; font-size: 1.42rem; border-radius: 13px; }
+    .skill-gem.tier-root { width: 54px; height: 54px; font-size: 1.55rem; border-radius: 14px; }
+
+    .skill-node.owned .skill-gem {
+      border-color: #4ade80;
+      box-shadow: inset 0 1px 4px rgba(255,255,255,0.15), 0 0 10px rgba(74,222,128,0.35);
+      background: radial-gradient(circle at 32% 28%, rgba(134,239,172,0.45), rgba(21,128,61,0.75) 70%);
+    }
+
+    .skill-node.available .skill-gem {
+      border-color: #fbbf24;
+      box-shadow: inset 0 1px 4px rgba(255,255,255,0.2), 0 0 14px rgba(251,191,36,0.45);
+      animation: skill-pulse 1.6s ease-in-out infinite;
+    }
+
+    .skill-node.afford-wait .skill-gem {
+      border-color: #f87171;
+      opacity: 0.88;
+    }
+
+    .skill-node.future .skill-gem,
+    .skill-node.future {
+      opacity: 0.38;
+      pointer-events: none;
+    }
+
+    .skill-node.maxed .skill-gem {
+      border-color: #fde047;
+      background: radial-gradient(circle at 32% 28%, #fef9c3, #ca8a04 72%);
+      box-shadow: 0 0 16px rgba(253,224,71,0.5);
+    }
+
+    @keyframes skill-pulse {
+      0%, 100% { box-shadow: inset 0 1px 4px rgba(255,255,255,0.2), 0 0 10px rgba(251,191,36,0.35); }
+      50% { box-shadow: inset 0 1px 4px rgba(255,255,255,0.25), 0 0 18px rgba(251,191,36,0.65); }
+    }
+
+    .skill-node-cost {
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: #fcd34d;
+      line-height: 1.1;
+      text-align: center;
+    }
+
+    .skill-node-tier {
+      font-size: 0.52rem;
+      opacity: 0.65;
+      line-height: 1;
+    }
+
+    .barracks-tree-footnote {
+      font-size: 0.52rem;
+      opacity: 0.55;
+      text-align: center;
+      margin-top: 6px;
+      line-height: 1.25;
+      padding: 0 2px;
     }
 
     #menu-screen.hidden { display: none !important; }
@@ -1008,12 +1173,12 @@
       <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">Engineers</button>
       <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
       <div id="barracks-upgrade-panel" class="hidden">
-        <div class="econ-panel-inner">
+        <div class="barracks-panel-inner">
           <div class="econ-panel-header">
-            <h3>🏕 Barracks</h3>
+            <h3>🏕 Barracks — Unit Skill Trees</h3>
             <button id="barracks-panel-close" type="button">✕</button>
           </div>
-          <p id="barracks-upgrade-desc" style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrade to unlock units and strengthen them with stat upgrades.</p>
+          <p id="barracks-upgrade-desc" class="barracks-panel-desc">Unlock units at the top, then climb each branch — deeper tiers cost more.</p>
           <div id="barracks-upgrade-list"></div>
         </div>
       </div>
@@ -1755,28 +1920,80 @@ function updateBarracksUpgradeUI() {
     list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build a Barracks first.</p>';
     return;
   }
-  let html = '<div class="barracks-map">';
+
+  const UNIT_ICONS = { tank: '🛡️', speed: '💨', goblin: '👺', striker: '🐴', sniper: '🎯', peka: '🪨' };
+  const STAT_ICONS = { speed: '⚡', damage: '⚔️', health: '❤️' };
+  const STAT_LABELS = { speed: 'Spd', damage: 'Atk', health: 'HP' };
+  const branches = LIVE_ARMY.STAT_BRANCHES || ['speed', 'damage', 'health'];
+
+  let html = '<div class="barracks-forest">';
   for (const ut of LIVE_ARMY.UNIT_ORDER) {
     if (!UNIT_TYPES[ut]) continue;
     const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
     const rec = LIVE_ARMY.unitRecord(p, ut);
     const unlockCost = LIVE_ARMY.unitUnlockCost(ut);
-    html += `<div class="barracks-unit-card${rec.unlocked ? '' : ' locked'}">`;
-    html += `<div class="barracks-unit-title">${label}</div>`;
-    if (!rec.unlocked) {
-      html += `<button type="button" class="econ-upgrade-buy" data-barracks-unlock="${ut}" ${p.coins < unlockCost ? 'disabled' : ''}>Unlock — ${unlockCost}🪙</button>`;
-    } else {
-      html += '<div class="barracks-stat-row">';
-      for (const stat of ['speed', 'damage', 'health']) {
+    const unlocked = !!rec.unlocked;
+
+    html += `<div class="barracks-tree-col${unlocked ? '' : ' is-locked'}">`;
+    html += `<div class="barracks-tree-title">${label}</div>`;
+
+    const unlockState = unlocked ? 'owned maxed' : (p.coins >= unlockCost ? 'available' : 'afford-wait');
+    const unlockTag = unlocked ? 'div' : 'button';
+    const unlockAttrs = unlocked
+      ? ''
+      : ` type="button" data-barracks-unlock="${ut}"${p.coins < unlockCost ? ' disabled' : ''}`;
+    html += `<${unlockTag} class="skill-node unlock-node ${unlockState}"${unlockAttrs}>`;
+    html += `<span class="skill-gem tier-root">${UNIT_ICONS[ut] || '⚔️'}</span>`;
+    if (!unlocked) html += `<span class="skill-node-cost">${unlockCost}🪙</span>`;
+    else html += `<span class="skill-node-tier">Unlocked</span>`;
+    html += `</${unlockTag}>`;
+
+    html += '<div class="skill-connector"></div><div class="skill-fork"></div>';
+    html += '<div class="skill-branches">';
+
+    for (const stat of branches) {
+      html += '<div class="skill-branch">';
+      html += `<div class="skill-branch-label">${STAT_LABELS[stat]}</div>`;
+      for (let tier = 1; tier <= LIVE_ARMY.STAT_MAX; tier++) {
         const lvl = rec[stat] || 0;
         const cost = LIVE_ARMY.statUpgradeCost(p, ut, stat);
-        const statLabel = stat === 'damage' ? 'Attack' : stat.charAt(0).toUpperCase() + stat.slice(1);
-        html += `<button type="button" class="econ-upgrade-buy" data-barracks-stat="${stat}" data-barracks-unit="${ut}" ${p.coins < cost || lvl >= LIVE_ARMY.STAT_MAX ? 'disabled' : ''}>${statLabel} Lv${lvl + 1} — ${cost}🪙</button>`;
+        let state = 'future';
+        let tag = 'div';
+        let attrs = '';
+        if (lvl >= tier) {
+          state = tier === LIVE_ARMY.STAT_MAX ? 'owned maxed' : 'owned';
+        } else if (tier === lvl + 1 && unlocked) {
+          tag = 'button';
+          attrs = ` type="button" data-barracks-stat="${stat}" data-barracks-unit="${ut}"`;
+          if (lvl >= LIVE_ARMY.STAT_MAX) {
+            state = 'maxed';
+            tag = 'div';
+            attrs = '';
+          } else if (p.coins >= cost) {
+            state = 'available';
+          } else {
+            state = 'afford-wait';
+            attrs += ' disabled';
+          }
+        }
+        if (tier > 1) html += '<div class="skill-vline"></div>';
+        html += `<${tag} class="skill-node ${state}"${attrs}>`;
+        html += `<span class="skill-gem tier-${tier}">${STAT_ICONS[stat]}</span>`;
+        if (state === 'available' || state === 'afford-wait') {
+          html += `<span class="skill-node-cost">${cost}🪙</span>`;
+        } else if (state === 'owned' || state === 'owned maxed') {
+          html += `<span class="skill-node-tier">T${tier}</span>`;
+        } else {
+          html += `<span class="skill-node-tier">T${tier}</span>`;
+        }
+        html += `</${tag}>`;
       }
       html += '</div>';
-      if (ut === 'goblin') {
-        html += '<p style="font-size:0.68rem;opacity:0.7;margin:6px 0 0">Immune to Rail Guns · Loots farms &amp; mints · Attack upgrades boost looting</p>';
-      }
+    }
+    html += '</div>';
+
+    if (ut === 'goblin') {
+      html += '<p class="barracks-tree-footnote">Rail immune · Loots farms &amp; mints</p>';
     }
     html += '</div>';
   }
