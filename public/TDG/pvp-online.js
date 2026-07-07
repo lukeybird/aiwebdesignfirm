@@ -8,7 +8,7 @@
   let lastSyncAt = 0;
   let heartbeatTimer = null;
   let disconnecting = false;
-  const SYNC_INTERVAL_MS = 120;
+  const SYNC_INTERVAL_MS = 33;
   const HEARTBEAT_INTERVAL_MS = 10000;
 
   function $(id) {
@@ -224,11 +224,12 @@
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
       if (!session || session.isHost) return;
-      window.__TDG?.applyPvpSnapshot(payload.state);
+      window.__TDG?.applyPvpSnapshot(payload.state, payload.t);
     });
     roomChannel.bind('action', (payload) => {
       if (!session?.isHost) return;
-      window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
+      const applied = window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
+      if (applied) forceHostSync();
     });
     roomChannel.bind('forfeit', (payload) => {
       if (!window.__TDG?.isSurvivalPvp?.()) return;
@@ -338,34 +339,52 @@
 
   async function sendAction(action) {
     if (!session?.roomId || !session?.sessionToken) return;
+    const body = JSON.stringify({
+      roomId: session.roomId,
+      sessionToken: session.sessionToken,
+      action,
+    });
     try {
-      await fetchJson('/api/tdg-pvp/action', {
+      await fetch('/api/tdg-pvp/action', {
         method: 'POST',
-        body: JSON.stringify({
-          roomId: session.roomId,
-          sessionToken: session.sessionToken,
-          action,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
       });
     } catch (err) {
       console.warn('action failed', err);
     }
   }
 
-  async function syncState(state) {
+  async function syncState(state, urgent = false) {
     if (!session?.roomId || !session?.sessionToken || !session.isHost) return;
+    const body = JSON.stringify({
+      roomId: session.roomId,
+      sessionToken: session.sessionToken,
+      state,
+    });
     try {
-      await fetchJson('/api/tdg-pvp/sync', {
+      await fetch('/api/tdg-pvp/sync', {
         method: 'POST',
-        body: JSON.stringify({
-          roomId: session.roomId,
-          sessionToken: session.sessionToken,
-          state,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: !urgent,
       });
     } catch (err) {
       console.warn('sync failed', err);
     }
+  }
+
+  function pushState(state) {
+    if (!session?.isHost) return;
+    void syncState(state);
+  }
+
+  function forceHostSync() {
+    if (!session?.isHost) return;
+    lastSyncAt = 0;
+    const state = window.__TDG?.getPvpSnapshot?.();
+    if (state) void syncState(state, true);
   }
 
   function tickHost() {
@@ -373,7 +392,7 @@
     if (now - lastSyncAt < SYNC_INTERVAL_MS) return;
     lastSyncAt = now;
     const state = window.__TDG?.getPvpSnapshot?.();
-    if (state) syncState(state);
+    if (state) pushState(state);
   }
 
   async function notifyGameOver() {
@@ -456,10 +475,13 @@
   window.TDG_PVP = {
     sendAction,
     tickHost,
+    pushState,
+    forceHostSync,
     notifyGameOver,
     cleanup,
     leaveQueue,
     forfeitMatch,
+    SYNC_INTERVAL_MS,
   };
 
   bindUi();

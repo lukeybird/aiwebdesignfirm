@@ -2925,6 +2925,10 @@ let survivalAiTimer = 0;
 let survivalAiBrain = null;
 let floatTexts = [];
 let pvpOnline = null;
+let pvpGuestInterp = null;
+const PVP_SYNC_INTERVAL_MS = 33;
+let pvpGuestUnitInterp = null;
+const PVP_SYNC_INTERVAL_MS = 33;
 
 function isSurvivalLive() {
   return gameMode === 'survival' || gameMode === 'survival-pvp';
@@ -4755,6 +4759,7 @@ function setupSurvivalLivePvp(opts) {
   setSurvivalSpeed(1);
   round = 1;
   pvpOnline = { playerId: myPlayerId, isHost, roomId, sessionToken, opponentName };
+  pvpGuestInterp = null;
 
   combatUnits = [];
   pellets = [];
@@ -4862,12 +4867,77 @@ function getPvpSnapshot() {
       rubble: p.rubble.map((r) => ({ ...r })),
     })),
     combatUnits: combatUnits.map(serializeUnit),
+    pellets: pellets.map((p) => ({ ...p })),
+    beams: beams.map((b) => ({ ...b })),
+    missiles: missiles.map((m) => ({ ...m })),
+    spreadTracks: spreadTracks.map((s) => ({ ...s })),
+    blasts: blasts.map((b) => ({ ...b })),
   };
   return snap;
 }
 
-function applyPvpSnapshot(state) {
+function pvpGuestSendAction(action) {
+  if (!isSurvivalPvp() || pvpOnline?.isHost) return;
+  if (applyPvpAction(getLocalPlayerId(), action)) {
+    updateUI();
+    window.TDG_PVP?.sendAction?.(action);
+  }
+}
+
+function pvpGuestAdvanceFx(dt) {
+  if (!isSurvivalPvp() || pvpOnline?.isHost) return;
+  for (let i = pellets.length - 1; i >= 0; i--) {
+    const p = pellets[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.traveled != null && p.spawnX != null) {
+      p.traveled += Math.hypot(p.vx * dt, p.vy * dt);
+    }
+    if (p.life <= 0) pellets.splice(i, 1);
+  }
+  for (let i = beams.length - 1; i >= 0; i--) {
+    beams[i].life -= dt;
+    if (beams[i].life <= 0) beams.splice(i, 1);
+  }
+  for (let i = missiles.length - 1; i >= 0; i--) {
+    const m = missiles[i];
+    const dx = m.tx - m.x;
+    const dy = m.ty - m.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 4) {
+      const step = (m.speed || 280) * dt;
+      const move = Math.min(step, d);
+      m.x += (dx / d) * move;
+      m.y += (dy / d) * move;
+    }
+  }
+  for (let i = blasts.length - 1; i >= 0; i--) {
+    blasts[i].life -= dt;
+    if (blasts[i].life <= 0) blasts.splice(i, 1);
+  }
+}
+
+function getPvpDrawUnits() {
+  if (!isSurvivalPvp() || pvpOnline?.isHost || !pvpGuestInterp?.units?.length) return combatUnits;
+  const elapsed = performance.now() - pvpGuestInterp.at;
+  const duration = pvpGuestInterp.duration || PVP_SYNC_INTERVAL_MS;
+  const t = Math.min(1, elapsed / duration);
+  return pvpGuestInterp.units.map((entry) => {
+    const u = combatUnits.find((unit) => unit.id === entry.id) || entry.next;
+    const x = entry.fromX + (entry.toX - entry.fromX) * t;
+    const y = entry.fromY + (entry.toY - entry.fromY) * t;
+    return { ...u, x, y };
+  });
+}
+
+function applyPvpSnapshot(state, serverTime) {
   if (!state || !state.players) return;
+  const isGuest = isSurvivalPvp() && !pvpOnline?.isHost;
+  const prevUnits = isGuest
+    ? combatUnits.map((u) => ({ id: u.id, x: u.x, y: u.y }))
+    : null;
+
   phase = state.phase || phase;
   combatTime = state.combatTime ?? combatTime;
   survivalIncomeTimer = state.survivalIncomeTimer ?? survivalIncomeTimer;
@@ -4897,6 +4967,35 @@ function applyPvpSnapshot(state) {
   syncLiveArmyStructures();
 
   combatUnits = (state.combatUnits || []).map((u) => ({ ...u }));
+  pellets = (state.pellets || []).map((p) => ({ ...p }));
+  beams = (state.beams || []).map((b) => ({ ...b }));
+  missiles = (state.missiles || []).map((m) => ({ ...m }));
+  spreadTracks = (state.spreadTracks || []).map((s) => ({ ...s }));
+  blasts = (state.blasts || []).map((b) => ({ ...b }));
+
+  if (isGuest) {
+    const now = performance.now();
+    pvpGuestInterp = {
+      at: now,
+      duration: PVP_SYNC_INTERVAL_MS,
+      units: combatUnits.map((u) => {
+        const prev = prevUnits?.find((p) => p.id === u.id);
+        return {
+          id: u.id,
+          fromX: prev?.x ?? u.x,
+          fromY: prev?.y ?? u.y,
+          toX: u.x,
+          toY: u.y,
+          next: u,
+        };
+      }),
+    };
+    if (serverTime) {
+      const lag = Math.max(0, Date.now() - serverTime);
+      pvpGuestInterp.duration = Math.max(PVP_SYNC_INTERVAL_MS, lag + PVP_SYNC_INTERVAL_MS);
+    }
+  }
+
   commitPublicSnapshots();
   updateUI();
 
@@ -4905,8 +5004,7 @@ function applyPvpSnapshot(state) {
   }
 }
 
-function applyPvpRemoteAction(fromPlayerId, action) {
-  if (!isSurvivalPvp() || !pvpOnline?.isHost) return false;
+function applyPvpAction(fromPlayerId, action) {
   if (fromPlayerId !== 0 && fromPlayerId !== 1) return false;
 
   const type = action?.type;
@@ -4944,6 +5042,11 @@ function applyPvpRemoteAction(fromPlayerId, action) {
     return buyMissileUpgrade(fromPlayerId, action.towerId, action.branch);
   }
   return false;
+}
+
+function applyPvpRemoteAction(fromPlayerId, action) {
+  if (!isSurvivalPvp() || !pvpOnline?.isHost) return false;
+  return applyPvpAction(fromPlayerId, action);
 }
 
 function buildPvpActionFromClick(pos) {
@@ -11189,7 +11292,7 @@ function handleClick(pos) {
 
   if (isSurvivalPvp() && !pvpOnline.isHost) {
     const action = buildPvpActionFromClick(pos);
-    if (action && window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
+    if (action) pvpGuestSendAction(action);
     else if (action === null && selectedTool !== 'move') {
       if (isTowerTool(selectedTool)) {
         const reason = towerPlaceFailReason(pid, selectedTool, pos.x, pos.y, null);
@@ -11282,16 +11385,12 @@ canvas.addEventListener('mousemove', (e) => {
 canvas.addEventListener('mouseup', () => {
   if (dragging && isSurvivalPvp() && !pvpOnline.isHost) {
     const tw = dragging.turret;
-    const pid = dragging.playerId ?? getLocalPlayerId();
-    if (window.TDG_PVP?.sendAction) {
-      window.TDG_PVP.sendAction({
-        type: 'move_tower',
-        towerId: tw.id,
-        x: tw.x,
-        y: tw.y,
-      });
-    }
-    // Guest will get authoritative position on next snapshot
+    pvpGuestSendAction({
+      type: 'move_tower',
+      towerId: tw.id,
+      x: tw.x,
+      y: tw.y,
+    });
   }
   dragging = null;
 });
@@ -11562,7 +11661,7 @@ document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
   }
   if (!action) return;
   if (isSurvivalPvp() && !pvpOnline.isHost) {
-    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
+    pvpGuestSendAction(action);
     return;
   }
   if (action.type === 'economy_upgrade') {
@@ -11587,7 +11686,7 @@ document.getElementById('barracks-upgrade-list').addEventListener('click', (e) =
     ? { type: 'barracks_upgrade', upgradeKind: 'unlock', unitType: unlockBtn.dataset.barracksUnlock }
     : { type: 'barracks_upgrade', upgradeKind: 'stat', unitType: statBtn.dataset.barracksUnit, stat: statBtn.dataset.barracksStat };
   if (isSurvivalPvp() && !pvpOnline.isHost) {
-    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
+    pvpGuestSendAction(action);
     return;
   }
   buyBarracksUpgrade(pid, action.upgradeKind, action.unitType, action.stat);
@@ -11608,7 +11707,7 @@ document.getElementById('engineers-upgrade-list').addEventListener('click', (e) 
     ? { type: 'engineers_upgrade', upgradeKind: 'unlock', towerType: unlockBtn.dataset.engUnlock }
     : { type: 'engineers_upgrade', upgradeKind: 'stat', towerType: statBtn.dataset.engTower, stat: statBtn.dataset.engStat };
   if (isSurvivalPvp() && !pvpOnline.isHost) {
-    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
+    pvpGuestSendAction(action);
     return;
   }
   buyEngineersUpgrade(pid, action.upgradeKind, action.towerType, action.stat);
@@ -11626,9 +11725,7 @@ document.getElementById('missile-upgrade-list').addEventListener('click', (e) =>
   const pid = getLocalPlayerId();
   if (!activeMissileTowerId) return;
   if (isSurvivalPvp() && !pvpOnline.isHost) {
-    if (window.TDG_PVP?.sendAction) {
-      window.TDG_PVP.sendAction({ type: 'missile_upgrade', towerId: activeMissileTowerId, branch });
-    }
+    pvpGuestSendAction({ type: 'missile_upgrade', towerId: activeMissileTowerId, branch });
     return;
   }
   buyMissileUpgrade(pid, activeMissileTowerId, branch);
@@ -11861,6 +11958,8 @@ function render(time) {
       dt = survivalSimDt(rawDt);
       updateCombat(dt);
       window.TDG_PVP?.tickHost?.();
+    } else if (isSurvivalPvp() && !pvpOnline?.isHost) {
+      pvpGuestAdvanceFx(dt);
     } else if (!isSurvivalPvp()) {
       updateCombat(dt);
     }
@@ -11972,7 +12071,7 @@ function render(time) {
   }
 
   if (phase === 'combat') {
-    for (const u of combatUnits) drawUnit(u);
+    for (const u of getPvpDrawUnits()) drawUnit(u);
 
     if (!isSurvivalLive()) {
       const pct = combatTime / gameRules.maxRoundTime;
