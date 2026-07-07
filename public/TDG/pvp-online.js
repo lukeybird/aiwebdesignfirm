@@ -256,6 +256,7 @@
         roomId: match.roomId,
         sessionToken: match.sessionToken,
         opponentName: match.opponentName,
+        startsAt,
       });
     });
   }

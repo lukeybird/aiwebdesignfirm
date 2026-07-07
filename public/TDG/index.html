@@ -2939,7 +2939,8 @@ let pvpOnline = null;
 const PVP_FIXED_DT = 1 / 15;
 const PVP_INPUT_DELAY_FRAMES = 2; // ~133ms at 15fps; reduces late-input rollbacks
 const PVP_SNAPSHOT_INTERVAL_FRAMES = 4;
-let pvpLock = null; // { frame, acc, queueByFrame: Map<number, {0:[],1:[]}>, history: Array<{frame,state}> }
+const PVP_FRAME_MS = PVP_FIXED_DT * 1000;
+let pvpLock = null; // { frame, queueByFrame: Map<number, {0:[],1:[]}>, history: Array<{frame,state}> }
 
 function isSurvivalLive() {
   return gameMode === 'survival' || gameMode === 'survival-pvp';
@@ -4775,6 +4776,7 @@ function setupSurvivalLivePvp(opts) {
     roomId,
     sessionToken,
     opponentName,
+    startsAt,
   } = opts;
 
   gameMode = 'survival-pvp';
@@ -4783,10 +4785,9 @@ function setupSurvivalLivePvp(opts) {
   round = 1;
   // Seed deterministic RNG so both clients simulate identically.
   seedPvpRng(roomId || sessionToken || 'pvp');
-  pvpOnline = { playerId: myPlayerId, roomId, sessionToken, opponentName };
+  pvpOnline = { playerId: myPlayerId, roomId, sessionToken, opponentName, startMs: startsAt || Date.now() };
   pvpLock = {
     frame: 0,
-    acc: 0,
     queueByFrame: new Map(),
     history: [],
   };
@@ -4983,7 +4984,7 @@ function pvpEnqueueAction(fromPlayerId, payload) {
 function pvpSendLocalAction(action) {
   if (!pvpLock || !isSurvivalPvp() || !pvpOnline) return false;
   const pid = getLocalPlayerId();
-  const frame = pvpLock.frame + PVP_INPUT_DELAY_FRAMES;
+  const frame = Math.max(pvpLock.frame, pvpNowFrame()) + PVP_INPUT_DELAY_FRAMES;
   // Apply locally via queue so both sides follow identical timing.
   pvpEnqueueAction(pid, { frame, action });
   window.TDG_PVP?.sendAction?.({ frame, action });
@@ -5036,18 +5037,24 @@ function pvpRollbackAndResim(targetFrame) {
 
 function pvpTick(rawDt) {
   if (!pvpLock) return;
-  pvpLock.acc += rawDt;
+  const targetFrame = pvpNowFrame();
+  if (targetFrame < pvpLock.frame) return;
   const maxSteps = 6; // avoids spiral of death
   let steps = 0;
-  while (pvpLock.acc >= PVP_FIXED_DT && steps < maxSteps) {
+  while (pvpLock.frame <= targetFrame && steps < maxSteps) {
     pvpApplyActionsForFrame(pvpLock.frame);
     updateSurvivalLive(PVP_FIXED_DT);
     updateCombat(PVP_FIXED_DT);
     pvpLock.frame++;
     pvpRecordSnapshotIfNeeded();
-    pvpLock.acc -= PVP_FIXED_DT;
     steps++;
   }
+}
+
+function pvpNowFrame() {
+  if (!isSurvivalPvp() || !pvpOnline?.startMs) return pvpLock?.frame || 0;
+  const elapsed = Math.max(0, Date.now() - pvpOnline.startMs);
+  return Math.floor(elapsed / PVP_FRAME_MS);
 }
 
 function applyPvpAction(fromPlayerId, action) {
