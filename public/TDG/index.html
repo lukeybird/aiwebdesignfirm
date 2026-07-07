@@ -32,8 +32,18 @@
 
     .subtitle { font-size: 0.9rem; opacity: 0.65; margin-bottom: 8px; color: #9aa892; }
 
-    #game-wrapper {
+    #game-stage {
       position: relative;
+      flex-shrink: 0;
+    }
+
+    #game-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1280px;
+      height: 720px;
+      transform-origin: top left;
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 4px rgba(255,255,255,0.1);
@@ -2196,6 +2206,7 @@
   <h1>Block Fortress</h1>
   <p class="subtitle">Plan your blocks. Watch the battle unfold.</p>
 
+  <div id="game-stage">
   <div id="game-wrapper">
     <canvas id="game" width="1280" height="720"></canvas>
     <div id="ui-overlay">
@@ -2412,6 +2423,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 
 <script src="/TDG/live-army.js"></script>
@@ -12009,13 +12021,19 @@ function render(time) {
 let mousePos = null;
 canvas.addEventListener('mousemove', (e) => { mousePos = canvasPos(e); });
 
-// Scale canvas to fit
+// Scale the whole game shell so UI and canvas stay proportional on any screen.
 function resize() {
+  const stage = document.getElementById('game-stage');
+  const wrapper = document.getElementById('game-wrapper');
   const maxW = window.innerWidth - 40;
   const maxH = window.innerHeight - 120;
   const scale = Math.min(maxW / W, maxH / H, 1);
-  canvas.style.width = (W * scale) + 'px';
-  canvas.style.height = (H * scale) + 'px';
+
+  stage.style.width = `${W * scale}px`;
+  stage.style.height = `${H * scale}px`;
+  wrapper.style.transform = `scale(${scale})`;
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
 }
 window.addEventListener('resize', resize);
 resize();
