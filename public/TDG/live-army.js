@@ -7,15 +7,27 @@ window.LIVE_ARMY = (function () {
 
   const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'missile'];
   const ECON_TOWERS = ['farm', 'mint'];
+  const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'sniper', 'peka'];
   const UNIT_LABELS = {
     tank: 'Tank', speed: 'Speed', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'PEKA',
   };
+  const UNIT_UNLOCK_COST = {
+    tank: 26, speed: 18, striker: 30, sniper: 40, goblin: 35, peka: 175,
+  };
+  const STAT_MAX = 5;
 
   let active = false;
   let pvpMode = false;
+  let playersRef = null;
+
+  function freshUnitRecord() {
+    return { unlocked: false, speed: 0, damage: 0, health: 0 };
+  }
 
   function freshBarracks() {
-    return { built: false, unitTier: 0, secret: { striker: 0, tank: 0, speed: 0, sniper: 0, goblin: 0, peka: 0 } };
+    const units = {};
+    for (const ut of UNIT_ORDER) units[ut] = freshUnitRecord();
+    return { built: false, units };
   }
 
   function freshEngineers() {
@@ -24,6 +36,15 @@ window.LIVE_ARMY = (function () {
 
   function freshMissileUpgrades() {
     return { rate: 1, damage: 1, radius: 1 };
+  }
+
+  function unitRecord(p, type) {
+    if (!p.liveArmy?.barracks?.units?.[type]) {
+      if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers() };
+      if (!p.liveArmy.barracks.units) p.liveArmy.barracks.units = {};
+      if (!p.liveArmy.barracks.units[type]) p.liveArmy.barracks.units[type] = freshUnitRecord();
+    }
+    return p.liveArmy.barracks.units[type];
   }
 
   function onBattleStart(players, gameRules, opts) {
@@ -52,25 +73,22 @@ window.LIVE_ARMY = (function () {
     syncBuildToolbar();
   }
 
-  function isActive() {
-    return active;
-  }
-
-  function isPvpMode() {
-    return active && pvpMode;
-  }
+  function isActive() { return active; }
+  function isPvpMode() { return active && pvpMode; }
 
   function syncBarracksPanelCopy() {
     const el = document.getElementById('barracks-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Upgrade to unlock units. Unit stat upgrades are hidden from your opponent.'
-      : 'Upgrade to unlock units and strengthen them with stat upgrades.';
+      ? 'Buy units to unlock them, then upgrade speed, damage, and health. Stat levels are hidden from your opponent.'
+      : 'Buy any unit to unlock it, then upgrade speed, damage, and health.';
   }
 
   function initPlayer(p) {
     if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers() };
   }
+
+  function setPlayersRef(players) { playersRef = players; }
 
   function getTowerFootprint(t) {
     const type = t.towerType || t;
@@ -80,7 +98,6 @@ window.LIVE_ARMY = (function () {
     return t.size || COMBAT_TOWER_SIZE;
   }
 
-  /** Smaller radius for placement overlap checks — keeps large farms buildable */
   function getPlacementCollisionRadius(towerType) {
     const type = towerType?.towerType || towerType;
     if (type === 'farm' || type === 'barracks' || type === 'engineers' || type === 'missile') return 26;
@@ -117,50 +134,55 @@ window.LIVE_ARMY = (function () {
     return d;
   }
 
-  let playersRef = null;
-  function setPlayersRef(players) { playersRef = players; }
-
-  function secretLevel(pid, type) {
-    return playersRef?.[pid]?.liveArmy?.barracks?.secret?.[type] || 0;
-  }
-
-  function modifyUnitDef(type, ut, pid) {
-    if (!active) return ut;
-    const u = { ...ut };
-    const sec = secretLevel(pid, type);
-    if (type === 'striker') {
+  function applyStatBonuses(u, type, pid) {
+    const rec = playersRef?.[pid]?.liveArmy?.barracks?.units?.[type];
+    if (!rec) return;
+    const spd = rec.speed || 0;
+    const dmg = rec.damage || 0;
+    const hp = rec.health || 0;
+    if (type === 'tank') {
+      u.hp = (u.hp || 205) + hp * 35;
+      u.damage = (u.damage || 16) + dmg * 4;
+      u.speed = (u.speed || 50) + spd * 5;
+    } else if (type === 'speed') {
+      u.speed = (u.speed || 112) + spd * 7;
+      u.damage = (u.damage || 17) + dmg * 3;
+      u.hp = (u.hp || 58) + hp * 8;
+    } else if (type === 'striker') {
       u.name = 'Knight';
-      u.speed = 92 + sec * 6;
       u.behavior = 'knight';
       u.prefersUnits = true;
-      u.damage = 24 + sec * 8;
-      u.hp = 75 + sec * 25;
+      u.speed = (u.speed || 92) + spd * 6;
+      u.damage = (u.damage || 24) + dmg * 8;
+      u.hp = (u.hp || 75) + hp * 25;
+    } else if (type === 'sniper') {
+      u.damage = (u.damage || 24) + dmg * 6;
+      u.range = (u.range || 198) + spd * 18;
+      u.hp = (u.hp || 62) + hp * 10;
+    } else if (type === 'peka') {
+      u.hp = (u.hp || 550) + hp * 60;
+      u.damage = (u.damage || 44) + dmg * 8;
+      u.speed = (u.speed || 28) + spd * 3;
     } else if (type === 'goblin') {
       u.name = 'Goblin';
-      u.speed = 145 + sec * 8;
       u.behavior = 'goblin';
-      u.hp = 42 + sec * 10;
-      u.damage = 11 + sec * 3;
+      u.speed = (u.speed || 145) + spd * 8;
+      u.hp = (u.hp || 42) + hp * 10;
+      u.damage = (u.damage || 11) + dmg * 3;
       u.cost = 22;
       u.size = 14;
       u.targetsUnits = false;
       u.targetsTowers = true;
       u.targetsBase = false;
-    } else if (type === 'tank') {
-      u.hp = 205 + sec * 35;
-      u.damage = 16 + sec * 4;
-    } else if (type === 'speed') {
-      u.speed = 112 + sec * 7;
-      u.damage = 17 + sec * 3;
-      u.hp = 58 + sec * 8;
-    } else if (type === 'sniper') {
-      u.damage = 24 + sec * 6;
-      u.range = 198 + sec * 18;
-      u.hp = 62 + sec * 10;
-    } else if (type === 'peka') {
-      u.hp = 550 + sec * 60;
-      u.damage = 44 + sec * 8;
+      u.immuneRailgun = true;
+      u.lootMult = 1 + dmg * 0.35;
     }
+  }
+
+  function modifyUnitDef(type, ut, pid) {
+    if (!active) return ut;
+    const u = { ...ut };
+    applyStatBonuses(u, type, pid);
     return u;
   }
 
@@ -175,8 +197,7 @@ window.LIVE_ARMY = (function () {
   function unitUnlocked(p, type) {
     if (!active) return true;
     if (!hasBarracks(p)) return false;
-    const tier = p.liveArmy?.barracks?.unitTier || 0;
-    return tier >= (UNIT_UNLOCK[type] || 99);
+    return !!p.liveArmy?.barracks?.units?.[type]?.unlocked;
   }
 
   function canDeployUnit(p, type) {
@@ -184,20 +205,26 @@ window.LIVE_ARMY = (function () {
     return unitUnlocked(p, type);
   }
 
+  function unitUnlockCost(type) {
+    return UNIT_UNLOCK_COST[type] || 99;
+  }
+
+  function statUpgradeCost(p, type, stat) {
+    const rec = unitRecord(p, type);
+    return 45 + (rec[stat] || 0) * 55;
+  }
+
   function canPlaceStructure(p, towerType) {
     if (!active) return true;
     if (towerType === 'barracks') {
-      const n = p.turrets.filter(t => t.towerType === 'barracks' && t.hp > 0).length;
-      return n < 1;
+      return p.turrets.filter(t => t.towerType === 'barracks' && t.hp > 0).length < 1;
     }
     if (towerType === 'engineers') {
-      const n = p.turrets.filter(t => t.towerType === 'engineers' && t.hp > 0).length;
-      return n < 1;
+      return p.turrets.filter(t => t.towerType === 'engineers' && t.hp > 0).length < 1;
     }
     return true;
   }
 
-  /** Bottom toolbar: only show what the player has unlocked or can still build */
   function isBottomToolbarVisible(tool, p) {
     if (!active) return true;
     if (tool === 'move') return true;
@@ -221,14 +248,18 @@ window.LIVE_ARMY = (function () {
     return { nx: pellet.vx / spd, ny: pellet.vy / spd, kb };
   }
 
+  function goblinLootAmount(attacker, towerType) {
+    const ut = modifyUnitDef('goblin', { lootMult: 1 }, attacker.owner);
+    const mult = ut.lootMult || 1;
+    const base = towerType === 'mint' ? 10 : 4;
+    const mintBonus = towerType === 'mint' ? 2.8 : 1;
+    return Math.max(1, Math.floor(base * mult * mintBonus));
+  }
+
   function decorateTower(t, ownerId) {
     if (!active) return t;
     if (t.towerType === 'missile' && !t.missileUpgrades) t.missileUpgrades = freshMissileUpgrades();
-    if (t.towerType === 'barracks') {
-      const barracks = playersRef[ownerId].liveArmy.barracks;
-      barracks.built = true;
-      if ((barracks.unitTier || 0) < 1) barracks.unitTier = 1;
-    }
+    if (t.towerType === 'barracks') playersRef[ownerId].liveArmy.barracks.built = true;
     if (t.towerType === 'engineers') playersRef[ownerId].liveArmy.engineers.built = true;
     const def = modifyTowerDef(t.towerType, { hp: 80, maxHp: 80 }, ownerId);
     t.hp = def.hp || t.hp;
@@ -253,20 +284,18 @@ window.LIVE_ARMY = (function () {
     const enemy = viewerPid === 0 ? 1 : 0;
     const ep = state.players[enemy];
     if (!ep) return state;
-    if (ep.liveArmy) {
-      ep.liveArmy = {
-        barracks: {
-          built: !!ep.liveArmy.barracks?.built,
-          unitTier: ep.liveArmy.barracks?.unitTier || 0,
-          secret: {},
-        },
-        engineers: {
-          built: !!ep.liveArmy.engineers?.built,
-          damage: 0,
-          range: 0,
-          health: 0,
-          knockback: 0,
-        },
+    if (ep.liveArmy?.barracks) {
+      const units = {};
+      for (const ut of UNIT_ORDER) {
+        const rec = ep.liveArmy.barracks.units?.[ut];
+        units[ut] = { unlocked: !!rec?.unlocked, speed: 0, damage: 0, health: 0 };
+      }
+      ep.liveArmy.barracks = { built: !!ep.liveArmy.barracks.built, units };
+    }
+    if (ep.liveArmy?.engineers) {
+      ep.liveArmy.engineers = {
+        built: !!ep.liveArmy.engineers.built,
+        damage: 0, range: 0, health: 0, knockback: 0,
       };
     }
     if (ep.turrets) {
@@ -306,11 +335,15 @@ window.LIVE_ARMY = (function () {
     modifyTowerDef,
     modifyUnitDef,
     hasBarracks,
+    hasEngineers,
     unitUnlocked,
     canDeployUnit,
     canPlaceStructure,
     isBottomToolbarVisible,
-    hasEngineers,
+    unitUnlockCost,
+    statUpgradeCost,
+    unitRecord,
+    goblinLootAmount,
     farmIncomeScale,
     spreadKnockback,
     decorateTower,
@@ -320,8 +353,10 @@ window.LIVE_ARMY = (function () {
     freshMissileUpgrades,
     freshBarracks,
     freshEngineers,
-    UNIT_UNLOCK,
+    UNIT_ORDER,
     UNIT_LABELS,
+    UNIT_UNLOCK_COST,
+    STAT_MAX,
     STRUCTURE_SIZE,
     FARM_SIZE,
   };

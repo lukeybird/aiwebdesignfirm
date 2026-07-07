@@ -351,7 +351,7 @@
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(10, 14, 12, 0.97);
-      z-index: 25;
+      z-index: 35;
       pointer-events: auto;
       display: flex;
       align-items: center;
@@ -765,6 +765,44 @@
 
     #barracks-upgrade-panel.hidden,
     #engineers-upgrade-panel.hidden { display: none; }
+
+    .barracks-map {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: 52vh;
+      padding-right: 4px;
+    }
+
+    .barracks-unit-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(148,163,184,0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .barracks-unit-card.locked { opacity: 0.85; }
+
+    .barracks-unit-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      color: #e2e8f0;
+    }
+
+    .barracks-stat-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .barracks-stat-row .econ-upgrade-buy {
+      flex: 1 1 calc(50% - 6px);
+      min-width: 140px;
+    }
+
+    #menu-screen.hidden { display: none !important; }
 
     #missile-upgrade-panel {
       position: absolute;
@@ -1650,22 +1688,27 @@ function buyIncomeUpgrade(pid, type) {
   return true;
 }
 
-function buyBarracksUpgrade(pid, kind, unitType) {
+function buyBarracksUpgrade(pid, kind, unitType, stat) {
   const p = players[pid];
   if (!p.liveArmy?.barracks?.built) return false;
-  const barracks = p.liveArmy.barracks;
-  if (kind === 'tier') {
-    const cost = 120 + barracks.unitTier * 90;
-    if (p.coins < cost || barracks.unitTier >= 5) return false;
+  const rec = LIVE_ARMY.unitRecord(p, unitType);
+  if (kind === 'unlock') {
+    const cost = LIVE_ARMY.unitUnlockCost(unitType);
+    if (rec.unlocked || p.coins < cost) return false;
     p.coins -= cost;
-    barracks.unitTier += 1;
-    addLog(`🏕 ${p.name}: Barracks tier ${barracks.unitTier} — more units unlocked`);
-  } else if (kind === 'secret' && unitType) {
-    const cost = 95 + (barracks.secret[unitType] || 0) * 75;
-    if (p.coins < cost || (barracks.secret[unitType] || 0) >= 5) return false;
+    rec.unlocked = true;
+    addLog(`🏕 ${p.name}: Unlocked ${LIVE_ARMY.UNIT_LABELS[unitType] || unitType}`);
+  } else if (kind === 'stat' && stat) {
+    if (!rec.unlocked || (rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) return false;
+    const cost = LIVE_ARMY.statUpgradeCost(p, unitType, stat);
+    if (p.coins < cost) return false;
     p.coins -= cost;
-    barracks.secret[unitType] = (barracks.secret[unitType] || 0) + 1;
-    addLog(`🏕 ${p.name}: Secret ${LIVE_ARMY.UNIT_LABELS[unitType] || unitType} upgrade`);
+    rec[stat] = (rec[stat] || 0) + 1;
+    const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
+    const statLabel = stat === 'damage' ? 'attack' : stat;
+    addLog(`🏕 ${p.name}: ${label} ${statLabel} Lv${rec[stat]}`);
+  } else {
+    return false;
   }
   updateBarracksUpgradeUI();
   updateUI();
@@ -1712,16 +1755,32 @@ function updateBarracksUpgradeUI() {
     list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build a Barracks first.</p>';
     return;
   }
-  const tierCost = 120 + b.unitTier * 90;
-  let html = `<button type="button" class="econ-upgrade-buy" data-barracks-tier ${p.coins < tierCost || b.unitTier >= 5 ? 'disabled' : ''}>Unlock more units (Tier ${b.unitTier + 1}) — ${tierCost}🪙</button>`;
-  for (const [ut, label] of Object.entries(LIVE_ARMY.UNIT_LABELS)) {
+  let html = '<div class="barracks-map">';
+  for (const ut of LIVE_ARMY.UNIT_ORDER) {
     if (!UNIT_TYPES[ut]) continue;
-    const sec = b.secret[ut] || 0;
-    const cost = 95 + sec * 75;
-    const unlocked = LIVE_ARMY.unitUnlocked(p, ut);
-    if (!unlocked) continue;
-    html += `<button type="button" class="econ-upgrade-buy" data-barracks-secret="${ut}" ${p.coins < cost || sec >= 5 ? 'disabled' : ''}>Secret ${label} +1 (Lv${sec + 1}) — ${cost}🪙</button>`;
+    const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
+    const rec = LIVE_ARMY.unitRecord(p, ut);
+    const unlockCost = LIVE_ARMY.unitUnlockCost(ut);
+    html += `<div class="barracks-unit-card${rec.unlocked ? '' : ' locked'}">`;
+    html += `<div class="barracks-unit-title">${label}</div>`;
+    if (!rec.unlocked) {
+      html += `<button type="button" class="econ-upgrade-buy" data-barracks-unlock="${ut}" ${p.coins < unlockCost ? 'disabled' : ''}>Unlock — ${unlockCost}🪙</button>`;
+    } else {
+      html += '<div class="barracks-stat-row">';
+      for (const stat of ['speed', 'damage', 'health']) {
+        const lvl = rec[stat] || 0;
+        const cost = LIVE_ARMY.statUpgradeCost(p, ut, stat);
+        const statLabel = stat === 'damage' ? 'Attack' : stat.charAt(0).toUpperCase() + stat.slice(1);
+        html += `<button type="button" class="econ-upgrade-buy" data-barracks-stat="${stat}" data-barracks-unit="${ut}" ${p.coins < cost || lvl >= LIVE_ARMY.STAT_MAX ? 'disabled' : ''}>${statLabel} Lv${lvl + 1} — ${cost}🪙</button>`;
+      }
+      html += '</div>';
+      if (ut === 'goblin') {
+        html += '<p style="font-size:0.68rem;opacity:0.7;margin:6px 0 0">Immune to Rail Guns · Loots farms &amp; mints · Attack upgrades boost looting</p>';
+      }
+    }
+    html += '</div>';
   }
+  html += '</div>';
   list.innerHTML = html;
 }
 
@@ -2128,11 +2187,20 @@ function survivalAiTryBudgetAttack(ai, budget) {
   return deployed;
 }
 
+function survivalAiTryUnlockBarracksUnit(ai) {
+  if (typeof LIVE_ARMY === 'undefined' || !LIVE_ARMY.isActive() || !LIVE_ARMY.hasBarracks(ai)) return false;
+  const locked = LIVE_ARMY.UNIT_ORDER.filter((ut) => !LIVE_ARMY.unitUnlocked(ai, ut) && ai.coins >= LIVE_ARMY.unitUnlockCost(ut));
+  if (!locked.length) return false;
+  locked.sort((a, b) => LIVE_ARMY.unitUnlockCost(a) - LIVE_ARMY.unitUnlockCost(b));
+  return buyBarracksUpgrade(1, 'unlock', locked[0]);
+}
+
 function survivalAiTryPeaceBuild(ai) {
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
     if (!LIVE_ARMY.hasBarracks(ai) && LIVE_ARMY.canPlaceStructure(ai, 'barracks') && ai.coins >= towerCost(ai, 'barracks')) {
       if (survivalAiTryPlaceTower(ai, 'barracks')) return true;
     }
+    if (survivalAiTryUnlockBarracksUnit(ai)) return true;
     if (!aiHasLivingTower(ai, 'farm') && ai.coins >= towerCost(ai, 'farm')) {
       if (survivalAiTryPlaceTower(ai, 'farm')) return true;
     }
@@ -2468,7 +2536,7 @@ function applyPvpRemoteAction(fromPlayerId, action) {
     return buyIncomeUpgrade(fromPlayerId, action.upgradeType);
   }
   if (type === 'barracks_upgrade') {
-    return buyBarracksUpgrade(fromPlayerId, action.upgradeKind, action.unitType);
+    return buyBarracksUpgrade(fromPlayerId, action.upgradeKind, action.unitType, action.stat);
   }
   if (type === 'engineers_upgrade') {
     return buyEngineersUpgrade(fromPlayerId, action.branch);
@@ -6088,7 +6156,7 @@ function unitPlaceFailReason(pid, type, x, y) {
   const p = players[pid];
   if (!isUnitEnabled(type)) return 'That unit is unavailable.';
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, type)) {
-    return 'Build Barracks and unlock this unit first.';
+    return 'Unlock this unit in Barracks first.';
   }
   const ut = unitDef(type, pid);
   if (p.coins < ut.cost) return `Need ${ut.cost}🪙 (you have ${Math.floor(p.coins)}🪙).`;
@@ -7702,6 +7770,14 @@ function getMovementGoal(unit) {
       if (d < bestD) { bestD = d; best = { x: tw.x, y: tw.y }; }
     }
     if (best) return best;
+    let bestT = null, bestTD = Infinity;
+    for (const tw of players[enemy].turrets) {
+      if (tw.hp <= 0) continue;
+      if (tw.towerType === 'farm' || tw.towerType === 'mint' || tw.towerType === 'barracks' || tw.towerType === 'engineers') continue;
+      const d = dist(unit, tw);
+      if (d < bestTD) { bestTD = d; bestT = { x: tw.x, y: tw.y }; }
+    }
+    if (bestT) return bestT;
     return basePos(enemy);
   }
 
@@ -7789,6 +7865,28 @@ function findTarget(unit) {
 
   const ep = players[enemy];
   if (canTowers) {
+    if (ut.behavior === 'goblin') {
+      for (const t of ep.turrets) {
+        if (t.hp <= 0) continue;
+        if (t.towerType !== 'farm' && t.towerType !== 'mint') continue;
+        const d = dist(unit, t);
+        if (d <= ut.range) {
+          const score = 2000 - d;
+          if (score > bestScore) { bestScore = score; best = { type: 'turret', obj: t, dist: d }; }
+        }
+      }
+      if (best) return best;
+      for (const t of ep.turrets) {
+        if (t.hp <= 0) continue;
+        if (t.towerType === 'farm' || t.towerType === 'mint' || t.towerType === 'barracks' || t.towerType === 'engineers') continue;
+        const d = dist(unit, t);
+        if (d <= ut.range) {
+          const score = 500 - d;
+          if (score > bestScore) { bestScore = score; best = { type: 'turret', obj: t, dist: d }; }
+        }
+      }
+      return best;
+    }
     for (const t of ep.turrets) {
       if (t.hp <= 0) continue;
       if (ut.behavior === 'goblin' && t.towerType !== 'farm' && t.towerType !== 'mint') continue;
@@ -7819,8 +7917,15 @@ function isUnitDefender(defenderType) {
   return !!UNIT_TYPES[defenderType];
 }
 
+function towerOwnerId(t) {
+  for (let i = 0; i < 2; i++) {
+    if (players[i].turrets.includes(t)) return i;
+  }
+  return null;
+}
+
 function applyDamageToTarget(attacker, target, rawDamage) {
-  const atkDef = UNIT_TYPES[attacker.type];
+  const atkDef = unitDef(attacker.type, attacker.owner) || UNIT_TYPES[attacker.type];
   const isUnit = isUnitDefender(target.defenderType);
   const isTower = target.defenderType === 'turret' || !!TOWER_TYPES[target.defenderType];
   const isBase = target.defenderType === 'base';
@@ -7849,14 +7954,26 @@ function applyDamageToTarget(attacker, target, rawDamage) {
     t.lastHitBy = attacker.owner;
     trackDamageDealt(attacker.owner, dmg, false);
     spawnParticles(t.x, t.y, def.color, 5);
+    if (attacker.type === 'goblin' && (t.towerType === 'farm' || t.towerType === 'mint') && typeof LIVE_ARMY !== 'undefined') {
+      const victimId = towerOwnerId(t);
+      if (victimId != null && victimId !== attacker.owner) {
+        const stolen = LIVE_ARMY.goblinLootAmount(attacker, t.towerType);
+        const take = Math.min(stolen, Math.floor(players[victimId].coins));
+        if (take > 0) {
+          players[victimId].coins -= take;
+          players[attacker.owner].coins += take;
+          spawnFloatText(t.x, t.y - 24, `💰 +${take}`, '#4ade80');
+        }
+      }
+    }
     if (wasAlive && t.hp <= 0) {
       const owner = players.find(pl => pl.turrets.includes(t));
       if (owner) {
         owner.rubble.push({ x: t.x, y: t.y });
         onTowerDestroyed(t, attacker.owner);
-        addLog(`💥 ${players[attacker.owner].name}'s ${UNIT_TYPES[attacker.type].name} destroyed a ${def.name}!`);
+        addLog(`💥 ${players[attacker.owner].name}'s ${atkDef.name || UNIT_TYPES[attacker.type].name} destroyed a ${def.name}!`);
+        owner.turrets = owner.turrets.filter(tt => tt !== t);
       }
-      owner.turrets = owner.turrets.filter(tt => tt !== t);
     }
     return dmg;
   }
@@ -8336,6 +8453,7 @@ function updateTowers(dt) {
           if (pierced.length >= 7) triggerAchievement(p.id, 'laser_overload');
           if (pierced.length >= 10) triggerAchievement(p.id, 'laser_apocalypse');
           for (const hit of pierced) {
+            if (hit.unit.type === 'goblin' && def.style === 'railgun') continue;
             hit.unit.lastHitBy = p.id;
             const dmg = towerAttackDamage('laser', hit.unit.type);
             applyHpLoss(hit.unit, dmg);
@@ -8960,19 +9078,19 @@ document.getElementById('barracks-upgrade-panel').addEventListener('click', (e) 
   if (e.target.id === 'barracks-upgrade-panel') toggleBarracksPanel(false);
 });
 document.getElementById('barracks-upgrade-list').addEventListener('click', (e) => {
-  const tierBtn = e.target.closest('[data-barracks-tier]');
-  const secretBtn = e.target.closest('[data-barracks-secret]');
-  const btn = tierBtn || secretBtn;
+  const unlockBtn = e.target.closest('[data-barracks-unlock]');
+  const statBtn = e.target.closest('[data-barracks-stat]');
+  const btn = unlockBtn || statBtn;
   if (!btn || btn.disabled) return;
   const pid = getLocalPlayerId();
-  const action = tierBtn
-    ? { type: 'barracks_upgrade', upgradeKind: 'tier' }
-    : { type: 'barracks_upgrade', upgradeKind: 'secret', unitType: secretBtn.dataset.barracksSecret };
+  const action = unlockBtn
+    ? { type: 'barracks_upgrade', upgradeKind: 'unlock', unitType: unlockBtn.dataset.barracksUnlock }
+    : { type: 'barracks_upgrade', upgradeKind: 'stat', unitType: statBtn.dataset.barracksUnit, stat: statBtn.dataset.barracksStat };
   if (isSurvivalPvp() && !pvpOnline.isHost) {
     if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
     return;
   }
-  buyBarracksUpgrade(pid, action.upgradeKind, action.unitType);
+  buyBarracksUpgrade(pid, action.upgradeKind, action.unitType, action.stat);
 });
 
 document.getElementById('engineers-upgrade-btn').addEventListener('click', () => toggleEngineersPanel());
@@ -9042,37 +9160,50 @@ document.getElementById('btn-2p').addEventListener('click', () => {
 });
 
 function openSurvivalDifficultyScreen() {
+  document.getElementById('menu-screen').classList.add('hidden');
   document.getElementById('survival-difficulty-screen').classList.remove('hidden');
 }
 
 function closeSurvivalDifficultyScreen() {
   document.getElementById('survival-difficulty-screen').classList.add('hidden');
+  document.getElementById('menu-screen').classList.remove('hidden');
 }
 
 function startSurvivalLive(difficulty) {
-  if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
-  pvpOnline = null;
-  survivalDifficulty = difficulty;
-  gameMode = 'survival';
-  survivalSpeed = 1;
-  setSurvivalSpeed(1);
-  round = 1;
-  resetGame();
-  setupSurvivalLive();
-  closeSurvivalDifficultyScreen();
-  document.getElementById('menu-screen').classList.add('hidden');
-  const mult = survivalAiIncomeMult();
-  showBanner(
-    `Live Battle — ${survivalDifficultyLabel()}`,
-    `Faster economy — build quick!\n\n🏛 Base: +10🪙 every 3 seconds\n🌾 Farm: +2🪙 every 2 seconds (strong early, fades late)\n💰 Mint: +5🪙 every 3 seconds\n🏕 Barracks required to deploy units\n\nUpgrades add +2 per level (+3 for mint). Enemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
-    'Fight!'
-  );
+  try {
+    if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
+    pvpOnline = null;
+    survivalDifficulty = difficulty;
+    gameMode = 'survival';
+    survivalSpeed = 1;
+    setSurvivalSpeed(1);
+    round = 1;
+    resetGame();
+    setupSurvivalLive();
+    closeSurvivalDifficultyScreen();
+    document.getElementById('menu-screen').classList.add('hidden');
+    const mult = survivalAiIncomeMult();
+    showBanner(
+      `Live Battle — ${survivalDifficultyLabel()}`,
+      `Faster economy — build quick!\n\n🏛 Base: +10🪙 every 3 seconds\n🌾 Farm: +2🪙 every 2 seconds (strong early, fades late)\n💰 Mint: +5🪙 every 3 seconds\n🏕 Build Barracks, then unlock units inside it\n\nUpgrades add +2 per level (+3 for mint). Enemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
+      'Fight!'
+    );
+  } catch (err) {
+    console.error('Failed to start Live Battle', err);
+    closeSurvivalDifficultyScreen();
+    document.getElementById('menu-screen').classList.remove('hidden');
+    addLog('Could not start Live Battle — try refreshing the page.');
+  }
 }
 
 document.getElementById('btn-survival').addEventListener('click', openSurvivalDifficultyScreen);
 document.getElementById('btn-survival-diff-back').addEventListener('click', closeSurvivalDifficultyScreen);
-document.querySelectorAll('[data-survival-diff]').forEach(btn => {
-  btn.addEventListener('click', () => startSurvivalLive(btn.dataset.survivalDiff));
+document.getElementById('survival-difficulty-screen').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-survival-diff]');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  startSurvivalLive(btn.dataset.survivalDiff);
 });
 
 document.querySelectorAll('.surv-speed-btn').forEach(btn => {
