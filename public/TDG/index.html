@@ -702,25 +702,53 @@
     }
     #ach-medal-btn:hover { transform: scale(1.08); }
 
-    #econ-upgrade-btn {
+    #econ-upgrade-btn,
+    #barracks-upgrade-btn,
+    #engineers-upgrade-btn,
+    #missile-upgrade-btn {
       position: absolute;
       top: 52px;
-      left: 56px;
       height: 34px;
       padding: 0 12px;
       border: none;
       border-radius: 17px;
-      background: linear-gradient(135deg, #86efac, #22c55e);
-      color: #14532d;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
       font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
       pointer-events: auto;
       z-index: 16;
       transition: transform 0.15s;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
     }
-    #econ-upgrade-btn:hover { transform: scale(1.05); }
+
+    #econ-upgrade-btn:hover,
+    #barracks-upgrade-btn:hover,
+    #engineers-upgrade-btn:hover,
+    #missile-upgrade-btn:hover { transform: scale(1.05); }
+
+    #econ-upgrade-btn {
+      left: 56px;
+      background: linear-gradient(135deg, #86efac, #22c55e);
+      color: #14532d;
+    }
+
+    #barracks-upgrade-btn {
+      left: 178px;
+      background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+      color: #0f172a;
+    }
+
+    #engineers-upgrade-btn {
+      left: 300px;
+      background: linear-gradient(135deg, #fcd34d, #f59e0b);
+      color: #451a03;
+    }
+
+    #missile-upgrade-btn {
+      left: 430px;
+      background: linear-gradient(135deg, #fca5a5, #ef4444);
+      color: #1f2937;
+    }
 
     #econ-upgrade-panel,
     #barracks-upgrade-panel,
@@ -737,43 +765,6 @@
 
     #barracks-upgrade-panel.hidden,
     #engineers-upgrade-panel.hidden { display: none; }
-
-    #barracks-upgrade-btn,
-    #engineers-upgrade-btn {
-      position: absolute;
-      bottom: 88px;
-      z-index: 12;
-      border: none;
-      border-radius: 12px;
-      padding: 8px 12px;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 0.78rem;
-      cursor: pointer;
-      background: rgba(148, 163, 184, 0.9);
-      color: #0f172a;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-    }
-
-    #barracks-upgrade-btn { right: 16px; }
-    #engineers-upgrade-btn { right: 120px; }
-
-    #missile-upgrade-btn {
-      position: absolute;
-      bottom: 88px;
-      right: 224px;
-      z-index: 12;
-      border: none;
-      border-radius: 12px;
-      padding: 8px 12px;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 0.78rem;
-      cursor: pointer;
-      background: rgba(248, 113, 113, 0.92);
-      color: #1f2937;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-    }
 
     #missile-upgrade-panel {
       position: absolute;
@@ -974,10 +965,10 @@
       <div id="achievement-feed-p0"></div>
       <div id="achievement-feed-p1"></div>
       <button id="ach-medal-btn" class="hidden" title="View achievements">🏅</button>
-      <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">⬆️ Economy</button>
-      <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">🏕 Barracks</button>
-      <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">🔧 Engineers</button>
-      <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">🚀 Missile</button>
+      <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">Economy</button>
+      <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">Barracks</button>
+      <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">Engineers</button>
+      <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
       <div id="barracks-upgrade-panel" class="hidden">
         <div class="econ-panel-inner">
           <div class="econ-panel-header">
@@ -1295,15 +1286,31 @@ function firstEnabledDeployTool() {
   const order = live
     ? ['farm', 'mint', 'barracks', 'engineers', 'turret', 'laser', 'spread', 'missile', 'tank', 'speed', 'striker', 'goblin', 'sniper', 'peka']
     : ['tank', 'speed', 'striker', 'sniper', 'bloop', 'peka', 'turret', 'laser', 'spread', 'missile', 'farm', 'mint'];
+  const pid = getLocalPlayerId();
+  const p = players[pid] || players[0];
   for (const t of order) {
-    if (UNIT_TYPES[t] && isUnitEnabled(t)) return t;
-    if (TOWER_TYPES[t] && isTowerEnabled(t)) return t;
+    if (UNIT_TYPES[t] && isUnitEnabled(t)) {
+      if (live && !LIVE_ARMY.isBottomToolbarVisible(t, p)) continue;
+      return t;
+    }
+    if (TOWER_TYPES[t] && isTowerEnabled(t)) {
+      if (live && !LIVE_ARMY.isBottomToolbarVisible(t, p)) continue;
+      return t;
+    }
   }
   return 'move';
 }
 
 function ensureValidSelectedTool() {
   if (selectedTool === 'move') return;
+  const pid = getLocalPlayerId();
+  const p = players[pid] || players[0];
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && phase === 'combat') {
+    if (!LIVE_ARMY.isBottomToolbarVisible(selectedTool, p)) {
+      selectedTool = firstEnabledDeployTool();
+    }
+    return;
+  }
   if (UNIT_TYPES[selectedTool] && !isUnitEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
   if (TOWER_TYPES[selectedTool] && !isTowerEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
 }
@@ -8779,19 +8786,16 @@ function updateUI() {
   }
   document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
     const tool = btn.dataset.tool;
-    const isLiveOnlyUnit = tool === 'goblin';
-    const isLiveOnlyTower = tool === 'barracks' || tool === 'engineers';
-    if (UNIT_TYPES[tool]) {
-      const show = isUnitEnabled(tool) && (!isLiveOnlyUnit || LIVE_ARMY?.isActive());
-      btn.style.display = show ? '' : 'none';
-      if (isLiveOnlyUnit) btn.classList.toggle('hidden', !show);
+    let show = true;
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && alwaysSelectableTools) {
+      show = LIVE_ARMY.isBottomToolbarVisible(tool, p);
+    } else if (UNIT_TYPES[tool]) {
+      show = isUnitEnabled(tool);
     } else if (TOWER_TYPES[tool]) {
-      const show = isTowerEnabled(tool) && (!isLiveOnlyTower || LIVE_ARMY?.isActive());
-      btn.style.display = show ? '' : 'none';
-      if (isLiveOnlyTower) btn.classList.toggle('hidden', !show);
-    } else {
-      btn.style.display = '';
+      show = isTowerEnabled(tool);
     }
+    btn.style.display = show ? '' : 'none';
+    btn.classList.toggle('hidden', !show);
     btn.classList.toggle('active', btn.dataset.tool === selectedTool);
     const costEl = btn.querySelector('.cost');
     if (UNIT_TYPES[tool]) {

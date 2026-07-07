@@ -5,7 +5,8 @@ window.LIVE_ARMY = (function () {
   const COMBAT_TOWER_SIZE = 22;
   const MINT_SIZE = 16;
 
-  const UNIT_UNLOCK = { tank: 1, speed: 2, striker: 3, sniper: 4, goblin: 2, peka: 5 };
+  const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'missile'];
+  const ECON_TOWERS = ['farm', 'mint'];
   const UNIT_LABELS = {
     tank: 'Tank', speed: 'Speed', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'PEKA',
   };
@@ -167,6 +168,10 @@ window.LIVE_ARMY = (function () {
     return p.turrets.some(t => t.towerType === 'barracks' && t.hp > 0);
   }
 
+  function hasEngineers(p) {
+    return p.turrets.some(t => t.towerType === 'engineers' && t.hp > 0);
+  }
+
   function unitUnlocked(p, type) {
     if (!active) return true;
     if (!hasBarracks(p)) return false;
@@ -190,6 +195,18 @@ window.LIVE_ARMY = (function () {
       return n < 1;
     }
     return true;
+  }
+
+  /** Bottom toolbar: only show what the player has unlocked or can still build */
+  function isBottomToolbarVisible(tool, p) {
+    if (!active) return true;
+    if (tool === 'move') return true;
+    if (ECON_TOWERS.includes(tool)) return true;
+    if (tool === 'barracks') return canPlaceStructure(p, 'barracks');
+    if (tool === 'engineers') return canPlaceStructure(p, 'engineers');
+    if (COMBAT_TOWERS.includes(tool)) return hasEngineers(p);
+    if (UNIT_LABELS[tool]) return unitUnlocked(p, tool);
+    return false;
   }
 
   function farmIncomeScale(combatTime) {
@@ -262,19 +279,10 @@ window.LIVE_ARMY = (function () {
     return state;
   }
 
-  function setLiveToolbarButton(btn, show) {
-    if (!btn) return;
-    btn.classList.toggle('hidden', !show);
-    btn.style.display = show ? '' : 'none';
-  }
-
   function syncBuildToolbar() {
     const strikerBtn = document.querySelector('.btn-striker');
     const bloopBtn = document.querySelector('.btn-bloop');
     const laserBtn = document.querySelector('.btn-laser');
-    const goblinBtn = document.getElementById('btn-goblin-live');
-    const barracksBtn = document.getElementById('btn-barracks-live');
-    const engineersBtn = document.getElementById('btn-engineers-live');
     if (strikerBtn && strikerBtn.childNodes[0]?.nodeType === 3) {
       strikerBtn.childNodes[0].textContent = active ? '🐴 Knight' : '🟥 Striker';
     } else if (strikerBtn) {
@@ -283,9 +291,6 @@ window.LIVE_ARMY = (function () {
     }
     if (bloopBtn) bloopBtn.style.display = active ? 'none' : '';
     if (laserBtn && active) laserBtn.childNodes[0].textContent = '⚡ Rail Gun';
-    setLiveToolbarButton(goblinBtn, active);
-    setLiveToolbarButton(barracksBtn, active);
-    setLiveToolbarButton(engineersBtn, active);
   }
 
   return {
@@ -304,6 +309,8 @@ window.LIVE_ARMY = (function () {
     unitUnlocked,
     canDeployUnit,
     canPlaceStructure,
+    isBottomToolbarVisible,
+    hasEngineers,
     farmIncomeScale,
     spreadKnockback,
     decorateTower,
