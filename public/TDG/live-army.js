@@ -9,7 +9,7 @@ window.LIVE_ARMY = (function () {
   const ECON_TOWERS = ['farm', 'mint'];
   const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'sniper', 'peka'];
   const UNIT_LABELS = {
-    tank: 'Tank', speed: 'Speed', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'PEKA',
+    tank: 'Tank', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'PEKA',
   };
   const UNIT_UNLOCK_COST = {
     tank: 145, speed: 115, striker: 155, sniper: 190, goblin: 170, peka: 550,
@@ -231,11 +231,14 @@ window.LIVE_ARMY = (function () {
 
   function getPlacementCollisionRadius(towerType) {
     const type = towerType?.towerType || towerType;
-    if (type === 'farm' || type === 'barracks' || type === 'engineers' || type === 'missile') return 26;
+    if (type === 'farm') return Math.ceil(FARM_SIZE / 2) + 4;
+    if (type === 'barracks' || type === 'engineers' || type === 'missile') return 26;
     if (type === 'mint') return 12;
     if (type === 'turret' || type === 'laser' || type === 'spread') return 14;
     return 18;
   }
+
+  const FARM_SEPARATION_GAP = 10;
 
   function modifyTowerDef(type, def, ownerId) {
     if (!active) return def;
@@ -682,5 +685,6 @@ window.LIVE_ARMY = (function () {
     BASE_BRANCH_MAX,
     STRUCTURE_SIZE,
     FARM_SIZE,
+    FARM_SEPARATION_GAP,
   };
 })();

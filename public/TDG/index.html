@@ -2381,7 +2381,7 @@
       </div>
       <div id="bottom-panel" class="hidden">
         <button class="tool-btn btn-tank" data-tool="tank">🟦 Tank<div class="cost">26</div></button>
-        <button class="tool-btn btn-speed" data-tool="speed">🟨 Speed<div class="cost">18</div></button>
+        <button class="tool-btn btn-speed" data-tool="speed">🐺 Wolf<div class="cost">18</div></button>
         <button class="tool-btn btn-striker" data-tool="striker">🟥 Striker<div class="cost">30</div></button>
         <button class="tool-btn btn-bloop" data-tool="bloop">🫧 Bloop<div class="cost">15</div></button>
         <button class="tool-btn btn-peka" data-tool="peka">🪨 PEKA<div class="cost">175</div></button>
@@ -2550,7 +2550,7 @@ function getDeployBounds(pid) {
 
 const UNIT_TYPES = {
   tank:    { name: 'Tank',    hp: 205, speed: 50,  damage: 16, attackRate: 0.78, range: 32, cost: 26, color: '#4ECDC4', accent: '#2A9D8F', size: 24 },
-  speed:   { name: 'Speed',   hp: 58,  speed: 112, damage: 17, attackRate: 1.28, range: 26, cost: 18, color: '#FFE66D', accent: '#F4A261', size: 17, dodges: true, behavior: 'flank' },
+  speed:   { name: 'Wolf',    hp: 58,  speed: 112, damage: 17, attackRate: 1.28, range: 26, cost: 18, color: '#F4F6FA', accent: '#AEB6C2', size: 17, dodges: true, behavior: 'flank' },
   striker: { name: 'Striker', hp: 75,  speed: 74,  damage: 24, attackRate: 0.68, range: 30, cost: 30, color: '#FF6B6B', accent: '#E63946', size: 19, behavior: 'hunter', prefersUnits: true },
   sniper:  {
     name: 'Sniper', hp: 62, speed: 34, damage: 24, attackRate: 0.68, range: 198, cost: 40,
@@ -2788,7 +2788,7 @@ function closeRulebook() {
 
 const UNIT_MANUAL = {
   tank: 'Heavy frontline fighter. Marches toward the enemy base and trades damage with anything in its path. Best as the backbone of your army.',
-  speed: 'Lightning-fast buggy that dodges cannon and spread pellets. Flanks around enemy lines to slip past blockers. Fragile but hard to hit.',
+  speed: 'Lightning-fast wolf that dodges cannon and spread pellets. Flanks around enemy lines to slip past blockers. Fragile but hard to hit.',
   striker: 'Aggressive hunter that prioritizes enemy units over towers. Good for picking off swarms before they reach your base.',
   sniper: 'Small soldier who creeps across the battlefield. Extremely long range. Shoots enemy troops first, then towers, then the enemy base.',
   peka: 'Massive siege unit. Ignores enemy troops entirely — marches straight for towers and the enemy base. Very expensive but very tough.',
@@ -2880,7 +2880,7 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>Combat Tips</h3>
     <ul>
       <li><strong>Tanks</strong> absorb damage — pair them with Strikers or Snipers behind.</li>
-      <li><strong>Speed</strong> units counter slow towers — send them to flank Spread and Cannon lines.</li>
+      <li><strong>Wolves</strong> counter slow towers — send them to flank Spread and Cannon lines.</li>
       <li><strong>Spread</strong> counters swarms with knockback and paralysis — don't send a tight blob into it.</li>
       <li><strong>Laser</strong> punishes straight-line rushes — spread your units vertically.</li>
       <li><strong>PEKA</strong> breaks fortified lines — protect your towers or rush the PEKA with Strikers.</li>
@@ -3072,14 +3072,14 @@ function econBaseSkillMeta(branch, tier) {
   return { title: `${names[branch]} ${tier}`, tooltip: tips[branch], theme: BASE_BRANCH_THEME[branch] };
 }
 
-const UNIT_SKILL_ICONS = { tank: '🛡️', speed: '💨', goblin: '👺', striker: '🐴', sniper: '🎯', peka: '🪨' };
+const UNIT_SKILL_ICONS = { tank: '🛡️', speed: '🐺', goblin: '👺', striker: '🐴', sniper: '🎯', peka: '🪨' };
 const STAT_SKILL_ICONS = { speed: '⚡', damage: '⚔️', health: '❤️' };
 
 function barracksUnlockMeta(ut) {
   const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
   const tips = {
     tank: 'Heavy frontline unit with high HP and steady damage.',
-    speed: 'Fast rush unit — reaches enemy lines quickly.',
+    speed: 'Fast rush wolf — reaches enemy lines quickly.',
     goblin: 'Immune to rail gun beams. Steals coins from farms and mints on every hit — upgrade the Loot branch to steal more.',
     striker: 'Balanced knight — solid speed, attack, and health.',
     sniper: 'Long-range damage dealer. Fragile but hits hard from afar.',
@@ -4143,7 +4143,7 @@ function findBestTowerSpot(ai, towerType, attempts = 48) {
   for (let i = 0; i < attempts; i++) {
     const x = rand(P2_ZONE.x + 70, P2_ZONE.x2 - 45);
     const y = rand(LAND_TOP + 50, LAND_BOTTOM - 50);
-    if (!canPlaceTurret(x, y, 1, null)) continue;
+    if (!canPlaceTurret(x, y, 1, null, towerType)) continue;
     const score = scoreTowerSpot(x, y, towerType, ai);
     if (score > bestScore) { bestScore = score; best = { x, y }; }
   }
@@ -4529,7 +4529,7 @@ function findBestAiSpreadSpot(ai, slotIndex) {
   for (let i = 0; i < 88; i++) {
     const x = targetX + rand(-42, 42);
     const y = targetY + rand(-28, 28);
-    if (!canPlaceTurret(x, y, 1, null)) continue;
+    if (!canPlaceTurret(x, y, 1, null, towerType)) continue;
     let score = 320 - Math.abs(y - targetY) * 3.2 - Math.abs(x - targetX) * 0.75;
     score += Math.min(Math.abs(y - MID_Y), 95) * 1.4;
     for (const t of ai.turrets) {
@@ -4550,7 +4550,7 @@ function findBestAiForwardDefenseSpot(ai, towerType) {
   for (let i = 0; i < 72; i++) {
     const x = forwardX + rand(-32, 52);
     const y = MID_Y + rand(-150, 150);
-    if (!canPlaceTurret(x, y, 1, null)) continue;
+    if (!canPlaceTurret(x, y, 1, null, towerType)) continue;
     let score = 240 - Math.abs(x - forwardX) * 1.25;
     score += (1 - Math.abs(y - MID_Y) / (H * 0.36)) * 35;
     score += scoreTowerSpot(x, y, towerType, ai) * 0.45;
@@ -4577,7 +4577,7 @@ function findBestAiTowerSpot(ai, towerType, attempts = 56) {
   for (let i = 0; i < attempts; i++) {
     const x = rand(P2_ZONE.x + 70, P2_ZONE.x2 - 45);
     const y = rand(LAND_TOP + 50, LAND_BOTTOM - 50);
-    if (!canPlaceTurret(x, y, 1, null)) continue;
+    if (!canPlaceTurret(x, y, 1, null, towerType)) continue;
     let score = scoreTowerSpot(x, y, towerType, ai);
     const depth = (x - P2_ZONE.x) / (P2_ZONE.x2 - P2_ZONE.x);
     if (depthBias > 0) score += depth * 35;
@@ -9229,12 +9229,29 @@ function overlapsRubble(x, y, player, margin = 0) {
   return false;
 }
 
-function overlapsTurret(x, y, excludeId, margin = 0, placingRadius = 0) {
+function towerPlacementGap(typeA, typeB) {
+  if (typeA === 'farm' && typeB === 'farm') {
+    return (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.FARM_SEPARATION_GAP) || 10;
+  }
+  return 0;
+}
+
+function findTowerById(towerId) {
+  if (towerId == null) return null;
+  for (const p of players) {
+    const t = p.turrets.find((tw) => tw.id === towerId);
+    if (t) return t;
+  }
+  return null;
+}
+
+function overlapsTurret(x, y, excludeId, margin = 0, placingRadius = 0, placingType = null) {
   for (const p of players) {
     for (const t of p.turrets) {
       if (t.id === excludeId) continue;
       const sz = towerPlaceRadius(t);
-      if (dist({ x, y }, t) < sz + margin + placingRadius) return true;
+      const gap = placingType ? towerPlacementGap(placingType, t.towerType) : 0;
+      if (dist({ x, y }, t) < sz + margin + placingRadius + gap) return true;
     }
   }
   return false;
@@ -9258,13 +9275,22 @@ function canPlaceTurret(x, y, pid, excludeId, placingTool) {
   if (!onLand(y)) return false;
   if (overlapsRubble(x, y, players[pid])) return false;
   let placingRadius = 0;
+  let placingType = null;
   if (placingTool && isTowerTool(placingTool)) {
+    placingType = placingTool;
     placingRadius = towerPlacingRadius(placingTool);
+  } else if (excludeId != null) {
+    const moving = findTowerById(excludeId);
+    if (moving) {
+      placingType = moving.towerType;
+      placingRadius = towerPlaceRadius(moving);
+    }
   }
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && placingTool && !LIVE_ARMY.canPlaceStructure(players[pid], placingTool)) {
     return false;
   }
-  if (overlapsTurret(x, y, excludeId, typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? 4 : 8, placingRadius)) return false;
+  const margin = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? 6 : 8;
+  if (overlapsTurret(x, y, excludeId, margin, placingRadius, placingType)) return false;
   return true;
 }
 
@@ -9971,6 +9997,25 @@ function drawFreeEnemyTank(u) {
   });
 }
 
+// Wolf/dog breed palettes. Primary look is a white wolf with gray hair (index
+// 0); the rest give each spawned wolf a slightly different scheme to portray a
+// different breed. `hair` is the darker saddle/back coloring.
+const WOLF_BREEDS = [
+  { base: '#f4f6fa', belly: '#ffffff', hair: '#aeb6c2' }, // Arctic — white + gray
+  { base: '#c7ccd3', belly: '#e6e9ee', hair: '#6b7078' }, // Gray wolf
+  { base: '#e9edf2', belly: '#ffffff', hair: '#495468' }, // Husky — white + slate
+  { base: '#cdc4b4', belly: '#e8e1d4', hair: '#7d7264' }, // Timber — tan
+  { base: '#d8ac82', belly: '#efd9c2', hair: '#96612f' }, // Shepherd — tan + brown
+  { base: '#6b7078', belly: '#8a9099', hair: '#2f3338' }, // Black wolf
+];
+
+function wolfBreed(unitId) {
+  if (!unitId) return WOLF_BREEDS[0];
+  let h = 0;
+  for (let i = 0; i < unitId.length; i++) h = (h * 31 + unitId.charCodeAt(i)) >>> 0;
+  return WOLF_BREEDS[h % WOLF_BREEDS.length];
+}
+
 function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
   const ut = unitDef(type, opts.ownerId ?? getLocalPlayerId());
   const bob = opts.bob || 0;
@@ -9994,18 +10039,79 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
     roundRect(w * 0.08, -3, w * 0.42, 6, 2);
     ctx.fill();
   } else if (type === 'speed') {
+    // Top-down wolf/dog, facing +x. Breed-tinted from the unit id.
+    const breed = wolfBreed(opts.unitId);
+    const bodyL = w * 0.92;
+    const bodyW = h * 0.66;
+
+    // Bushy tail at the rear (-x)
+    ctx.fillStyle = breed.hair;
+    ctx.beginPath();
+    ctx.moveTo(-bodyL * 0.4, -h * 0.06);
+    ctx.quadraticCurveTo(-bodyL * 0.74, -h * 0.26, -bodyL * 0.64, 0);
+    ctx.quadraticCurveTo(-bodyL * 0.74, h * 0.24, -bodyL * 0.4, h * 0.08);
+    ctx.closePath();
+    ctx.fill();
+
+    // Legs
+    ctx.fillStyle = breed.hair;
+    for (const [lx, ly] of [[-0.22, -0.34], [-0.22, 0.34], [0.24, -0.34], [0.24, 0.34]]) {
+      ctx.beginPath();
+      ctx.ellipse(bodyL * lx, bodyW * ly, w * 0.07, h * 0.14, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Body
+    const bg = ctx.createLinearGradient(0, -bodyW / 2, 0, bodyW / 2);
+    bg.addColorStop(0, breed.base);
+    bg.addColorStop(1, breed.belly);
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.04, 0, bodyL * 0.5, bodyW * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Gray hair saddle along the back
+    ctx.fillStyle = breed.hair;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.1, 0, bodyL * 0.36, bodyW * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head near the front (+x)
+    const hx = bodyL * 0.42;
+    ctx.fillStyle = breed.base;
+    ctx.beginPath();
+    ctx.arc(hx, 0, h * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ears
+    ctx.fillStyle = breed.hair;
+    ctx.beginPath();
+    ctx.moveTo(hx - h * 0.06, -h * 0.24);
+    ctx.lineTo(hx - h * 0.24, -h * 0.4);
+    ctx.lineTo(hx + h * 0.04, -h * 0.14);
+    ctx.moveTo(hx - h * 0.06, h * 0.24);
+    ctx.lineTo(hx - h * 0.24, h * 0.4);
+    ctx.lineTo(hx + h * 0.04, h * 0.14);
+    ctx.fill();
+
+    // Snout
+    ctx.fillStyle = breed.belly;
+    ctx.beginPath();
+    ctx.moveTo(hx + h * 0.06, -h * 0.13);
+    ctx.lineTo(hx + h * 0.4, 0);
+    ctx.lineTo(hx + h * 0.06, h * 0.13);
+    ctx.closePath();
+    ctx.fill();
+
+    // Nose + eyes
+    ctx.fillStyle = '#20242a';
+    ctx.beginPath();
+    ctx.arc(hx + h * 0.38, 0, 1.7, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#1a1a1a';
-    roundRect(-w / 2, h / 2 - 4, w, 5, 2);
-    ctx.fill();
-    const g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
-    g.addColorStop(0, ut.accent);
-    g.addColorStop(0.5, ut.color);
-    g.addColorStop(1, '#8a7030');
-    ctx.fillStyle = g;
-    roundRect(-w / 2, -h / 2, w, h * 0.85, 3);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(200,220,255,0.35)';
-    roundRect(-w * 0.15, -h * 0.35, w * 0.35, h * 0.25, 2);
+    ctx.beginPath();
+    ctx.arc(hx + h * 0.06, -h * 0.13, 1.4, 0, Math.PI * 2);
+    ctx.arc(hx + h * 0.06, h * 0.13, 1.4, 0, Math.PI * 2);
     ctx.fill();
   } else if (type === 'striker') {
     const isKnight = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive();
@@ -10345,11 +10451,11 @@ function drawUnit(u) {
   if (inFree && u.type === 'tank') {
     drawFreeEnemyTank(u);
   } else {
-    drawUnitSprite(u.type, u.x, u.y, u.facing, sz, { bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier });
+    drawUnitSprite(u.type, u.x, u.y, u.facing, sz, { bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id });
   }
 
   if (u.type === 'speed' && (u._dodgeFlash || 0) > 0) {
-    ctx.strokeStyle = `rgba(255, 230, 109, ${u._dodgeFlash / 0.15})`;
+    ctx.strokeStyle = `rgba(214, 226, 245, ${u._dodgeFlash / 0.15})`;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(u.x, u.y + bob, sz + 8, 0, Math.PI * 2);
@@ -11423,7 +11529,7 @@ function runLegacyAIPrep() {
     for (let attempt = 0; attempt < 30; attempt++) {
       const x = rand(P2_ZONE.x + 60, P2_ZONE.x2 - 40);
       const y = rand(LAND_TOP + 50, LAND_BOTTOM - 50);
-      if (canPlaceTurret(x, y, 1, null)) {
+      if (canPlaceTurret(x, y, 1, null, towerType)) {
         const tw = createTower(x, y, towerType, 1);
         tw.hp = wholeHp(tw.hp + wave * 3);
         tw.maxHp = wholeHp(tw.hp);
