@@ -1439,6 +1439,10 @@
       background: rgba(0, 0, 0, 0.25);
     }
 
+    .st-econ-side .st-trunk {
+      margin-bottom: 4px;
+    }
+
     .st-unit-col {
       display: flex;
       flex-direction: column;
@@ -2017,7 +2021,7 @@
             <h3 class="st-header-title">Economy Skill Tree</h3>
             <button id="econ-panel-close" class="st-header-close" type="button">✕</button>
           </div>
-          <p id="economy-upgrade-desc" class="st-panel-desc">Unlock buildings at the top, then grow each branch outward — deeper tiers cost more.</p>
+          <p id="economy-upgrade-desc" class="st-panel-desc">Unlock Farm or Mint at the top, then upgrade harvest speed (4s→1s) and coins per harvest (1→4).</p>
           <div class="st-scroll-wrap">
             <div id="econ-upgrade-list" class="st-skill-scroll"></div>
             <div class="st-scroll-nav" aria-label="Scroll economy tree">
@@ -2458,7 +2462,7 @@ const TOWER_MANUAL = {
   spread: 'Shotgun tower — fires a wide volley of pellets. Long range, knockback on hit, and briefly paralyzes enemies (slows attacks & movement).',
   missile: 'Launches explosive missiles that deal area damage on impact. Expensive but devastating against groups and structures.',
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus coins every round. Protect them!',
-  farm: 'Cheap economy building — does not attack. In Live Battle, each Farm pays coins every second. Weaker than a Mint but pays out faster.',
+  farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests coins on a timer. Upgrade harvest speed and yield in the Economy tree.',
 };
 
 function buildManualUI() {
@@ -2677,6 +2681,29 @@ const ENG_THEME_MAP = { damage: 'eng-dmg', range: 'eng-rng', health: 'eng-hp', k
 const STAT_FULL_LABEL = { speed: 'Speed', damage: 'Attack', health: 'Health' };
 const BASE_BRANCH_THEME = { income: 'income', health: 'health', defense: 'defense' };
 
+function econHarvestSpeedMeta(type, tier) {
+  const interval = Math.max(1, 4 - tier);
+  const label = type === 'farm' ? 'Farm Speed' : 'Mint Speed';
+  return {
+    title: `${label} ${tier}`,
+    tooltip: `Harvest every ${interval} seconds instead of every ${interval + 1}s. Level ${tier} speeds up payouts.`,
+  };
+}
+
+function econHarvestYieldMeta(type, tier) {
+  const amount = 1 + tier;
+  const label = type === 'farm' ? 'Farm Yield' : 'Mint Yield';
+  return {
+    title: `${label} ${tier}`,
+    tooltip: `Earn ${amount} coin${amount === 1 ? '' : 's'} per harvest. Level ${tier} increases each payout.`,
+  };
+}
+
+function harvestIntervalLabel(pid, type) {
+  if (LIVE_ARMY?.isActive()) return `${LIVE_ARMY.harvestInterval(players[pid], type)}s`;
+  return type === 'farm' ? '2s' : '3s';
+}
+
 function econBaseSkillMeta(branch, tier) {
   const names = { income: 'HQ Income', health: 'Base Health', defense: 'Base Cannons' };
   const tips = {
@@ -2837,17 +2864,26 @@ function buyEconomyUpgrade(pid, kind, target) {
     p.coins -= cost;
     rec.unlocked = true;
     addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building`);
+  } else if (kind === 'speed') {
+    const rec = target === 'farm' ? eco.farm : eco.mint;
+    if (!rec.unlocked || rec.speed >= LIVE_ARMY.speedMax()) return false;
+    const cost = LIVE_ARMY.economySpeedCost(p, target);
+    if (cost == null || p.coins < cost) return false;
+    p.coins -= cost;
+    rec.speed += 1;
+    const label = target === 'farm' ? 'Farm' : 'Mint';
+    const interval = LIVE_ARMY.harvestInterval(p, target);
+    addLog(`💰 ${p.name}: ${label} harvest speed T${rec.speed} (every ${interval}s)`);
   } else if (kind === 'yield') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
-    if (!rec.unlocked || rec.yield >= LIVE_ARMY.yieldMax(target)) return false;
+    if (!rec.unlocked || rec.yield >= LIVE_ARMY.yieldMax()) return false;
     const cost = LIVE_ARMY.economyYieldCost(p, target);
-    if (p.coins < cost) return false;
+    if (cost == null || p.coins < cost) return false;
     p.coins -= cost;
     rec.yield += 1;
-    const amt = survivalIncomeAmount(pid, target);
+    const amt = LIVE_ARMY.harvestAmount(p, target);
     const label = target === 'farm' ? 'Farm' : 'Mint';
-    const interval = target === 'farm' ? '2s' : '3s';
-    addLog(`💰 ${p.name}: ${label} yield T${rec.yield} (+${amt}/${interval})`);
+    addLog(`💰 ${p.name}: ${label} harvest yield T${rec.yield} (+${amt} per harvest)`);
   } else if (kind === 'base') {
     const branch = target;
     const lvl = eco.base[branch] || 0;
@@ -2912,6 +2948,19 @@ function survivalDifficultyLabel() {
 }
 
 function survivalIncomeAmount(pid, type) {
+  if (LIVE_ARMY?.isActive()) {
+    if (type === 'base') {
+      const eco = LIVE_ARMY.economyRecord(players[pid]);
+      const lvl = 1 + (eco.base.income || 0);
+      return survivalIncomeAmountAtLevel('base', lvl);
+    }
+    if (type === 'farm' || type === 'mint') {
+      let amt = LIVE_ARMY.harvestAmount(players[pid], type);
+      if (amt <= 0) return 0;
+      if (pid === 1 && gameMode === 'survival') amt *= survivalAiIncomeMult();
+      return amt;
+    }
+  }
   const lvl = incomeUpgradeLevel(pid, type);
   if (lvl < 1) return 0;
   let amt = survivalIncomeAmountAtLevel(type, lvl);
@@ -3445,52 +3494,77 @@ function updateIncomeUpgradeUI(force) {
 
   html += '<div class="st-split">';
 
-  function economySideTree(type, title, icon, yieldIcon) {
+  function economySideTree(type, title, icon) {
     const rec = type === 'farm' ? eco.farm : eco.mint;
-    const maxTier = LIVE_ARMY.yieldMax(type);
+    const maxTier = LIVE_ARMY.ECON_BRANCH_MAX || LIVE_ARMY.yieldMax();
     const unlockCost = LIVE_ARMY.economyUnlockCost(type);
     const unlocked = !!rec.unlocked;
     const theme = type === 'farm' ? 'farm' : 'mint';
     const unlockTitle = type === 'farm' ? 'Unlock Farm' : 'Unlock Mint';
     const unlockTip = type === 'farm'
-      ? 'Unlock farm buildings. Place on the map to earn coins every 2 seconds.'
-      : 'Unlock mint buildings. Place on the map to earn coins every 3 seconds.';
-    const yieldTitle = type === 'farm' ? 'Farm Yield' : 'Mint Yield';
-    const yieldTip = type === 'farm'
-      ? (tier) => `Increases coins per farm tick. Level ${tier} boosts each farm's output.`
-      : (tier) => `Increases coins per mint tick. Level ${tier} boosts each mint's output.`;
-    const nodes = [];
-    nodes.push(dramaticSkillNodeHtml({
+      ? 'Unlock farm buildings. Starts at 1 coin every 4 seconds per farm.'
+      : 'Unlock mint buildings. Starts at 1 coin every 4 seconds per mint.';
+
+    let side = '<div class="st-section st-half st-econ-side">';
+    side += `<div class="st-section-title">${title}</div>`;
+
+    side += '<div class="st-trunk">';
+    side += dramaticSkillNodeHtml({
       theme,
       title: unlockTitle,
       tooltip: unlockTip,
       isUnlock: true, unlocked, afford: p.coins >= unlockCost, cost: unlockCost,
       icon, tier: 0, maxTier: 0, ownedTier: unlocked ? 1 : 0,
       dataAttrs: unlocked ? '' : ` data-econ-unlock="${type}"`,
-    }));
+    });
+    side += '<div class="st-vline mid"></div>';
+    side += '</div>';
+
+    const speedNodes = [];
     for (let tier = 1; tier <= maxTier; tier++) {
-      const cost = LIVE_ARMY.economyYieldCost(p, type);
-      nodes.push(dramaticSkillNodeHtml({
+      const meta = econHarvestSpeedMeta(type, tier);
+      const cost = LIVE_ARMY.economySpeedCost(p, type);
+      speedNodes.push(dramaticSkillNodeHtml({
         theme,
-        title: `${yieldTitle} ${tier}`,
-        tooltip: yieldTip(tier),
+        title: meta.title,
+        tooltip: meta.tooltip,
+        tier, maxTier, ownedTier: rec.speed, unlocked,
+        cost, afford: cost != null && p.coins >= cost, icon: '⏱',
+        dataAttrs: ` data-econ-speed="${type}"`,
+      }));
+    }
+    side += '<div class="st-branch-block">';
+    side += '<div class="st-branch-name">Harvest Speed</div>';
+    side += dramaticSkillRow(speedNodes, true, theme);
+    side += '</div>';
+
+    const yieldNodes = [];
+    for (let tier = 1; tier <= maxTier; tier++) {
+      const meta = econHarvestYieldMeta(type, tier);
+      const cost = LIVE_ARMY.economyYieldCost(p, type);
+      yieldNodes.push(dramaticSkillNodeHtml({
+        theme,
+        title: meta.title,
+        tooltip: meta.tooltip,
         tier, maxTier, ownedTier: rec.yield, unlocked,
-        cost, afford: p.coins >= cost, icon: yieldIcon,
+        cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '💎' : '✦',
         dataAttrs: ` data-econ-yield="${type}"`,
       }));
     }
-    const cur = unlocked ? survivalIncomeAmount(pid, type) : 0;
-    const interval = type === 'farm' ? '2s' : '3s';
-    let side = '<div class="st-section st-half">';
-    side += `<div class="st-section-title">${title}</div>`;
-    side += dramaticSkillRow(nodes, type === 'mint', theme);
-    side += `<p class="st-footnote">${unlocked ? `+${cur}🪙/${interval} per building` : 'Unlock to build on the map'}</p>`;
+    side += '<div class="st-branch-block">';
+    side += '<div class="st-branch-name">Harvest Yield</div>';
+    side += dramaticSkillRow(yieldNodes, true, theme);
+    side += '</div>';
+
+    const cur = unlocked ? LIVE_ARMY.harvestAmount(p, type) : 0;
+    const interval = unlocked ? LIVE_ARMY.harvestInterval(p, type) : 4;
+    side += `<p class="st-footnote">${unlocked ? `${cur}🪙 every ${interval}s per building` : 'Unlock to build on the map'}</p>`;
     side += '</div>';
     return side;
   }
 
-  html += economySideTree('farm', 'Farms', '🌾', '💎');
-  html += economySideTree('mint', 'Mints', '💰', '✦');
+  html += economySideTree('farm', 'Farms', '🌾');
+  html += economySideTree('mint', 'Mints', '💰');
 
   html += '</div>';
 
@@ -3769,11 +3843,21 @@ function survivalAiTryEconomyUpgrade(ai) {
   const tries = [];
   if (!eco.farm.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('farm')) tries.push(['unlock', 'farm']);
   if (!eco.mint.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('mint')) tries.push(['unlock', 'mint']);
-  if (eco.farm.unlocked && eco.farm.yield < LIVE_ARMY.yieldMax('farm') && ai.coins >= LIVE_ARMY.economyYieldCost(ai, 'farm')) {
-    tries.push(['yield', 'farm']);
+  if (eco.farm.unlocked && eco.farm.speed < LIVE_ARMY.speedMax()) {
+    const cost = LIVE_ARMY.economySpeedCost(ai, 'farm');
+    if (cost != null && ai.coins >= cost) tries.push(['speed', 'farm']);
   }
-  if (eco.mint.unlocked && eco.mint.yield < LIVE_ARMY.yieldMax('mint') && ai.coins >= LIVE_ARMY.economyYieldCost(ai, 'mint')) {
-    tries.push(['yield', 'mint']);
+  if (eco.farm.unlocked && eco.farm.yield < LIVE_ARMY.yieldMax()) {
+    const cost = LIVE_ARMY.economyYieldCost(ai, 'farm');
+    if (cost != null && ai.coins >= cost) tries.push(['yield', 'farm']);
+  }
+  if (eco.mint.unlocked && eco.mint.speed < LIVE_ARMY.speedMax()) {
+    const cost = LIVE_ARMY.economySpeedCost(ai, 'mint');
+    if (cost != null && ai.coins >= cost) tries.push(['speed', 'mint']);
+  }
+  if (eco.mint.unlocked && eco.mint.yield < LIVE_ARMY.yieldMax()) {
+    const cost = LIVE_ARMY.economyYieldCost(ai, 'mint');
+    if (cost != null && ai.coins >= cost) tries.push(['yield', 'mint']);
   }
   for (const branch of LIVE_ARMY.BASE_BRANCHES || []) {
     const lvl = eco.base[branch] || 0;
@@ -4179,38 +4263,58 @@ function buildPvpActionFromClick(pos) {
   return null;
 }
 
-function tickSurvivalFarmIncome() {
-  const farmScale = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()
-    ? LIVE_ARMY.farmIncomeScale(combatTime) : 1;
-  for (let pid = 0; pid < 2; pid++) {
-    const p = players[pid];
-    if (p.baseHp <= 0) continue;
-    const farmAmt = Math.max(0, Math.floor(survivalIncomeAmount(pid, 'farm') * farmScale));
-    if (farmAmt <= 0) continue;
-    const color = pid === 0 ? '#86efac' : '#4ade80';
-    for (const tw of p.turrets) {
-      if (tw.towerType !== 'farm' || tw.hp <= 0) continue;
-      p.coins += farmAmt;
-      spawnFloatText(tw.x, tw.y - 38, `+${farmAmt}`, color);
-    }
+function tickSurvivalHarvest(pid, type) {
+  const p = players[pid];
+  if (p.baseHp <= 0) return;
+  let amt = LIVE_ARMY?.isActive()
+    ? LIVE_ARMY.harvestAmount(p, type)
+    : survivalIncomeAmount(pid, type);
+  if (amt <= 0) return;
+  if (type === 'farm' && LIVE_ARMY?.isActive()) {
+    amt = Math.max(0, Math.floor(amt * LIVE_ARMY.farmIncomeScale(combatTime)));
+  }
+  const color = type === 'farm'
+    ? (pid === 0 ? '#86efac' : '#4ade80')
+    : (pid === 0 ? '#fde047' : '#fbbf24');
+  for (const tw of p.turrets) {
+    if (tw.towerType !== type || tw.hp <= 0) continue;
+    p.coins += amt;
+    spawnFloatText(tw.x, tw.y - 38, `+${amt}`, color);
   }
 }
 
-function tickSurvivalIncome() {
+function tickSurvivalFarmIncome() {
+  tickSurvivalHarvest(0, 'farm');
+  tickSurvivalHarvest(1, 'farm');
+}
+
+function tickSurvivalBaseIncome() {
   for (let pid = 0; pid < 2; pid++) {
     const p = players[pid];
     if (p.baseHp <= 0) continue;
     const baseAmt = survivalIncomeAmount(pid, 'base');
-    const mintAmt = survivalIncomeAmount(pid, 'mint');
+    if (baseAmt <= 0) continue;
     const baseColor = pid === 0 ? '#fcd34d' : '#fb923c';
-    const mintColor = pid === 0 ? '#fde047' : '#fbbf24';
     p.coins += baseAmt;
     const bp = basePos(pid);
     spawnFloatText(bp.x, bp.y - BASE_SIZE - 12, `+${baseAmt}`, baseColor);
-    for (const tw of p.turrets) {
-      if (tw.towerType !== 'mint' || tw.hp <= 0) continue;
-      p.coins += mintAmt;
-      spawnFloatText(tw.x, tw.y - 38, `+${mintAmt}`, mintColor);
+  }
+}
+
+function tickSurvivalIncome() {
+  tickSurvivalBaseIncome();
+  if (!LIVE_ARMY?.isActive()) {
+    for (let pid = 0; pid < 2; pid++) {
+      const p = players[pid];
+      if (p.baseHp <= 0) continue;
+      const mintAmt = survivalIncomeAmount(pid, 'mint');
+      if (mintAmt <= 0) continue;
+      const mintColor = pid === 0 ? '#fde047' : '#fbbf24';
+      for (const tw of p.turrets) {
+        if (tw.towerType !== 'mint' || tw.hp <= 0) continue;
+        p.coins += mintAmt;
+        spawnFloatText(tw.x, tw.y - 38, `+${mintAmt}`, mintColor);
+      }
     }
   }
 }
@@ -4281,11 +4385,43 @@ function updateSurvivalLiveAI(dt) {
 }
 
 function updateSurvivalLive(dt) {
-  survivalFarmTimer += dt;
-  if (survivalFarmTimer >= SURVIVAL_FARM_INTERVAL) {
-    survivalFarmTimer -= SURVIVAL_FARM_INTERVAL;
-    tickSurvivalFarmIncome();
-    updateUI();
+  if (LIVE_ARMY?.isActive()) {
+    let harvested = false;
+    for (let pid = 0; pid < 2; pid++) {
+      const p = players[pid];
+      if (p.baseHp <= 0) continue;
+      const eco = LIVE_ARMY.economyRecord(p);
+      if (eco.farm.unlocked) {
+        eco.farmAcc += dt;
+        const farmInterval = LIVE_ARMY.harvestInterval(p, 'farm');
+        while (eco.farmAcc >= farmInterval) {
+          eco.farmAcc -= farmInterval;
+          tickSurvivalHarvest(pid, 'farm');
+          harvested = true;
+        }
+      } else {
+        eco.farmAcc = 0;
+      }
+      if (eco.mint.unlocked) {
+        eco.mintAcc += dt;
+        const mintInterval = LIVE_ARMY.harvestInterval(p, 'mint');
+        while (eco.mintAcc >= mintInterval) {
+          eco.mintAcc -= mintInterval;
+          tickSurvivalHarvest(pid, 'mint');
+          harvested = true;
+        }
+      } else {
+        eco.mintAcc = 0;
+      }
+    }
+    if (harvested) updateUI();
+  } else {
+    survivalFarmTimer += dt;
+    if (survivalFarmTimer >= SURVIVAL_FARM_INTERVAL) {
+      survivalFarmTimer -= SURVIVAL_FARM_INTERVAL;
+      tickSurvivalFarmIncome();
+      updateUI();
+    }
   }
   survivalIncomeTimer += dt;
   if (survivalIncomeTimer >= SURVIVAL_INCOME_INTERVAL) {
@@ -7799,6 +7935,12 @@ function roundIncome(r) {
 }
 
 function mintIncomeForPlayer(p) {
+  if (isSurvivalLive() && LIVE_ARMY?.isActive()) {
+    const pid = p.id;
+    const farmRate = countLivingFarms(p) * (survivalIncomeAmount(pid, 'farm') / LIVE_ARMY.harvestInterval(p, 'farm'));
+    const mintRate = countLivingMints(p) * (survivalIncomeAmount(pid, 'mint') / LIVE_ARMY.harvestInterval(p, 'mint'));
+    return farmRate + mintRate;
+  }
   if (isSurvivalLive()) {
     const pid = p.id;
     return countLivingMints(p) * survivalIncomeAmount(pid, 'mint')
@@ -7822,6 +7964,7 @@ function farmIncomePerFarm(pid = activePlayer ?? 0) {
 }
 
 function mintIncomeLabel() {
+  if (isSurvivalLive() && LIVE_ARMY?.isActive()) return '';
   return isSurvivalLive() ? '/3s' : '/rnd';
 }
 
@@ -10694,6 +10837,7 @@ document.getElementById('econ-upgrade-panel').addEventListener('click', (e) => {
 });
 document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
   const unlockBtn = e.target.closest('[data-econ-unlock]');
+  const speedBtn = e.target.closest('[data-econ-speed]');
   const yieldBtn = e.target.closest('[data-econ-yield]');
   const baseBtn = e.target.closest('[data-econ-base]');
   const legacyBtn = e.target.closest('[data-upgrade]');
@@ -10701,6 +10845,8 @@ document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
   let action = null;
   if (unlockBtn && !unlockBtn.disabled) {
     action = { type: 'economy_upgrade', kind: 'unlock', target: unlockBtn.dataset.econUnlock };
+  } else if (speedBtn && !speedBtn.disabled) {
+    action = { type: 'economy_upgrade', kind: 'speed', target: speedBtn.dataset.econSpeed };
   } else if (yieldBtn && !yieldBtn.disabled) {
     action = { type: 'economy_upgrade', kind: 'yield', target: yieldBtn.dataset.econYield };
   } else if (baseBtn && !baseBtn.disabled) {
@@ -11142,8 +11288,8 @@ function render(time) {
           ? farmIncomePerFarm(pid)
           : mintIncomePerMint(pid);
         const lbl = tw.towerType === 'farm'
-          ? (isSurvivalLive() ? '/2s' : '/rnd')
-          : mintIncomeLabel();
+          ? (isSurvivalLive() && LIVE_ARMY?.isActive() ? `/${harvestIntervalLabel(pid, 'farm')}` : (isSurvivalLive() ? '/2s' : '/rnd'))
+          : (isSurvivalLive() && LIVE_ARMY?.isActive() ? `/${harvestIntervalLabel(pid, 'mint')}` : mintIncomeLabel());
         ctx.fillText(`+${amt}${lbl}`, tw.x, tw.y - 32);
         ctx.textAlign = 'left';
       }

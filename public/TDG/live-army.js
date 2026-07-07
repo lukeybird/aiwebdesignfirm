@@ -41,15 +41,26 @@ window.LIVE_ARMY = (function () {
 
   function freshEconomy() {
     return {
-      farm: { unlocked: false, yield: 0 },
-      mint: { unlocked: false, yield: 0 },
+      farm: { unlocked: false, speed: 0, yield: 0 },
+      mint: { unlocked: false, speed: 0, yield: 0 },
       base: { income: 0, health: 0, defense: 0 },
+      farmAcc: 0,
+      mintAcc: 0,
     };
   }
 
   const ECON_UNLOCK_COST = { farm: 140, mint: 235 };
-  const FARM_YIELD_MAX = 3;
-  const MINT_YIELD_MAX = 6;
+  const ECON_BRANCH_MAX = 3;
+  const ECON_BRANCH_COSTS = [300, 600, 1200];
+  const HARVEST_BASE_INTERVAL = 4;
+  const HARVEST_BASE_AMOUNT = 1;
+
+  function normalizeEcoBuilding(rec) {
+    if (!rec) return { unlocked: false, speed: 0, yield: 0 };
+    if (rec.speed == null) rec.speed = 0;
+    if (rec.yield == null) rec.yield = 0;
+    return rec;
+  }
   const BASE_BRANCH_MAX = { income: 3, health: 3, defense: 3 };
   const BASE_BRANCHES = ['income', 'health', 'defense'];
   const BASE_BRANCH_LABELS = { income: 'Income', health: 'Health', defense: 'Guns' };
@@ -71,7 +82,12 @@ window.LIVE_ARMY = (function () {
   function economyRecord(p) {
     if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
     if (!p.liveArmy.economy) p.liveArmy.economy = freshEconomy();
-    return p.liveArmy.economy;
+    const eco = p.liveArmy.economy;
+    eco.farm = normalizeEcoBuilding(eco.farm);
+    eco.mint = normalizeEcoBuilding(eco.mint);
+    if (eco.farmAcc == null) eco.farmAcc = 0;
+    if (eco.mintAcc == null) eco.mintAcc = 0;
+    return eco;
   }
 
   function onBattleStart(players, gameRules, opts) {
@@ -125,8 +141,8 @@ window.LIVE_ARMY = (function () {
     const el = document.getElementById('economy-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Unlock farms and mints, then grow each branch outward. Mint has more tiers. Enemy levels are hidden.'
-      : 'Start at HQ, branch outward. Unlock Farm & Mint, then climb each row — locked tiers show chains.';
+      ? 'Unlock farms and mints, then upgrade harvest speed and yield on separate branches. Enemy levels are hidden.'
+      : 'Unlock Farm or Mint at the top, then upgrade harvest speed (4s→1s) and coins per harvest (1→4) on separate branches.';
   }
 
   function initPlayer(p) {
@@ -271,11 +287,35 @@ window.LIVE_ARMY = (function () {
     return ECON_UNLOCK_COST[type] || 150;
   }
 
+  function economyBranchCost(lvl) {
+    if (lvl >= ECON_BRANCH_MAX) return null;
+    return ECON_BRANCH_COSTS[lvl] ?? null;
+  }
+
+  function economySpeedCost(p, type) {
+    const eco = economyRecord(p);
+    const rec = type === 'farm' ? eco.farm : eco.mint;
+    return economyBranchCost(rec.speed || 0);
+  }
+
   function economyYieldCost(p, type) {
     const eco = economyRecord(p);
-    const lvl = type === 'farm' ? eco.farm.yield : eco.mint.yield;
-    const base = type === 'mint' ? 72 : 52;
-    return Math.floor(base * Math.pow(1.74, lvl) + lvl * 30);
+    const rec = type === 'farm' ? eco.farm : eco.mint;
+    return economyBranchCost(rec.yield || 0);
+  }
+
+  function harvestInterval(p, type) {
+    const eco = economyRecord(p);
+    const rec = type === 'farm' ? eco.farm : eco.mint;
+    if (!rec.unlocked) return HARVEST_BASE_INTERVAL;
+    return Math.max(1, HARVEST_BASE_INTERVAL - (rec.speed || 0));
+  }
+
+  function harvestAmount(p, type) {
+    const eco = economyRecord(p);
+    const rec = type === 'farm' ? eco.farm : eco.mint;
+    if (!rec.unlocked) return 0;
+    return HARVEST_BASE_AMOUNT + (rec.yield || 0);
   }
 
   function economyBaseCost(p, branch) {
@@ -295,8 +335,12 @@ window.LIVE_ARMY = (function () {
     return !!economyRecord(p).mint.unlocked;
   }
 
-  function yieldMax(type) {
-    return type === 'mint' ? MINT_YIELD_MAX : FARM_YIELD_MAX;
+  function yieldMax() {
+    return ECON_BRANCH_MAX;
+  }
+
+  function speedMax() {
+    return ECON_BRANCH_MAX;
   }
 
   function baseBranchMax(branch) {
@@ -306,8 +350,8 @@ window.LIVE_ARMY = (function () {
   function economyIncomeLevel(p, type) {
     const eco = economyRecord(p);
     if (type === 'base') return 1 + (eco.base.income || 0);
-    if (type === 'farm') return eco.farm.unlocked ? 1 + (eco.farm.yield || 0) : 0;
-    if (type === 'mint') return eco.mint.unlocked ? 1 + (eco.mint.yield || 0) : 0;
+    if (type === 'farm') return eco.farm.unlocked ? harvestAmount(p, 'farm') : 0;
+    if (type === 'mint') return eco.mint.unlocked ? harvestAmount(p, 'mint') : 0;
     return 1;
   }
 
@@ -408,9 +452,11 @@ window.LIVE_ARMY = (function () {
     }
     if (ep.liveArmy?.economy) {
       ep.liveArmy.economy = {
-        farm: { unlocked: !!ep.liveArmy.economy.farm?.unlocked, yield: 0 },
-        mint: { unlocked: !!ep.liveArmy.economy.mint?.unlocked, yield: 0 },
+        farm: { unlocked: !!ep.liveArmy.economy.farm?.unlocked, speed: 0, yield: 0 },
+        mint: { unlocked: !!ep.liveArmy.economy.mint?.unlocked, speed: 0, yield: 0 },
         base: { income: 0, health: 0, defense: 0 },
+        farmAcc: 0,
+        mintAcc: 0,
       };
     }
     if (ep.turrets) {
@@ -463,11 +509,16 @@ window.LIVE_ARMY = (function () {
     engineersUpgradeCost,
     economyRecord,
     economyUnlockCost,
+    economySpeedCost,
     economyYieldCost,
     economyBaseCost,
     farmUnlocked,
     mintUnlocked,
     yieldMax,
+    speedMax,
+    harvestInterval,
+    harvestAmount,
+    ECON_BRANCH_MAX,
     baseBranchMax,
     economyIncomeLevel,
     baseHealthBonus,
@@ -494,8 +545,7 @@ window.LIVE_ARMY = (function () {
     ENGINEER_BRANCH_ICONS,
     ENGINEER_STAT_MAX,
     ECON_UNLOCK_COST,
-    FARM_YIELD_MAX,
-    MINT_YIELD_MAX,
+    ECON_BRANCH_COSTS,
     BASE_BRANCHES,
     BASE_BRANCH_LABELS,
     BASE_BRANCH_ICONS,
