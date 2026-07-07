@@ -2933,10 +2933,12 @@ let survivalAiTimer = 0;
 let survivalAiBrain = null;
 let floatTexts = [];
 let pvpOnline = null;
-let pvpGuestInterp = null;
-const PVP_SYNC_INTERVAL_MS = 33;
-let pvpGuestUnitInterp = null;
-const PVP_SYNC_INTERVAL_MS = 33;
+
+// PvP lockstep (client-authoritative, deterministic inputs)
+const PVP_FIXED_DT = 1 / 60;
+const PVP_INPUT_DELAY_FRAMES = 5; // ~83ms at 60fps; reduces late-input rollbacks
+const PVP_SNAPSHOT_INTERVAL_FRAMES = 10;
+let pvpLock = null; // { frame, acc, queueByFrame: Map<number, {0:[],1:[]}>, history: Array<{frame,state}> }
 
 function isSurvivalLive() {
   return gameMode === 'survival' || gameMode === 'survival-pvp';
@@ -4106,7 +4108,7 @@ function survivalResetBattleSpeedOnEnemyAttack() {
 
 function survivalSimDt(rawDt) {
   if (!isSurvivalLive() || phase !== 'combat') return rawDt;
-  if (isSurvivalPvp() && !pvpOnline?.isHost) return Math.min(rawDt, 0.14);
+  if (isSurvivalPvp()) return Math.min(rawDt, 0.14);
   return Math.min(rawDt * survivalSpeed, 0.14);
 }
 
@@ -4769,7 +4771,6 @@ function setupSurvivalLivePvp(opts) {
     player0Name,
     player1Name,
     myPlayerId,
-    isHost,
     roomId,
     sessionToken,
     opponentName,
@@ -4779,8 +4780,15 @@ function setupSurvivalLivePvp(opts) {
   survivalSpeed = 1;
   setSurvivalSpeed(1);
   round = 1;
-  pvpOnline = { playerId: myPlayerId, isHost, roomId, sessionToken, opponentName };
-  pvpGuestInterp = null;
+  // Seed deterministic RNG so both clients simulate identically.
+  seedPvpRng(roomId || sessionToken || 'pvp');
+  pvpOnline = { playerId: myPlayerId, roomId, sessionToken, opponentName };
+  pvpLock = {
+    frame: 0,
+    acc: 0,
+    queueByFrame: new Map(),
+    history: [],
+  };
 
   combatUnits = [];
   pellets = [];
@@ -4831,6 +4839,8 @@ function setupSurvivalLivePvp(opts) {
   document.getElementById('bottom-panel').classList.remove('hidden');
   selectedTool = firstEnabledDeployTool();
   addLog(`⚔️ Online PvP — ${player0Name} vs ${player1Name}`);
+  // baseline snapshot for rollback safety
+  pvpLock.history.push({ frame: 0, state: getPvpSnapshot() });
   updateUI();
 }
 
@@ -4897,68 +4907,8 @@ function getPvpSnapshot() {
   return snap;
 }
 
-function pvpGuestSendAction(action) {
-  if (!isSurvivalPvp() || pvpOnline?.isHost) return;
-  if (applyPvpAction(getLocalPlayerId(), action)) {
-    updateUI();
-    window.TDG_PVP?.sendAction?.(action);
-  }
-}
-
-function pvpGuestAdvanceFx(dt) {
-  if (!isSurvivalPvp() || pvpOnline?.isHost) return;
-  for (let i = pellets.length - 1; i >= 0; i--) {
-    const p = pellets[i];
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.life -= dt;
-    if (p.traveled != null && p.spawnX != null) {
-      p.traveled += Math.hypot(p.vx * dt, p.vy * dt);
-    }
-    if (p.life <= 0) pellets.splice(i, 1);
-  }
-  for (let i = beams.length - 1; i >= 0; i--) {
-    beams[i].life -= dt;
-    if (beams[i].life <= 0) beams.splice(i, 1);
-  }
-  for (let i = missiles.length - 1; i >= 0; i--) {
-    const m = missiles[i];
-    const dx = m.tx - m.x;
-    const dy = m.ty - m.y;
-    const d = Math.hypot(dx, dy);
-    if (d > 4) {
-      const step = (m.speed || 280) * dt;
-      const move = Math.min(step, d);
-      m.x += (dx / d) * move;
-      m.y += (dy / d) * move;
-    }
-  }
-  for (let i = blasts.length - 1; i >= 0; i--) {
-    blasts[i].life -= dt;
-    if (blasts[i].life <= 0) blasts.splice(i, 1);
-  }
-}
-
-function getPvpDrawUnits() {
-  if (!isSurvivalPvp() || pvpOnline?.isHost || !pvpGuestInterp?.units?.length) return combatUnits;
-  const elapsed = performance.now() - pvpGuestInterp.at;
-  const duration = pvpGuestInterp.duration || PVP_SYNC_INTERVAL_MS;
-  const t = Math.min(1, elapsed / duration);
-  return pvpGuestInterp.units.map((entry) => {
-    const u = combatUnits.find((unit) => unit.id === entry.id) || entry.next;
-    const x = entry.fromX + (entry.toX - entry.fromX) * t;
-    const y = entry.fromY + (entry.toY - entry.fromY) * t;
-    return { ...u, x, y };
-  });
-}
-
-function applyPvpSnapshot(state, serverTime) {
+function applyPvpSnapshot(state) {
   if (!state || !state.players) return;
-  const isGuest = isSurvivalPvp() && !pvpOnline?.isHost;
-  const prevUnits = isGuest
-    ? combatUnits.map((u) => ({ id: u.id, x: u.x, y: u.y }))
-    : null;
-
   phase = state.phase || phase;
   combatTime = state.combatTime ?? combatTime;
   survivalIncomeTimer = state.survivalIncomeTimer ?? survivalIncomeTimer;
@@ -4994,34 +4944,108 @@ function applyPvpSnapshot(state, serverTime) {
   spreadTracks = (state.spreadTracks || []).map((s) => ({ ...s }));
   blasts = (state.blasts || []).map((b) => ({ ...b }));
 
-  if (isGuest) {
-    const now = performance.now();
-    pvpGuestInterp = {
-      at: now,
-      duration: PVP_SYNC_INTERVAL_MS,
-      units: combatUnits.map((u) => {
-        const prev = prevUnits?.find((p) => p.id === u.id);
-        return {
-          id: u.id,
-          fromX: prev?.x ?? u.x,
-          fromY: prev?.y ?? u.y,
-          toX: u.x,
-          toY: u.y,
-          next: u,
-        };
-      }),
-    };
-    if (serverTime) {
-      const lag = Math.max(0, Date.now() - serverTime);
-      pvpGuestInterp.duration = Math.max(PVP_SYNC_INTERVAL_MS, lag + PVP_SYNC_INTERVAL_MS);
-    }
-  }
-
   commitPublicSnapshots();
   updateUI();
 
   if (phase === 'gameover' || players[0].baseHp <= 0 || players[1].baseHp <= 0) {
     if (phase !== 'gameover') endSurvivalLive();
+  }
+}
+
+function pvpEnsureFrameBucket(frame) {
+  if (!pvpLock) return null;
+  let bucket = pvpLock.queueByFrame.get(frame);
+  if (!bucket) {
+    bucket = { 0: [], 1: [] };
+    pvpLock.queueByFrame.set(frame, bucket);
+  }
+  return bucket;
+}
+
+function pvpEnqueueAction(fromPlayerId, payload) {
+  if (!pvpLock || !isSurvivalPvp()) return false;
+  const frame = payload?.frame;
+  const action = payload?.action;
+  if (!Number.isFinite(frame) || frame < 0 || !action) return false;
+  if (fromPlayerId !== 0 && fromPlayerId !== 1) return false;
+
+  const bucket = pvpEnsureFrameBucket(frame);
+  bucket[fromPlayerId].push(action);
+
+  // Late input: rollback to nearest snapshot and re-sim forward.
+  if (frame < pvpLock.frame) {
+    pvpRollbackAndResim(frame);
+  }
+  return true;
+}
+
+function pvpSendLocalAction(action) {
+  if (!pvpLock || !isSurvivalPvp() || !pvpOnline) return false;
+  const pid = getLocalPlayerId();
+  const frame = pvpLock.frame + PVP_INPUT_DELAY_FRAMES;
+  // Apply locally via queue so both sides follow identical timing.
+  pvpEnqueueAction(pid, { frame, action });
+  window.TDG_PVP?.sendAction?.({ frame, action });
+  return true;
+}
+
+function pvpApplyActionsForFrame(frame) {
+  if (!pvpLock) return;
+  const bucket = pvpLock.queueByFrame.get(frame);
+  if (!bucket) return;
+  // deterministic order: player 0 actions, then player 1 actions, in enqueue order
+  for (const a of bucket[0]) applyPvpAction(0, a);
+  for (const a of bucket[1]) applyPvpAction(1, a);
+  pvpLock.queueByFrame.delete(frame);
+}
+
+function pvpRecordSnapshotIfNeeded() {
+  if (!pvpLock) return;
+  if (pvpLock.frame % PVP_SNAPSHOT_INTERVAL_FRAMES !== 0) return;
+  const state = getPvpSnapshot();
+  pvpLock.history.push({ frame: pvpLock.frame, state });
+  // keep bounded
+  if (pvpLock.history.length > 40) pvpLock.history.shift();
+}
+
+function pvpRollbackAndResim(targetFrame) {
+  if (!pvpLock) return;
+  const curFrame = pvpLock.frame;
+  if (targetFrame >= curFrame) return;
+
+  // find latest snapshot <= targetFrame
+  let snap = null;
+  for (let i = pvpLock.history.length - 1; i >= 0; i--) {
+    if (pvpLock.history[i].frame <= targetFrame) { snap = pvpLock.history[i]; break; }
+  }
+  if (!snap) return; // no snapshot yet
+
+  applyPvpSnapshot(snap.state);
+  pvpLock.frame = snap.frame;
+
+  // resim forward to previous current frame
+  while (pvpLock.frame < curFrame) {
+    pvpApplyActionsForFrame(pvpLock.frame);
+    updateSurvivalLive(PVP_FIXED_DT);
+    updateCombat(PVP_FIXED_DT);
+    pvpLock.frame++;
+    pvpRecordSnapshotIfNeeded();
+  }
+}
+
+function pvpTick(rawDt) {
+  if (!pvpLock) return;
+  pvpLock.acc += rawDt;
+  const maxSteps = 6; // avoids spiral of death
+  let steps = 0;
+  while (pvpLock.acc >= PVP_FIXED_DT && steps < maxSteps) {
+    pvpApplyActionsForFrame(pvpLock.frame);
+    updateSurvivalLive(PVP_FIXED_DT);
+    updateCombat(PVP_FIXED_DT);
+    pvpLock.frame++;
+    pvpRecordSnapshotIfNeeded();
+    pvpLock.acc -= PVP_FIXED_DT;
+    steps++;
   }
 }
 
@@ -5066,8 +5090,9 @@ function applyPvpAction(fromPlayerId, action) {
 }
 
 function applyPvpRemoteAction(fromPlayerId, action) {
-  if (!isSurvivalPvp() || !pvpOnline?.isHost) return false;
-  return applyPvpAction(fromPlayerId, action);
+  if (!isSurvivalPvp() || !pvpOnline) return false;
+  // payload is expected to be { frame, action }
+  return pvpEnqueueAction(fromPlayerId, action);
 }
 
 function buildPvpActionFromClick(pos) {
@@ -5280,9 +5305,7 @@ function endSurvivalLive() {
     btnText = isSurvivalPvp() ? 'Back to Menu' : 'Play Again';
   }
   phase = 'gameover';
-  if (isSurvivalPvp() && pvpOnline?.isHost && window.TDG_PVP?.notifyGameOver) {
-    window.TDG_PVP.notifyGameOver();
-  }
+  if (isSurvivalPvp() && window.TDG_PVP?.notifyGameOver) window.TDG_PVP.notifyGameOver();
   showBanner(title, text, btnText);
 }
 
@@ -8590,8 +8613,48 @@ function pointOnBeam(px, py, bx, by, angle, len, width) {
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
-function rand(min, max) { return min + Math.random() * (max - min); }
-function uid() { return Math.random().toString(36).slice(2, 9); }
+
+// Deterministic RNG for PvP lockstep. Only used by `rand()` / `uid()`.
+let pvpRng = null;
+let pvpUidCounter = 0;
+
+function fnv1a32(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function makeMulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seedPvpRng(seedStr) {
+  pvpRng = makeMulberry32(fnv1a32(String(seedStr || 'pvp')));
+  pvpUidCounter = 0;
+}
+
+function rng() {
+  return pvpRng ? pvpRng() : Math.random();
+}
+
+function rand(min, max) { return min + rng() * (max - min); }
+
+function uid() {
+  if (!pvpRng) return Math.random().toString(36).slice(2, 9);
+  // stable ids across lockstep clients
+  pvpUidCounter++;
+  return `p${pvpUidCounter.toString(36)}${Math.floor(rng() * 1e6).toString(36)}`;
+}
 
 function playerZone(pid) {
   return pid === 0 ? P1_ZONE : P2_ZONE;
@@ -11311,9 +11374,9 @@ function handleClick(pos) {
   if (!canPlayerBuildNow()) return;
   const pid = getLocalPlayerId();
 
-  if (isSurvivalPvp() && !pvpOnline.isHost) {
+  if (isSurvivalPvp()) {
     const action = buildPvpActionFromClick(pos);
-    if (action) pvpGuestSendAction(action);
+    if (action) pvpSendLocalAction(action);
     else if (action === null && selectedTool !== 'move') {
       if (isTowerTool(selectedTool)) {
         const reason = towerPlaceFailReason(pid, selectedTool, pos.x, pos.y, null);
@@ -11404,9 +11467,9 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('mouseup', () => {
-  if (dragging && isSurvivalPvp() && !pvpOnline.isHost) {
+  if (dragging && isSurvivalPvp()) {
     const tw = dragging.turret;
-    pvpGuestSendAction({
+    pvpSendLocalAction({
       type: 'move_tower',
       towerId: tw.id,
       x: tw.x,
@@ -11451,8 +11514,8 @@ function updateUI() {
     const showSpeed = isSurvivalLive() && phase === 'combat';
     speedPill.classList.toggle('hidden', !showSpeed);
     speedPill.querySelectorAll('.surv-speed-btn').forEach((btn) => {
-      btn.disabled = isSurvivalPvp() && !pvpOnline?.isHost;
-      btn.title = btn.disabled ? 'Only the host controls battle speed' : '';
+      btn.disabled = isSurvivalPvp();
+      btn.title = isSurvivalPvp() ? 'Speed is fixed in online PvP lockstep.' : '';
     });
   }
   const roundLabel = document.getElementById('round-label');
@@ -11681,8 +11744,8 @@ document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
     action = { type: 'income_upgrade', upgradeType: legacyBtn.dataset.upgrade };
   }
   if (!action) return;
-  if (isSurvivalPvp() && !pvpOnline.isHost) {
-    pvpGuestSendAction(action);
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction(action);
     return;
   }
   if (action.type === 'economy_upgrade') {
@@ -11706,8 +11769,8 @@ document.getElementById('barracks-upgrade-list').addEventListener('click', (e) =
   const action = unlockBtn
     ? { type: 'barracks_upgrade', upgradeKind: 'unlock', unitType: unlockBtn.dataset.barracksUnlock }
     : { type: 'barracks_upgrade', upgradeKind: 'stat', unitType: statBtn.dataset.barracksUnit, stat: statBtn.dataset.barracksStat };
-  if (isSurvivalPvp() && !pvpOnline.isHost) {
-    pvpGuestSendAction(action);
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction(action);
     return;
   }
   buyBarracksUpgrade(pid, action.upgradeKind, action.unitType, action.stat);
@@ -11727,8 +11790,8 @@ document.getElementById('engineers-upgrade-list').addEventListener('click', (e) 
   const action = unlockBtn
     ? { type: 'engineers_upgrade', upgradeKind: 'unlock', towerType: unlockBtn.dataset.engUnlock }
     : { type: 'engineers_upgrade', upgradeKind: 'stat', towerType: statBtn.dataset.engTower, stat: statBtn.dataset.engStat };
-  if (isSurvivalPvp() && !pvpOnline.isHost) {
-    pvpGuestSendAction(action);
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction(action);
     return;
   }
   buyEngineersUpgrade(pid, action.upgradeKind, action.towerType, action.stat);
@@ -11745,8 +11808,8 @@ document.getElementById('missile-upgrade-list').addEventListener('click', (e) =>
   const branch = btn.dataset.missileBranch;
   const pid = getLocalPlayerId();
   if (!activeMissileTowerId) return;
-  if (isSurvivalPvp() && !pvpOnline.isHost) {
-    pvpGuestSendAction({ type: 'missile_upgrade', towerId: activeMissileTowerId, branch });
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction({ type: 'missile_upgrade', towerId: activeMissileTowerId, branch });
     return;
   }
   buyMissileUpgrade(pid, activeMissileTowerId, branch);
@@ -11830,7 +11893,7 @@ document.getElementById('survival-difficulty-screen').addEventListener('click', 
 
 document.querySelectorAll('.surv-speed-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (isSurvivalPvp() && !pvpOnline?.isHost) return;
+    if (isSurvivalPvp()) return;
     setSurvivalSpeed(Number(btn.dataset.speed));
   });
 });
@@ -11974,13 +12037,9 @@ function render(time) {
       updateSurvivalLive(dt);
       dt = survivalSimDt(rawDt);
       updateCombat(dt);
-    } else if (isSurvivalPvp() && pvpOnline?.isHost) {
-      updateSurvivalLive(dt);
-      dt = survivalSimDt(rawDt);
-      updateCombat(dt);
-      window.TDG_PVP?.tickHost?.();
-    } else if (isSurvivalPvp() && !pvpOnline?.isHost) {
-      pvpGuestAdvanceFx(dt);
+    } else if (isSurvivalPvp()) {
+      // Deterministic lockstep: both players simulate locally.
+      pvpTick(rawDt);
     } else if (!isSurvivalPvp()) {
       updateCombat(dt);
     }
@@ -12092,7 +12151,7 @@ function render(time) {
   }
 
   if (phase === 'combat') {
-    for (const u of getPvpDrawUnits()) drawUnit(u);
+    for (const u of combatUnits) drawUnit(u);
 
     if (!isSurvivalLive()) {
       const pct = combatTime / gameRules.maxRoundTime;

@@ -5,10 +5,8 @@
   let playerChannel = null;
   let roomChannel = null;
   let session = null;
-  let lastSyncAt = 0;
   let heartbeatTimer = null;
   let disconnecting = false;
-  const SYNC_INTERVAL_MS = 33;
   const HEARTBEAT_INTERVAL_MS = 10000;
 
   function $(id) {
@@ -223,13 +221,11 @@
   function subscribeToRoomChannel(roomId) {
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
-      if (!session || session.isHost) return;
-      window.__TDG?.applyPvpSnapshot(payload.state, payload.t);
+      // State snapshots are no longer used in lockstep PvP.
     });
     roomChannel.bind('action', (payload) => {
-      if (!session?.isHost) return;
-      const applied = window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
-      if (applied) forceHostSync();
+      if (!window.__TDG?.isSurvivalPvp?.()) return;
+      window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
     });
     roomChannel.bind('forfeit', (payload) => {
       if (!window.__TDG?.isSurvivalPvp?.()) return;
@@ -356,51 +352,8 @@
     }
   }
 
-  async function syncState(state, urgent = false) {
-    if (!session?.roomId || !session?.sessionToken || !session.isHost) return;
-    const body = JSON.stringify({
-      roomId: session.roomId,
-      sessionToken: session.sessionToken,
-      state,
-    });
-    try {
-      await fetch('/api/tdg-pvp/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        keepalive: !urgent,
-      });
-    } catch (err) {
-      console.warn('sync failed', err);
-    }
-  }
-
-  function pushState(state) {
-    if (!session?.isHost) return;
-    void syncState(state);
-  }
-
-  function forceHostSync() {
-    if (!session?.isHost) return;
-    lastSyncAt = 0;
-    const state = window.__TDG?.getPvpSnapshot?.();
-    if (state) void syncState(state, true);
-  }
-
-  function tickHost() {
-    const now = Date.now();
-    if (now - lastSyncAt < SYNC_INTERVAL_MS) return;
-    lastSyncAt = now;
-    const state = window.__TDG?.getPvpSnapshot?.();
-    if (state) pushState(state);
-  }
-
   async function notifyGameOver() {
-    if (!session?.roomId || !session?.sessionToken || !session.isHost) return;
-    const state = window.__TDG?.getPvpSnapshot?.();
-    if (!state) return;
-    state.phase = 'gameover';
-    await syncState(state);
+    // Lockstep PvP: both clients simulate and will independently end match.
   }
 
   function cleanup() {
@@ -474,14 +427,10 @@
 
   window.TDG_PVP = {
     sendAction,
-    tickHost,
-    pushState,
-    forceHostSync,
     notifyGameOver,
     cleanup,
     leaveQueue,
     forfeitMatch,
-    SYNC_INTERVAL_MS,
   };
 
   bindUi();
