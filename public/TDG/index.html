@@ -719,7 +719,9 @@
     }
     #econ-upgrade-btn:hover { transform: scale(1.05); }
 
-    #econ-upgrade-panel {
+    #econ-upgrade-panel,
+    #barracks-upgrade-panel,
+    #engineers-upgrade-panel {
       position: absolute;
       inset: 0;
       background: rgba(10, 12, 28, 0.82);
@@ -729,6 +731,59 @@
       justify-content: center;
       pointer-events: auto;
     }
+
+    #barracks-upgrade-panel.hidden,
+    #engineers-upgrade-panel.hidden { display: none; }
+
+    #barracks-upgrade-btn,
+    #engineers-upgrade-btn {
+      position: absolute;
+      bottom: 88px;
+      z-index: 12;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      background: rgba(148, 163, 184, 0.9);
+      color: #0f172a;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    }
+
+    #barracks-upgrade-btn { right: 16px; }
+    #engineers-upgrade-btn { right: 120px; }
+
+    #missile-upgrade-btn {
+      position: absolute;
+      bottom: 88px;
+      right: 224px;
+      z-index: 12;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      background: rgba(248, 113, 113, 0.92);
+      color: #1f2937;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    }
+
+    #missile-upgrade-panel {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 12, 28, 0.82);
+      z-index: 18;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+
+    #missile-upgrade-panel.hidden { display: none; }
 
     .econ-panel-inner {
       background: linear-gradient(160deg, #1a2e1a, #121a12);
@@ -917,6 +972,39 @@
       <div id="achievement-feed-p1"></div>
       <button id="ach-medal-btn" class="hidden" title="View achievements">🏅</button>
       <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">⬆️ Economy</button>
+      <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">🏕 Barracks</button>
+      <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">🔧 Engineers</button>
+      <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">🚀 Missile</button>
+      <div id="barracks-upgrade-panel" class="hidden">
+        <div class="econ-panel-inner">
+          <div class="econ-panel-header">
+            <h3>🏕 Barracks</h3>
+            <button id="barracks-panel-close" type="button">✕</button>
+          </div>
+          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrade to unlock units. Unit stat upgrades are hidden from your opponent.</p>
+          <div id="barracks-upgrade-list"></div>
+        </div>
+      </div>
+      <div id="engineers-upgrade-panel" class="hidden">
+        <div class="econ-panel-inner">
+          <div class="econ-panel-header">
+            <h3>🔧 Engineers Camp</h3>
+            <button id="engineers-panel-close" type="button">✕</button>
+          </div>
+          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrade all towers: damage, range, health, and spreader pushback.</p>
+          <div id="engineers-upgrade-list"></div>
+        </div>
+      </div>
+      <div id="missile-upgrade-panel" class="hidden">
+        <div class="econ-panel-inner">
+          <div class="econ-panel-header">
+            <h3>🚀 Missile Base</h3>
+            <button id="missile-panel-close" type="button">✕</button>
+          </div>
+          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrade fire rate, damage, and blast radius. Starts slow — invest to dominate late game.</p>
+          <div id="missile-upgrade-list"></div>
+        </div>
+      </div>
       <div id="econ-upgrade-panel" class="hidden">
         <div class="econ-panel-inner">
           <div class="econ-panel-header">
@@ -950,6 +1038,9 @@
         <button class="tool-btn btn-missile" data-tool="missile">🚀 Missile<div class="cost">1100</div></button>
         <button class="tool-btn btn-mint" data-tool="mint">🏦 Mint<div class="cost">200</div></button>
         <button class="tool-btn btn-farm" data-tool="farm">🌾 Farm<div class="cost">95</div></button>
+        <button class="tool-btn btn-barracks hidden" id="btn-barracks-live" data-tool="barracks">🏕 Barracks<div class="cost">180</div></button>
+        <button class="tool-btn btn-engineers hidden" id="btn-engineers-live" data-tool="engineers">🔧 Engineers<div class="cost">210</div></button>
+        <button class="tool-btn btn-goblin hidden" id="btn-goblin-live" data-tool="goblin">👺 Goblin<div class="cost">22</div></button>
         <button class="tool-btn btn-move" data-tool="move">✋ Move</button>
         <button class="tool-btn btn-ready" id="ready-btn">Ready! ▶</button>
       </div>
@@ -1057,6 +1148,7 @@
     </div>
   </div>
 
+<script src="/TDG/live-army.js"></script>
 <script>
 (() => {
 'use strict';
@@ -1117,6 +1209,11 @@ const UNIT_TYPES = {
     splits: true, splitCount: 2, splitHpRatio: 0.4, splitDamageRatio: 0.58,
     behavior: 'baseRush', targetsUnits: false, targetsTowers: false, targetsBase: true,
   },
+  goblin: {
+    name: 'Goblin', hp: 42, speed: 145, damage: 11, attackRate: 1.1, range: 24, cost: 22,
+    color: '#4ade80', accent: '#166534', size: 14, behavior: 'goblin',
+    targetsUnits: false, targetsTowers: true, targetsBase: false,
+  },
 };
 
 const TOWER_TYPES = {
@@ -1146,6 +1243,14 @@ const TOWER_TYPES = {
   farm: {
     name: 'Farm', hp: 42, cost: 95, incomePerRound: 18,
     size: 22, color: '#86EFAC', accent: '#22C55E', style: 'farm',
+  },
+  barracks: {
+    name: 'Barracks', hp: 120, cost: 180,
+    size: 44, color: '#94a3b8', accent: '#475569', style: 'barracks',
+  },
+  engineers: {
+    name: 'Engineers', hp: 110, cost: 210,
+    size: 44, color: '#f59e0b', accent: '#b45309', style: 'engineers',
   },
 };
 
@@ -1183,9 +1288,17 @@ function enabledTowerTypes() {
 }
 
 function firstEnabledDeployTool() {
-  const order = ['tank', 'speed', 'striker', 'sniper', 'bloop', 'peka', 'turret', 'laser', 'spread', 'missile', 'farm', 'mint'];
+  const live = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive();
+  const order = live
+    ? ['farm', 'mint', 'barracks', 'engineers', 'turret', 'laser', 'spread', 'missile', 'tank', 'speed', 'striker', 'goblin', 'sniper', 'peka']
+    : ['tank', 'speed', 'striker', 'sniper', 'bloop', 'peka', 'turret', 'laser', 'spread', 'missile', 'farm', 'mint'];
+  const pid = getLocalPlayerId();
+  const p = players[pid] || players[0];
   for (const t of order) {
-    if (UNIT_TYPES[t] && isUnitEnabled(t)) return t;
+    if (UNIT_TYPES[t] && isUnitEnabled(t)) {
+      if (live && !LIVE_ARMY.canDeployUnit(p, t)) continue;
+      return t;
+    }
     if (TOWER_TYPES[t] && isTowerEnabled(t)) return t;
   }
   return 'move';
@@ -1193,8 +1306,24 @@ function firstEnabledDeployTool() {
 
 function ensureValidSelectedTool() {
   if (selectedTool === 'move') return;
-  if (UNIT_TYPES[selectedTool] && !isUnitEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
+  const pid = getLocalPlayerId();
+  const p = players[pid] || players[0];
+  if (UNIT_TYPES[selectedTool]) {
+    if (!isUnitEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
+    else if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, selectedTool)) {
+      selectedTool = firstEnabledDeployTool();
+    }
+  }
   if (TOWER_TYPES[selectedTool] && !isTowerEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
+}
+
+function syncLiveArmyStructures() {
+  if (typeof LIVE_ARMY === 'undefined' || !LIVE_ARMY.isActive()) return;
+  for (const p of players) {
+    LIVE_ARMY.initPlayer(p);
+    p.liveArmy.barracks.built = p.turrets.some((t) => t.towerType === 'barracks' && t.hp > 0);
+    p.liveArmy.engineers.built = p.turrets.some((t) => t.towerType === 'engineers' && t.hp > 0);
+  }
 }
 
 const RULEBOOK_SECTIONS = [
@@ -1518,6 +1647,149 @@ function buyIncomeUpgrade(pid, type) {
   return true;
 }
 
+function buyBarracksUpgrade(pid, kind, unitType) {
+  const p = players[pid];
+  if (!p.liveArmy?.barracks?.built) return false;
+  const barracks = p.liveArmy.barracks;
+  if (kind === 'tier') {
+    const cost = 120 + barracks.unitTier * 90;
+    if (p.coins < cost || barracks.unitTier >= 5) return false;
+    p.coins -= cost;
+    barracks.unitTier += 1;
+    addLog(`🏕 ${p.name}: Barracks tier ${barracks.unitTier} — more units unlocked`);
+  } else if (kind === 'secret' && unitType) {
+    const cost = 95 + (barracks.secret[unitType] || 0) * 75;
+    if (p.coins < cost || (barracks.secret[unitType] || 0) >= 5) return false;
+    p.coins -= cost;
+    barracks.secret[unitType] = (barracks.secret[unitType] || 0) + 1;
+    addLog(`🏕 ${p.name}: Secret ${LIVE_ARMY.UNIT_LABELS[unitType] || unitType} upgrade`);
+  }
+  updateBarracksUpgradeUI();
+  updateUI();
+  return true;
+}
+
+function buyEngineersUpgrade(pid, branch) {
+  const p = players[pid];
+  const eng = p.liveArmy?.engineers;
+  if (!eng?.built) return false;
+  const lvl = eng[branch] || 0;
+  const cost = 110 + lvl * 85;
+  if (p.coins < cost || lvl >= 6) return false;
+  p.coins -= cost;
+  eng[branch] = lvl + 1;
+  addLog(`🔧 ${p.name}: Engineers +${branch} Lv${eng[branch]}`);
+  updateEngineersUpgradeUI();
+  updateUI();
+  return true;
+}
+
+function buyMissileUpgrade(pid, towerId, branch) {
+  const p = players[pid];
+  const tw = p.turrets.find(t => t.id === towerId && t.towerType === 'missile');
+  if (!tw) return false;
+  if (!tw.missileUpgrades) tw.missileUpgrades = LIVE_ARMY.freshMissileUpgrades();
+  const lvl = tw.missileUpgrades[branch] || 1;
+  const cost = 140 + lvl * 100;
+  if (p.coins < cost || lvl >= 6) return false;
+  p.coins -= cost;
+  tw.missileUpgrades[branch] = lvl + 1;
+  addLog(`🚀 ${p.name}: Missile ${branch} Lv${tw.missileUpgrades[branch]}`);
+  updateUI();
+  return true;
+}
+
+function updateBarracksUpgradeUI() {
+  const list = document.getElementById('barracks-upgrade-list');
+  if (!list || !LIVE_ARMY?.isActive()) return;
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const b = p.liveArmy?.barracks;
+  if (!b?.built) {
+    list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build a Barracks first.</p>';
+    return;
+  }
+  const tierCost = 120 + b.unitTier * 90;
+  let html = `<button type="button" class="econ-upgrade-buy" data-barracks-tier ${p.coins < tierCost || b.unitTier >= 5 ? 'disabled' : ''}>Unlock more units (Tier ${b.unitTier + 1}) — ${tierCost}🪙</button>`;
+  for (const [ut, label] of Object.entries(LIVE_ARMY.UNIT_LABELS)) {
+    if (!UNIT_TYPES[ut]) continue;
+    const sec = b.secret[ut] || 0;
+    const cost = 95 + sec * 75;
+    const unlocked = LIVE_ARMY.unitUnlocked(p, ut);
+    if (!unlocked) continue;
+    html += `<button type="button" class="econ-upgrade-buy" data-barracks-secret="${ut}" ${p.coins < cost || sec >= 5 ? 'disabled' : ''}>Secret ${label} +1 (Lv${sec + 1}) — ${cost}🪙</button>`;
+  }
+  list.innerHTML = html;
+}
+
+function updateEngineersUpgradeUI() {
+  const list = document.getElementById('engineers-upgrade-list');
+  if (!list || !LIVE_ARMY?.isActive()) return;
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const eng = p.liveArmy?.engineers;
+  if (!eng?.built) {
+    list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build an Engineers Camp first.</p>';
+    return;
+  }
+  list.innerHTML = ['damage', 'range', 'health', 'knockback'].map(branch => {
+    const lvl = eng[branch] || 0;
+    const cost = 110 + lvl * 85;
+    const label = branch === 'knockback' ? 'Spreader push' : branch;
+    return `<button type="button" class="econ-upgrade-buy" data-eng-branch="${branch}" ${p.coins < cost || lvl >= 6 ? 'disabled' : ''}>${label} Lv${lvl + 1} — ${cost}🪙</button>`;
+  }).join('');
+}
+
+function toggleBarracksPanel(show) {
+  const panel = document.getElementById('barracks-upgrade-panel');
+  if (!panel) return;
+  const open = show !== undefined ? show : panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !open);
+  if (open) updateBarracksUpgradeUI();
+}
+
+function toggleEngineersPanel(show) {
+  const panel = document.getElementById('engineers-upgrade-panel');
+  if (!panel) return;
+  const open = show !== undefined ? show : panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !open);
+  if (open) updateEngineersUpgradeUI();
+}
+
+let activeMissileTowerId = null;
+
+function updateMissileUpgradeUI() {
+  const list = document.getElementById('missile-upgrade-list');
+  if (!list || !LIVE_ARMY?.isActive()) return;
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const tw = activeMissileTowerId
+    ? p.turrets.find((t) => t.id === activeMissileTowerId && t.towerType === 'missile' && t.hp > 0)
+    : p.turrets.find((t) => t.towerType === 'missile' && t.hp > 0);
+  if (!tw) {
+    list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build a Missile Base first.</p>';
+    activeMissileTowerId = null;
+    return;
+  }
+  activeMissileTowerId = tw.id;
+  if (!tw.missileUpgrades) tw.missileUpgrades = LIVE_ARMY.freshMissileUpgrades();
+  const up = tw.missileUpgrades;
+  const labels = { rate: 'Fire rate', damage: 'Missile damage', radius: 'Blast radius' };
+  list.innerHTML = ['rate', 'damage', 'radius'].map((branch) => {
+    const lvl = up[branch] || 1;
+    const cost = 140 + lvl * 100;
+    return `<button type="button" class="econ-upgrade-buy" data-missile-branch="${branch}" ${p.coins < cost || lvl >= 6 ? 'disabled' : ''}>${labels[branch]} Lv${lvl + 1} — ${cost}🪙</button>`;
+  }).join('');
+}
+
+function toggleMissilePanel(show) {
+  const panel = document.getElementById('missile-upgrade-panel');
+  if (!panel) return;
+  const open = show !== undefined ? show : panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !open);
+  if (open) updateMissileUpgradeUI();
+}
+
 function spawnFloatText(x, y, text, color = '#fcd34d') {
   floatTexts.push({
     x: x + rand(-5, 5),
@@ -1808,9 +2080,11 @@ function survivalAiTryRandomTower(ai) {
 function survivalAiTrySpawnRandomUnit(ai, logDeploy = true) {
   const liveUnits = combatUnits.filter(u => u.owner === 1 && u.hp > 0).length;
   if (liveUnits >= SURVIVAL_AI_MAX_UNITS) return false;
-  const affordable = Object.keys(UNIT_TYPES).filter(t =>
-    isUnitEnabled(t) && ai.coins >= UNIT_TYPES[t].cost
-  );
+  const affordable = Object.keys(UNIT_TYPES).filter((t) => {
+    if (!isUnitEnabled(t) || ai.coins < UNIT_TYPES[t].cost) return false;
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(ai, t)) return false;
+    return true;
+  });
   if (!affordable.length) return false;
   const type = affordable[Math.floor(Math.random() * affordable.length)];
   const idx = combatUnits.filter(u => u.owner === 1 && u.type === type).length;
@@ -1849,6 +2123,14 @@ function survivalAiTryBudgetAttack(ai, budget) {
 }
 
 function survivalAiTryPeaceBuild(ai) {
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    if (!LIVE_ARMY.hasBarracks(ai) && LIVE_ARMY.canPlaceStructure(ai, 'barracks') && ai.coins >= towerCost(ai, 'barracks')) {
+      if (survivalAiTryPlaceTower(ai, 'barracks')) return true;
+    }
+    if (!aiHasLivingTower(ai, 'farm') && ai.coins >= towerCost(ai, 'farm')) {
+      if (survivalAiTryPlaceTower(ai, 'farm')) return true;
+    }
+  }
   const avgTowerCost = survivalAiAverageTowerCost(ai);
   const raidsUnlocked = combatTime >= SURVIVAL_AI_PEACE_ATTACK_DELAY;
   if (raidsUnlocked && Math.random() < SURVIVAL_AI_PEACE_ATTACK_CHANCE) {
@@ -1985,6 +2267,10 @@ function setupSurvivalLive() {
   activePlayer = 0;
   phase = 'combat';
   combatTime = 0;
+  if (typeof LIVE_ARMY !== 'undefined') {
+    LIVE_ARMY.onBattleStart(players, gameRules);
+    LIVE_ARMY.setPlayersRef(players);
+  }
   commitPublicSnapshots();
   resetCombatTracking();
   document.getElementById('bottom-panel').classList.remove('hidden');
@@ -2046,6 +2332,10 @@ function setupSurvivalLivePvp(opts) {
   activePlayer = myPlayerId;
   phase = 'combat';
   combatTime = 0;
+  if (typeof LIVE_ARMY !== 'undefined') {
+    LIVE_ARMY.onBattleStart(players, gameRules);
+    LIVE_ARMY.setPlayersRef(players);
+  }
   commitPublicSnapshots();
   resetCombatTracking();
   document.getElementById('bottom-panel').classList.remove('hidden');
@@ -2065,6 +2355,7 @@ function serializeTower(t) {
     angle: t.angle,
     cooldown: t.cooldown,
     laserTarget: t.laserTarget,
+    missileUpgrades: t.missileUpgrades ? { ...t.missileUpgrades } : undefined,
   };
 }
 
@@ -2089,7 +2380,7 @@ function serializeUnit(u) {
 }
 
 function getPvpSnapshot() {
-  return {
+  const snap = {
     phase,
     combatTime,
     survivalIncomeTimer,
@@ -2101,11 +2392,16 @@ function getPvpSnapshot() {
       baseMaxHp: p.baseMaxHp,
       name: p.name,
       incomeUpgrades: { ...p.incomeUpgrades },
+      liveArmy: p.liveArmy ? JSON.parse(JSON.stringify(p.liveArmy)) : null,
       turrets: p.turrets.map(serializeTower),
       rubble: p.rubble.map((r) => ({ ...r })),
     })),
     combatUnits: combatUnits.map(serializeUnit),
   };
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && pvpOnline) {
+    return LIVE_ARMY.sanitizeSnapshotForOpponent(snap, pvpOnline.playerId);
+  }
+  return snap;
 }
 
 function applyPvpSnapshot(state) {
@@ -2125,9 +2421,12 @@ function applyPvpSnapshot(state) {
     p.baseMaxHp = src.baseMaxHp;
     p.name = src.name;
     p.incomeUpgrades = { ...src.incomeUpgrades };
+    if (src.liveArmy) p.liveArmy = JSON.parse(JSON.stringify(src.liveArmy));
     p.turrets = (src.turrets || []).map((t) => ({ ...t }));
     p.rubble = (src.rubble || []).map((r) => ({ ...r }));
   }
+
+  syncLiveArmyStructures();
 
   combatUnits = (state.combatUnits || []).map((u) => ({ ...u }));
   commitPublicSnapshots();
@@ -2161,6 +2460,15 @@ function applyPvpRemoteAction(fromPlayerId, action) {
   if (type === 'income_upgrade') {
     return buyIncomeUpgrade(fromPlayerId, action.upgradeType);
   }
+  if (type === 'barracks_upgrade') {
+    return buyBarracksUpgrade(fromPlayerId, action.upgradeKind, action.unitType);
+  }
+  if (type === 'engineers_upgrade') {
+    return buyEngineersUpgrade(fromPlayerId, action.branch);
+  }
+  if (type === 'missile_upgrade') {
+    return buyMissileUpgrade(fromPlayerId, action.towerId, action.branch);
+  }
   return false;
 }
 
@@ -2171,16 +2479,18 @@ function buildPvpActionFromClick(pos) {
 
   if (isTowerTool(selectedTool)) {
     if (!isTowerEnabled(selectedTool)) return null;
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canPlaceStructure(p, selectedTool)) return null;
     const cost = towerCost(p, selectedTool);
     if (p.coins < cost) return null;
-    if (!canPlaceTurret(pos.x, pos.y, pid, null)) return null;
+    if (!canPlaceTurret(pos.x, pos.y, pid, null, selectedTool)) return null;
     return { type: 'place_tower', towerType: selectedTool, x: pos.x, y: pos.y };
   }
 
   if (UNIT_TYPES[selectedTool]) {
     if (!isUnitEnabled(selectedTool)) return null;
-    const cost = UNIT_TYPES[selectedTool].cost;
-    if (p.coins < cost) return null;
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, selectedTool)) return null;
+    const ut = unitDef(selectedTool, pid);
+    if (p.coins < ut.cost) return null;
     if (!canPlaceUnit(pos.x, pos.y, pid)) return null;
     return { type: 'spawn_unit', unitType: selectedTool, x: pos.x, y: pos.y };
   }
@@ -2188,10 +2498,12 @@ function buildPvpActionFromClick(pos) {
 }
 
 function tickSurvivalFarmIncome() {
+  const farmScale = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()
+    ? LIVE_ARMY.farmIncomeScale(combatTime) : 1;
   for (let pid = 0; pid < 2; pid++) {
     const p = players[pid];
     if (p.baseHp <= 0) continue;
-    const farmAmt = survivalIncomeAmount(pid, 'farm');
+    const farmAmt = Math.max(0, Math.floor(survivalIncomeAmount(pid, 'farm') * farmScale));
     if (farmAmt <= 0) continue;
     const color = pid === 0 ? '#86efac' : '#4ade80';
     for (const tw of p.turrets) {
@@ -2223,7 +2535,9 @@ function tickSurvivalIncome() {
 
 function survivalLiveSpawnUnit(pid, type, x, y) {
   const p = players[pid];
-  const cost = UNIT_TYPES[type].cost;
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, type)) return false;
+  const ut = unitDef(type, pid);
+  const cost = ut.cost;
   if (!isUnitEnabled(type) || p.coins < cost) return false;
   if (!canPlaceUnit(x, y, pid)) return false;
   const sz = UNIT_TYPES[type].size;
@@ -2241,11 +2555,13 @@ function survivalLiveSpawnUnit(pid, type, x, y) {
 function survivalLivePlaceTower(pid, towerType, x, y) {
   const p = players[pid];
   if (!isTowerEnabled(towerType)) return false;
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canPlaceStructure(p, towerType)) return false;
   const cost = towerCost(p, towerType);
   if (p.coins < cost) return false;
-  if (!canPlaceTurret(x, y, pid, null)) return false;
+  if (!canPlaceTurret(x, y, pid, null, towerType)) return false;
   p.turrets.push(createTower(x, y, towerType, pid));
   p.coins -= cost;
+  syncLiveArmyStructures();
   return true;
 }
 
@@ -2299,6 +2615,7 @@ function updateSurvivalLive(dt) {
 }
 
 function endSurvivalLive() {
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) LIVE_ARMY.onBattleEnd();
   document.getElementById('bottom-panel').classList.add('hidden');
   let title, text, btnText;
   const myId = getLocalPlayerId();
@@ -5656,12 +5973,12 @@ function getUnitSize(u) {
 }
 
 function getUnitDamage(u) {
-  const ut = UNIT_TYPES[u.type];
+  const ut = unitDef(u.type, u.owner);
   return u.isMini ? ut.damage * (ut.splitDamageRatio || 0.6) : ut.damage;
 }
 
 function makeCombatUnit(d, ownerId) {
-  const ut = UNIT_TYPES[d.type];
+  const ut = unitDef(d.type, ownerId);
   return {
     id: uid(), owner: ownerId, type: d.type,
     x: d.x, y: d.y,
@@ -5712,7 +6029,30 @@ function resolveDeadUnits() {
   }
   combatUnits = combatUnits.filter(u => u.hp > 0);
 }
-function towerDef(type) { return TOWER_TYPES[type] || TOWER_TYPES.turret; }
+function towerDef(type, ownerId) {
+  const def = TOWER_TYPES[type] || TOWER_TYPES.turret;
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    return LIVE_ARMY.modifyTowerDef(type, def, ownerId);
+  }
+  return def;
+}
+
+function unitDef(type, pid) {
+  const ut = UNIT_TYPES[type];
+  if (!ut) return null;
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    return LIVE_ARMY.modifyUnitDef(type, ut, pid ?? getLocalPlayerId());
+  }
+  return ut;
+}
+
+function towerPlaceRadius(t) {
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    return LIVE_ARMY.getTowerFootprint(t);
+  }
+  return towerDef(t.towerType).size;
+}
+
 function isTowerTool(tool) { return !!TOWER_TYPES[tool]; }
 
 /** Price rises with each tower of this type already owned */
@@ -6018,12 +6358,12 @@ function overlapsRubble(x, y, player, margin = 0) {
   return false;
 }
 
-function overlapsTurret(x, y, excludeId, margin = 0) {
+function overlapsTurret(x, y, excludeId, margin = 0, placingRadius = 0) {
   for (const p of players) {
     for (const t of p.turrets) {
       if (t.id === excludeId) continue;
-      const sz = towerDef(t.towerType).size;
-      if (dist({ x, y }, t) < sz + margin) return true;
+      const sz = towerPlaceRadius(t);
+      if (dist({ x, y }, t) < sz + margin + placingRadius) return true;
     }
   }
   return false;
@@ -6042,11 +6382,20 @@ function inZone(x, pid) {
   return x >= z.x + 40 && x <= z.x2 - 20;
 }
 
-function canPlaceTurret(x, y, pid, excludeId) {
+function canPlaceTurret(x, y, pid, excludeId, placingTool) {
   if (!inZone(x, pid)) return false;
   if (!onLand(y)) return false;
   if (overlapsRubble(x, y, players[pid])) return false;
-  if (overlapsTurret(x, y, excludeId, 8)) return false;
+  let placingRadius = 0;
+  if (placingTool && isTowerTool(placingTool)) {
+    placingRadius = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()
+      ? LIVE_ARMY.getTowerFootprint({ towerType: placingTool })
+      : towerDef(placingTool).size;
+  }
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && placingTool && !LIVE_ARMY.canPlaceStructure(players[pid], placingTool)) {
+    return false;
+  }
+  if (overlapsTurret(x, y, excludeId, 8, placingRadius)) return false;
   return true;
 }
 
@@ -6367,7 +6716,11 @@ function drawBase(pid, shake = 0, hpState) {
 }
 
 function drawTower(t, ownerColor, alpha = 1) {
-  const def = towerDef(t.towerType);
+  let ownerId = null;
+  for (let i = 0; i < 2; i++) {
+    if (players[i].turrets.includes(t)) ownerId = i;
+  }
+  const def = towerDef(t.towerType, ownerId);
   const sz = def.size;
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -6444,22 +6797,95 @@ function drawTower(t, ownerColor, alpha = 1) {
     ctx.textAlign = 'center';
     ctx.fillText('$', 0, 4);
     ctx.textAlign = 'left';
-  } else if (def.style === 'farm') {
-    ctx.fillStyle = '#3f5a38';
-    roundRect(-11, -7, 22, 14, 3);
+  } else if (def.style === 'farm' || def.style === 'farm_live') {
+    const fieldW = sz * 1.85;
+    const fieldH = sz * 1.35;
+    ctx.fillStyle = '#5c4033';
+    roundRect(-fieldW / 2, -fieldH / 2, fieldW, fieldH, 6);
     ctx.fill();
+    ctx.fillStyle = '#3d2817';
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 6; col++) {
+        ctx.fillRect(-fieldW / 2 + 4 + col * (fieldW / 6.2), -fieldH / 2 + 4 + row * (fieldH / 4.5), fieldW / 7, fieldH / 6);
+      }
+    }
     ctx.fillStyle = '#4ade80';
-    roundRect(-9, -2, 18, 8, 2);
+    for (let i = 0; i < 14; i++) {
+      const fx = -fieldW / 2 + 8 + (i % 7) * (fieldW / 7.5);
+      const fy = -fieldH / 2 + 6 + Math.floor(i / 7) * (fieldH / 3.2);
+      ctx.beginPath();
+      ctx.moveTo(fx, fy + 6);
+      ctx.lineTo(fx - 3, fy);
+      ctx.lineTo(fx + 3, fy);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#8B6914';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-fieldW / 2, -fieldH / 2, fieldW, fieldH);
+  } else if (def.style === 'mint_live') {
+    ctx.fillStyle = '#1e293b';
+    roundRect(-sz * 0.9, -sz * 0.65, sz * 1.8, sz * 1.3, 4);
     ctx.fill();
-    ctx.fillStyle = '#166534';
+    ctx.fillStyle = '#334155';
+    roundRect(-sz * 0.55, -sz * 0.35, sz * 1.1, sz * 0.7, 3);
+    ctx.fill();
+    ctx.fillStyle = '#fbbf24';
     ctx.beginPath();
-    ctx.moveTo(-4, -6);
-    ctx.lineTo(0, -11);
-    ctx.lineTo(4, -6);
+    ctx.moveTo(0, -sz * 0.85);
+    ctx.lineTo(sz * 0.75, -sz * 0.15);
+    ctx.lineTo(-sz * 0.75, -sz * 0.15);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#14532d';
-    ctx.fillRect(-1, -11, 2, 5);
+    ctx.fillStyle = '#fde68a';
+    ctx.font = `bold ${Math.floor(sz * 0.55)}px Rajdhani`;
+    ctx.textAlign = 'center';
+    ctx.fillText('$', 0, sz * 0.2);
+    ctx.textAlign = 'left';
+  } else if (def.style === 'barracks') {
+    ctx.fillStyle = '#475569';
+    roundRect(-sz * 0.9, -sz * 0.55, sz * 1.8, sz * 1.1, 4);
+    ctx.fill();
+    ctx.fillStyle = '#334155';
+    roundRect(-sz * 0.35, -sz * 0.2, sz * 0.7, sz * 0.55, 2);
+    ctx.fill();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = `bold ${Math.floor(sz * 0.28)}px Orbitron`;
+    ctx.textAlign = 'center';
+    ctx.fillText('BARRACKS', 0, -sz * 0.62);
+    ctx.textAlign = 'left';
+  } else if (def.style === 'engineers') {
+    ctx.fillStyle = '#78350f';
+    roundRect(-sz * 0.9, -sz * 0.55, sz * 1.8, sz * 1.1, 4);
+    ctx.fill();
+    ctx.fillStyle = '#f59e0b';
+    roundRect(-sz * 0.5, -sz * 0.15, sz, sz * 0.35, 3);
+    ctx.fill();
+    ctx.fillStyle = '#fde68a';
+    ctx.font = `bold ${Math.floor(sz * 0.45)}px Rajdhani`;
+    ctx.textAlign = 'center';
+    ctx.fillText('⚙', 0, sz * 0.12);
+    ctx.textAlign = 'left';
+  } else if (def.style === 'missile_live') {
+    ctx.fillStyle = '#374151';
+    roundRect(-sz * 0.92, -sz * 0.55, sz * 1.84, sz * 1.1, 5);
+    ctx.fill();
+    ctx.fillStyle = '#1f2937';
+    roundRect(-sz * 0.25, -sz * 0.75, sz * 0.5, sz * 0.55, 3);
+    ctx.fill();
+    ctx.fillStyle = '#ef4444';
+    roundRect(-sz * 0.12, -sz * 0.95 - pulse * 0.3, sz * 0.24, sz * 0.28, 2);
+    ctx.fill();
+  } else if (def.style === 'railgun') {
+    ctx.fillStyle = '#1f2937';
+    roundRect(-11, -10, 22, 20, 3);
+    ctx.fill();
+    ctx.fillStyle = '#ca8a04';
+    roundRect(0, -4, 26 + pulse, 8, 2);
+    ctx.fill();
+    ctx.fillStyle = '#fef08a';
+    roundRect(4, -2, 18, 4, 1);
+    ctx.fill();
   }
   ctx.restore();
 
@@ -6667,7 +7093,7 @@ function drawFreeEnemyTank(u) {
 }
 
 function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
-  const ut = UNIT_TYPES[type];
+  const ut = unitDef(type, opts.ownerId ?? getLocalPlayerId());
   const bob = opts.bob || 0;
   const isMini = opts.isMini;
   const cy = y + bob;
@@ -6703,12 +7129,57 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
     roundRect(-w * 0.15, -h * 0.35, w * 0.35, h * 0.25, 2);
     ctx.fill();
   } else if (type === 'striker') {
-    drawTrackedHull(w * 0.95, h * 0.9, ut.color, ut.accent);
-    ctx.fillStyle = '#2a2a2a';
-    roundRect(-w * 0.08, -h * 0.75, w * 0.2, h * 0.55, 2);
+    const isKnight = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive();
+    if (isKnight) {
+      ctx.fillStyle = '#3f2a1a';
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.15, h * 0.22, w * 0.42, h * 0.12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#8B4513';
+      roundRect(-w * 0.35, -h * 0.15, w * 0.55, h * 0.35, 3);
+      ctx.fill();
+      ctx.fillStyle = ut.color;
+      roundRect(-w * 0.12, -h * 0.55, w * 0.22, h * 0.5, 2);
+      ctx.fill();
+      ctx.fillStyle = '#c0c0c0';
+      roundRect(w * 0.08, -h * 0.2, w * 0.55, 5, 1);
+      ctx.fill();
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.arc(-w * 0.28, h * 0.2, h * 0.11, 0, Math.PI * 2);
+      ctx.arc(w * 0.18, h * 0.2, h * 0.11, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      drawTrackedHull(w * 0.95, h * 0.9, ut.color, ut.accent);
+      ctx.fillStyle = '#2a2a2a';
+      roundRect(-w * 0.08, -h * 0.75, w * 0.2, h * 0.55, 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a1a1a';
+      roundRect(w * 0.05, -2, w * 0.5, 5, 1);
+      ctx.fill();
+    }
+  } else if (type === 'goblin') {
+    ctx.fillStyle = '#166534';
+    ctx.beginPath();
+    ctx.ellipse(0, h * 0.15, w * 0.28, h * 0.2, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#1a1a1a';
-    roundRect(w * 0.05, -2, w * 0.5, 5, 1);
+    ctx.fillStyle = '#4ade80';
+    ctx.beginPath();
+    ctx.arc(0, -h * 0.1, w * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#14532d';
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.18, -h * 0.25);
+    ctx.lineTo(-w * 0.28, -h * 0.55);
+    ctx.lineTo(-w * 0.05, -h * 0.3);
+    ctx.moveTo(w * 0.18, -h * 0.25);
+    ctx.lineTo(w * 0.28, -h * 0.55);
+    ctx.lineTo(w * 0.05, -h * 0.3);
+    ctx.fill();
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(-w * 0.08, -h * 0.12, 2.5, 0, Math.PI * 2);
+    ctx.arc(w * 0.08, -h * 0.12, 2.5, 0, Math.PI * 2);
     ctx.fill();
   } else if (type === 'sniper') {
     const sc2 = sc * 0.92;
@@ -7150,8 +7621,40 @@ function startCombat() {
 }
 
 function getMovementGoal(unit) {
+  const ut = unitDef(unit.type, unit.owner);
   const enemy = enemyId(unit.owner);
-  const behavior = UNIT_TYPES[unit.type].behavior || 'default';
+  const behavior = ut.behavior || 'default';
+
+  if (behavior === 'goblin') {
+    let best = null, bestD = Infinity;
+    for (const tw of players[enemy].turrets) {
+      if (tw.hp <= 0) continue;
+      if (tw.towerType !== 'farm' && tw.towerType !== 'mint') continue;
+      const d = dist(unit, tw);
+      if (d < bestD) { bestD = d; best = { x: tw.x, y: tw.y }; }
+    }
+    if (best) return best;
+    return basePos(enemy);
+  }
+
+  if (behavior === 'knight' || behavior === 'hunter') {
+    let bestU = null, bestUD = Infinity;
+    for (const u of combatUnits) {
+      if (u.owner !== enemy || u.hp <= 0) continue;
+      const d = dist(unit, u);
+      if (d < bestUD) { bestUD = d; bestU = { x: u.x, y: u.y }; }
+    }
+    if (bestU) return bestU;
+    let bestT = null, bestTD = Infinity;
+    for (const t of players[enemy].turrets) {
+      if (t.hp <= 0) continue;
+      if (t.towerType === 'farm' || t.towerType === 'mint' || t.towerType === 'barracks' || t.towerType === 'engineers') continue;
+      const d = dist(unit, t);
+      if (d < bestTD) { bestTD = d; bestT = { x: t.x, y: t.y }; }
+    }
+    if (bestT) return bestT;
+    return basePos(enemy);
+  }
 
   if (behavior === 'baseRush') return basePos(enemy);
 
@@ -7194,7 +7697,7 @@ function getMovementGoal(unit) {
 }
 
 function findTarget(unit) {
-  const ut = UNIT_TYPES[unit.type];
+  const ut = unitDef(unit.type, unit.owner);
   const enemy = enemyId(unit.owner);
   const canUnits = ut.targetsUnits !== false;
   const canTowers = ut.targetsTowers !== false;
@@ -7220,6 +7723,8 @@ function findTarget(unit) {
   if (canTowers) {
     for (const t of ep.turrets) {
       if (t.hp <= 0) continue;
+      if (ut.behavior === 'goblin' && t.towerType !== 'farm' && t.towerType !== 'mint') continue;
+      if (ut.behavior === 'knight' && (t.towerType === 'farm' || t.towerType === 'mint' || t.towerType === 'barracks' || t.towerType === 'engineers')) continue;
       const d = dist(unit, t);
       if (d <= ut.range) {
         const counter = getCounter(unit.type, t.towerType);
@@ -7302,7 +7807,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
 }
 
 function steerUnit(unit, dt) {
-  const ut = UNIT_TYPES[unit.type];
+  const ut = unitDef(unit.type, unit.owner);
   if ((unit.dodgeBurst || 0) > 0) return;
   const paralyzed = (unit.paralyze || 0) > 0;
   const usz = getUnitSize(unit);
@@ -7313,7 +7818,8 @@ function steerUnit(unit, dt) {
 
   let maxSpd = ut.speed;
   if (paralyzed) maxSpd *= 0.1;
-  if (behavior === 'hunter') maxSpd = ut.speed * (paralyzed ? 0.1 : 1.12);
+  if (behavior === 'hunter' || behavior === 'knight') maxSpd = ut.speed * (paralyzed ? 0.1 : 1.18);
+  if (behavior === 'goblin') maxSpd = ut.speed * (paralyzed ? 0.1 : 1.08);
 
   let fx = Math.cos(dir) * maxSpd;
   let fy = Math.sin(dir) * maxSpd;
@@ -7472,11 +7978,19 @@ function applyPelletHit(pellet, unit) {
   }
   if (pellet.spreadTrack) pellet.spreadTrack.hits.add(unit.id);
   if (pellet.towerType === 'spread') {
-    const def = towerDef('spread');
-    const kb = def.knockback || 100;
-    const spd = Math.hypot(pellet.vx, pellet.vy) || 1;
-    const nx = pellet.vx / spd;
-    const ny = pellet.vy / spd;
+    const def = towerDef('spread', pellet.ownerId);
+    let kb = def.knockback || 100;
+    let nx, ny;
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+      const kbInfo = LIVE_ARMY.spreadKnockback(def, unit, pellet);
+      kb = kbInfo.kb;
+      nx = kbInfo.nx;
+      ny = kbInfo.ny;
+    } else {
+      const spd = Math.hypot(pellet.vx, pellet.vy) || 1;
+      nx = pellet.vx / spd;
+      ny = pellet.vy / spd;
+    }
     unit.vx += nx * kb;
     unit.vy += ny * kb;
     unit.x += nx * 6;
@@ -7719,7 +8233,7 @@ function updateTowers(dt) {
   for (const p of players) {
     for (const t of p.turrets) {
       if (t.hp <= 0) continue;
-      const def = towerDef(t.towerType);
+      const def = towerDef(t.towerType, p.id);
       t.cooldown = (t.cooldown || 0) - dt;
 
       if (def.style === 'cannon') {
@@ -7732,7 +8246,7 @@ function updateTowers(dt) {
           spawnTowerPellet(t, p.id, t.angle, 'turret');
           beams.push({ x1: t.x, y1: t.y, x2: t.x + Math.cos(t.angle) * 18, y2: t.y + Math.sin(t.angle) * 18, color: def.color, life: 0.08, maxLife: 0.08, style: 'cannon', width: 3 });
         }
-      } else if (def.style === 'laser') {
+      } else if (def.style === 'laser' || def.style === 'railgun') {
         const inRange = enemiesInRange(t, p.id);
         if (!inRange.length) continue;
         const aim = inRange[0].unit;
@@ -7747,7 +8261,8 @@ function updateTowers(dt) {
           const endY = t.y + sin * beamLen;
           beams.push({
             x1: t.x, y1: t.y, x2: endX, y2: endY,
-            color: '#F9A8D4', life: 0.22, maxLife: 0.22, style: 'laser', width: 7, pierce: true,
+            color: def.style === 'railgun' ? '#FEF08A' : '#F9A8D4',
+            life: 0.22, maxLife: 0.22, style: 'laser', width: def.style === 'railgun' ? 8 : 7, pierce: true,
           });
           if (pierced.length >= 4) triggerAchievement(p.id, 'laser_lattice');
           if (pierced.length >= 7) triggerAchievement(p.id, 'laser_overload');
@@ -7778,22 +8293,25 @@ function updateTowers(dt) {
             spawnTowerPellet(t, p.id, angle, 'spread', { spreadTrack });
           }
         }
-      } else if (def.style === 'missile') {
+      } else if (def.style === 'missile' || def.style === 'missile_live') {
         const target = findClosestMissileTarget(t, p.id);
         if (!target) continue;
         t.angle = Math.atan2(target.y - t.y, target.x - t.x);
         if (t.cooldown <= 0) {
-          t.cooldown = def.fireInterval || 3;
+          const ms = (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive())
+            ? LIVE_ARMY.missileStats(t, p.id)
+            : { fireInterval: def.fireInterval || 3, missileSpeed: def.missileSpeed, damage: def.damage, blastRadius: def.blastRadius };
+          t.cooldown = ms.fireInterval;
           missiles.push({
             x: t.x + Math.cos(t.angle) * 20,
             y: t.y + Math.sin(t.angle) * 20,
             tx: target.x, ty: target.y,
-            speed: def.missileSpeed,
+            speed: ms.missileSpeed,
             ownerId: p.id,
             targetType: target.type,
             targetRef: target.ref,
-            damage: def.damage,
-            blastRadius: def.blastRadius,
+            damage: ms.damage,
+            blastRadius: ms.blastRadius,
           });
         }
       }
@@ -7811,7 +8329,7 @@ function updateCombat(dt) {
     const tgt = findTarget(u);
     const paralyzed = (u.paralyze || 0) > 0;
     if (tgt && u.attackCooldown <= 0 && !paralyzed) {
-      const ut = UNIT_TYPES[u.type];
+      const ut = unitDef(u.type, u.owner);
       u.attackCooldown = 1 / ut.attackRate;
       let defenderType;
       if (tgt.type === 'unit') defenderType = tgt.obj.type;
@@ -8010,13 +8528,17 @@ function canvasPos(e) {
 }
 
 function createTower(x, y, towerType, ownerId) {
-  const def = towerDef(towerType);
-  return {
+  const def = towerDef(towerType, ownerId);
+  const tw = {
     id: uid(), x, y, towerType,
     hp: def.hp, maxHp: def.hp,
     angle: ownerId === 0 ? 0 : Math.PI,
     cooldown: 0, laserTarget: null,
   };
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    LIVE_ARMY.decorateTower(tw, ownerId);
+  }
+  return tw;
 }
 
 function handleClick(pos) {
@@ -8037,12 +8559,17 @@ function handleClick(pos) {
 
   if (isTowerTool(selectedTool)) {
     if (!isTowerEnabled(selectedTool)) return;
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canPlaceStructure(p, selectedTool)) {
+      addLog('Cannot place that structure here.');
+      return;
+    }
     const def = towerDef(selectedTool);
     const cost = towerCost(p, selectedTool);
     if (p.coins < cost) return;
-    if (!canPlaceTurret(pos.x, pos.y, pid, null)) return;
+    if (!canPlaceTurret(pos.x, pos.y, pid, null, selectedTool)) return;
     p.turrets.push(createTower(pos.x, pos.y, selectedTool, pid));
     p.coins -= cost;
+    syncLiveArmyStructures();
     if (gameMode === 'survival' && pid === 0) survivalRecordPlayerTower(selectedTool);
     addLog(`${def.name} placed (-${cost} coins)`);
     updateUI();
@@ -8051,20 +8578,24 @@ function handleClick(pos) {
 
   if (UNIT_TYPES[selectedTool]) {
     if (!isUnitEnabled(selectedTool)) return;
-    const cost = UNIT_TYPES[selectedTool].cost;
-    if (p.coins < cost) return;
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, selectedTool)) {
+      addLog('Build and upgrade Barracks to unlock this unit.');
+      return;
+    }
+    const ut = unitDef(selectedTool, pid);
+    if (p.coins < ut.cost) return;
     if (!canPlaceUnit(pos.x, pos.y, pid)) return;
     if (isSurvivalLive() && phase === 'combat') {
       if (survivalLiveSpawnUnit(pid, selectedTool, pos.x, pos.y)) {
-        addLog(`Deployed ${UNIT_TYPES[selectedTool].name} (-${cost})`);
+        addLog(`Deployed ${ut.name} (-${ut.cost})`);
         updateUI();
       }
       return;
     }
     p.deployments.push({ type: selectedTool, x: pos.x, y: pos.y });
     if (pid === 0) survivalRecordPlayerDeploy(selectedTool);
-    p.coins -= cost;
-    addLog(`Deployed ${UNIT_TYPES[selectedTool].name} (-${cost})`);
+    p.coins -= ut.cost;
+    addLog(`Deployed ${ut.name} (-${ut.cost})`);
     updateUI();
   }
 }
@@ -8181,6 +8712,7 @@ function updateUI() {
       : (phaseNames[phase] || phase);
 
   const canUseTools = canPlayerBuildNow();
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) syncLiveArmyStructures();
   document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
     const tool = btn.dataset.tool;
     if (UNIT_TYPES[tool]) {
@@ -8193,8 +8725,11 @@ function updateUI() {
     btn.classList.toggle('active', btn.dataset.tool === selectedTool);
     const costEl = btn.querySelector('.cost');
     if (UNIT_TYPES[tool]) {
-      if (costEl) costEl.textContent = UNIT_TYPES[tool].cost;
-      btn.disabled = !isUnitEnabled(tool) || !canUseTools || p.coins < UNIT_TYPES[tool].cost;
+      const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, pid) : UNIT_TYPES[tool];
+      if (costEl) costEl.textContent = ut.cost;
+      const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
+      btn.disabled = !isUnitEnabled(tool) || !canUseTools || p.coins < ut.cost || !unlocked;
+      btn.title = unlocked ? '' : 'Requires Barracks unlock';
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
       if (costEl) costEl.textContent = price;
@@ -8217,6 +8752,36 @@ function updateUI() {
     updateIncomeUpgradeUI();
   } else {
     toggleEconPanel(false);
+  }
+
+  const liveCombat = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && phase === 'combat';
+  const barracksBtn = document.getElementById('barracks-upgrade-btn');
+  const engineersBtn = document.getElementById('engineers-upgrade-btn');
+  const missileBtn = document.getElementById('missile-upgrade-btn');
+  if (barracksBtn) {
+    barracksBtn.classList.toggle('hidden', !liveCombat || !p.liveArmy?.barracks?.built);
+  }
+  if (engineersBtn) {
+    engineersBtn.classList.toggle('hidden', !liveCombat || !p.liveArmy?.engineers?.built);
+  }
+  if (missileBtn) {
+    const hasMissile = p.turrets.some((t) => t.towerType === 'missile' && t.hp > 0);
+    missileBtn.classList.toggle('hidden', !liveCombat || !hasMissile);
+  }
+  if (!liveCombat) {
+    toggleBarracksPanel(false);
+    toggleEngineersPanel(false);
+    toggleMissilePanel(false);
+  } else if (liveCombat) {
+    if (document.getElementById('barracks-upgrade-panel') && !document.getElementById('barracks-upgrade-panel').classList.contains('hidden')) {
+      updateBarracksUpgradeUI();
+    }
+    if (document.getElementById('engineers-upgrade-panel') && !document.getElementById('engineers-upgrade-panel').classList.contains('hidden')) {
+      updateEngineersUpgradeUI();
+    }
+    if (document.getElementById('missile-upgrade-panel') && !document.getElementById('missile-upgrade-panel').classList.contains('hidden')) {
+      updateMissileUpgradeUI();
+    }
   }
 
   const medalBtn = document.getElementById('ach-medal-btn');
@@ -8303,6 +8868,64 @@ document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
   buyIncomeUpgrade(pid, upgradeType);
 });
 
+document.getElementById('barracks-upgrade-btn').addEventListener('click', () => toggleBarracksPanel());
+document.getElementById('barracks-panel-close').addEventListener('click', () => toggleBarracksPanel(false));
+document.getElementById('barracks-upgrade-panel').addEventListener('click', (e) => {
+  if (e.target.id === 'barracks-upgrade-panel') toggleBarracksPanel(false);
+});
+document.getElementById('barracks-upgrade-list').addEventListener('click', (e) => {
+  const tierBtn = e.target.closest('[data-barracks-tier]');
+  const secretBtn = e.target.closest('[data-barracks-secret]');
+  const btn = tierBtn || secretBtn;
+  if (!btn || btn.disabled) return;
+  const pid = getLocalPlayerId();
+  const action = tierBtn
+    ? { type: 'barracks_upgrade', upgradeKind: 'tier' }
+    : { type: 'barracks_upgrade', upgradeKind: 'secret', unitType: secretBtn.dataset.barracksSecret };
+  if (isSurvivalPvp() && !pvpOnline.isHost) {
+    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
+    return;
+  }
+  buyBarracksUpgrade(pid, action.upgradeKind, action.unitType);
+});
+
+document.getElementById('engineers-upgrade-btn').addEventListener('click', () => toggleEngineersPanel());
+document.getElementById('engineers-panel-close').addEventListener('click', () => toggleEngineersPanel(false));
+document.getElementById('engineers-upgrade-panel').addEventListener('click', (e) => {
+  if (e.target.id === 'engineers-upgrade-panel') toggleEngineersPanel(false);
+});
+document.getElementById('engineers-upgrade-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-eng-branch]');
+  if (!btn || btn.disabled) return;
+  const branch = btn.dataset.engBranch;
+  const pid = getLocalPlayerId();
+  if (isSurvivalPvp() && !pvpOnline.isHost) {
+    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction({ type: 'engineers_upgrade', branch });
+    return;
+  }
+  buyEngineersUpgrade(pid, branch);
+});
+
+document.getElementById('missile-upgrade-btn').addEventListener('click', () => toggleMissilePanel());
+document.getElementById('missile-panel-close').addEventListener('click', () => toggleMissilePanel(false));
+document.getElementById('missile-upgrade-panel').addEventListener('click', (e) => {
+  if (e.target.id === 'missile-upgrade-panel') toggleMissilePanel(false);
+});
+document.getElementById('missile-upgrade-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-missile-branch]');
+  if (!btn || btn.disabled) return;
+  const branch = btn.dataset.missileBranch;
+  const pid = getLocalPlayerId();
+  if (!activeMissileTowerId) return;
+  if (isSurvivalPvp() && !pvpOnline.isHost) {
+    if (window.TDG_PVP?.sendAction) {
+      window.TDG_PVP.sendAction({ type: 'missile_upgrade', towerId: activeMissileTowerId, branch });
+    }
+    return;
+  }
+  buyMissileUpgrade(pid, activeMissileTowerId, branch);
+});
+
 document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
   btn.addEventListener('click', () => {
     if (!canPlayerBuildNow()) return;
@@ -8353,7 +8976,7 @@ function startSurvivalLive(difficulty) {
   const mult = survivalAiIncomeMult();
   showBanner(
     `Live Battle — ${survivalDifficultyLabel()}`,
-    `Faster economy — build quick!\n\n🏛 Base: +10🪙 every 3 seconds\n🌾 Farm: +2🪙 every 2 seconds\n💰 Mint: +5🪙 every 3 seconds\n\nUpgrades add +2 per level (+3 for mint). Enemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
+    `Faster economy — build quick!\n\n🏛 Base: +10🪙 every 3 seconds\n🌾 Farm: +2🪙 every 2 seconds (strong early, fades late)\n💰 Mint: +5🪙 every 3 seconds\n🏕 Barracks required to deploy units\n\nUpgrades add +2 per level (+3 for mint). Enemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
     'Fight!'
   );
 }
@@ -8443,6 +9066,7 @@ window.addEventListener('keyup', (e) => {
 });
 
 function resetGame() {
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) LIVE_ARMY.onBattleEnd();
   round = 1;
   phase = 'menu';
   setFreeModeChrome(false);
