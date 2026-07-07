@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Block Fortress — Tower Defense War</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@600;700&display=swap');
@@ -2191,195 +2191,6 @@
     .ach-panel-row .ach-info-title { font-weight: 700; line-height: 1.2; }
     .ach-panel-row .ach-info-desc { opacity: 0.78; font-size: 0.65rem; margin-top: 2px; }
     .ach-panel-row .ach-info-reward { color: #FFE66D; font-weight: 600; margin-top: 3px; font-size: 0.65rem; }
-
-    button, .tool-btn, .banner-btn, .surv-speed-btn, .fs-toggle-btn {
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    #upgrade-dock { display: contents; }
-
-    .fs-toggle-btn {
-      pointer-events: auto;
-      border: none;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px);
-      color: #e8ebe0;
-      width: 40px;
-      height: 40px;
-      border-radius: 20px;
-      font-size: 1.1rem;
-      line-height: 1;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: background 0.12s, transform 0.12s;
-    }
-
-    .fs-toggle-btn:hover { background: rgba(255, 255, 255, 0.25); }
-    .fs-toggle-btn:active { transform: scale(0.94); }
-
-    body.mobile-mode > h1,
-    body.mobile-mode > .subtitle,
-    body.fullscreen-mode > h1,
-    body.fullscreen-mode > .subtitle {
-      display: none;
-    }
-
-    body.fullscreen-mode {
-      padding: 0;
-      justify-content: flex-start;
-    }
-
-    body.fullscreen-mode #game-wrapper {
-      border-radius: 0;
-      box-shadow: none;
-      max-width: none;
-      max-height: none;
-    }
-
-    body.fullscreen-mode #top-bar {
-      padding-top: max(8px, env(safe-area-inset-top));
-      padding-left: max(10px, env(safe-area-inset-left));
-      padding-right: max(10px, env(safe-area-inset-right));
-    }
-
-    body.fullscreen-mode #bottom-panel {
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-      padding-left: max(8px, env(safe-area-inset-left));
-      padding-right: max(8px, env(safe-area-inset-right));
-    }
-
-    body.mobile-mode #top-bar {
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 10px;
-      pointer-events: auto;
-    }
-
-    body.mobile-mode .stat-pill {
-      padding: 8px 12px;
-      font-size: 0.85rem;
-      min-height: 40px;
-    }
-
-    body.mobile-mode .surv-speed-btn {
-      min-width: 44px;
-      min-height: 40px;
-      padding: 8px 12px;
-      font-size: 0.9rem;
-    }
-
-    body.mobile-mode .fs-toggle-btn {
-      width: 48px;
-      height: 48px;
-      font-size: 1.35rem;
-    }
-
-    body.mobile-mode #upgrade-dock {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      position: absolute;
-      top: 44px;
-      left: 8px;
-      right: 8px;
-      pointer-events: auto;
-      z-index: 16;
-    }
-
-    body.mobile-mode #upgrade-dock > button {
-      position: static;
-      left: auto;
-      top: auto;
-      flex: 1 1 calc(50% - 4px);
-      min-height: 48px;
-      height: auto;
-      padding: 10px 14px;
-      font-size: 0.95rem;
-      border-radius: 12px;
-    }
-
-    body.mobile-mode #bottom-panel {
-      padding: 12px 8px max(12px, env(safe-area-inset-bottom));
-      gap: 10px;
-      max-height: 42vh;
-      overflow-y: auto;
-      overflow-x: hidden;
-      align-content: flex-start;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    body.mobile-mode .tool-btn {
-      min-width: 96px;
-      min-height: 56px;
-      padding: 10px 14px;
-      font-size: 0.9rem;
-    }
-
-    body.mobile-mode .tool-btn .cost { font-size: 0.78rem; }
-
-    body.mobile-mode .btn-ready {
-      min-width: 140px;
-      min-height: 56px;
-      font-size: 1.1rem;
-      padding: 14px 24px;
-    }
-
-    body.mobile-mode .banner-btn,
-    body.mobile-mode .survival-diff-btn {
-      min-height: 52px;
-      min-width: min(100%, 320px);
-      font-size: 1.1rem;
-      padding: 16px 24px;
-    }
-
-    body.mobile-mode .menu-btn-row .banner-btn { min-width: min(100%, 320px); }
-
-    body.mobile-mode .st-header-close,
-    body.mobile-mode .econ-panel-header button,
-    body.mobile-mode #ach-panel-close {
-      width: 48px;
-      height: 48px;
-      font-size: 1.2rem;
-    }
-
-    body.mobile-mode .st-scroll-btn {
-      width: 56px;
-      height: 64px;
-      font-size: 1.5rem;
-    }
-
-    body.mobile-mode .econ-upgrade-buy {
-      min-height: 48px;
-      padding: 12px 18px;
-      font-size: 0.95rem;
-    }
-
-    body.mobile-mode .brk-mini-gem {
-      width: 36px;
-      height: 36px;
-      font-size: 0.75rem;
-    }
-
-    body.mobile-mode .brk-main-wrap .st-card.root { width: 100px; }
-
-    body.mobile-mode #ach-medal-btn {
-      top: auto;
-      right: 10px;
-      bottom: calc(42vh + 16px);
-      width: 52px;
-      height: 52px;
-      font-size: 1.5rem;
-    }
-
-    body.mobile-mode #phase-banner {
-      padding: 24px 20px;
-      width: min(96%, 480px);
-    }
-
-    body.mobile-mode #phase-banner h2 { font-size: 1.45rem; }
-
-    body.mobile-mode .online-panel .banner-btn { width: 100%; }
   </style>
 </head>
 <body>
@@ -2399,18 +2210,15 @@
           <button type="button" class="surv-speed-btn" data-speed="2">2×</button>
           <button type="button" class="surv-speed-btn" data-speed="4">4×</button>
         </div>
-        <button type="button" id="fullscreen-btn" class="fs-toggle-btn" title="Enter fullscreen" aria-label="Toggle fullscreen" aria-pressed="false">⤢</button>
       </div>
       <div id="log-feed"></div>
       <div id="achievement-feed-p0"></div>
       <div id="achievement-feed-p1"></div>
       <button id="ach-medal-btn" class="hidden" title="View achievements">🏅</button>
-      <div id="upgrade-dock">
-        <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">Economy</button>
-        <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">Barracks</button>
-        <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">Engineers</button>
-        <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
-      </div>
+      <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">Economy</button>
+      <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">Barracks</button>
+      <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">Engineers</button>
+      <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
       <div id="barracks-upgrade-panel" class="hidden">
         <div class="st-panel">
           <div class="st-header">
@@ -11407,19 +11215,10 @@ canvas.addEventListener('mouseup', () => {
   }
   dragging = null;
 });
-let suppressCanvasClick = false;
 canvas.addEventListener('click', (e) => {
-  if (dragging || suppressCanvasClick) return;
+  if (dragging) return;
   handleClick(canvasPos(e));
 });
-canvas.addEventListener('touchend', (e) => {
-  if (dragging) return;
-  const touch = e.changedTouches && e.changedTouches[0];
-  if (!touch) return;
-  suppressCanvasClick = true;
-  setTimeout(() => { suppressCanvasClick = false; }, 500);
-  handleClick(canvasPos(touch));
-}, { passive: true });
 
 // Right-click or shift-click to remove deployment
 canvas.addEventListener('contextmenu', (e) => {
@@ -12222,100 +12021,17 @@ function render(time) {
 let mousePos = null;
 canvas.addEventListener('mousemove', (e) => { mousePos = canvasPos(e); });
 
-function isCoarseOrNarrow() {
-  return window.matchMedia('(max-width: 900px), (pointer: coarse)').matches;
-}
-
-function isFullscreen() {
-  return !!(document.fullscreenElement || document.webkitFullscreenElement);
-}
-
-function syncFullscreenBtn() {
-  const btn = document.getElementById('fullscreen-btn');
-  if (!btn) return;
-  const on = isFullscreen() || document.body.classList.contains('immersive-mode');
-  btn.textContent = on ? '⤓' : '⤢';
-  btn.title = on ? 'Exit fullscreen' : 'Enter fullscreen';
-  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-}
-
-function updateMobileLayout() {
-  const immersive = isFullscreen() || document.body.classList.contains('immersive-mode');
-  const mobile = immersive || isCoarseOrNarrow();
-  document.body.classList.toggle('mobile-mode', mobile);
-  document.body.classList.toggle('fullscreen-mode', immersive);
-  syncFullscreenBtn();
-  resize();
-}
-
-async function exitFullscreenSafe() {
-  const fn = document.exitFullscreen || document.webkitExitFullscreen;
-  if (fn) {
-    try { await fn.call(document); } catch (_) {}
-  }
-}
-
-async function requestFullscreenSafe() {
-  const el = document.documentElement;
-  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
-  if (fn) {
-    try { await fn.call(el); } catch (_) {}
-  }
-}
-
-async function toggleImmersive() {
-  if (isFullscreen() || document.body.classList.contains('immersive-mode')) {
-    document.body.classList.remove('immersive-mode');
-    await exitFullscreenSafe();
-  } else {
-    document.body.classList.add('immersive-mode');
-    await requestFullscreenSafe();
-  }
-  updateMobileLayout();
-}
-
-document.getElementById('fullscreen-btn').addEventListener('click', () => { toggleImmersive(); });
-['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => {
-  document.addEventListener(ev, () => {
-    if (!isFullscreen()) document.body.classList.remove('immersive-mode');
-    updateMobileLayout();
-  });
-});
-window.addEventListener('orientationchange', () => setTimeout(updateMobileLayout, 100));
-
 // Scale canvas to fit
 function resize() {
   const wrapper = document.getElementById('game-wrapper');
-  const mobile = document.body.classList.contains('mobile-mode');
-  const immersive = document.body.classList.contains('fullscreen-mode');
-  const padX = immersive ? 0 : (mobile ? 8 : 40);
-  const padY = immersive ? 0 : (mobile ? 48 : 120);
-  if (immersive) {
-    wrapper.style.position = 'fixed';
-    wrapper.style.inset = '0';
-    wrapper.style.width = '100vw';
-    wrapper.style.height = '100vh';
-    wrapper.style.borderRadius = '0';
-    wrapper.style.maxWidth = 'none';
-    wrapper.style.maxHeight = 'none';
-  } else {
-    wrapper.style.position = 'relative';
-    wrapper.style.inset = '';
-    wrapper.style.width = '';
-    wrapper.style.height = '';
-    wrapper.style.borderRadius = '';
-    wrapper.style.maxWidth = '';
-    wrapper.style.maxHeight = '';
-  }
-  const maxW = window.innerWidth - padX;
-  const maxH = window.innerHeight - padY;
-  const cap = immersive || mobile ? Infinity : 1;
-  const scale = Math.min(maxW / W, maxH / H, cap);
+  const maxW = window.innerWidth - 40;
+  const maxH = window.innerHeight - 120;
+  const scale = Math.min(maxW / W, maxH / H, 1);
   canvas.style.width = (W * scale) + 'px';
   canvas.style.height = (H * scale) + 'px';
 }
-window.addEventListener('resize', updateMobileLayout);
-updateMobileLayout();
+window.addEventListener('resize', resize);
+resize();
 
 window.__TDG = {
   setupSurvivalLivePvp,
