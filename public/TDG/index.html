@@ -135,6 +135,8 @@
     .tool-btn:active { transform: translateY(0); }
     .tool-btn.active { outline: 3px solid #fff; outline-offset: 2px; }
     .tool-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .tool-btn.tool-unaffordable { opacity: 0.72; }
+    .tool-btn.tool-locked { outline: 2px dashed rgba(251, 191, 36, 0.55); outline-offset: 1px; }
     .tool-btn .cost { font-size: 0.7rem; opacity: 0.8; }
 
     .btn-tank { background: #4ECDC4; }
@@ -981,7 +983,7 @@
             <h3>🏕 Barracks</h3>
             <button id="barracks-panel-close" type="button">✕</button>
           </div>
-          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrade to unlock units. Unit stat upgrades are hidden from your opponent.</p>
+          <p id="barracks-upgrade-desc" style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrade to unlock units and strengthen them with stat upgrades.</p>
           <div id="barracks-upgrade-list"></div>
         </div>
       </div>
@@ -1292,13 +1294,8 @@ function firstEnabledDeployTool() {
   const order = live
     ? ['farm', 'mint', 'barracks', 'engineers', 'turret', 'laser', 'spread', 'missile', 'tank', 'speed', 'striker', 'goblin', 'sniper', 'peka']
     : ['tank', 'speed', 'striker', 'sniper', 'bloop', 'peka', 'turret', 'laser', 'spread', 'missile', 'farm', 'mint'];
-  const pid = getLocalPlayerId();
-  const p = players[pid] || players[0];
   for (const t of order) {
-    if (UNIT_TYPES[t] && isUnitEnabled(t)) {
-      if (live && !LIVE_ARMY.canDeployUnit(p, t)) continue;
-      return t;
-    }
+    if (UNIT_TYPES[t] && isUnitEnabled(t)) return t;
     if (TOWER_TYPES[t] && isTowerEnabled(t)) return t;
   }
   return 'move';
@@ -1306,14 +1303,7 @@ function firstEnabledDeployTool() {
 
 function ensureValidSelectedTool() {
   if (selectedTool === 'move') return;
-  const pid = getLocalPlayerId();
-  const p = players[pid] || players[0];
-  if (UNIT_TYPES[selectedTool]) {
-    if (!isUnitEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
-    else if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, selectedTool)) {
-      selectedTool = firstEnabledDeployTool();
-    }
-  }
+  if (UNIT_TYPES[selectedTool] && !isUnitEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
   if (TOWER_TYPES[selectedTool] && !isTowerEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
 }
 
@@ -1578,6 +1568,10 @@ function isSurvivalLive() {
   return gameMode === 'survival' || gameMode === 'survival-pvp';
 }
 
+function isLocalSurvival() {
+  return gameMode === 'survival';
+}
+
 function isSurvivalPvp() {
   return gameMode === 'survival-pvp';
 }
@@ -1589,8 +1583,9 @@ function getLocalPlayerId() {
 
 function canPlayerBuildNow() {
   if (phase === 'prep') return true;
+  if (isLocalSurvival() && phase === 'combat') return true;
   if (isSurvivalPvp() && phase === 'combat') return !!pvpOnline;
-  return phase === 'combat' && isSurvivalLive() && activePlayer === 0;
+  return false;
 }
 
 function defaultIncomeUpgrades() {
@@ -1745,7 +1740,10 @@ function toggleBarracksPanel(show) {
   if (!panel) return;
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
-  if (open) updateBarracksUpgradeUI();
+  if (open) {
+    if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncBarracksPanelCopy?.();
+    updateBarracksUpgradeUI();
+  }
 }
 
 function toggleEngineersPanel(show) {
@@ -2268,13 +2266,14 @@ function setupSurvivalLive() {
   phase = 'combat';
   combatTime = 0;
   if (typeof LIVE_ARMY !== 'undefined') {
-    LIVE_ARMY.onBattleStart(players, gameRules);
+    LIVE_ARMY.onBattleStart(players, gameRules, { pvp: false });
     LIVE_ARMY.setPlayersRef(players);
   }
   commitPublicSnapshots();
   resetCombatTracking();
   document.getElementById('bottom-panel').classList.remove('hidden');
   selectedTool = firstEnabledDeployTool();
+  addLog('⚔️ Local Live Battle — all gameplay runs in your browser.');
   addLog('⚔️ Base +10/3s · mint +5/3s · farm +2/2s. Upgrades +2 (+3 mint)!');
   updateUI();
 }
@@ -2333,7 +2332,7 @@ function setupSurvivalLivePvp(opts) {
   phase = 'combat';
   combatTime = 0;
   if (typeof LIVE_ARMY !== 'undefined') {
-    LIVE_ARMY.onBattleStart(players, gameRules);
+    LIVE_ARMY.onBattleStart(players, gameRules, { pvp: true });
     LIVE_ARMY.setPlayersRef(players);
   }
   commitPublicSnapshots();
@@ -2398,7 +2397,7 @@ function getPvpSnapshot() {
     })),
     combatUnits: combatUnits.map(serializeUnit),
   };
-  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && pvpOnline) {
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isPvpMode() && pvpOnline) {
     return LIVE_ARMY.sanitizeSnapshotForOpponent(snap, pvpOnline.playerId);
   }
   return snap;
@@ -2491,7 +2490,7 @@ function buildPvpActionFromClick(pos) {
     if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, selectedTool)) return null;
     const ut = unitDef(selectedTool, pid);
     if (p.coins < ut.cost) return null;
-    if (!canPlaceUnit(pos.x, pos.y, pid)) return null;
+    if (!canPlaceUnit(pos.x, pos.y, pid, selectedTool)) return null;
     return { type: 'spawn_unit', unitType: selectedTool, x: pos.x, y: pos.y };
   }
   return null;
@@ -2539,7 +2538,7 @@ function survivalLiveSpawnUnit(pid, type, x, y) {
   const ut = unitDef(type, pid);
   const cost = ut.cost;
   if (!isUnitEnabled(type) || p.coins < cost) return false;
-  if (!canPlaceUnit(x, y, pid)) return false;
+  if (!canPlaceUnit(x, y, pid, type)) return false;
   const sz = UNIT_TYPES[type].size;
   for (const u of combatUnits) {
     if (u.owner !== pid || u.hp <= 0) continue;
@@ -6048,9 +6047,52 @@ function unitDef(type, pid) {
 
 function towerPlaceRadius(t) {
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
-    return LIVE_ARMY.getTowerFootprint(t);
+    return LIVE_ARMY.getPlacementCollisionRadius(t.towerType);
   }
   return towerDef(t.towerType).size;
+}
+
+function towerPlacingRadius(towerType) {
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    return LIVE_ARMY.getPlacementCollisionRadius(towerType);
+  }
+  return towerDef(towerType).size;
+}
+
+function towerPlaceFailReason(pid, towerType, x, y, excludeId) {
+  const p = players[pid];
+  if (!isTowerEnabled(towerType)) return 'That building is unavailable.';
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canPlaceStructure(p, towerType)) {
+    if (towerType === 'barracks') return 'Only one Barracks per team.';
+    if (towerType === 'engineers') return 'Only one Engineers Camp per team.';
+    return 'Cannot place that structure.';
+  }
+  const cost = towerCost(p, towerType);
+  if (p.coins < cost) return `Need ${cost}🪙 (you have ${Math.floor(p.coins)}🪙).`;
+  if (!inZone(x, pid)) return 'Place inside your territory.';
+  if (!onLand(y)) return 'Place on the battlefield.';
+  if (overlapsRubble(x, y, p)) return 'Blocked by rubble.';
+  if (!canPlaceTurret(x, y, pid, excludeId, towerType)) return 'Too close to another building.';
+  return null;
+}
+
+function unitPlaceFailReason(pid, type, x, y) {
+  const p = players[pid];
+  if (!isUnitEnabled(type)) return 'That unit is unavailable.';
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, type)) {
+    return 'Build Barracks and unlock this unit first.';
+  }
+  const ut = unitDef(type, pid);
+  if (p.coins < ut.cost) return `Need ${ut.cost}🪙 (you have ${Math.floor(p.coins)}🪙).`;
+  if (!canPlaceUnit(x, y, pid, type)) {
+    if (isSurvivalLive() && phase === 'combat') {
+      if (!inZone(x, pid)) return 'Deploy inside your territory.';
+      if (!onLand(y)) return 'Deploy on the battlefield.';
+      return 'Too crowded — try another spot.';
+    }
+    return 'Deploy inside the deploy zone.';
+  }
+  return null;
 }
 
 function isTowerTool(tool) { return !!TOWER_TYPES[tool]; }
@@ -6388,25 +6430,33 @@ function canPlaceTurret(x, y, pid, excludeId, placingTool) {
   if (overlapsRubble(x, y, players[pid])) return false;
   let placingRadius = 0;
   if (placingTool && isTowerTool(placingTool)) {
-    placingRadius = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()
-      ? LIVE_ARMY.getTowerFootprint({ towerType: placingTool })
-      : towerDef(placingTool).size;
+    placingRadius = towerPlacingRadius(placingTool);
   }
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && placingTool && !LIVE_ARMY.canPlaceStructure(players[pid], placingTool)) {
     return false;
   }
-  if (overlapsTurret(x, y, excludeId, 8, placingRadius)) return false;
+  if (overlapsTurret(x, y, excludeId, typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? 4 : 8, placingRadius)) return false;
   return true;
 }
 
-function canPlaceUnit(x, y, pid) {
-  const z = playerZone(pid);
-  const db = getDeployBounds(pid);
-  if (x < db.xMin || x > db.xMax) return false;
-  if (y < DEPLOY_Y_MIN || y > DEPLOY_Y_MAX) return false;
+function canPlaceUnit(x, y, pid, unitType) {
   if (overlapsRubble(x, y, players[pid])) return false;
   if (overlapsTurret(x, y, null, 4)) return false;
   if (overlapsDeployment(x, y, pid, 4)) return false;
+  const ut = unitType ? UNIT_TYPES[unitType] : null;
+  if (isSurvivalLive() && phase === 'combat') {
+    if (!inZone(x, pid)) return false;
+    if (!onLand(y)) return false;
+    const sz = ut?.size || 18;
+    for (const u of combatUnits) {
+      if (u.owner !== pid || u.hp <= 0) continue;
+      if (dist(u, { x, y }) < getUnitSize(u) + sz + 4) return false;
+    }
+    return true;
+  }
+  const db = getDeployBounds(pid);
+  if (x < db.xMin || x > db.xMax) return false;
+  if (y < DEPLOY_Y_MIN || y > DEPLOY_Y_MAX) return false;
   return true;
 }
 
@@ -7556,10 +7606,20 @@ function drawFogOverlay(hidePlayerId) {
 }
 
 function drawDeployZone(pid) {
-  const db = getDeployBounds(pid);
-  const x = db.xMin;
-  const w = db.xMax - db.xMin;
-  const h = DEPLOY_Y_MAX - DEPLOY_Y_MIN;
+  let x, w, h, label;
+  if (isSurvivalLive() && phase === 'combat') {
+    const z = playerZone(pid);
+    x = z.x + 40;
+    w = z.x2 - 20 - x;
+    h = DEPLOY_Y_MAX - DEPLOY_Y_MIN;
+    label = pid === 0 ? 'YOUR TERRITORY →' : '← YOUR TERRITORY';
+  } else {
+    const db = getDeployBounds(pid);
+    x = db.xMin;
+    w = db.xMax - db.xMin;
+    h = DEPLOY_Y_MAX - DEPLOY_Y_MIN;
+    label = pid === 0 ? 'DEPLOY ZONE →' : '← DEPLOY ZONE';
+  }
   ctx.save();
   ctx.strokeStyle = players[pid].color.main;
   ctx.lineWidth = 2;
@@ -7585,7 +7645,7 @@ function drawDeployZone(pid) {
   ctx.globalAlpha = 0.9;
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 4;
-  ctx.fillText(pid === 0 ? 'DEPLOY ZONE →' : '← DEPLOY ZONE', x + 10, DEPLOY_Y_MIN - 10);
+  ctx.fillText(label, x + 10, DEPLOY_Y_MIN - 10);
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
 }
@@ -8548,6 +8608,15 @@ function handleClick(pos) {
   if (isSurvivalPvp() && !pvpOnline.isHost) {
     const action = buildPvpActionFromClick(pos);
     if (action && window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
+    else if (action === null && selectedTool !== 'move') {
+      if (isTowerTool(selectedTool)) {
+        const reason = towerPlaceFailReason(pid, selectedTool, pos.x, pos.y, null);
+        if (reason) addLog(reason);
+      } else if (UNIT_TYPES[selectedTool]) {
+        const reason = unitPlaceFailReason(pid, selectedTool, pos.x, pos.y);
+        if (reason) addLog(reason);
+      }
+    }
     return;
   }
 
@@ -8558,15 +8627,10 @@ function handleClick(pos) {
   }
 
   if (isTowerTool(selectedTool)) {
-    if (!isTowerEnabled(selectedTool)) return;
-    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canPlaceStructure(p, selectedTool)) {
-      addLog('Cannot place that structure here.');
-      return;
-    }
+    const fail = towerPlaceFailReason(pid, selectedTool, pos.x, pos.y, null);
+    if (fail) { addLog(fail); return; }
     const def = towerDef(selectedTool);
     const cost = towerCost(p, selectedTool);
-    if (p.coins < cost) return;
-    if (!canPlaceTurret(pos.x, pos.y, pid, null, selectedTool)) return;
     p.turrets.push(createTower(pos.x, pos.y, selectedTool, pid));
     p.coins -= cost;
     syncLiveArmyStructures();
@@ -8577,14 +8641,9 @@ function handleClick(pos) {
   }
 
   if (UNIT_TYPES[selectedTool]) {
-    if (!isUnitEnabled(selectedTool)) return;
-    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, selectedTool)) {
-      addLog('Build and upgrade Barracks to unlock this unit.');
-      return;
-    }
+    const fail = unitPlaceFailReason(pid, selectedTool, pos.x, pos.y);
+    if (fail) { addLog(fail); return; }
     const ut = unitDef(selectedTool, pid);
-    if (p.coins < ut.cost) return;
-    if (!canPlaceUnit(pos.x, pos.y, pid)) return;
     if (isSurvivalLive() && phase === 'combat') {
       if (survivalLiveSpawnUnit(pid, selectedTool, pos.x, pos.y)) {
         addLog(`Deployed ${ut.name} (-${ut.cost})`);
@@ -8712,6 +8771,7 @@ function updateUI() {
       : (phaseNames[phase] || phase);
 
   const canUseTools = canPlayerBuildNow();
+  const liveFreeSelect = isSurvivalLive() && phase === 'combat';
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) syncLiveArmyStructures();
   document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
     const tool = btn.dataset.tool;
@@ -8728,14 +8788,32 @@ function updateUI() {
       const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, pid) : UNIT_TYPES[tool];
       if (costEl) costEl.textContent = ut.cost;
       const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
-      btn.disabled = !isUnitEnabled(tool) || !canUseTools || p.coins < ut.cost || !unlocked;
-      btn.title = unlocked ? '' : 'Requires Barracks unlock';
+      if (liveFreeSelect) {
+        btn.disabled = false;
+        btn.classList.toggle('tool-unaffordable', p.coins < ut.cost);
+        btn.classList.toggle('tool-locked', !unlocked);
+        btn.title = !unlocked ? 'Requires Barracks unlock' : (p.coins < ut.cost ? 'Not enough coins' : '');
+      } else {
+        btn.classList.remove('tool-unaffordable', 'tool-locked');
+        btn.disabled = !isUnitEnabled(tool) || !canUseTools || p.coins < ut.cost || !unlocked;
+        btn.title = unlocked ? '' : 'Requires Barracks unlock';
+      }
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
       if (costEl) costEl.textContent = price;
-      btn.disabled = !isTowerEnabled(tool) || !canUseTools || p.coins < price;
+      if (liveFreeSelect) {
+        btn.disabled = false;
+        btn.classList.toggle('tool-unaffordable', p.coins < price);
+        btn.classList.remove('tool-locked');
+        btn.title = p.coins < price ? 'Not enough coins' : '';
+      } else {
+        btn.classList.remove('tool-unaffordable', 'tool-locked');
+        btn.disabled = !isTowerEnabled(tool) || !canUseTools || p.coins < price;
+        btn.title = '';
+      }
     } else if (tool === 'move') {
-      btn.disabled = !canUseTools;
+      btn.classList.remove('tool-unaffordable', 'tool-locked');
+      btn.disabled = liveFreeSelect ? false : !canUseTools;
     }
   });
   ensureValidSelectedTool();
@@ -8928,6 +9006,11 @@ document.getElementById('missile-upgrade-list').addEventListener('click', (e) =>
 
 document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (isSurvivalLive() && phase === 'combat') {
+      selectedTool = btn.dataset.tool;
+      updateUI();
+      return;
+    }
     if (!canPlayerBuildNow()) return;
     selectedTool = btn.dataset.tool;
     updateUI();
@@ -8964,6 +9047,8 @@ function closeSurvivalDifficultyScreen() {
 }
 
 function startSurvivalLive(difficulty) {
+  if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
+  pvpOnline = null;
   survivalDifficulty = difficulty;
   gameMode = 'survival';
   survivalSpeed = 1;
@@ -9121,19 +9206,19 @@ function render(time) {
   animFrame++;
   let dt = survivalSimDt(rawDt);
 
-  if (phase === 'combat' && isSurvivalLive()) {
-    if (!isSurvivalPvp() || pvpOnline?.isHost) {
+  if (phase === 'combat') {
+    if (isLocalSurvival()) {
       updateSurvivalLive(dt);
       dt = survivalSimDt(rawDt);
+      updateCombat(dt);
+    } else if (isSurvivalPvp() && pvpOnline?.isHost) {
+      updateSurvivalLive(dt);
+      dt = survivalSimDt(rawDt);
+      updateCombat(dt);
+      window.TDG_PVP?.tickHost?.();
+    } else if (!isSurvivalPvp()) {
+      updateCombat(dt);
     }
-  }
-
-  if (phase === 'combat' && (!isSurvivalPvp() || pvpOnline?.isHost)) {
-    updateCombat(dt);
-  }
-
-  if (isSurvivalPvp() && pvpOnline?.isHost && phase === 'combat' && window.TDG_PVP?.tickHost) {
-    window.TDG_PVP.tickHost();
   }
   if (phase === 'free') updateFreeMode(dt);
   if (phase === 'free2p') updateFree2pMode(dt);
@@ -9291,8 +9376,8 @@ function render(time) {
     const buildPid = getLocalPlayerId();
     const p = players[buildPid];
     if (isTowerTool(selectedTool)) {
+      const ok = !towerPlaceFailReason(buildPid, selectedTool, mousePos.x, mousePos.y, dragging?.turret?.id);
       const def = towerDef(selectedTool);
-      const ok = canPlaceTurret(mousePos.x, mousePos.y, buildPid, dragging?.turret?.id);
       ctx.globalAlpha = ok ? 0.55 : 0.4;
       const ghost = { towerType: selectedTool, x: mousePos.x, y: mousePos.y, angle: 0, hp: 1, maxHp: 1 };
       if (!ok) {
@@ -9312,7 +9397,7 @@ function render(time) {
       }
     } else if (UNIT_TYPES[selectedTool]) {
       const ut = UNIT_TYPES[selectedTool];
-      const ok = canPlaceUnit(mousePos.x, mousePos.y, buildPid);
+      const ok = !unitPlaceFailReason(buildPid, selectedTool, mousePos.x, mousePos.y);
       ctx.globalAlpha = ok ? 0.55 : 0.4;
       if (!ok) ctx.filter = 'hue-rotate(-40deg) saturate(2)';
       drawUnitSprite(selectedTool, mousePos.x, mousePos.y, buildPid === 0 ? 0 : Math.PI, ut.size);

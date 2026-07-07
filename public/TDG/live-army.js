@@ -1,4 +1,4 @@
-/* Live PvP army rules — loaded before main game script */
+/* Live army rules — loaded before main game script */
 window.LIVE_ARMY = (function () {
   const FARM_SIZE = 44;
   const STRUCTURE_SIZE = 44;
@@ -11,6 +11,7 @@ window.LIVE_ARMY = (function () {
   };
 
   let active = false;
+  let pvpMode = false;
 
   function freshBarracks() {
     return { built: false, unitTier: 0, secret: { striker: 0, tank: 0, speed: 0, sniper: 0, goblin: 0, peka: 0 } };
@@ -24,8 +25,9 @@ window.LIVE_ARMY = (function () {
     return { rate: 1, damage: 1, radius: 1 };
   }
 
-  function onBattleStart(players, gameRules) {
+  function onBattleStart(players, gameRules, opts) {
     active = true;
+    pvpMode = !!(opts && opts.pvp);
     gameRules.units.bloop = false;
     gameRules.towers.laser = true;
     gameRules.towers.spread = true;
@@ -40,10 +42,12 @@ window.LIVE_ARMY = (function () {
       p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers() };
     }
     syncBuildToolbar();
+    syncBarracksPanelCopy();
   }
 
   function onBattleEnd() {
     active = false;
+    pvpMode = false;
     syncBuildToolbar();
   }
 
@@ -51,16 +55,37 @@ window.LIVE_ARMY = (function () {
     return active;
   }
 
+  function isPvpMode() {
+    return active && pvpMode;
+  }
+
+  function syncBarracksPanelCopy() {
+    const el = document.getElementById('barracks-upgrade-desc');
+    if (!el) return;
+    el.textContent = pvpMode
+      ? 'Upgrade to unlock units. Unit stat upgrades are hidden from your opponent.'
+      : 'Upgrade to unlock units and strengthen them with stat upgrades.';
+  }
+
   function initPlayer(p) {
     if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers() };
   }
 
   function getTowerFootprint(t) {
-    const type = t.towerType;
+    const type = t.towerType || t;
     if (type === 'farm' || type === 'barracks' || type === 'engineers' || type === 'missile') return STRUCTURE_SIZE;
     if (type === 'mint') return MINT_SIZE;
     if (type === 'turret' || type === 'laser' || type === 'spread') return COMBAT_TOWER_SIZE;
     return t.size || COMBAT_TOWER_SIZE;
+  }
+
+  /** Smaller radius for placement overlap checks — keeps large farms buildable */
+  function getPlacementCollisionRadius(towerType) {
+    const type = towerType?.towerType || towerType;
+    if (type === 'farm' || type === 'barracks' || type === 'engineers' || type === 'missile') return 26;
+    if (type === 'mint') return 12;
+    if (type === 'turret' || type === 'laser' || type === 'spread') return 14;
+    return 18;
   }
 
   function modifyTowerDef(type, def, ownerId) {
@@ -203,7 +228,7 @@ window.LIVE_ARMY = (function () {
   }
 
   function sanitizeSnapshotForOpponent(state, viewerPid) {
-    if (!active || !state?.players) return state;
+    if (!active || !pvpMode || !state?.players) return state;
     const enemy = viewerPid === 0 ? 1 : 0;
     const ep = state.players[enemy];
     if (!ep) return state;
@@ -255,11 +280,14 @@ window.LIVE_ARMY = (function () {
 
   return {
     isActive,
+    isPvpMode,
     onBattleStart,
     onBattleEnd,
+    syncBarracksPanelCopy,
     initPlayer,
     setPlayersRef,
     getTowerFootprint,
+    getPlacementCollisionRadius,
     modifyTowerDef,
     modifyUnitDef,
     hasBarracks,
