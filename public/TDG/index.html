@@ -967,6 +967,52 @@
       padding: 0 2px;
     }
 
+    .engineers-panel-inner {
+      background: linear-gradient(165deg, #2a2010 0%, #1a1408 55%, #121008 100%);
+      border: 3px solid #f59e0b;
+      border-radius: 18px;
+      width: min(560px, 96%);
+      max-height: 84%;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 18px 16px;
+      box-shadow: 0 20px 56px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .engineers-panel-desc {
+      font-size: 0.72rem;
+      opacity: 0.75;
+      margin: 0 0 10px;
+      line-height: 1.4;
+    }
+
+    #engineers-panel-close {
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .engineers-skill-wrap {
+      display: flex;
+      justify-content: center;
+      overflow-y: auto;
+      max-height: 62vh;
+      padding: 4px 2px 8px;
+    }
+
+    .engineers-tree-main {
+      width: 360px;
+      flex-shrink: 0;
+    }
+
+    .skill-fork.wide-fork {
+      width: 94%;
+    }
+
     #menu-screen.hidden { display: none !important; }
 
     #missile-upgrade-panel {
@@ -1183,12 +1229,12 @@
         </div>
       </div>
       <div id="engineers-upgrade-panel" class="hidden">
-        <div class="econ-panel-inner">
+        <div class="engineers-panel-inner">
           <div class="econ-panel-header">
-            <h3>🔧 Engineers Camp</h3>
+            <h3>🔧 Engineers Camp — Tower Skill Tree</h3>
             <button id="engineers-panel-close" type="button">✕</button>
           </div>
-          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrade all towers: damage, range, health, and spreader pushback.</p>
+          <p id="engineers-upgrade-desc" class="engineers-panel-desc">Camp powers every combat tower. Climb each branch — deeper tiers cost more.</p>
           <div id="engineers-upgrade-list"></div>
         </div>
       </div>
@@ -1885,11 +1931,12 @@ function buyEngineersUpgrade(pid, branch) {
   const eng = p.liveArmy?.engineers;
   if (!eng?.built) return false;
   const lvl = eng[branch] || 0;
-  const cost = 110 + lvl * 85;
-  if (p.coins < cost || lvl >= 6) return false;
+  const cost = LIVE_ARMY.engineersUpgradeCost(p, branch);
+  if (p.coins < cost || lvl >= LIVE_ARMY.ENGINEER_STAT_MAX) return false;
   p.coins -= cost;
   eng[branch] = lvl + 1;
-  addLog(`🔧 ${p.name}: Engineers +${branch} Lv${eng[branch]}`);
+  const label = LIVE_ARMY.ENGINEER_BRANCH_LABELS?.[branch] || branch;
+  addLog(`🔧 ${p.name}: Engineers ${label} T${eng[branch]}`);
   updateEngineersUpgradeUI();
   updateUI();
   return true;
@@ -2011,12 +2058,60 @@ function updateEngineersUpgradeUI() {
     list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem">Build an Engineers Camp first.</p>';
     return;
   }
-  list.innerHTML = ['damage', 'range', 'health', 'knockback'].map(branch => {
-    const lvl = eng[branch] || 0;
-    const cost = 110 + lvl * 85;
-    const label = branch === 'knockback' ? 'Spreader push' : branch;
-    return `<button type="button" class="econ-upgrade-buy" data-eng-branch="${branch}" ${p.coins < cost || lvl >= 6 ? 'disabled' : ''}>${label} Lv${lvl + 1} — ${cost}🪙</button>`;
-  }).join('');
+
+  const branches = LIVE_ARMY.ENGINEER_BRANCHES || ['damage', 'range', 'health', 'knockback'];
+  const labels = LIVE_ARMY.ENGINEER_BRANCH_LABELS || { damage: 'Dmg', range: 'Rng', health: 'HP', knockback: 'Push' };
+  const icons = LIVE_ARMY.ENGINEER_BRANCH_ICONS || { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨' };
+  const maxTier = LIVE_ARMY.ENGINEER_STAT_MAX || 6;
+
+  let html = '<div class="engineers-skill-wrap"><div class="barracks-tree-col engineers-tree-main">';
+  html += '<div class="barracks-tree-title">Combat Towers</div>';
+
+  html += '<div class="skill-node owned maxed">';
+  html += '<span class="skill-gem tier-root">🔧</span>';
+  html += '<span class="skill-node-tier">Camp Online</span>';
+  html += '</div>';
+
+  html += '<div class="skill-connector"></div><div class="skill-fork wide-fork"></div>';
+  html += '<div class="skill-branches">';
+
+  for (const branch of branches) {
+    html += '<div class="skill-branch">';
+    html += `<div class="skill-branch-label">${labels[branch] || branch}</div>`;
+    for (let tier = 1; tier <= maxTier; tier++) {
+      const lvl = eng[branch] || 0;
+      const cost = LIVE_ARMY.engineersUpgradeCost(p, branch);
+      let state = 'future';
+      let tag = 'div';
+      let attrs = '';
+      if (lvl >= tier) {
+        state = tier === maxTier ? 'owned maxed' : 'owned';
+      } else if (tier === lvl + 1) {
+        tag = 'button';
+        attrs = ` type="button" data-eng-branch="${branch}"`;
+        if (p.coins >= cost) state = 'available';
+        else {
+          state = 'afford-wait';
+          attrs += ' disabled';
+        }
+      }
+      if (tier > 1) html += '<div class="skill-vline"></div>';
+      html += `<${tag} class="skill-node ${state}"${attrs}>`;
+      html += `<span class="skill-gem tier-${Math.min(tier, 5)}">${icons[branch] || '⚙️'}</span>`;
+      if (state === 'available' || state === 'afford-wait') {
+        html += `<span class="skill-node-cost">${cost}🪙</span>`;
+      } else {
+        html += `<span class="skill-node-tier">T${tier}</span>`;
+      }
+      html += `</${tag}>`;
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  html += '<p class="barracks-tree-footnote">Buffs cannons, rail guns, spreaders &amp; missiles</p>';
+  html += '</div></div>';
+  list.innerHTML = html;
 }
 
 function toggleBarracksPanel(show) {
@@ -2035,7 +2130,10 @@ function toggleEngineersPanel(show) {
   if (!panel) return;
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
-  if (open) updateEngineersUpgradeUI();
+  if (open) {
+    if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncEngineersPanelCopy?.();
+    updateEngineersUpgradeUI();
+  }
 }
 
 let activeMissileTowerId = null;

@@ -16,6 +16,10 @@ window.LIVE_ARMY = (function () {
   };
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 5;
+  const ENGINEER_BRANCHES = ['damage', 'range', 'health', 'knockback'];
+  const ENGINEER_BRANCH_LABELS = { damage: 'Dmg', range: 'Rng', health: 'HP', knockback: 'Push' };
+  const ENGINEER_BRANCH_ICONS = { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨' };
+  const ENGINEER_STAT_MAX = 6;
 
   let active = false;
   let pvpMode = false;
@@ -66,6 +70,7 @@ window.LIVE_ARMY = (function () {
     }
     syncBuildToolbar();
     syncBarracksPanelCopy();
+    syncEngineersPanelCopy();
   }
 
   function onBattleEnd() {
@@ -83,6 +88,14 @@ window.LIVE_ARMY = (function () {
     el.textContent = pvpMode
       ? 'Grow each unit down its skill tree. Deeper tiers cost more. Stat levels are hidden from your opponent.'
       : 'Unlock units at the top, then climb each branch — speed, attack, and health get pricier every tier.';
+  }
+
+  function syncEngineersPanelCopy() {
+    const el = document.getElementById('engineers-upgrade-desc');
+    if (!el) return;
+    el.textContent = pvpMode
+      ? 'Upgrade all combat towers from the camp. Deeper tiers cost more — levels are hidden from your opponent.'
+      : 'Camp powers every combat tower. Climb each branch — damage, range, health, and push get pricier every tier.';
   }
 
   function initPlayer(p) {
@@ -216,6 +229,12 @@ window.LIVE_ARMY = (function () {
     return Math.floor(65 * Math.pow(1.68, lvl) + lvl * 25);
   }
 
+  function engineersUpgradeCost(p, branch) {
+    const eng = p.liveArmy?.engineers;
+    const lvl = eng?.[branch] || 0;
+    return Math.floor(75 * Math.pow(1.68, lvl) + lvl * 30);
+  }
+
   function canPlaceStructure(p, towerType) {
     if (!active) return true;
     if (towerType === 'barracks') {
@@ -330,6 +349,7 @@ window.LIVE_ARMY = (function () {
     onBattleStart,
     onBattleEnd,
     syncBarracksPanelCopy,
+    syncEngineersPanelCopy,
     initPlayer,
     setPlayersRef,
     getTowerFootprint,
@@ -344,6 +364,7 @@ window.LIVE_ARMY = (function () {
     isBottomToolbarVisible,
     unitUnlockCost,
     statUpgradeCost,
+    engineersUpgradeCost,
     unitRecord,
     goblinLootAmount,
     farmIncomeScale,
@@ -360,6 +381,10 @@ window.LIVE_ARMY = (function () {
     UNIT_UNLOCK_COST,
     STAT_BRANCHES,
     STAT_MAX,
+    ENGINEER_BRANCHES,
+    ENGINEER_BRANCH_LABELS,
+    ENGINEER_BRANCH_ICONS,
+    ENGINEER_STAT_MAX,
     STRUCTURE_SIZE,
     FARM_SIZE,
   };
