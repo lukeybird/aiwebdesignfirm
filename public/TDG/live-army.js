@@ -19,7 +19,16 @@ window.LIVE_ARMY = (function () {
   const ENGINEER_BRANCHES = ['damage', 'range', 'health', 'knockback'];
   const ENGINEER_BRANCH_LABELS = { damage: 'Damage', range: 'Range', health: 'Health', knockback: 'Knockback' };
   const ENGINEER_BRANCH_ICONS = { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨' };
-  const ENGINEER_STAT_MAX = 5;
+  const ENGINEER_STAT_MAX = 3;
+  // Per-level tower upgrade strength (each branch caps at ENGINEER_STAT_MAX).
+  const ENG_DAMAGE_PER_LVL = 0.30; // +90% damage at max
+  const ENG_FIRERATE_PER_LVL = 0.12; // +36% fire rate at max (rides the damage branch)
+  const ENG_RANGE_PER_LVL = 0.18; // +54% range at max
+  const ENG_HEALTH_PER_LVL = 0.30; // +90% hp at max
+  // Spreader knockback ramps from near-nothing to a strong shove only when the
+  // knockback branch is fully upgraded.
+  const SPREAD_KB_WEAK = 3;
+  const SPREAD_KB_STRONG = 26;
   const TOWER_LABELS = {
     turret: 'Cannon', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile',
   };
@@ -240,19 +249,26 @@ window.LIVE_ARMY = (function () {
       d.fireInterval = 9; d.damage = 4; d.blastRadius = 72; d.missileSpeed = 260;
     }
     else if (type === 'laser') { d.size = COMBAT_TOWER_SIZE; d.name = 'Rail Gun'; d.style = 'railgun'; d.color = '#EAB308'; d.accent = '#CA8A04'; }
-    else if (type === 'spread') { d.size = COMBAT_TOWER_SIZE; d.knockback = 24; d.name = 'Spreader'; }
+    else if (type === 'spread') { d.size = COMBAT_TOWER_SIZE; d.knockback = SPREAD_KB_WEAK; d.name = 'Spreader'; }
     else if (type === 'turret') { d.size = COMBAT_TOWER_SIZE; d.hp = 140; d.damage = 24; d.name = 'Cannon'; }
 
     if (ownerId != null && COMBAT_TOWERS.includes(type) && playersRef?.[ownerId]) {
       const rec = towerRecord(playersRef[ownerId], type);
       if (rec.unlocked) {
-        const dmgMult = 1 + (rec.damage || 0) * 0.18;
+        const max = ENGINEER_STAT_MAX;
+        const dmgLvl = Math.min(rec.damage || 0, max);
+        const rngLvl = Math.min(rec.range || 0, max);
+        const hpLvl = Math.min(rec.health || 0, max);
+        const kbLvl = Math.min(rec.knockback || 0, max);
+        const dmgMult = 1 + dmgLvl * ENG_DAMAGE_PER_LVL;
         d.damage = (d.damage || d.pelletDamage || 0) * dmgMult;
         if (d.pelletDamage) d.pelletDamage *= dmgMult;
-        d.range = (d.range || 160) * (1 + (rec.range || 0) * 0.1);
-        d.hp = (d.hp || 80) * (1 + (rec.health || 0) * 0.15);
-        d.fireRate = (d.fireRate || 1) * (1 + (rec.damage || 0) * 0.06);
-        if (type === 'spread') d.knockback = (d.knockback || 24) * (1 + (rec.knockback || 0) * 0.12);
+        d.range = (d.range || 160) * (1 + rngLvl * ENG_RANGE_PER_LVL);
+        d.hp = (d.hp || 80) * (1 + hpLvl * ENG_HEALTH_PER_LVL);
+        d.fireRate = (d.fireRate || 1) * (1 + dmgLvl * ENG_FIRERATE_PER_LVL);
+        if (type === 'spread') {
+          d.knockback = SPREAD_KB_WEAK + (SPREAD_KB_STRONG - SPREAD_KB_WEAK) * (kbLvl / max);
+        }
       }
     }
     return d;
@@ -476,7 +492,7 @@ window.LIVE_ARMY = (function () {
   }
 
   function spreadKnockback(def, unit, pellet) {
-    let kb = def.knockback || 24;
+    let kb = def.knockback != null ? def.knockback : SPREAD_KB_WEAK;
     if (unit.type === 'peka') kb *= 0.06;
     const spd = Math.hypot(pellet.vx, pellet.vy) || 1;
     return { nx: pellet.vx / spd, ny: pellet.vy / spd, kb };
