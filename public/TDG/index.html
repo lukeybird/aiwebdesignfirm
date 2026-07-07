@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=1280">
   <title>Block Fortress — Tower Defense War</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@600;700&display=swap');
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      min-width: 1280px;
+    }
 
     body {
       background: radial-gradient(ellipse at 50% 0%, #2a3a2a 0%, #141a14 45%, #0a0e0a 100%);
@@ -1631,7 +1635,6 @@
         radial-gradient(ellipse 80% 50% at 50% 0%, rgba(56, 80, 140, 0.14) 0%, transparent 55%),
         repeating-linear-gradient(60deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 22px),
         linear-gradient(180deg, #0a0e1a 0%, #060810 100%);
-      -webkit-overflow-scrolling: touch;
     }
 
     .st-scroll-wrap {
@@ -2191,9 +2194,58 @@
     .ach-panel-row .ach-info-title { font-weight: 700; line-height: 1.2; }
     .ach-panel-row .ach-info-desc { opacity: 0.78; font-size: 0.65rem; margin-top: 2px; }
     .ach-panel-row .ach-info-reward { color: #FFE66D; font-weight: 600; margin-top: 3px; font-size: 0.65rem; }
+
+    #desktop-only-gate {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      background: radial-gradient(ellipse at 50% 0%, #1a241a 0%, #0a0e0a 100%);
+      text-align: center;
+    }
+
+    #desktop-only-gate.visible { display: flex; }
+
+    #desktop-only-gate .desktop-only-card {
+      max-width: 460px;
+      padding: 28px 32px;
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    #desktop-only-gate h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      color: #c9d4b8;
+    }
+
+    #desktop-only-gate p {
+      opacity: 0.82;
+      line-height: 1.55;
+      font-size: 1rem;
+    }
+
+    body.desktop-blocked > h1,
+    body.desktop-blocked > .subtitle,
+    body.desktop-blocked > #game-wrapper {
+      visibility: hidden;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
+  <div id="desktop-only-gate" aria-live="polite">
+    <div class="desktop-only-card">
+      <h2>Desktop only</h2>
+      <p>Block Fortress needs a mouse and a screen at least 1280px wide. Open this page on a desktop or laptop browser.</p>
+    </div>
+  </div>
   <h1>Block Fortress</h1>
   <p class="subtitle">Plan your blocks. Watch the battle unfold.</p>
 
@@ -11457,17 +11509,6 @@ document.addEventListener('mousedown', (e) => {
 document.addEventListener('mouseup', () => {
   document.querySelectorAll('.st-scroll-btn').forEach(clearSkillScrollHold);
 });
-document.addEventListener('touchstart', (e) => {
-  const btn = e.target.closest('.st-scroll-btn');
-  if (!btn || btn.disabled) return;
-  startSkillScrollHold(btn);
-}, { passive: true });
-document.addEventListener('touchend', () => {
-  document.querySelectorAll('.st-scroll-btn').forEach(clearSkillScrollHold);
-});
-document.addEventListener('touchcancel', () => {
-  document.querySelectorAll('.st-scroll-btn').forEach(clearSkillScrollHold);
-});
 document.getElementById('econ-panel-close').addEventListener('click', () => toggleEconPanel(false));
 document.getElementById('econ-upgrade-panel').addEventListener('click', (e) => {
   if (e.target.id === 'econ-upgrade-panel') toggleEconPanel(false);
@@ -12021,9 +12062,27 @@ function render(time) {
 let mousePos = null;
 canvas.addEventListener('mousemove', (e) => { mousePos = canvasPos(e); });
 
-// Scale canvas to fit
+const DESKTOP_MIN_WIDTH = 1280;
+
+function isLikelyMobileDevice() {
+  return navigator.maxTouchPoints > 0
+    && !window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
+function isDesktopEnvironment() {
+  return window.innerWidth >= DESKTOP_MIN_WIDTH && !isLikelyMobileDevice();
+}
+
+function updateDesktopGate() {
+  const blocked = !isDesktopEnvironment();
+  document.body.classList.toggle('desktop-blocked', blocked);
+  document.getElementById('desktop-only-gate').classList.toggle('visible', blocked);
+}
+
+// Scale canvas to fit desktop viewports only
 function resize() {
-  const wrapper = document.getElementById('game-wrapper');
+  updateDesktopGate();
+  if (!isDesktopEnvironment()) return;
   const maxW = window.innerWidth - 40;
   const maxH = window.innerHeight - 120;
   const scale = Math.min(maxW / W, maxH / H, 1);
