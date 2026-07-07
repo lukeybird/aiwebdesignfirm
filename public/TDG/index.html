@@ -384,6 +384,113 @@
       letter-spacing: 0;
     }
 
+    #online-name-screen,
+    #online-queue-screen,
+    #online-match-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 14, 10, 0.92);
+      z-index: 22;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+
+    #online-name-screen.hidden,
+    #online-queue-screen.hidden,
+    #online-match-screen.hidden { display: none; }
+
+    .online-panel {
+      background: linear-gradient(160deg, #1a2a1a, #101810);
+      border: 3px solid #7cb87c;
+      border-radius: 16px;
+      width: min(420px, 92%);
+      padding: 22px 20px 18px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+
+    .online-panel h2 { margin-bottom: 8px; font-size: 1.6rem; }
+    .online-panel p { opacity: 0.75; margin-bottom: 16px; line-height: 1.5; font-size: 0.92rem; }
+
+    #online-name-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.35);
+      color: #e8ebe0;
+      font-family: inherit;
+      font-size: 1rem;
+      margin-bottom: 14px;
+    }
+
+    #online-name-input:focus {
+      outline: none;
+      border-color: #7cb87c;
+    }
+
+    .online-vs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 20px 0 10px;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .online-vs .player-tag {
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.08);
+      font-size: 1rem;
+      min-width: 110px;
+    }
+
+    .online-vs .player-tag.you { border: 2px solid #4ECDC4; color: #4ECDC4; }
+    .online-vs .player-tag.them { border: 2px solid #FF8E53; color: #FF8E53; }
+    .online-vs .vs { font-size: 1.4rem; opacity: 0.8; }
+
+    #countdown-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #countdown-overlay.hidden { display: none; }
+
+    #countdown-number {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 6rem;
+      color: #c9d4b8;
+      text-shadow: 0 0 40px rgba(120, 180, 90, 0.5);
+      animation: countdown-pop 0.45s ease-out;
+    }
+
+    @keyframes countdown-pop {
+      0% { transform: scale(0.4); opacity: 0; }
+      70% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .queue-spinner {
+      width: 42px;
+      height: 42px;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top-color: #7cb87c;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     .manual-section { margin-bottom: 24px; }
 
     .manual-section h3 {
@@ -857,6 +964,7 @@
         <div class="menu-btn-row">
           <button class="banner-btn" id="btn-2p">👥 Two Player</button>
           <button class="banner-btn" id="btn-survival">⚔️ Live Battle</button>
+          <button class="banner-btn" id="btn-online-pvp">🌐 Online PvP</button>
           <button class="banner-btn" id="btn-free">🎮 Free Mode</button>
           <button class="banner-btn" id="btn-free2p">⚔️ FREE 2P</button>
           <button class="banner-btn secondary" id="btn-rulebook">📖 Rule Book</button>
@@ -887,6 +995,39 @@
             <button class="banner-btn secondary" id="btn-survival-diff-back" type="button">Back to Menu</button>
           </div>
         </div>
+      </div>
+      <div id="online-name-screen" class="hidden">
+        <div class="online-panel">
+          <h2>🌐 Online PvP</h2>
+          <p>Enter your name, join the queue, and battle a real opponent in Live Battle mode.</p>
+          <input id="online-name-input" type="text" maxlength="32" placeholder="Your display name" autocomplete="nickname" />
+          <div class="menu-btn-row">
+            <button class="banner-btn" id="btn-online-find" type="button">Find Match</button>
+            <button class="banner-btn secondary" id="btn-online-name-back" type="button">Back to Menu</button>
+          </div>
+        </div>
+      </div>
+      <div id="online-queue-screen" class="hidden">
+        <div class="online-panel">
+          <div class="queue-spinner"></div>
+          <h2>Finding opponent…</h2>
+          <p id="online-queue-status">Waiting in queue as <strong id="online-queue-name"></strong></p>
+          <button class="banner-btn secondary" id="btn-online-cancel" type="button">Cancel</button>
+        </div>
+      </div>
+      <div id="online-match-screen" class="hidden">
+        <div class="online-panel">
+          <h2>Match found!</h2>
+          <div class="online-vs">
+            <div class="player-tag you" id="online-you-name">You</div>
+            <div class="vs">VS</div>
+            <div class="player-tag them" id="online-them-name">Opponent</div>
+          </div>
+          <p>Get ready…</p>
+        </div>
+      </div>
+      <div id="countdown-overlay" class="hidden">
+        <div id="countdown-number">3</div>
       </div>
       <div id="manual-screen" class="hidden">
         <div class="rulebook-panel">
@@ -1302,13 +1443,25 @@ let survivalFarmTimer = 0;
 let survivalAiTimer = 0;
 let survivalAiBrain = null;
 let floatTexts = [];
+let pvpOnline = null;
 
 function isSurvivalLive() {
-  return gameMode === 'survival';
+  return gameMode === 'survival' || gameMode === 'survival-pvp';
+}
+
+function isSurvivalPvp() {
+  return gameMode === 'survival-pvp';
+}
+
+function getLocalPlayerId() {
+  if (isSurvivalPvp() && pvpOnline) return pvpOnline.playerId;
+  return activePlayer ?? 0;
 }
 
 function canPlayerBuildNow() {
-  return phase === 'prep' || (isSurvivalLive() && phase === 'combat' && activePlayer === 0);
+  if (phase === 'prep') return true;
+  if (isSurvivalPvp() && phase === 'combat') return !!pvpOnline;
+  return phase === 'combat' && isSurvivalLive() && activePlayer === 0;
 }
 
 function defaultIncomeUpgrades() {
@@ -1335,7 +1488,7 @@ function survivalDifficultyLabel() {
 
 function survivalIncomeAmount(pid, type) {
   let amt = survivalIncomeAmountAtLevel(type, incomeUpgradeLevel(pid, type));
-  if (pid === 1 && isSurvivalLive()) amt *= survivalAiIncomeMult();
+  if (pid === 1 && gameMode === 'survival') amt *= survivalAiIncomeMult();
   return amt;
 }
 
@@ -1415,14 +1568,15 @@ function toggleEconPanel(show) {
 function updateIncomeUpgradeUI() {
   const list = document.getElementById('econ-upgrade-list');
   if (!list || !isSurvivalLive()) return;
-  const p = players[0];
+  const pid = getLocalPlayerId();
+  const p = players[pid];
   list.innerHTML = ['base', 'mint', 'farm'].map(type => {
     const def = INCOME_UPGRADE_DEFS[type];
-    const lvl = incomeUpgradeLevel(0, type);
-    const cur = survivalIncomeAmount(0, type);
+    const lvl = incomeUpgradeLevel(pid, type);
+    const cur = survivalIncomeAmount(pid, type);
     const atMax = lvl >= INCOME_UPGRADE_MAX;
     const nextAmt = atMax ? null : survivalIncomeAmountAtLevel(type, lvl + 1);
-    const cost = incomeUpgradeCost(0, type);
+    const cost = incomeUpgradeCost(pid, type);
     const canBuy = cost !== null && p.coins >= cost;
     return `<div class="econ-upgrade-row">
       <div class="econ-upgrade-info">
@@ -1451,7 +1605,9 @@ function survivalResetBattleSpeedOnEnemyAttack() {
 }
 
 function survivalSimDt(rawDt) {
-  if (gameMode !== 'survival' || phase !== 'combat') return rawDt;
+  if (!isSurvivalLive() || phase !== 'combat') return rawDt;
+  if (isSurvivalPvp()) return Math.min(rawDt, 0.14);
+  if (gameMode !== 'survival') return rawDt;
   return Math.min(rawDt * survivalSpeed, 0.14);
 }
 
@@ -1836,6 +1992,200 @@ function setupSurvivalLive() {
   updateUI();
 }
 
+function setupSurvivalLivePvp(opts) {
+  const {
+    player0Name,
+    player1Name,
+    myPlayerId,
+    isHost,
+    roomId,
+    sessionToken,
+    opponentName,
+  } = opts;
+
+  gameMode = 'survival-pvp';
+  survivalSpeed = 1;
+  setSurvivalSpeed(1);
+  round = 1;
+  pvpOnline = { playerId: myPlayerId, isHost, roomId, sessionToken, opponentName };
+
+  combatUnits = [];
+  pellets = [];
+  beams = [];
+  missiles = [];
+  spreadTracks = [];
+  blasts = [];
+  survivalIncomeTimer = 0;
+  survivalFarmTimer = 0;
+  survivalAiTimer = 0;
+  survivalAiBrain = null;
+  floatTexts = [];
+
+  resetGame();
+
+  players[0].name = player0Name;
+  players[1].name = player1Name;
+  players[0].isAI = false;
+  players[1].isAI = false;
+
+  for (let i = 0; i < 2; i++) {
+    const p = players[i];
+    p.deployments = [];
+    p.baseDamageThisRound = 0;
+    p.combatReward = 0;
+    p.bloopBounty = 0;
+    p.coins = SURVIVAL_START_COINS;
+    p.baseHp = gameRules.baseHp;
+    p.baseMaxHp = gameRules.baseHp;
+    p.rubble = [];
+    p.turrets = defaultStartingTowers(i);
+    p.incomeUpgrades = defaultIncomeUpgrades();
+  }
+
+  activePlayer = myPlayerId;
+  phase = 'combat';
+  combatTime = 0;
+  commitPublicSnapshots();
+  resetCombatTracking();
+  document.getElementById('bottom-panel').classList.remove('hidden');
+  selectedTool = firstEnabledDeployTool();
+  addLog(`⚔️ Online PvP — ${player0Name} vs ${player1Name}`);
+  updateUI();
+}
+
+function serializeTower(t) {
+  return {
+    id: t.id,
+    x: t.x,
+    y: t.y,
+    towerType: t.towerType,
+    hp: t.hp,
+    maxHp: t.maxHp,
+    angle: t.angle,
+    cooldown: t.cooldown,
+    laserTarget: t.laserTarget,
+  };
+}
+
+function serializeUnit(u) {
+  return {
+    id: u.id,
+    owner: u.owner,
+    type: u.type,
+    x: u.x,
+    y: u.y,
+    hp: u.hp,
+    maxHp: u.maxHp,
+    vx: u.vx,
+    vy: u.vy,
+    facing: u.facing,
+    attackCooldown: u.attackCooldown,
+    isMini: !!u.isMini,
+    target: u.target,
+    _splitDone: u._splitDone,
+    lastHitBy: u.lastHitBy,
+  };
+}
+
+function getPvpSnapshot() {
+  return {
+    phase,
+    combatTime,
+    survivalIncomeTimer,
+    survivalFarmTimer,
+    survivalSpeed,
+    players: players.map((p) => ({
+      coins: p.coins,
+      baseHp: p.baseHp,
+      baseMaxHp: p.baseMaxHp,
+      name: p.name,
+      incomeUpgrades: { ...p.incomeUpgrades },
+      turrets: p.turrets.map(serializeTower),
+      rubble: p.rubble.map((r) => ({ ...r })),
+    })),
+    combatUnits: combatUnits.map(serializeUnit),
+  };
+}
+
+function applyPvpSnapshot(state) {
+  if (!state || !state.players) return;
+  phase = state.phase || phase;
+  combatTime = state.combatTime ?? combatTime;
+  survivalIncomeTimer = state.survivalIncomeTimer ?? survivalIncomeTimer;
+  survivalFarmTimer = state.survivalFarmTimer ?? survivalFarmTimer;
+  if (state.survivalSpeed) survivalSpeed = state.survivalSpeed;
+
+  for (let i = 0; i < 2; i++) {
+    const src = state.players[i];
+    const p = players[i];
+    if (!src) continue;
+    p.coins = src.coins;
+    p.baseHp = src.baseHp;
+    p.baseMaxHp = src.baseMaxHp;
+    p.name = src.name;
+    p.incomeUpgrades = { ...src.incomeUpgrades };
+    p.turrets = (src.turrets || []).map((t) => ({ ...t }));
+    p.rubble = (src.rubble || []).map((r) => ({ ...r }));
+  }
+
+  combatUnits = (state.combatUnits || []).map((u) => ({ ...u }));
+  commitPublicSnapshots();
+  updateUI();
+
+  if (phase === 'gameover' || players[0].baseHp <= 0 || players[1].baseHp <= 0) {
+    if (phase !== 'gameover') endSurvivalLive();
+  }
+}
+
+function applyPvpRemoteAction(fromPlayerId, action) {
+  if (!isSurvivalPvp() || !pvpOnline?.isHost) return false;
+  if (fromPlayerId !== 0 && fromPlayerId !== 1) return false;
+
+  const type = action?.type;
+  if (type === 'spawn_unit') {
+    return survivalLiveSpawnUnit(fromPlayerId, action.unitType, action.x, action.y);
+  }
+  if (type === 'place_tower') {
+    return survivalLivePlaceTower(fromPlayerId, action.towerType, action.x, action.y);
+  }
+  if (type === 'move_tower') {
+    const p = players[fromPlayerId];
+    const tw = p.turrets.find((t) => t.id === action.towerId);
+    if (!tw) return false;
+    if (!canPlaceTurret(action.x, action.y, fromPlayerId, tw.id)) return false;
+    tw.x = action.x;
+    tw.y = action.y;
+    return true;
+  }
+  if (type === 'income_upgrade') {
+    return buyIncomeUpgrade(fromPlayerId, action.upgradeType);
+  }
+  return false;
+}
+
+function buildPvpActionFromClick(pos) {
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  if (selectedTool === 'move') return null;
+
+  if (isTowerTool(selectedTool)) {
+    if (!isTowerEnabled(selectedTool)) return null;
+    const cost = towerCost(p, selectedTool);
+    if (p.coins < cost) return null;
+    if (!canPlaceTurret(pos.x, pos.y, pid, null)) return null;
+    return { type: 'place_tower', towerType: selectedTool, x: pos.x, y: pos.y };
+  }
+
+  if (UNIT_TYPES[selectedTool]) {
+    if (!isUnitEnabled(selectedTool)) return null;
+    const cost = UNIT_TYPES[selectedTool].cost;
+    if (p.coins < cost) return null;
+    if (!canPlaceUnit(pos.x, pos.y, pid)) return null;
+    return { type: 'spawn_unit', unitType: selectedTool, x: pos.x, y: pos.y };
+  }
+  return null;
+}
+
 function tickSurvivalFarmIncome() {
   for (let pid = 0; pid < 2; pid++) {
     const p = players[pid];
@@ -1944,26 +2294,35 @@ function updateSurvivalLive(dt) {
     tickSurvivalIncome();
     updateUI();
   }
-  updateSurvivalLiveAI(dt);
+  if (!isSurvivalPvp()) updateSurvivalLiveAI(dt);
 }
 
 function endSurvivalLive() {
   document.getElementById('bottom-panel').classList.add('hidden');
   let title, text, btnText;
+  const myId = getLocalPlayerId();
+  const enemy = enemyId(myId);
   if (players[0].baseHp <= 0 && players[1].baseHp <= 0) {
     title = '🤝 Draw!';
     text = 'Both bases fell!';
-    btnText = 'Play Again';
-  } else if (players[0].baseHp <= 0) {
+    btnText = isSurvivalPvp() ? 'Back to Menu' : 'Play Again';
+  } else if (players[myId].baseHp <= 0) {
     title = '💀 Defeat';
-    text = 'Your base was destroyed.\n\nTip: The enemy is chaotic — exploit their random builds and strike when they waste coins!';
-    btnText = 'Try Again';
+    text = isSurvivalPvp()
+      ? `${players[enemy].name} destroyed your base!`
+      : 'Your base was destroyed.\n\nTip: The enemy is chaotic — exploit their random builds and strike when they waste coins!';
+    btnText = isSurvivalPvp() ? 'Back to Menu' : 'Try Again';
   } else {
     title = '🏆 Victory!';
-    text = 'Enemy base destroyed!\n\nYou dominated the live battlefield.';
-    btnText = 'Play Again';
+    text = isSurvivalPvp()
+      ? `You destroyed ${players[enemy].name}'s base!`
+      : 'Enemy base destroyed!\n\nYou dominated the live battlefield.';
+    btnText = isSurvivalPvp() ? 'Back to Menu' : 'Play Again';
   }
   phase = 'gameover';
+  if (isSurvivalPvp() && pvpOnline?.isHost && window.TDG_PVP?.notifyGameOver) {
+    window.TDG_PVP.notifyGameOver();
+  }
   showBanner(title, text, btnText);
 }
 
@@ -2098,7 +2457,7 @@ const P1_COLOR = { main: '#4ECDC4', light: '#7EDDD6', dark: '#2A9D8F' };
 const P2_COLOR = { main: '#FF8E53', light: '#FFB088', dark: '#E76F51' };
 
 // ─── Game State ──────────────────────────────────────────────────────────────
-let gameMode = null; // '2p' | 'survival' | 'free' | 'free2p'
+let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'free' | 'free2p'
 let phase = 'menu'; // menu | prep | combat | summary | gameover | free | free2p
 let round = 1;
 let activePlayer = 0; // 0 = P1, 1 = P2/AI
@@ -7660,8 +8019,16 @@ function createTower(x, y, towerType, ownerId) {
 }
 
 function handleClick(pos) {
-  if (!canPlayerBuildNow() || activePlayer === null) return;
-  const p = players[activePlayer];
+  if (!canPlayerBuildNow()) return;
+  const pid = getLocalPlayerId();
+
+  if (isSurvivalPvp() && !pvpOnline.isHost) {
+    const action = buildPvpActionFromClick(pos);
+    if (action && window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
+    return;
+  }
+
+  const p = players[pid];
 
   if (selectedTool === 'move') {
     return;
@@ -7672,10 +8039,10 @@ function handleClick(pos) {
     const def = towerDef(selectedTool);
     const cost = towerCost(p, selectedTool);
     if (p.coins < cost) return;
-    if (!canPlaceTurret(pos.x, pos.y, activePlayer, null)) return;
-    p.turrets.push(createTower(pos.x, pos.y, selectedTool, activePlayer));
+    if (!canPlaceTurret(pos.x, pos.y, pid, null)) return;
+    p.turrets.push(createTower(pos.x, pos.y, selectedTool, pid));
     p.coins -= cost;
-    if (isSurvivalLive() && activePlayer === 0) survivalRecordPlayerTower(selectedTool);
+    if (gameMode === 'survival' && pid === 0) survivalRecordPlayerTower(selectedTool);
     addLog(`${def.name} placed (-${cost} coins)`);
     updateUI();
     return;
@@ -7685,16 +8052,16 @@ function handleClick(pos) {
     if (!isUnitEnabled(selectedTool)) return;
     const cost = UNIT_TYPES[selectedTool].cost;
     if (p.coins < cost) return;
-    if (!canPlaceUnit(pos.x, pos.y, activePlayer)) return;
+    if (!canPlaceUnit(pos.x, pos.y, pid)) return;
     if (isSurvivalLive() && phase === 'combat') {
-      if (survivalLiveSpawnUnit(activePlayer, selectedTool, pos.x, pos.y)) {
+      if (survivalLiveSpawnUnit(pid, selectedTool, pos.x, pos.y)) {
         addLog(`Deployed ${UNIT_TYPES[selectedTool].name} (-${cost})`);
         updateUI();
       }
       return;
     }
     p.deployments.push({ type: selectedTool, x: pos.x, y: pos.y });
-    if (activePlayer === 0) survivalRecordPlayerDeploy(selectedTool);
+    if (pid === 0) survivalRecordPlayerDeploy(selectedTool);
     p.coins -= cost;
     addLog(`Deployed ${UNIT_TYPES[selectedTool].name} (-${cost})`);
     updateUI();
@@ -7704,13 +8071,14 @@ function handleClick(pos) {
 canvas.addEventListener('mousedown', (e) => {
   if (!canPlayerBuildNow()) return;
   const pos = canvasPos(e);
-  const p = players[activePlayer];
+  const pid = getLocalPlayerId();
+  const p = players[pid];
 
   if (selectedTool === 'move') {
     for (const t of p.turrets) {
       const sz = towerDef(t.towerType).size;
       if (dist(pos, t) < sz + 10) {
-        dragging = { turret: t, offsetX: pos.x - t.x, offsetY: pos.y - t.y };
+        dragging = { turret: t, offsetX: pos.x - t.x, offsetY: pos.y - t.y, playerId: pid };
         return;
       }
     }
@@ -7722,13 +8090,29 @@ canvas.addEventListener('mousemove', (e) => {
   const pos = canvasPos(e);
   const nx = pos.x - dragging.offsetX;
   const ny = pos.y - dragging.offsetY;
-  if (canPlaceTurret(nx, ny, activePlayer, dragging.turret.id)) {
+  const pid = dragging.playerId ?? getLocalPlayerId();
+  if (canPlaceTurret(nx, ny, pid, dragging.turret.id)) {
     dragging.turret.x = nx;
     dragging.turret.y = ny;
   }
 });
 
-canvas.addEventListener('mouseup', () => { dragging = null; });
+canvas.addEventListener('mouseup', () => {
+  if (dragging && isSurvivalPvp() && !pvpOnline.isHost) {
+    const tw = dragging.turret;
+    const pid = dragging.playerId ?? getLocalPlayerId();
+    if (window.TDG_PVP?.sendAction) {
+      window.TDG_PVP.sendAction({
+        type: 'move_tower',
+        towerId: tw.id,
+        x: tw.x,
+        y: tw.y,
+      });
+    }
+    // Guest will get authoritative position on next snapshot
+  }
+  dragging = null;
+});
 canvas.addEventListener('click', (e) => {
   if (dragging) return;
   handleClick(canvasPos(e));
@@ -7753,7 +8137,8 @@ canvas.addEventListener('contextmenu', (e) => {
 
 // ─── UI ──────────────────────────────────────────────────────────────────────
 function updateUI() {
-  const p = players[activePlayer] || players[0];
+  const pid = getLocalPlayerId();
+  const p = players[pid] || players[0];
   const inFree = phase === 'free' || phase === 'free2p'
     || (phase === 'gameover' && (gameMode === 'free' || gameMode === 'free2p'));
   if (!inFree) {
@@ -7765,16 +8150,16 @@ function updateUI() {
   }
   const roundLabel = document.getElementById('round-label');
   const roundEl = document.getElementById('round-display');
-  if (gameMode === 'survival') {
+  if (gameMode === 'survival' || gameMode === 'survival-pvp') {
     roundLabel.textContent = 'Income';
-    roundEl.textContent = `+${survivalIncomeAmount(0, 'base')}/4s base`;
+    roundEl.textContent = `+${survivalIncomeAmount(pid, 'base')}/4s base`;
   } else {
     roundLabel.textContent = 'Round';
     roundEl.textContent = round;
   }
   if (!inFree) {
-    document.getElementById('base-hp-display').textContent = Math.floor(players[activePlayer]?.baseHp ?? players[0].baseHp);
-    const enemy = enemyId(activePlayer ?? 0);
+    const enemy = enemyId(pid);
+    document.getElementById('base-hp-display').textContent = Math.floor(players[pid].baseHp);
     document.getElementById('enemy-hp-display').textContent = Math.floor(players[enemy].baseHp);
   }
 
@@ -7788,9 +8173,11 @@ function updateUI() {
     handoff: 'Handoff',
     gameover: 'Game Over',
   };
-  document.getElementById('phase-display').textContent = isSurvivalLive()
+  document.getElementById('phase-display').textContent = gameMode === 'survival'
     ? `⚔️ Live Battle (${survivalDifficultyLabel()})`
-    : (phaseNames[phase] || phase);
+    : gameMode === 'survival-pvp'
+      ? '⚔️ Online PvP'
+      : (phaseNames[phase] || phase);
 
   const canUseTools = canPlayerBuildNow();
   document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
@@ -7864,6 +8251,9 @@ document.getElementById('banner-btn').addEventListener('click', () => {
   hideBanner();
   if (bannerAction) { bannerAction(); bannerAction = null; return; }
   if (phase === 'gameover') {
+    if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
+    pvpOnline = null;
+    gameMode = null;
     freePlayer = null;
     freePlayer2 = null;
     freePellets = [];
@@ -7901,7 +8291,15 @@ document.getElementById('econ-upgrade-panel').addEventListener('click', (e) => {
 document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-upgrade]');
   if (!btn || btn.disabled) return;
-  buyIncomeUpgrade(0, btn.dataset.upgrade);
+  const upgradeType = btn.dataset.upgrade;
+  const pid = getLocalPlayerId();
+  if (isSurvivalPvp() && !pvpOnline.isHost) {
+    if (window.TDG_PVP?.sendAction) {
+      window.TDG_PVP.sendAction({ type: 'income_upgrade', upgradeType });
+    }
+    return;
+  }
+  buyIncomeUpgrade(pid, upgradeType);
 });
 
 document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
@@ -8099,11 +8497,19 @@ function render(time) {
   let dt = survivalSimDt(rawDt);
 
   if (phase === 'combat' && isSurvivalLive()) {
-    updateSurvivalLive(dt);
-    dt = survivalSimDt(rawDt);
+    if (!isSurvivalPvp() || pvpOnline?.isHost) {
+      updateSurvivalLive(dt);
+      dt = survivalSimDt(rawDt);
+    }
   }
 
-  if (phase === 'combat') updateCombat(dt);
+  if (phase === 'combat' && (!isSurvivalPvp() || pvpOnline?.isHost)) {
+    updateCombat(dt);
+  }
+
+  if (isSurvivalPvp() && pvpOnline?.isHost && phase === 'combat' && window.TDG_PVP?.tickHost) {
+    window.TDG_PVP.tickHost();
+  }
   if (phase === 'free') updateFreeMode(dt);
   if (phase === 'free2p') updateFree2pMode(dt);
 
@@ -8247,7 +8653,7 @@ function render(time) {
   }
 
   if (hidePid >= 0) drawFogOverlay(hidePid);
-  if (canPlayerBuildNow() && activePlayer !== null) drawDeployZone(activePlayer);
+  if (canPlayerBuildNow()) drawDeployZone(getLocalPlayerId());
 
   if (phase === 'combat') {
     drawBeams(dt);
@@ -8256,11 +8662,12 @@ function render(time) {
   }
 
   // preview placement
-  if (canPlayerBuildNow() && mousePos && activePlayer !== null) {
-    const p = players[activePlayer];
+  if (canPlayerBuildNow() && mousePos && getLocalPlayerId() !== null) {
+    const buildPid = getLocalPlayerId();
+    const p = players[buildPid];
     if (isTowerTool(selectedTool)) {
       const def = towerDef(selectedTool);
-      const ok = canPlaceTurret(mousePos.x, mousePos.y, activePlayer, dragging?.turret?.id);
+      const ok = canPlaceTurret(mousePos.x, mousePos.y, buildPid, dragging?.turret?.id);
       ctx.globalAlpha = ok ? 0.55 : 0.4;
       const ghost = { towerType: selectedTool, x: mousePos.x, y: mousePos.y, angle: 0, hp: 1, maxHp: 1 };
       if (!ok) {
@@ -8280,10 +8687,10 @@ function render(time) {
       }
     } else if (UNIT_TYPES[selectedTool]) {
       const ut = UNIT_TYPES[selectedTool];
-      const ok = canPlaceUnit(mousePos.x, mousePos.y, activePlayer);
+      const ok = canPlaceUnit(mousePos.x, mousePos.y, buildPid);
       ctx.globalAlpha = ok ? 0.55 : 0.4;
       if (!ok) ctx.filter = 'hue-rotate(-40deg) saturate(2)';
-      drawUnitSprite(selectedTool, mousePos.x, mousePos.y, activePlayer === 0 ? 0 : Math.PI, ut.size);
+      drawUnitSprite(selectedTool, mousePos.x, mousePos.y, buildPid === 0 ? 0 : Math.PI, ut.size);
       ctx.filter = 'none';
       ctx.globalAlpha = 1;
       if (!ok) {
@@ -8340,10 +8747,20 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+window.__TDG = {
+  setupSurvivalLivePvp,
+  getPvpSnapshot,
+  applyPvpSnapshot,
+  applyPvpRemoteAction,
+  isSurvivalPvp,
+};
+
 resetGame();
 requestAnimationFrame(render);
 
 })();
 </script>
+<script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+<script src="/TDG/pvp-online.js"></script>
 </body>
 </html>

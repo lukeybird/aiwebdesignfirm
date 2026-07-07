@@ -397,6 +397,26 @@ export async function initDatabase() {
       )
     `;
 
+    // Territory Game online PvP matchmaking (/TDG)
+    await sql`
+      CREATE TABLE IF NOT EXISTS tdg_pvp_queue (
+        id SERIAL PRIMARY KEY,
+        session_token VARCHAR(64) UNIQUE NOT NULL,
+        player_name VARCHAR(50) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'waiting',
+        room_id VARCHAR(64),
+        player_slot SMALLINT,
+        opponent_name VARCHAR(50),
+        opponent_token VARCHAR(64),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tdg_pvp_queue_waiting
+      ON tdg_pvp_queue (status, created_at)
+      WHERE status = 'waiting'
+    `;
+
     await initBookingTables(sql);
 
     console.log('Database initialized successfully');
