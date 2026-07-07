@@ -1013,6 +1013,64 @@
       width: 94%;
     }
 
+    .economy-panel-inner {
+      background: linear-gradient(165deg, #14281a 0%, #0f1a12 55%, #0a120c 100%);
+      border: 3px solid #4ade80;
+      border-radius: 18px;
+      width: min(980px, 96%);
+      max-height: 86%;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 18px 16px;
+      box-shadow: 0 20px 56px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .economy-panel-desc {
+      font-size: 0.72rem;
+      opacity: 0.75;
+      margin: 0 0 10px;
+      line-height: 1.4;
+    }
+
+    #econ-panel-close {
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .economy-forest {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px 12px;
+      overflow-y: auto;
+      max-height: 64vh;
+      padding: 4px 2px 8px;
+    }
+
+    .economy-tree-farm,
+    .economy-tree-mint {
+      width: 168px;
+      flex-shrink: 0;
+    }
+
+    .economy-tree-base {
+      width: 300px;
+      flex-shrink: 0;
+    }
+
+    .skill-vline.spaced {
+      height: 18px;
+    }
+
+    .skill-vline.spaced-lg {
+      height: 24px;
+    }
+
     #menu-screen.hidden { display: none !important; }
 
     #missile-upgrade-panel {
@@ -1249,12 +1307,12 @@
         </div>
       </div>
       <div id="econ-upgrade-panel" class="hidden">
-        <div class="econ-panel-inner">
+        <div class="economy-panel-inner">
           <div class="econ-panel-header">
-            <h3>⬆️ Income Upgrades</h3>
+            <h3>💰 Economy — Skill Trees</h3>
             <button id="econ-panel-close" type="button">✕</button>
           </div>
-          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Upgrades add +2 yield per level (+3 for mint). Costs rise steeply — spend wisely.</p>
+          <p id="economy-upgrade-desc" class="economy-panel-desc">Unlock Farm and Mint, upgrade your HQ, and climb each branch — deeper tiers cost more.</p>
           <div id="econ-upgrade-list"></div>
         </div>
       </div>
@@ -1850,7 +1908,137 @@ function defaultIncomeUpgrades() {
 }
 
 function incomeUpgradeLevel(pid, type) {
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    return LIVE_ARMY.economyIncomeLevel(players[pid], type);
+  }
   return players[pid].incomeUpgrades?.[type] || 1;
+}
+
+function syncEconomyBaseHealth(pid) {
+  if (typeof LIVE_ARMY === 'undefined' || !LIVE_ARMY.isActive()) return;
+  const p = players[pid];
+  const bonus = LIVE_ARMY.baseHealthBonus(p);
+  const newMax = gameRules.baseHp + bonus;
+  const gain = newMax - p.baseMaxHp;
+  if (gain > 0) p.baseHp += gain;
+  p.baseMaxHp = newMax;
+}
+
+function syncBaseDefenseTurrets(pid) {
+  if (typeof LIVE_ARMY === 'undefined' || !LIVE_ARMY.isActive()) return;
+  const p = players[pid];
+  const lvl = LIVE_ARMY.baseDefenseLevel(p);
+  p.turrets = p.turrets.filter((t) => !t.isBaseDefense);
+  const bp = basePos(pid);
+  const sign = pid === 0 ? 1 : -1;
+  const slots = [
+    { x: bp.x + sign * 52, y: bp.y - 42 },
+    { x: bp.x + sign * 52, y: bp.y + 42 },
+    { x: bp.x + sign * 78, y: bp.y },
+  ];
+  for (let i = 0; i < lvl && i < slots.length; i++) {
+    const tw = createTower(slots[i].x, slots[i].y, 'turret', pid);
+    tw.isBaseDefense = true;
+    tw.hp = tw.maxHp = 95 + i * 30;
+    p.turrets.push(tw);
+  }
+}
+
+function skillTreeTierHtml({ tier, maxTier, ownedTier, unlocked, cost, afford, icon, dataAttrs, spaced }) {
+  let state = 'future';
+  let tag = 'div';
+  let attrs = dataAttrs || '';
+  if (tier <= ownedTier) {
+    state = tier === maxTier ? 'owned maxed' : 'owned';
+  } else if (tier === ownedTier + 1 && unlocked) {
+    tag = 'button';
+    attrs += ' type="button"';
+    state = afford ? 'available' : 'afford-wait';
+    if (!afford) attrs += ' disabled';
+  }
+  const gemTier = Math.min(tier, 5);
+  const gap = spaced ? (tier > 1 ? ' spaced-lg' : '') : (tier > 1 ? ' spaced' : '');
+  let html = tier > 1 ? `<div class="skill-vline${gap}"></div>` : '';
+  html += `<${tag} class="skill-node ${state}"${attrs}>`;
+  html += `<span class="skill-gem tier-${gemTier}">${icon}</span>`;
+  if (state === 'available' || state === 'afford-wait') {
+    html += `<span class="skill-node-cost">${cost}🪙</span>`;
+  } else {
+    html += `<span class="skill-node-tier">T${tier}</span>`;
+  }
+  html += `</${tag}>`;
+  return html;
+}
+
+function buyEconomyUpgrade(pid, kind, target) {
+  const p = players[pid];
+  if (!LIVE_ARMY?.isActive()) return buyIncomeUpgradeLegacy(pid, target);
+  const eco = LIVE_ARMY.economyRecord(p);
+
+  if (kind === 'unlock') {
+    const rec = target === 'farm' ? eco.farm : eco.mint;
+    const cost = LIVE_ARMY.economyUnlockCost(target);
+    if (rec.unlocked || p.coins < cost) return false;
+    p.coins -= cost;
+    rec.unlocked = true;
+    addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building`);
+  } else if (kind === 'yield') {
+    const rec = target === 'farm' ? eco.farm : eco.mint;
+    if (!rec.unlocked || rec.yield >= LIVE_ARMY.yieldMax(target)) return false;
+    const cost = LIVE_ARMY.economyYieldCost(p, target);
+    if (p.coins < cost) return false;
+    p.coins -= cost;
+    rec.yield += 1;
+    const amt = survivalIncomeAmount(pid, target);
+    const label = target === 'farm' ? 'Farm' : 'Mint';
+    const interval = target === 'farm' ? '2s' : '3s';
+    addLog(`💰 ${p.name}: ${label} yield T${rec.yield} (+${amt}/${interval})`);
+  } else if (kind === 'base') {
+    const branch = target;
+    const lvl = eco.base[branch] || 0;
+    if (lvl >= LIVE_ARMY.baseBranchMax(branch)) return false;
+    const cost = LIVE_ARMY.economyBaseCost(p, branch);
+    if (p.coins < cost) return false;
+    p.coins -= cost;
+    eco.base[branch] = lvl + 1;
+    if (branch === 'health') syncEconomyBaseHealth(pid);
+    if (branch === 'defense') syncBaseDefenseTurrets(pid);
+    const labels = { income: 'HQ income', health: 'HQ health', defense: 'HQ guns' };
+    addLog(`💰 ${p.name}: ${labels[branch] || branch} T${eco.base[branch]}`);
+  } else {
+    return false;
+  }
+  updateIncomeUpgradeUI();
+  updateUI();
+  return true;
+}
+
+function buyIncomeUpgradeLegacy(pid, type) {
+  const lvl = players[pid].incomeUpgrades?.[type] || 1;
+  if (lvl >= INCOME_UPGRADE_MAX) return false;
+  const cost = incomeUpgradeCost(pid, type);
+  if (cost === null) return false;
+  const p = players[pid];
+  if (p.coins < cost) return false;
+  p.coins -= cost;
+  if (!p.incomeUpgrades) p.incomeUpgrades = defaultIncomeUpgrades();
+  p.incomeUpgrades[type] = lvl + 1;
+  const def = INCOME_UPGRADE_DEFS[type];
+  const newYield = survivalIncomeAmount(pid, type);
+  addLog(`⬆️ ${p.name}: ${def.name} Lv${lvl + 1} (+${newYield}/${def.intervalLabel})`);
+  updateIncomeUpgradeUI();
+  updateUI();
+  return true;
+}
+
+function buyIncomeUpgrade(pid, type) {
+  if (LIVE_ARMY?.isActive()) {
+    if (type === 'base') return buyEconomyUpgrade(pid, 'base', 'income');
+    if (type === 'farm') return buyEconomyUpgrade(pid, 'yield', 'farm');
+    if (type === 'mint') return buyEconomyUpgrade(pid, 'yield', 'mint');
+    return false;
+  }
+  return buyIncomeUpgradeLegacy(pid, type);
 }
 
 function survivalIncomeAmountAtLevel(type, lvl) {
@@ -1869,34 +2057,24 @@ function survivalDifficultyLabel() {
 }
 
 function survivalIncomeAmount(pid, type) {
-  let amt = survivalIncomeAmountAtLevel(type, incomeUpgradeLevel(pid, type));
+  const lvl = incomeUpgradeLevel(pid, type);
+  if (lvl < 1) return 0;
+  let amt = survivalIncomeAmountAtLevel(type, lvl);
   if (pid === 1 && gameMode === 'survival') amt *= survivalAiIncomeMult();
   return amt;
 }
 
 function incomeUpgradeCost(pid, type) {
+  if (LIVE_ARMY?.isActive()) {
+    const p = players[pid];
+    if (type === 'base') return LIVE_ARMY.economyBaseCost(p, 'income');
+    if (type === 'farm') return LIVE_ARMY.economyYieldCost(p, 'farm');
+    if (type === 'mint') return LIVE_ARMY.economyYieldCost(p, 'mint');
+  }
   const def = INCOME_UPGRADE_DEFS[type];
   const lvl = incomeUpgradeLevel(pid, type);
   if (lvl >= INCOME_UPGRADE_MAX) return null;
   return Math.floor(def.baseCost * Math.pow(2.2, lvl - 1));
-}
-
-function buyIncomeUpgrade(pid, type) {
-  const lvl = incomeUpgradeLevel(pid, type);
-  if (lvl >= INCOME_UPGRADE_MAX) return false;
-  const cost = incomeUpgradeCost(pid, type);
-  if (cost === null) return false;
-  const p = players[pid];
-  if (p.coins < cost) return false;
-  p.coins -= cost;
-  if (!p.incomeUpgrades) p.incomeUpgrades = defaultIncomeUpgrades();
-  p.incomeUpgrades[type] = lvl + 1;
-  const def = INCOME_UPGRADE_DEFS[type];
-  const newYield = survivalIncomeAmount(pid, type);
-  addLog(`⬆️ ${p.name}: ${def.name} Lv${lvl + 1} (+${newYield}/${def.intervalLabel})`);
-  updateIncomeUpgradeUI();
-  updateUI();
-  return true;
 }
 
 function buyBarracksUpgrade(pid, kind, unitType, stat) {
@@ -2215,7 +2393,10 @@ function toggleEconPanel(show) {
   if (!panel) return;
   const open = show === undefined ? panel.classList.contains('hidden') : show;
   panel.classList.toggle('hidden', !open);
-  if (open) updateIncomeUpgradeUI();
+  if (open) {
+    if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncEconomyPanelCopy?.();
+    updateIncomeUpgradeUI();
+  }
 }
 
 function updateIncomeUpgradeUI() {
@@ -2223,27 +2404,102 @@ function updateIncomeUpgradeUI() {
   if (!list || !isSurvivalLive()) return;
   const pid = getLocalPlayerId();
   const p = players[pid];
-  list.innerHTML = ['base', 'mint', 'farm'].map(type => {
-    const def = INCOME_UPGRADE_DEFS[type];
-    const lvl = incomeUpgradeLevel(pid, type);
-    const cur = survivalIncomeAmount(pid, type);
-    const atMax = lvl >= INCOME_UPGRADE_MAX;
-    const nextAmt = atMax ? null : survivalIncomeAmountAtLevel(type, lvl + 1);
-    const cost = incomeUpgradeCost(pid, type);
-    const canBuy = cost !== null && p.coins >= cost;
-    return `<div class="econ-upgrade-row">
-      <div class="econ-upgrade-info">
-        <strong>${def.icon} ${def.name}</strong>
-        <span>Lv ${lvl} · <span class="econ-yield">+${cur}/${def.intervalLabel}</span></span>
-        ${atMax
-          ? '<span class="econ-max">MAX LEVEL</span>'
-          : `<span class="econ-next">Next: +${nextAmt}/${def.intervalLabel}</span>`}
-      </div>
-      <button type="button" class="econ-upgrade-buy" data-upgrade="${type}" ${!canBuy ? 'disabled' : ''}>
-        ${atMax ? 'MAX' : `${cost}🪙`}
-      </button>
-    </div>`;
-  }).join('');
+
+  if (!LIVE_ARMY?.isActive()) {
+    list.innerHTML = ['base', 'mint', 'farm'].map(type => {
+      const def = INCOME_UPGRADE_DEFS[type];
+      const lvl = incomeUpgradeLevel(pid, type);
+      const cur = survivalIncomeAmount(pid, type);
+      const atMax = lvl >= INCOME_UPGRADE_MAX;
+      const nextAmt = atMax ? null : survivalIncomeAmountAtLevel(type, lvl + 1);
+      const cost = incomeUpgradeCost(pid, type);
+      const canBuy = cost !== null && p.coins >= cost;
+      return `<div class="econ-upgrade-row">
+        <div class="econ-upgrade-info">
+          <strong>${def.icon} ${def.name}</strong>
+          <span>Lv ${lvl} · <span class="econ-yield">+${cur}/${def.intervalLabel}</span></span>
+          ${atMax ? '<span class="econ-max">MAX LEVEL</span>' : `<span class="econ-next">Next: +${nextAmt}/${def.intervalLabel}</span>`}
+        </div>
+        <button type="button" class="econ-upgrade-buy" data-upgrade="${type}" ${!canBuy ? 'disabled' : ''}>
+          ${atMax ? 'MAX' : `${cost}🪙`}
+        </button>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  const eco = LIVE_ARMY.economyRecord(p);
+  const baseBranches = LIVE_ARMY.BASE_BRANCHES || ['income', 'health', 'defense'];
+  const baseLabels = LIVE_ARMY.BASE_BRANCH_LABELS || { income: 'Income', health: 'Health', defense: 'Guns' };
+  const baseIcons = LIVE_ARMY.BASE_BRANCH_ICONS || { income: '🪙', health: '❤️', defense: '🔫' };
+
+  function yieldTree(type, icon, title, cssClass) {
+    const rec = type === 'farm' ? eco.farm : eco.mint;
+    const maxTier = LIVE_ARMY.yieldMax(type);
+    const unlockCost = LIVE_ARMY.economyUnlockCost(type);
+    const unlocked = !!rec.unlocked;
+    let html = `<div class="barracks-tree-col ${cssClass}${unlocked ? '' : ' is-locked'}">`;
+    html += `<div class="barracks-tree-title">${title}</div>`;
+    const unlockState = unlocked ? 'owned maxed' : (p.coins >= unlockCost ? 'available' : 'afford-wait');
+    const unlockTag = unlocked ? 'div' : 'button';
+    const unlockAttrs = unlocked ? '' : ` type="button" data-econ-unlock="${type}"${p.coins < unlockCost ? ' disabled' : ''}`;
+    html += `<${unlockTag} class="skill-node unlock-node ${unlockState}"${unlockAttrs}>`;
+    html += `<span class="skill-gem tier-root">${icon}</span>`;
+    html += unlocked ? '<span class="skill-node-tier">Unlocked</span>' : `<span class="skill-node-cost">${unlockCost}🪙</span>`;
+    html += `</${unlockTag}>`;
+    html += '<div class="skill-connector"></div><div class="skill-fork"></div>';
+    html += '<div class="skill-branches"><div class="skill-branch" style="width:100%">';
+    html += '<div class="skill-branch-label">Yield</div>';
+    for (let tier = 1; tier <= maxTier; tier++) {
+      const cost = LIVE_ARMY.economyYieldCost(p, type);
+      html += skillTreeTierHtml({
+        tier, maxTier, ownedTier: rec.yield, unlocked,
+        cost, afford: p.coins >= cost, icon: '💎',
+        dataAttrs: ` data-econ-yield="${type}"`, spaced: type === 'mint',
+      });
+    }
+    html += '</div></div>';
+    const cur = unlocked ? survivalIncomeAmount(pid, type) : 0;
+    const interval = type === 'farm' ? '2s' : '3s';
+    html += `<p class="barracks-tree-footnote">${unlocked ? `+${cur}/${interval} per building` : 'Unlock to build'}</p>`;
+    html += '</div>';
+    return html;
+  }
+
+  let html = '<div class="economy-forest">';
+  html += yieldTree('farm', '🌾', 'Farm', 'economy-tree-farm');
+
+  html += '<div class="barracks-tree-col economy-tree-base">';
+  html += '<div class="barracks-tree-title">Headquarters</div>';
+  html += '<div class="skill-node owned maxed">';
+  html += '<span class="skill-gem tier-root">🏛</span>';
+  html += '<span class="skill-node-tier">HQ Online</span>';
+  html += '</div>';
+  html += '<div class="skill-connector"></div><div class="skill-fork wide-fork"></div>';
+  html += '<div class="skill-branches">';
+  for (const branch of baseBranches) {
+    const maxTier = LIVE_ARMY.baseBranchMax(branch);
+    const owned = eco.base[branch] || 0;
+    html += '<div class="skill-branch">';
+    html += `<div class="skill-branch-label">${baseLabels[branch]}</div>`;
+    for (let tier = 1; tier <= maxTier; tier++) {
+      const cost = LIVE_ARMY.economyBaseCost(p, branch);
+      html += skillTreeTierHtml({
+        tier, maxTier, ownedTier: owned, unlocked: true,
+        cost, afford: p.coins >= cost, icon: baseIcons[branch],
+        dataAttrs: ` data-econ-base="${branch}"`, spaced: true,
+      });
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  const baseAmt = survivalIncomeAmount(pid, 'base');
+  html += `<p class="barracks-tree-footnote">+${baseAmt}/3s · +${LIVE_ARMY.baseHealthBonus(p)} HP · ${LIVE_ARMY.baseDefenseLevel(p)} gun${LIVE_ARMY.baseDefenseLevel(p) === 1 ? '' : 's'}</p>`;
+  html += '</div>';
+
+  html += yieldTree('mint', '💰', 'Mint', 'economy-tree-mint');
+  html += '</div>';
+  list.innerHTML = html;
 }
 
 function setSurvivalSpeed(mult) {
@@ -2510,13 +2766,37 @@ function survivalAiTryUnlockBarracksUnit(ai) {
   return buyBarracksUpgrade(1, 'unlock', locked[0]);
 }
 
+function survivalAiTryEconomyUpgrade(ai) {
+  if (!LIVE_ARMY?.isActive()) return false;
+  const eco = LIVE_ARMY.economyRecord(ai);
+  const tries = [];
+  if (!eco.farm.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('farm')) tries.push(['unlock', 'farm']);
+  if (!eco.mint.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('mint')) tries.push(['unlock', 'mint']);
+  if (eco.farm.unlocked && eco.farm.yield < LIVE_ARMY.yieldMax('farm') && ai.coins >= LIVE_ARMY.economyYieldCost(ai, 'farm')) {
+    tries.push(['yield', 'farm']);
+  }
+  if (eco.mint.unlocked && eco.mint.yield < LIVE_ARMY.yieldMax('mint') && ai.coins >= LIVE_ARMY.economyYieldCost(ai, 'mint')) {
+    tries.push(['yield', 'mint']);
+  }
+  for (const branch of LIVE_ARMY.BASE_BRANCHES || []) {
+    const lvl = eco.base[branch] || 0;
+    if (lvl < LIVE_ARMY.baseBranchMax(branch) && ai.coins >= LIVE_ARMY.economyBaseCost(ai, branch)) {
+      tries.push(['base', branch]);
+    }
+  }
+  if (!tries.length) return false;
+  const [kind, target] = tries[0];
+  return buyEconomyUpgrade(1, kind, target);
+}
+
 function survivalAiTryPeaceBuild(ai) {
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    if (survivalAiTryEconomyUpgrade(ai)) return true;
     if (!LIVE_ARMY.hasBarracks(ai) && LIVE_ARMY.canPlaceStructure(ai, 'barracks') && ai.coins >= towerCost(ai, 'barracks')) {
       if (survivalAiTryPlaceTower(ai, 'barracks')) return true;
     }
     if (survivalAiTryUnlockBarracksUnit(ai)) return true;
-    if (!aiHasLivingTower(ai, 'farm') && ai.coins >= towerCost(ai, 'farm')) {
+    if (LIVE_ARMY.farmUnlocked(ai) && !aiHasLivingTower(ai, 'farm') && ai.coins >= towerCost(ai, 'farm')) {
       if (survivalAiTryPlaceTower(ai, 'farm')) return true;
     }
   }
@@ -2659,13 +2939,17 @@ function setupSurvivalLive() {
   if (typeof LIVE_ARMY !== 'undefined') {
     LIVE_ARMY.onBattleStart(players, gameRules, { pvp: false });
     LIVE_ARMY.setPlayersRef(players);
+    for (let i = 0; i < 2; i++) {
+      syncEconomyBaseHealth(i);
+      syncBaseDefenseTurrets(i);
+    }
   }
   commitPublicSnapshots();
   resetCombatTracking();
   document.getElementById('bottom-panel').classList.remove('hidden');
   selectedTool = firstEnabledDeployTool();
   addLog('⚔️ Local Live Battle — all gameplay runs in your browser.');
-  addLog('⚔️ Base +10/3s · mint +5/3s · farm +2/2s. Upgrades +2 (+3 mint)!');
+  addLog('⚔️ Open Economy to unlock Farm & Mint, then climb each skill tree.');
   updateUI();
 }
 
@@ -2725,6 +3009,10 @@ function setupSurvivalLivePvp(opts) {
   if (typeof LIVE_ARMY !== 'undefined') {
     LIVE_ARMY.onBattleStart(players, gameRules, { pvp: true });
     LIVE_ARMY.setPlayersRef(players);
+    for (let i = 0; i < 2; i++) {
+      syncEconomyBaseHealth(i);
+      syncBaseDefenseTurrets(i);
+    }
   }
   commitPublicSnapshots();
   resetCombatTracking();
@@ -2746,6 +3034,7 @@ function serializeTower(t) {
     cooldown: t.cooldown,
     laserTarget: t.laserTarget,
     missileUpgrades: t.missileUpgrades ? { ...t.missileUpgrades } : undefined,
+    isBaseDefense: !!t.isBaseDefense,
   };
 }
 
@@ -2841,14 +3130,20 @@ function applyPvpRemoteAction(fromPlayerId, action) {
   if (type === 'move_tower') {
     const p = players[fromPlayerId];
     const tw = p.turrets.find((t) => t.id === action.towerId);
-    if (!tw) return false;
+    if (!tw || tw.isBaseDefense) return false;
     if (!canPlaceTurret(action.x, action.y, fromPlayerId, tw.id)) return false;
     tw.x = action.x;
     tw.y = action.y;
     return true;
   }
   if (type === 'income_upgrade') {
-    return buyIncomeUpgrade(fromPlayerId, action.upgradeType);
+    if (action.upgradeType === 'base') return buyEconomyUpgrade(fromPlayerId, 'base', 'income');
+    if (action.upgradeType === 'farm') return buyEconomyUpgrade(fromPlayerId, 'yield', 'farm');
+    if (action.upgradeType === 'mint') return buyEconomyUpgrade(fromPlayerId, 'yield', 'mint');
+    return false;
+  }
+  if (type === 'economy_upgrade') {
+    return buyEconomyUpgrade(fromPlayerId, action.kind, action.target);
   }
   if (type === 'barracks_upgrade') {
     return buyBarracksUpgrade(fromPlayerId, action.upgradeKind, action.unitType, action.stat);
@@ -6454,6 +6749,8 @@ function towerPlaceFailReason(pid, towerType, x, y, excludeId) {
   const p = players[pid];
   if (!isTowerEnabled(towerType)) return 'That building is unavailable.';
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canPlaceStructure(p, towerType)) {
+    if (towerType === 'farm') return 'Unlock Farm in Economy first.';
+    if (towerType === 'mint') return 'Unlock Mint in Economy first.';
     if (towerType === 'barracks') return 'Only one Barracks per team.';
     if (towerType === 'engineers') return 'Only one Engineers Camp per team.';
     return 'Cannot place that structure.';
@@ -9108,6 +9405,7 @@ canvas.addEventListener('mousedown', (e) => {
 
   if (selectedTool === 'move') {
     for (const t of p.turrets) {
+      if (t.isBaseDefense) continue;
       const sz = towerDef(t.towerType).size;
       if (dist(pos, t) < sz + 10) {
         dragging = { turret: t, offsetX: pos.x - t.x, offsetY: pos.y - t.y, playerId: pid };
@@ -9374,17 +9672,31 @@ document.getElementById('econ-upgrade-panel').addEventListener('click', (e) => {
   if (e.target.id === 'econ-upgrade-panel') toggleEconPanel(false);
 });
 document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-upgrade]');
-  if (!btn || btn.disabled) return;
-  const upgradeType = btn.dataset.upgrade;
+  const unlockBtn = e.target.closest('[data-econ-unlock]');
+  const yieldBtn = e.target.closest('[data-econ-yield]');
+  const baseBtn = e.target.closest('[data-econ-base]');
+  const legacyBtn = e.target.closest('[data-upgrade]');
   const pid = getLocalPlayerId();
+  let action = null;
+  if (unlockBtn && !unlockBtn.disabled) {
+    action = { type: 'economy_upgrade', kind: 'unlock', target: unlockBtn.dataset.econUnlock };
+  } else if (yieldBtn && !yieldBtn.disabled) {
+    action = { type: 'economy_upgrade', kind: 'yield', target: yieldBtn.dataset.econYield };
+  } else if (baseBtn && !baseBtn.disabled) {
+    action = { type: 'economy_upgrade', kind: 'base', target: baseBtn.dataset.econBase };
+  } else if (legacyBtn && !legacyBtn.disabled) {
+    action = { type: 'income_upgrade', upgradeType: legacyBtn.dataset.upgrade };
+  }
+  if (!action) return;
   if (isSurvivalPvp() && !pvpOnline.isHost) {
-    if (window.TDG_PVP?.sendAction) {
-      window.TDG_PVP.sendAction({ type: 'income_upgrade', upgradeType });
-    }
+    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
     return;
   }
-  buyIncomeUpgrade(pid, upgradeType);
+  if (action.type === 'economy_upgrade') {
+    buyEconomyUpgrade(pid, action.kind, action.target);
+  } else {
+    buyIncomeUpgrade(pid, action.upgradeType);
+  }
 });
 
 document.getElementById('barracks-upgrade-btn').addEventListener('click', () => toggleBarracksPanel());
@@ -9500,7 +9812,7 @@ function startSurvivalLive(difficulty) {
     const mult = survivalAiIncomeMult();
     showBanner(
       `Live Battle — ${survivalDifficultyLabel()}`,
-      `Faster economy — build quick!\n\n🏛 Base: +10🪙 every 3 seconds\n🌾 Farm: +2🪙 every 2 seconds (strong early, fades late)\n💰 Mint: +5🪙 every 3 seconds\n🏕 Build Barracks, then unlock units inside it\n\nUpgrades add +2 per level (+3 for mint). Enemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
+      `Faster economy — build quick!\n\n💰 Open Economy to unlock Farm & Mint skill trees\n🏛 Upgrade HQ income, health, and defense guns\n🏕 Build Barracks to unlock units\n\nEnemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
       'Fight!'
     );
   } catch (err) {

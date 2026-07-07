@@ -39,17 +39,39 @@ window.LIVE_ARMY = (function () {
     return { built: false, damage: 0, range: 0, health: 0, knockback: 0 };
   }
 
+  function freshEconomy() {
+    return {
+      farm: { unlocked: false, yield: 0 },
+      mint: { unlocked: false, yield: 0 },
+      base: { income: 0, health: 0, defense: 0 },
+    };
+  }
+
+  const ECON_UNLOCK_COST = { farm: 140, mint: 235 };
+  const FARM_YIELD_MAX = 3;
+  const MINT_YIELD_MAX = 6;
+  const BASE_BRANCH_MAX = { income: 3, health: 3, defense: 3 };
+  const BASE_BRANCHES = ['income', 'health', 'defense'];
+  const BASE_BRANCH_LABELS = { income: 'Income', health: 'Health', defense: 'Guns' };
+  const BASE_BRANCH_ICONS = { income: '🪙', health: '❤️', defense: '🔫' };
+
   function freshMissileUpgrades() {
     return { rate: 1, damage: 1, radius: 1 };
   }
 
   function unitRecord(p, type) {
     if (!p.liveArmy?.barracks?.units?.[type]) {
-      if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers() };
+      if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
       if (!p.liveArmy.barracks.units) p.liveArmy.barracks.units = {};
       if (!p.liveArmy.barracks.units[type]) p.liveArmy.barracks.units[type] = freshUnitRecord();
     }
     return p.liveArmy.barracks.units[type];
+  }
+
+  function economyRecord(p) {
+    if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
+    if (!p.liveArmy.economy) p.liveArmy.economy = freshEconomy();
+    return p.liveArmy.economy;
   }
 
   function onBattleStart(players, gameRules, opts) {
@@ -66,11 +88,12 @@ window.LIVE_ARMY = (function () {
     gameRules.towers.engineers = true;
     gameRules.units.goblin = true;
     for (const p of players) {
-      p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers() };
+      p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
     }
     syncBuildToolbar();
     syncBarracksPanelCopy();
     syncEngineersPanelCopy();
+    syncEconomyPanelCopy();
   }
 
   function onBattleEnd() {
@@ -98,8 +121,17 @@ window.LIVE_ARMY = (function () {
       : 'Camp powers every combat tower. Climb each branch — damage, range, health, and push get pricier every tier.';
   }
 
+  function syncEconomyPanelCopy() {
+    const el = document.getElementById('economy-upgrade-desc');
+    if (!el) return;
+    el.textContent = pvpMode
+      ? 'Unlock farms and mints, then climb each tree. Mint has more tiers than farms. Enemy upgrade levels are hidden.'
+      : 'Unlock Farm and Mint, upgrade your HQ, and climb each branch — deeper tiers cost more. Mint upgrades further than Farm.';
+  }
+
   function initPlayer(p) {
-    if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers() };
+    if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
+    if (!p.liveArmy.economy) p.liveArmy.economy = freshEconomy();
   }
 
   function setPlayersRef(players) { playersRef = players; }
@@ -235,8 +267,62 @@ window.LIVE_ARMY = (function () {
     return Math.floor(75 * Math.pow(1.68, lvl) + lvl * 30);
   }
 
+  function economyUnlockCost(type) {
+    return ECON_UNLOCK_COST[type] || 150;
+  }
+
+  function economyYieldCost(p, type) {
+    const eco = economyRecord(p);
+    const lvl = type === 'farm' ? eco.farm.yield : eco.mint.yield;
+    const base = type === 'mint' ? 72 : 52;
+    return Math.floor(base * Math.pow(1.74, lvl) + lvl * 30);
+  }
+
+  function economyBaseCost(p, branch) {
+    const eco = economyRecord(p);
+    const lvl = eco.base[branch] || 0;
+    const bases = { income: 58, health: 125, defense: 155 };
+    return Math.floor((bases[branch] || 80) * Math.pow(1.72, lvl) + lvl * 35);
+  }
+
+  function farmUnlocked(p) {
+    if (!active) return true;
+    return !!economyRecord(p).farm.unlocked;
+  }
+
+  function mintUnlocked(p) {
+    if (!active) return true;
+    return !!economyRecord(p).mint.unlocked;
+  }
+
+  function yieldMax(type) {
+    return type === 'mint' ? MINT_YIELD_MAX : FARM_YIELD_MAX;
+  }
+
+  function baseBranchMax(branch) {
+    return BASE_BRANCH_MAX[branch] || 0;
+  }
+
+  function economyIncomeLevel(p, type) {
+    const eco = economyRecord(p);
+    if (type === 'base') return 1 + (eco.base.income || 0);
+    if (type === 'farm') return eco.farm.unlocked ? 1 + (eco.farm.yield || 0) : 0;
+    if (type === 'mint') return eco.mint.unlocked ? 1 + (eco.mint.yield || 0) : 0;
+    return 1;
+  }
+
+  function baseHealthBonus(p) {
+    return (economyRecord(p).base.health || 0) * 150;
+  }
+
+  function baseDefenseLevel(p) {
+    return economyRecord(p).base.defense || 0;
+  }
+
   function canPlaceStructure(p, towerType) {
     if (!active) return true;
+    if (towerType === 'farm') return farmUnlocked(p);
+    if (towerType === 'mint') return mintUnlocked(p);
     if (towerType === 'barracks') {
       return p.turrets.filter(t => t.towerType === 'barracks' && t.hp > 0).length < 1;
     }
@@ -249,7 +335,8 @@ window.LIVE_ARMY = (function () {
   function isBottomToolbarVisible(tool, p) {
     if (!active) return true;
     if (tool === 'move') return true;
-    if (ECON_TOWERS.includes(tool)) return true;
+    if (tool === 'farm') return farmUnlocked(p);
+    if (tool === 'mint') return mintUnlocked(p);
     if (tool === 'barracks') return canPlaceStructure(p, 'barracks');
     if (tool === 'engineers') return canPlaceStructure(p, 'engineers');
     if (COMBAT_TOWERS.includes(tool)) return hasEngineers(p);
@@ -319,6 +406,13 @@ window.LIVE_ARMY = (function () {
         damage: 0, range: 0, health: 0, knockback: 0,
       };
     }
+    if (ep.liveArmy?.economy) {
+      ep.liveArmy.economy = {
+        farm: { unlocked: !!ep.liveArmy.economy.farm?.unlocked, yield: 0 },
+        mint: { unlocked: !!ep.liveArmy.economy.mint?.unlocked, yield: 0 },
+        base: { income: 0, health: 0, defense: 0 },
+      };
+    }
     if (ep.turrets) {
       ep.turrets = ep.turrets.map((t) => {
         const c = { ...t };
@@ -350,6 +444,8 @@ window.LIVE_ARMY = (function () {
     onBattleEnd,
     syncBarracksPanelCopy,
     syncEngineersPanelCopy,
+    syncEconomyPanelCopy,
+    syncEngineersPanelCopy,
     initPlayer,
     setPlayersRef,
     getTowerFootprint,
@@ -365,6 +461,17 @@ window.LIVE_ARMY = (function () {
     unitUnlockCost,
     statUpgradeCost,
     engineersUpgradeCost,
+    economyRecord,
+    economyUnlockCost,
+    economyYieldCost,
+    economyBaseCost,
+    farmUnlocked,
+    mintUnlocked,
+    yieldMax,
+    baseBranchMax,
+    economyIncomeLevel,
+    baseHealthBonus,
+    baseDefenseLevel,
     unitRecord,
     goblinLootAmount,
     farmIncomeScale,
@@ -376,6 +483,7 @@ window.LIVE_ARMY = (function () {
     freshMissileUpgrades,
     freshBarracks,
     freshEngineers,
+    freshEconomy,
     UNIT_ORDER,
     UNIT_LABELS,
     UNIT_UNLOCK_COST,
@@ -385,6 +493,13 @@ window.LIVE_ARMY = (function () {
     ENGINEER_BRANCH_LABELS,
     ENGINEER_BRANCH_ICONS,
     ENGINEER_STAT_MAX,
+    ECON_UNLOCK_COST,
+    FARM_YIELD_MAX,
+    MINT_YIELD_MAX,
+    BASE_BRANCHES,
+    BASE_BRANCH_LABELS,
+    BASE_BRANCH_ICONS,
+    BASE_BRANCH_MAX,
     STRUCTURE_SIZE,
     FARM_SIZE,
   };
