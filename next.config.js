@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async rewrites() {
+    return [{ source: '/TDG', destination: '/TDG/index.html' }];
+  },
   images: {
     domains: [],
   },
