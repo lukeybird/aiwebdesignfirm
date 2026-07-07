@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Block Fortress — Tower Defense War</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@600;700&display=swap');
@@ -1244,7 +1244,13 @@
       font-size: 1.85rem;
       line-height: 1;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.55));
+      white-space: nowrap;
     }
+
+    .st-card-icon.st-icon-count-2 { font-size: 1.55rem; letter-spacing: -0.06em; }
+    .st-card-icon.st-icon-count-3 { font-size: 1.28rem; letter-spacing: -0.1em; }
+    .st-card-icon.st-icon-count-4 { font-size: 1.05rem; letter-spacing: -0.12em; }
+    .st-card-icon.st-icon-count-5 { font-size: 0.92rem; letter-spacing: -0.14em; }
 
     .st-card.root .st-card-icon { font-size: 2.15rem; }
 
@@ -1322,6 +1328,7 @@
     .st-theme-eng-rng { --st-accent: #3b82f6; --st-deep: #1e3a8a; }
     .st-theme-eng-hp { --st-accent: #22c55e; --st-deep: #14532d; }
     .st-theme-eng-push { --st-accent: #c084fc; --st-deep: #581c87; }
+    .st-theme-loot { --st-accent: #fbbf24; --st-deep: #713f12; }
     .st-theme-atk { --st-accent: #f97316; --st-deep: #7c2d12; }
     .st-theme-spd { --st-accent: #eab308; --st-deep: #713f12; }
     .st-theme-hp { --st-accent: #ec4899; --st-deep: #831843; }
@@ -1367,6 +1374,249 @@
       opacity: 0.75;
       margin-bottom: 4px;
       text-align: center;
+    }
+
+    /* Barracks: big unit row on top, compact upgrade lines below */
+    .brk-board {
+      width: 100%;
+      max-width: 100%;
+      padding: 0 4px 6px;
+      overflow-x: auto;
+    }
+
+    .brk-units-strip,
+    .brk-upgrades-strip {
+      min-width: calc(var(--brk-cols, 6) * 84px);
+    }
+
+    .brk-section-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #e8c547;
+      text-align: center;
+      margin: 2px 0 8px;
+      opacity: 0.88;
+    }
+
+    .brk-units-strip,
+    .brk-upgrades-strip {
+      display: grid;
+      grid-template-columns: repeat(var(--brk-cols, 6), minmax(0, 1fr));
+      gap: 8px 6px;
+      width: 100%;
+    }
+
+    .brk-units-strip {
+      padding-bottom: 12px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgba(201, 162, 39, 0.28);
+    }
+
+    .brk-main-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .brk-main-info {
+      position: absolute;
+      top: -2px;
+      right: 2px;
+      z-index: 2;
+    }
+
+    .brk-main-wrap .brk-main-card,
+    .brk-main-wrap .st-card.root {
+      width: 100%;
+      max-width: 96px;
+    }
+
+    .brk-main-wrap .st-card-body {
+      min-height: 72px;
+    }
+
+    .brk-main-wrap .st-card-icon {
+      font-size: 2rem;
+    }
+
+    .brk-main-cost {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: #f0d060;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .brk-lane {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 6px 4px 8px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      min-width: 0;
+    }
+
+    .brk-lane.is-locked {
+      opacity: 0.42;
+    }
+
+    .brk-lane-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.52rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--st-accent, #94a3b8);
+      opacity: 0.85;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .brk-stat-line {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: stretch;
+    }
+
+    .brk-stat-tag {
+      font-size: 0.48rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: center;
+      opacity: 0.8;
+      line-height: 1.1;
+    }
+
+    .brk-stat-tag[class*="st-theme-"] {
+      color: var(--st-accent);
+    }
+
+    .brk-stat-track {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: nowrap;
+      gap: 0;
+      padding: 1px 0;
+    }
+
+    .brk-mini-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      border: none;
+      background: transparent;
+      padding: 0;
+      font-family: inherit;
+      color: inherit;
+      flex-shrink: 0;
+    }
+
+    button.brk-mini-node {
+      cursor: pointer;
+    }
+
+    button.brk-mini-node:not(:disabled):hover .brk-mini-gem {
+      transform: scale(1.1);
+      filter: brightness(1.12);
+    }
+
+    .brk-mini-gem {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      font-size: 0.62rem;
+      line-height: 1;
+      white-space: nowrap;
+      border: 2px solid rgba(100, 116, 139, 0.55);
+      background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.18), rgba(15, 23, 42, 0.88) 68%);
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.5);
+      transition: transform 0.12s, filter 0.12s, box-shadow 0.12s;
+    }
+
+    .brk-mini-gem.brk-icons-2 {
+      font-size: 0.5rem;
+      letter-spacing: -0.06em;
+    }
+
+    .brk-mini-gem.brk-icons-3 {
+      font-size: 0.42rem;
+      letter-spacing: -0.1em;
+    }
+
+    .brk-mini-gem.brk-icons-4 {
+      font-size: 0.36rem;
+      letter-spacing: -0.12em;
+    }
+
+    .brk-mini-gem.brk-icons-5 {
+      font-size: 0.32rem;
+      letter-spacing: -0.14em;
+    }
+
+    .brk-mini-owned .brk-mini-gem {
+      border-color: #4ade80;
+      box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.12), 0 0 8px rgba(74, 222, 128, 0.3);
+      background: radial-gradient(circle at 32% 28%, rgba(134, 239, 172, 0.4), rgba(21, 128, 61, 0.75) 70%);
+    }
+
+    .brk-mini-owned.maxed .brk-mini-gem {
+      border-color: #fde047;
+      background: radial-gradient(circle at 32% 28%, #fef9c3, #ca8a04 72%);
+      box-shadow: 0 0 10px rgba(253, 224, 71, 0.45);
+    }
+
+    .brk-mini-available .brk-mini-gem {
+      border-color: #fbbf24;
+      animation: st-glow 1.8s ease-in-out infinite;
+    }
+
+    .brk-mini-afford-wait .brk-mini-gem {
+      border-color: #f87171;
+      opacity: 0.88;
+    }
+
+    .brk-mini-future {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .brk-mini-cost,
+    .brk-mini-tier {
+      font-size: 0.44rem;
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .brk-mini-cost {
+      color: #fcd34d;
+    }
+
+    .brk-mini-tier {
+      opacity: 0.55;
+    }
+
+    .brk-mini-join {
+      width: 5px;
+      height: 2px;
+      flex-shrink: 0;
+      background: linear-gradient(90deg, #8b6914, #e8c547, #8b6914);
+      opacity: 0.65;
     }
 
     #barracks-upgrade-list,
@@ -1941,6 +2191,195 @@
     .ach-panel-row .ach-info-title { font-weight: 700; line-height: 1.2; }
     .ach-panel-row .ach-info-desc { opacity: 0.78; font-size: 0.65rem; margin-top: 2px; }
     .ach-panel-row .ach-info-reward { color: #FFE66D; font-weight: 600; margin-top: 3px; font-size: 0.65rem; }
+
+    button, .tool-btn, .banner-btn, .surv-speed-btn, .fs-toggle-btn {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #upgrade-dock { display: contents; }
+
+    .fs-toggle-btn {
+      pointer-events: auto;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      color: #e8ebe0;
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.12s, transform 0.12s;
+    }
+
+    .fs-toggle-btn:hover { background: rgba(255, 255, 255, 0.25); }
+    .fs-toggle-btn:active { transform: scale(0.94); }
+
+    body.mobile-mode > h1,
+    body.mobile-mode > .subtitle,
+    body.fullscreen-mode > h1,
+    body.fullscreen-mode > .subtitle {
+      display: none;
+    }
+
+    body.fullscreen-mode {
+      padding: 0;
+      justify-content: flex-start;
+    }
+
+    body.fullscreen-mode #game-wrapper {
+      border-radius: 0;
+      box-shadow: none;
+      max-width: none;
+      max-height: none;
+    }
+
+    body.fullscreen-mode #top-bar {
+      padding-top: max(8px, env(safe-area-inset-top));
+      padding-left: max(10px, env(safe-area-inset-left));
+      padding-right: max(10px, env(safe-area-inset-right));
+    }
+
+    body.fullscreen-mode #bottom-panel {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      padding-left: max(8px, env(safe-area-inset-left));
+      padding-right: max(8px, env(safe-area-inset-right));
+    }
+
+    body.mobile-mode #top-bar {
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px;
+      pointer-events: auto;
+    }
+
+    body.mobile-mode .stat-pill {
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      min-height: 40px;
+    }
+
+    body.mobile-mode .surv-speed-btn {
+      min-width: 44px;
+      min-height: 40px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+    }
+
+    body.mobile-mode .fs-toggle-btn {
+      width: 48px;
+      height: 48px;
+      font-size: 1.35rem;
+    }
+
+    body.mobile-mode #upgrade-dock {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: absolute;
+      top: 44px;
+      left: 8px;
+      right: 8px;
+      pointer-events: auto;
+      z-index: 16;
+    }
+
+    body.mobile-mode #upgrade-dock > button {
+      position: static;
+      left: auto;
+      top: auto;
+      flex: 1 1 calc(50% - 4px);
+      min-height: 48px;
+      height: auto;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      border-radius: 12px;
+    }
+
+    body.mobile-mode #bottom-panel {
+      padding: 12px 8px max(12px, env(safe-area-inset-bottom));
+      gap: 10px;
+      max-height: 42vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      align-content: flex-start;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    body.mobile-mode .tool-btn {
+      min-width: 96px;
+      min-height: 56px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+    }
+
+    body.mobile-mode .tool-btn .cost { font-size: 0.78rem; }
+
+    body.mobile-mode .btn-ready {
+      min-width: 140px;
+      min-height: 56px;
+      font-size: 1.1rem;
+      padding: 14px 24px;
+    }
+
+    body.mobile-mode .banner-btn,
+    body.mobile-mode .survival-diff-btn {
+      min-height: 52px;
+      min-width: min(100%, 320px);
+      font-size: 1.1rem;
+      padding: 16px 24px;
+    }
+
+    body.mobile-mode .menu-btn-row .banner-btn { min-width: min(100%, 320px); }
+
+    body.mobile-mode .st-header-close,
+    body.mobile-mode .econ-panel-header button,
+    body.mobile-mode #ach-panel-close {
+      width: 48px;
+      height: 48px;
+      font-size: 1.2rem;
+    }
+
+    body.mobile-mode .st-scroll-btn {
+      width: 56px;
+      height: 64px;
+      font-size: 1.5rem;
+    }
+
+    body.mobile-mode .econ-upgrade-buy {
+      min-height: 48px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+    }
+
+    body.mobile-mode .brk-mini-gem {
+      width: 36px;
+      height: 36px;
+      font-size: 0.75rem;
+    }
+
+    body.mobile-mode .brk-main-wrap .st-card.root { width: 100px; }
+
+    body.mobile-mode #ach-medal-btn {
+      top: auto;
+      right: 10px;
+      bottom: calc(42vh + 16px);
+      width: 52px;
+      height: 52px;
+      font-size: 1.5rem;
+    }
+
+    body.mobile-mode #phase-banner {
+      padding: 24px 20px;
+      width: min(96%, 480px);
+    }
+
+    body.mobile-mode #phase-banner h2 { font-size: 1.45rem; }
+
+    body.mobile-mode .online-panel .banner-btn { width: 100%; }
   </style>
 </head>
 <body>
@@ -1960,15 +2399,18 @@
           <button type="button" class="surv-speed-btn" data-speed="2">2×</button>
           <button type="button" class="surv-speed-btn" data-speed="4">4×</button>
         </div>
+        <button type="button" id="fullscreen-btn" class="fs-toggle-btn" title="Enter fullscreen" aria-label="Toggle fullscreen" aria-pressed="false">⤢</button>
       </div>
       <div id="log-feed"></div>
       <div id="achievement-feed-p0"></div>
       <div id="achievement-feed-p1"></div>
       <button id="ach-medal-btn" class="hidden" title="View achievements">🏅</button>
-      <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">Economy</button>
-      <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">Barracks</button>
-      <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">Engineers</button>
-      <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
+      <div id="upgrade-dock">
+        <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">Economy</button>
+        <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">Barracks</button>
+        <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">Engineers</button>
+        <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
+      </div>
       <div id="barracks-upgrade-panel" class="hidden">
         <div class="st-panel">
           <div class="st-header">
@@ -1976,7 +2418,7 @@
             <h3 class="st-header-title">Barracks Skill Tree</h3>
             <button id="barracks-panel-close" class="st-header-close" type="button">✕</button>
           </div>
-          <p id="barracks-upgrade-desc" class="st-panel-desc">Recruit units, then upgrade speed, attack, and health along each branch.</p>
+          <p id="barracks-upgrade-desc" class="st-panel-desc">Unlock units in the top row, then upgrade each type on the small tracks below.</p>
           <div class="st-scroll-wrap">
             <div id="barracks-upgrade-list" class="st-skill-scroll"></div>
             <div class="st-scroll-nav" aria-label="Scroll barracks tree">
@@ -1993,7 +2435,7 @@
             <h3 class="st-header-title">Engineers Skill Tree</h3>
             <button id="engineers-panel-close" class="st-header-close" type="button">✕</button>
           </div>
-          <p id="engineers-upgrade-desc" class="st-panel-desc">Power up every combat tower. Each branch grows stronger at higher cost.</p>
+          <p id="engineers-upgrade-desc" class="st-panel-desc">Unlock each tower type, then upgrade damage, range, health, and knockback along each branch.</p>
           <div class="st-scroll-wrap">
             <div id="engineers-upgrade-list" class="st-skill-scroll"></div>
             <div class="st-scroll-nav" aria-label="Scroll engineers tree">
@@ -2344,6 +2786,7 @@ function syncLiveArmyStructures() {
     LIVE_ARMY.initPlayer(p);
     p.liveArmy.barracks.built = p.turrets.some((t) => t.towerType === 'barracks' && t.hp > 0);
     p.liveArmy.engineers.built = p.turrets.some((t) => t.towerType === 'engineers' && t.hp > 0);
+    LIVE_ARMY.engineersRecord(p);
   }
 }
 
@@ -2571,13 +3014,13 @@ const SURVIVAL_FARM_INCOME = 2;
 const SURVIVAL_AI_THINK_INTERVAL = 1;
 const SURVIVAL_AI_MAX_UNITS = 22;
 const SURVIVAL_AI_INCOME_MULT = {
-  easy: 2,
-  medium: 3,
-  hard: 5,
+  easy: 2.5,
+  medium: 3.5,
+  hard: 5.5,
 };
-const SURVIVAL_AI_COUNTER_MULT = 2;
-const SURVIVAL_AI_PEACE_ATTACK_CHANCE = 0.25;
-const SURVIVAL_AI_PEACE_ATTACK_DELAY = 60;
+const SURVIVAL_AI_GOALS = ['economy', 'attack', 'defend'];
+const SURVIVAL_AI_GOAL_LABELS = { economy: 'Make money', attack: 'Attack', defend: 'Defend' };
+const SURVIVAL_AI_SPLURGE_CHANCE = { easy: 0.3, medium: 0.18, hard: 0.1 };
 const INCOME_UPGRADE_MAX = 8;
 const INCOME_UPGRADE_DEFS = {
   base: { name: 'Base Income', icon: '🏛', baseYield: 10, upgradeStep: 2, baseCost: 110, intervalLabel: '3s' },
@@ -2673,12 +3116,18 @@ function skillStars(tier, maxTier) {
   return s;
 }
 
+function tieredStatIcon(glyph, tier) {
+  const count = Math.max(1, Math.min(tier || 1, 5));
+  return (glyph || '⭐').repeat(count);
+}
+
 const UNIT_THEME_MAP = {
   tank: 'tank', speed: 'speed', goblin: 'goblin', striker: 'knight', sniper: 'sniper', peka: 'peka',
 };
 const STAT_THEME_MAP = { speed: 'spd', damage: 'atk', health: 'hp' };
 const ENG_THEME_MAP = { damage: 'eng-dmg', range: 'eng-rng', health: 'eng-hp', knockback: 'eng-push' };
 const STAT_FULL_LABEL = { speed: 'Speed', damage: 'Attack', health: 'Health' };
+const GOBLIN_LOOT_LABEL = 'Loot';
 const BASE_BRANCH_THEME = { income: 'income', health: 'health', defense: 'defense' };
 
 function econHarvestSpeedMeta(type, tier) {
@@ -2693,9 +3142,10 @@ function econHarvestSpeedMeta(type, tier) {
 function econHarvestYieldMeta(type, tier) {
   const amount = 1 + tier;
   const label = type === 'farm' ? 'Farm Yield' : 'Mint Yield';
+  const from = amount - 1;
   return {
     title: `${label} ${tier}`,
-    tooltip: `Earn ${amount} coin${amount === 1 ? '' : 's'} per harvest. Level ${tier} increases each payout.`,
+    tooltip: `Raises harvest from ${from} to ${amount} coin${amount === 1 ? '' : 's'} per payout.`,
   };
 }
 
@@ -2722,7 +3172,7 @@ function barracksUnlockMeta(ut) {
   const tips = {
     tank: 'Heavy frontline unit with high HP and steady damage.',
     speed: 'Fast rush unit — reaches enemy lines quickly.',
-    goblin: 'Immune to rail gun beams. Loots coins from farms and mints on hit. Targets economy buildings before towers.',
+    goblin: 'Immune to rail gun beams. Steals coins from farms and mints on every hit — upgrade the Loot branch to steal more.',
     striker: 'Balanced knight — solid speed, attack, and health.',
     sniper: 'Long-range damage dealer. Fragile but hits hard from afar.',
     peka: 'Elite armored powerhouse. Very expensive but devastating.',
@@ -2734,8 +3184,38 @@ function barracksUnlockMeta(ut) {
   };
 }
 
-function barracksStatMeta(unitLabel, stat, tier) {
-  const statName = STAT_FULL_LABEL[stat];
+function barracksStatBranchLabel(unitType, stat) {
+  if (unitType === 'goblin' && stat === 'damage') return GOBLIN_LOOT_LABEL;
+  return STAT_FULL_LABEL[stat];
+}
+
+function barracksStatBranchIcon(unitType, stat) {
+  if (unitType === 'goblin' && stat === 'damage') return '🪙';
+  return STAT_SKILL_ICONS[stat];
+}
+
+function barracksStatTierIcon(unitType, stat, tier) {
+  return tieredStatIcon(barracksStatBranchIcon(unitType, stat), tier);
+}
+
+function barracksStatBranchTheme(unitType, stat) {
+  if (unitType === 'goblin' && stat === 'damage') return 'loot';
+  return STAT_THEME_MAP[stat];
+}
+
+function barracksStatMeta(unitLabel, stat, tier, unitType) {
+  if (unitType === 'goblin' && stat === 'damage') {
+    const farm = LIVE_ARMY.goblinLootPreview(tier, 'farm');
+    const mint = LIVE_ARMY.goblinLootPreview(tier, 'mint');
+    const prevFarm = LIVE_ARMY.goblinLootPreview(tier - 1, 'farm');
+    const prevMint = LIVE_ARMY.goblinLootPreview(tier - 1, 'mint');
+    return {
+      title: `${unitLabel} Loot ${tier}`,
+      tooltip: `Steals ${farm}🪙 per farm hit and ${mint}🪙 per mint hit (up from ${prevFarm}/${prevMint}). Also +3 damage vs buildings.`,
+      theme: 'loot',
+    };
+  }
+  const statName = barracksStatBranchLabel(unitType, stat);
   const tips = {
     speed: `Increases ${unitLabel} movement speed. Level ${tier} reaches targets faster.`,
     damage: `Boosts ${unitLabel} attack damage. Level ${tier} hits harder.`,
@@ -2744,15 +3224,33 @@ function barracksStatMeta(unitLabel, stat, tier) {
   return { title: `${unitLabel} ${statName}`, tooltip: tips[stat], theme: STAT_THEME_MAP[stat] };
 }
 
-function engineersBranchMeta(branch, tier) {
-  const names = { damage: 'Tower Damage', range: 'Tower Range', health: 'Tower Health', knockback: 'Knockback' };
+function engineersBranchMeta(towerLabel, branch, tier) {
+  const names = { damage: 'Damage', range: 'Range', health: 'Health', knockback: 'Knockback' };
   const tips = {
-    damage: `Increases damage for all combat towers. Level ${tier} adds more firepower.`,
-    range: `Extends attack range for cannons, rail guns, spreaders, and missiles. Level ${tier} reaches farther.`,
-    health: `Adds HP to every combat tower. Level ${tier} makes your defenses tankier.`,
-    knockback: `Increases knockback on tower hits. Level ${tier} pushes enemies back further.`,
+    damage: `Increases ${towerLabel} damage. Level ${tier} adds more firepower.`,
+    range: `Extends ${towerLabel} attack range. Level ${tier} reaches farther.`,
+    health: `Adds HP to ${towerLabel} towers. Level ${tier} makes them tankier.`,
+    knockback: `Increases ${towerLabel} knockback on hits. Level ${tier} pushes enemies back further.`,
   };
-  return { title: `${names[branch]} ${tier}`, tooltip: tips[branch], theme: ENG_THEME_MAP[branch] };
+  return { title: `${towerLabel} ${names[branch]}`, tooltip: tips[branch], theme: ENG_THEME_MAP[branch] };
+}
+
+const TOWER_THEME_MAP = { turret: 'eng-dmg', laser: 'eng-rng', spread: 'eng-push', missile: 'eng' };
+const TOWER_SKILL_ICONS = { turret: '🔫', laser: '⚡', spread: '💥', missile: '🚀' };
+
+function engineersTowerUnlockMeta(tt) {
+  const label = LIVE_ARMY.TOWER_LABELS[tt] || tt;
+  const tips = {
+    turret: 'Unlock cannon turrets for steady single-target damage.',
+    laser: 'Unlock rail guns — piercing beam attacks.',
+    spread: 'Unlock spreaders — close-range burst fire with knockback.',
+    missile: 'Unlock missile bases — long-range area blasts.',
+  };
+  return {
+    title: `Unlock ${label}`,
+    tooltip: tips[tt] || `Unlock ${label} for your build bar.`,
+    theme: TOWER_THEME_MAP[tt] || 'eng',
+  };
 }
 
 function skillCardHtml({
@@ -2786,6 +3284,9 @@ function skillCardHtml({
     ? skillStars(Math.min(ownedTier, tier <= ownedTier ? tier : ownedTier), maxTier)
     : (state.startsWith('owned') ? skillStars(isUnlock ? 1 : tier, isUnlock ? 1 : maxTier) : '');
 
+  const iconCount = (!isUnlock && tier) ? Math.max(1, Math.min(tier, 5)) : 1;
+  const displayIcon = isUnlock ? icon : tieredStatIcon(icon, tier);
+
   let html = '<div class="st-card-wrap">';
   html += '<div class="st-card-head">';
   html += `<span class="st-card-title">${escapeHtml(title)}</span>`;
@@ -2796,7 +3297,7 @@ function skillCardHtml({
   html += '</div>';
 
   html += `<${tag} class="st-card st-theme-${theme} ${state}${root ? ' root' : ''}"${attrs}>`;
-  html += `<div class="st-card-body"><span class="st-card-icon">${icon}</span>`;
+  html += `<div class="st-card-body"><span class="st-card-icon${iconCount > 1 ? ` st-icon-count-${iconCount}` : ''}">${displayIcon}</span>`;
   if (state === 'future') html += '<div class="st-chain">⛓</div>';
   html += '</div>';
   html += `<div class="st-card-foot">${footLabel}</div>`;
@@ -2820,6 +3321,79 @@ function dramaticSkillRow(nodeHtmlList, wide = false, theme = 'hq') {
   let html = '<div class="st-row">';
   nodeHtmlList.forEach((node, i) => {
     if (i > 0) html += `<div class="st-hline${wide ? ' wide' : ''} st-theme-${theme}"></div>`;
+    html += node;
+  });
+  html += '</div>';
+  return html;
+}
+
+function barracksMainUnitCardHtml({ theme, icon, label, tooltip, unlocked, afford, cost, dataAttrs }) {
+  let state;
+  let tag = 'div';
+  let attrs = '';
+  if (unlocked) {
+    state = 'owned maxed';
+  } else {
+    tag = 'button';
+    attrs = ` type="button"${dataAttrs || ''}`;
+    state = afford ? 'available' : 'afford-wait';
+    if (!afford) attrs += ' disabled';
+  }
+
+  let html = `<div class="brk-main-wrap st-theme-${theme}">`;
+  if (tooltip) {
+    html += '<span class="brk-main-info st-info" tabindex="0"><span class="st-info-i">i</span>';
+    html += `<span class="st-tooltip">${escapeHtml(tooltip)}</span></span>`;
+  }
+  html += `<${tag} class="brk-main-card st-card st-theme-${theme} ${state} root"${attrs}>`;
+  html += `<div class="st-card-body"><span class="st-card-icon">${icon}</span></div>`;
+  html += `<div class="st-card-foot">${escapeHtml(unlocked ? label : 'Unlock')}</div>`;
+  html += `</${tag}>`;
+  if (!unlocked && (state === 'available' || state === 'afford-wait')) {
+    html += `<div class="brk-main-cost">${cost}🪙</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function barracksMiniStatNodeHtml({
+  tier, maxTier, ownedTier, unlocked, cost, afford, icon, dataAttrs, theme, tip,
+}) {
+  let state = 'future';
+  let tag = 'div';
+  let attrs = '';
+  if (tier <= ownedTier) {
+    state = tier === maxTier ? 'owned maxed' : 'owned';
+  } else if (tier === ownedTier + 1 && unlocked) {
+    tag = 'button';
+    attrs = ` type="button"${dataAttrs || ''}`;
+    state = afford ? 'available' : 'afford-wait';
+    if (!afford) attrs += ' disabled';
+  }
+
+  const stateClass = state === 'future' ? 'brk-mini-future'
+    : state === 'owned maxed' ? 'brk-mini-owned maxed'
+      : state === 'owned' ? 'brk-mini-owned'
+        : state === 'available' ? 'brk-mini-available'
+          : 'brk-mini-afford-wait';
+  const titleAttr = tip ? ` title="${escapeHtml(tip).replace(/"/g, '&quot;')}"` : '';
+  const iconCount = Math.max(1, Math.min(tier, 5));
+
+  let html = `<${tag} class="brk-mini-node ${stateClass} st-theme-${theme}"${attrs}${titleAttr}>`;
+  html += `<span class="brk-mini-gem brk-icons-${iconCount}">${icon}</span>`;
+  if (state === 'available' || state === 'afford-wait') {
+    html += `<span class="brk-mini-cost">${cost}</span>`;
+  } else {
+    html += `<span class="brk-mini-tier">${tier}</span>`;
+  }
+  html += `</${tag}>`;
+  return html;
+}
+
+function barracksMiniStatRow(nodes, theme) {
+  let html = '<div class="brk-stat-track">';
+  nodes.forEach((node, i) => {
+    if (i > 0) html += `<span class="brk-mini-join st-theme-${theme}"></span>`;
     html += node;
   });
   html += '</div>';
@@ -2863,7 +3437,9 @@ function buyEconomyUpgrade(pid, kind, target) {
     if (rec.unlocked || p.coins < cost) return false;
     p.coins -= cost;
     rec.unlocked = true;
-    addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building`);
+    rec.yield = LIVE_ARMY.YIELD_START || 1;
+    rec.yieldCoinAmount = true;
+    addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building (+${rec.yield} per harvest)`);
   } else if (kind === 'speed') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
     if (!rec.unlocked || rec.speed >= LIVE_ARMY.speedMax()) return false;
@@ -2883,7 +3459,7 @@ function buyEconomyUpgrade(pid, kind, target) {
     rec.yield += 1;
     const amt = LIVE_ARMY.harvestAmount(p, target);
     const label = target === 'farm' ? 'Farm' : 'Mint';
-    addLog(`💰 ${p.name}: ${label} harvest yield T${rec.yield} (+${amt} per harvest)`);
+    addLog(`💰 ${p.name}: ${label} harvest yield → ${amt} per harvest`);
   } else if (kind === 'base') {
     const branch = target;
     const lvl = eco.base[branch] || 0;
@@ -2998,7 +3574,7 @@ function buyBarracksUpgrade(pid, kind, unitType, stat) {
     p.coins -= cost;
     rec[stat] = (rec[stat] || 0) + 1;
     const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
-    const statLabel = stat === 'damage' ? 'attack' : stat;
+    const statLabel = (unitType === 'goblin' && stat === 'damage') ? 'loot' : (stat === 'damage' ? 'attack' : stat);
     addLog(`🏕 ${p.name}: ${label} ${statLabel} Lv${rec[stat]}`);
   } else {
     return false;
@@ -3008,17 +3584,30 @@ function buyBarracksUpgrade(pid, kind, unitType, stat) {
   return true;
 }
 
-function buyEngineersUpgrade(pid, branch) {
+function buyEngineersUpgrade(pid, kind, towerType, branch) {
   const p = players[pid];
   const eng = p.liveArmy?.engineers;
   if (!eng?.built) return false;
-  const lvl = eng[branch] || 0;
-  const cost = LIVE_ARMY.engineersUpgradeCost(p, branch);
-  if (p.coins < cost || lvl >= LIVE_ARMY.ENGINEER_STAT_MAX) return false;
-  p.coins -= cost;
-  eng[branch] = lvl + 1;
-  const label = LIVE_ARMY.ENGINEER_BRANCH_LABELS?.[branch] || branch;
-  addLog(`🔧 ${p.name}: Engineers ${label} T${eng[branch]}`);
+  const rec = LIVE_ARMY.towerRecord(p, towerType);
+  if (kind === 'unlock') {
+    const cost = LIVE_ARMY.towerUnlockCost(towerType);
+    if (rec.unlocked || p.coins < cost) return false;
+    p.coins -= cost;
+    rec.unlocked = true;
+    const label = LIVE_ARMY.TOWER_LABELS[towerType] || towerType;
+    addLog(`🔧 ${p.name}: Unlocked ${label}`);
+  } else if (kind === 'stat' && branch) {
+    if (!rec.unlocked || (rec[branch] || 0) >= LIVE_ARMY.ENGINEER_STAT_MAX) return false;
+    const cost = LIVE_ARMY.engineersUpgradeCost(p, towerType, branch);
+    if (p.coins < cost) return false;
+    p.coins -= cost;
+    rec[branch] = (rec[branch] || 0) + 1;
+    const label = LIVE_ARMY.TOWER_LABELS[towerType] || towerType;
+    const statLabel = LIVE_ARMY.ENGINEER_BRANCH_LABELS?.[branch] || branch;
+    addLog(`🔧 ${p.name}: ${label} ${statLabel} Lv${rec[branch]}`);
+  } else {
+    return false;
+  }
   updateEngineersUpgradeUI();
   updateUI();
   return true;
@@ -3053,10 +3642,14 @@ function updateBarracksUpgradeUI(force) {
   }
 
   const branches = LIVE_ARMY.STAT_BRANCHES || ['speed', 'damage', 'health'];
-  let html = '<div class="st-grid-scroll"><div class="st-unit-grid">';
+  const units = LIVE_ARMY.UNIT_ORDER.filter((ut) => UNIT_TYPES[ut]);
+  const colCount = Math.max(units.length, 1);
 
-  for (const ut of LIVE_ARMY.UNIT_ORDER) {
-    if (!UNIT_TYPES[ut]) continue;
+  let html = `<div class="brk-board" style="--brk-cols:${colCount}">`;
+  html += '<div class="brk-section-label">Recruit units</div>';
+  html += '<div class="brk-units-strip">';
+
+  for (const ut of units) {
     const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
     const rec = LIVE_ARMY.unitRecord(p, ut);
     const unlockCost = LIVE_ARMY.unitUnlockCost(ut);
@@ -3064,53 +3657,58 @@ function updateBarracksUpgradeUI(force) {
     const unitTheme = UNIT_THEME_MAP[ut] || 'tank';
     const unlockMeta = barracksUnlockMeta(ut);
 
-    html += `<div class="st-unit-col st-theme-${unitTheme}">`;
-    html += `<div class="st-unit-col-title">${label}</div>`;
-
-    html += skillCardHtml({
+    html += barracksMainUnitCardHtml({
       theme: unitTheme,
       icon: UNIT_SKILL_ICONS[ut] || '⚔️',
-      title: unlockMeta.title,
+      label,
       tooltip: unlockMeta.tooltip,
-      isUnlock: true,
       unlocked,
       afford: p.coins >= unlockCost,
       cost: unlockCost,
-      tier: 0,
-      maxTier: 0,
-      ownedTier: unlocked ? 1 : 0,
       dataAttrs: unlocked ? '' : ` data-barracks-unlock="${ut}"`,
     });
+  }
 
-    html += '<div class="st-vline mid"></div>';
-    html += '<div class="st-unit-branches">';
+  html += '</div>';
+  html += '<div class="brk-section-label">Unit upgrades</div>';
+  html += '<div class="brk-upgrades-strip">';
+
+  for (const ut of units) {
+    const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
+    const rec = LIVE_ARMY.unitRecord(p, ut);
+    const unlocked = !!rec.unlocked;
+    const unitTheme = UNIT_THEME_MAP[ut] || 'tank';
+
+    html += `<div class="brk-lane${unlocked ? '' : ' is-locked'} st-theme-${unitTheme}">`;
+    html += `<div class="brk-lane-title">${escapeHtml(label)}</div>`;
 
     for (const stat of branches) {
+      const branchTheme = barracksStatBranchTheme(ut, stat);
+      const branchLabel = barracksStatBranchLabel(ut, stat);
       const nodes = [];
       for (let tier = 1; tier <= LIVE_ARMY.STAT_MAX; tier++) {
-        const meta = barracksStatMeta(label, stat, tier);
+        const meta = barracksStatMeta(label, stat, tier, ut);
         const cost = LIVE_ARMY.statUpgradeCost(p, ut, stat);
-        nodes.push(skillCardHtml({
-          theme: STAT_THEME_MAP[stat],
-          icon: STAT_SKILL_ICONS[stat],
-          title: meta.title,
-          tooltip: meta.tooltip,
+        nodes.push(barracksMiniStatNodeHtml({
           tier,
           maxTier: LIVE_ARMY.STAT_MAX,
           ownedTier: rec[stat] || 0,
           unlocked,
           cost,
           afford: p.coins >= cost,
+          icon: barracksStatTierIcon(ut, stat, tier),
+          theme: branchTheme,
           dataAttrs: ` data-barracks-stat="${stat}" data-barracks-unit="${ut}"`,
+          tip: meta.tooltip,
         }));
       }
-      html += '<div class="st-branch-block">';
-      html += `<div class="st-unit-branch-label st-theme-${STAT_THEME_MAP[stat]}">${STAT_FULL_LABEL[stat]}</div>`;
-      html += dramaticSkillRow(nodes, true, STAT_THEME_MAP[stat]);
+      html += '<div class="brk-stat-line">';
+      html += `<span class="brk-stat-tag st-theme-${branchTheme}">${escapeHtml(branchLabel)}</span>`;
+      html += barracksMiniStatRow(nodes, branchTheme);
       html += '</div>';
     }
 
-    html += '</div></div>';
+    html += '</div>';
   }
 
   html += '</div></div>';
@@ -3132,58 +3730,67 @@ function updateEngineersUpgradeUI(force) {
 
   const branches = LIVE_ARMY.ENGINEER_BRANCHES || ['damage', 'range', 'health', 'knockback'];
   const icons = LIVE_ARMY.ENGINEER_BRANCH_ICONS || { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨' };
-  const maxTier = LIVE_ARMY.ENGINEER_STAT_MAX || 6;
+  const maxTier = LIVE_ARMY.ENGINEER_STAT_MAX || 5;
+  let html = '<div class="st-grid-scroll"><div class="st-unit-grid">';
 
-  let html = '<div class="st-grid-scroll"><div class="st-canvas">';
+  for (const tt of LIVE_ARMY.COMBAT_TOWERS) {
+    if (!TOWER_TYPES[tt]) continue;
+    const label = LIVE_ARMY.TOWER_LABELS[tt] || tt;
+    const rec = LIVE_ARMY.towerRecord(p, tt);
+    const unlockCost = LIVE_ARMY.towerUnlockCost(tt);
+    const unlocked = !!rec.unlocked;
+    const towerTheme = TOWER_THEME_MAP[tt] || 'eng';
+    const unlockMeta = engineersTowerUnlockMeta(tt);
 
-  html += '<div class="st-trunk">';
-  html += skillCardHtml({
-    theme: 'eng',
-    icon: '🔧',
-    title: 'Engineers Camp',
-    tooltip: 'Online camp buffs every combat tower — cannons, rail guns, spreaders, and missiles.',
-    unlocked: true,
-    isUnlock: false,
-    ownedTier: 1,
-    tier: 1,
-    maxTier: 1,
-    root: true,
-  });
-  html += '<div class="st-vline tall"></div>';
-  html += '</div>';
+    html += `<div class="st-unit-col st-theme-${towerTheme}">`;
+    html += `<div class="st-unit-col-title">${label}</div>`;
 
-  html += '<div class="st-section">';
-  html += '<div class="st-section-title">Tower Upgrades</div>';
+    html += skillCardHtml({
+      theme: towerTheme,
+      icon: TOWER_SKILL_ICONS[tt] || '⚙️',
+      title: unlockMeta.title,
+      tooltip: unlockMeta.tooltip,
+      isUnlock: true,
+      unlocked,
+      afford: p.coins >= unlockCost,
+      cost: unlockCost,
+      tier: 0,
+      maxTier: 0,
+      ownedTier: unlocked ? 1 : 0,
+      dataAttrs: unlocked ? '' : ` data-eng-unlock="${tt}"`,
+    });
 
-  for (const branch of branches) {
-    const owned = eng[branch] || 0;
-    const nodes = [];
-    for (let tier = 1; tier <= maxTier; tier++) {
-      const meta = engineersBranchMeta(branch, tier);
-      const cost = LIVE_ARMY.engineersUpgradeCost(p, branch);
-      nodes.push(skillCardHtml({
-        theme: meta.theme,
-        icon: icons[branch] || '⚙️',
-        title: meta.title,
-        tooltip: meta.tooltip,
-        tier,
-        maxTier,
-        ownedTier: owned,
-        unlocked: true,
-        cost,
-        afford: p.coins >= cost,
-        dataAttrs: ` data-eng-branch="${branch}"`,
-      }));
+    html += '<div class="st-vline mid"></div>';
+    html += '<div class="st-unit-branches">';
+
+    for (const branch of branches) {
+      const nodes = [];
+      for (let tier = 1; tier <= maxTier; tier++) {
+        const meta = engineersBranchMeta(label, branch, tier);
+        const cost = LIVE_ARMY.engineersUpgradeCost(p, tt, branch);
+        nodes.push(skillCardHtml({
+          theme: ENG_THEME_MAP[branch],
+          icon: icons[branch] || '⚙️',
+          title: meta.title,
+          tooltip: meta.tooltip,
+          tier,
+          maxTier,
+          ownedTier: rec[branch] || 0,
+          unlocked,
+          cost,
+          afford: p.coins >= cost,
+          dataAttrs: ` data-eng-stat="${branch}" data-eng-tower="${tt}"`,
+        }));
+      }
+      html += '<div class="st-branch-block">';
+      html += `<div class="st-unit-branch-label st-theme-${ENG_THEME_MAP[branch]}">${LIVE_ARMY.ENGINEER_BRANCH_LABELS?.[branch] || branch}</div>`;
+      html += dramaticSkillRow(nodes, true, ENG_THEME_MAP[branch]);
+      html += '</div>';
     }
-    const branchLabel = LIVE_ARMY.ENGINEER_BRANCH_LABELS?.[branch] || branch;
-    html += '<div class="st-branch-block">';
-    html += `<div class="st-branch-name">${branchLabel}</div>`;
-    html += dramaticSkillRow(nodes, true, ENG_THEME_MAP[branch]);
-    html += '</div>';
+
+    html += '</div></div>';
   }
 
-  html += '<p class="st-footnote">Buffs cannons, rail guns, spreaders &amp; missiles</p>';
-  html += '</div>';
   html += '</div></div>';
   setSkillListHtml('engineers-upgrade-list', html);
   updateSkillPanelFooter('engineers-upgrade-footer', p.coins);
@@ -3496,7 +4103,7 @@ function updateIncomeUpgradeUI(force) {
 
   function economySideTree(type, title, icon) {
     const rec = type === 'farm' ? eco.farm : eco.mint;
-    const maxTier = LIVE_ARMY.ECON_BRANCH_MAX || LIVE_ARMY.yieldMax();
+    const maxTier = LIVE_ARMY.ECON_BRANCH_MAX || 3;
     const unlockCost = LIVE_ARMY.economyUnlockCost(type);
     const unlocked = !!rec.unlocked;
     const theme = type === 'farm' ? 'farm' : 'mint';
@@ -3529,7 +4136,7 @@ function updateIncomeUpgradeUI(force) {
         title: meta.title,
         tooltip: meta.tooltip,
         tier, maxTier, ownedTier: rec.speed, unlocked,
-        cost, afford: cost != null && p.coins >= cost, icon: '⏱',
+        cost, afford: cost != null && p.coins >= cost, icon: '⚡',
         dataAttrs: ` data-econ-speed="${type}"`,
       }));
     }
@@ -3546,8 +4153,8 @@ function updateIncomeUpgradeUI(force) {
         theme,
         title: meta.title,
         tooltip: meta.tooltip,
-        tier, maxTier, ownedTier: rec.yield, unlocked,
-        cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '💎' : '✦',
+        tier, maxTier, ownedTier: unlocked ? Math.max(0, (rec.yield || 1) - 1) : 0, unlocked,
+        cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '🌾' : '🪙',
         dataAttrs: ` data-econ-yield="${type}"`,
       }));
     }
@@ -3581,13 +4188,12 @@ function setSurvivalSpeed(mult) {
 }
 
 function survivalResetBattleSpeedOnEnemyAttack() {
-  if (isSurvivalLive()) setSurvivalSpeed(1);
+  // Speed boost stays on player choice — no auto-reset during battle.
 }
 
 function survivalSimDt(rawDt) {
   if (!isSurvivalLive() || phase !== 'combat') return rawDt;
-  if (isSurvivalPvp()) return Math.min(rawDt, 0.14);
-  if (gameMode !== 'survival') return rawDt;
+  if (isSurvivalPvp() && !pvpOnline?.isHost) return Math.min(rawDt, 0.14);
   return Math.min(rawDt * survivalSpeed, 0.14);
 }
 
@@ -3624,11 +4230,331 @@ function findBestTowerSpot(ai, towerType, attempts = 48) {
 }
 
 function freshSurvivalAiBrain() {
+  const pool = [...SURVIVAL_AI_GOALS];
+  const primary = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+  const secondary = pool[Math.floor(Math.random() * pool.length)];
   return {
+    primary,
+    secondary,
     playerDeployed: {},
     playerTowers: {},
     towerLearn: { spread: 0, laser: 0, turret: 0, missile: 0 },
   };
+}
+
+function survivalAiGoalLabel(goal) {
+  return SURVIVAL_AI_GOAL_LABELS[goal] || goal;
+}
+
+function survivalAiGoalBonus(brain, category) {
+  if (category === brain.primary) return 100;
+  if (category === brain.secondary) return 48;
+  return 0;
+}
+
+function survivalAiContext(ai) {
+  const player = players[0];
+  const playerUnits = combatUnits.filter((u) => u.owner === 0 && u.hp > 0);
+  const aiUnits = combatUnits.filter((u) => u.owner === 1 && u.hp > 0);
+  return {
+    threat: survivalAiHasImmediateThreat(),
+    playerPressure: playerUnits.length,
+    aiUnits: aiUnits.length,
+    aiHpPct: ai.baseMaxHp > 0 ? ai.baseHp / ai.baseMaxHp : 1,
+    playerHpPct: player.baseMaxHp > 0 ? player.baseHp / player.baseMaxHp : 1,
+    live: !!LIVE_ARMY?.isActive(),
+    combatTime,
+  };
+}
+
+function survivalAiPushMove(moves, category, score, fn) {
+  moves.push({ category, score, fn });
+}
+
+function survivalAiSplurgeChance(ai) {
+  const base = SURVIVAL_AI_SPLURGE_CHANCE[survivalDifficulty] || 0.15;
+  const avg = survivalAiAverageTowerCost(ai);
+  if (!Number.isFinite(avg) || avg <= 0) return base;
+  const richness = ai.coins / (avg * 5);
+  return Math.min(0.42, base + richness * 0.05);
+}
+
+function survivalAiPickMove(moves, ai, brain) {
+  if (!moves.length) return null;
+  const ranked = moves
+    .map((m) => ({ ...m, roll: m.score + Math.random() * 22 }))
+    .sort((a, b) => b.roll - a.roll);
+  if (Math.random() < survivalAiSplurgeChance(ai) && ranked.length > 2) {
+    const wastePool = ranked.slice(Math.floor(ranked.length * 0.45));
+    return wastePool[Math.floor(Math.random() * wastePool.length)];
+  }
+  return ranked[0];
+}
+
+function survivalAiAffordableUnits(ai, predicate) {
+  return LIVE_ARMY.UNIT_ORDER.filter((ut) => {
+    if (!UNIT_TYPES[ut] || !isUnitEnabled(ut)) return false;
+    if (!LIVE_ARMY.unitUnlocked(ai, ut)) return false;
+    if (ai.coins < unitDef(ut, 1).cost) return false;
+    return predicate ? predicate(ut) : true;
+  });
+}
+
+function survivalAiTrySpawnUnitOfType(ai, type, logDeploy = true) {
+  const liveUnits = combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  if (liveUnits >= SURVIVAL_AI_MAX_UNITS) return false;
+  if (!isUnitEnabled(type) || !LIVE_ARMY.unitUnlocked(ai, type)) return false;
+  if (ai.coins < unitDef(type, 1).cost) return false;
+  const idx = combatUnits.filter((u) => u.owner === 1 && u.type === type).length;
+  if (survivalTryLiveSpawnUnit(type, idx)) {
+    if (logDeploy) addLog(`🤖 Enemy deployed ${UNIT_TYPES[type].name}`);
+    return true;
+  }
+  for (let attempt = 0; attempt < 10; attempt++) {
+    if (survivalTryLiveSpawnUnit(type, idx + attempt)) {
+      if (logDeploy) addLog(`🤖 Enemy deployed ${UNIT_TYPES[type].name}`);
+      return true;
+    }
+  }
+  return false;
+}
+
+function survivalAiPickCombatTower(ai, brain, offensive) {
+  const unlocked = LIVE_ARMY.COMBAT_TOWERS.filter((tt) => LIVE_ARMY.towerUnlocked(ai, tt));
+  if (!unlocked.length) return null;
+  const attackW = { spread: 4, missile: 4, turret: 2, laser: 2 };
+  const defendW = { turret: 4, laser: 4, spread: 3, missile: 2 };
+  const weights = offensive ? attackW : defendW;
+  if (brain.primary === 'attack' && offensive) {
+    for (const tt of unlocked) if (weights[tt]) weights[tt] += 1;
+  }
+  if (brain.primary === 'defend' && !offensive) {
+    for (const tt of unlocked) if (weights[tt]) weights[tt] += 1;
+  }
+  let best = null;
+  let bestW = -1;
+  for (const tt of unlocked) {
+    const w = (weights[tt] || 1) + Math.random() * 0.75;
+    if (w > bestW) { bestW = w; best = tt; }
+  }
+  return best;
+}
+
+function survivalAiCollectEconomyMoves(ai, brain, moves, ctx) {
+  const eco = LIVE_ARMY.economyRecord(ai);
+  const b = (extra) => survivalAiGoalBonus(brain, 'economy') + extra;
+
+  if (!eco.farm.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('farm')) {
+    survivalAiPushMove(moves, 'economy', b(42), () => buyEconomyUpgrade(1, 'unlock', 'farm'));
+  }
+  if (!eco.mint.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('mint')) {
+    survivalAiPushMove(moves, 'economy', b(36), () => buyEconomyUpgrade(1, 'unlock', 'mint'));
+  }
+  for (const type of ['farm', 'mint']) {
+    const rec = type === 'farm' ? eco.farm : eco.mint;
+    if (!rec.unlocked) continue;
+    const speedCost = LIVE_ARMY.economySpeedCost(ai, type);
+    if (speedCost != null && rec.speed < LIVE_ARMY.speedMax() && ai.coins >= speedCost) {
+      survivalAiPushMove(moves, 'economy', b(24), () => buyEconomyUpgrade(1, 'speed', type));
+    }
+    const yieldCost = LIVE_ARMY.economyYieldCost(ai, type);
+    if (yieldCost != null && rec.yield < LIVE_ARMY.yieldMax() && ai.coins >= yieldCost) {
+      survivalAiPushMove(moves, 'economy', b(30), () => buyEconomyUpgrade(1, 'yield', type));
+    }
+  }
+  if ((eco.base.income || 0) < LIVE_ARMY.baseBranchMax('income')) {
+    const cost = LIVE_ARMY.economyBaseCost(ai, 'income');
+    if (ai.coins >= cost) survivalAiPushMove(moves, 'economy', b(18), () => buyEconomyUpgrade(1, 'base', 'income'));
+  }
+  if (LIVE_ARMY.farmUnlocked(ai) && !aiHasLivingTower(ai, 'farm') && ai.coins >= towerCost(ai, 'farm')) {
+    survivalAiPushMove(moves, 'economy', b(50), () => survivalAiTryPlaceTower(ai, 'farm'));
+  }
+  if (LIVE_ARMY.mintUnlocked(ai) && countAiTowers(ai, 'mint') < 2 && ai.coins >= towerCost(ai, 'mint')) {
+    survivalAiPushMove(moves, 'economy', b(40), () => survivalAiTryPlaceTower(ai, 'mint'));
+  }
+}
+
+function survivalAiCollectDefenseMoves(ai, brain, moves, ctx) {
+  const eco = LIVE_ARMY.economyRecord(ai);
+  const b = (extra) => survivalAiGoalBonus(brain, 'defend') + extra;
+
+  if ((eco.base.health || 0) < LIVE_ARMY.baseBranchMax('health') && ctx.aiHpPct < 0.72) {
+    const cost = LIVE_ARMY.economyBaseCost(ai, 'health');
+    if (ai.coins >= cost) survivalAiPushMove(moves, 'defend', b(34), () => buyEconomyUpgrade(1, 'base', 'health'));
+  }
+  if ((eco.base.defense || 0) < LIVE_ARMY.baseBranchMax('defense')) {
+    const cost = LIVE_ARMY.economyBaseCost(ai, 'defense');
+    if (ai.coins >= cost) survivalAiPushMove(moves, 'defend', b(28), () => buyEconomyUpgrade(1, 'base', 'defense'));
+  }
+  if (!LIVE_ARMY.hasEngineers(ai) && ai.coins >= towerCost(ai, 'engineers')) {
+    survivalAiPushMove(moves, 'defend', b(46), () => survivalAiTryPlaceTower(ai, 'engineers'));
+  }
+  if (!LIVE_ARMY.hasBarracks(ai) && ai.coins >= towerCost(ai, 'barracks')) {
+    survivalAiPushMove(moves, 'defend', b(30), () => survivalAiTryPlaceTower(ai, 'barracks'));
+  }
+
+  if (LIVE_ARMY.hasEngineers(ai)) {
+    const locked = LIVE_ARMY.COMBAT_TOWERS.filter(
+      (tt) => !LIVE_ARMY.towerUnlocked(ai, tt) && ai.coins >= LIVE_ARMY.towerUnlockCost(tt),
+    );
+    for (const tt of locked) {
+      const pref = tt === 'turret' || tt === 'laser' ? 26 : 14;
+      survivalAiPushMove(moves, 'defend', b(pref), () => buyEngineersUpgrade(1, 'unlock', tt));
+    }
+    const defBranches = ['health', 'range', 'damage', 'knockback'];
+    for (const tt of LIVE_ARMY.COMBAT_TOWERS) {
+      const rec = LIVE_ARMY.towerRecord(ai, tt);
+      if (!rec.unlocked) continue;
+      for (const branch of defBranches) {
+        if ((rec[branch] || 0) >= LIVE_ARMY.ENGINEER_STAT_MAX) continue;
+        const cost = LIVE_ARMY.engineersUpgradeCost(ai, tt, branch);
+        if (ai.coins < cost) continue;
+        const extra = branch === 'health' || branch === 'range' ? 22 : 12;
+        survivalAiPushMove(moves, 'defend', b(extra), () => buyEngineersUpgrade(1, 'stat', tt, branch));
+      }
+    }
+    const defTower = survivalAiPickCombatTower(ai, brain, false);
+    if (defTower && ai.coins >= towerCost(ai, defTower)) {
+      survivalAiPushMove(moves, 'defend', b(32), () => survivalAiTryPlaceTower(ai, defTower));
+    }
+  }
+
+  if (LIVE_ARMY.hasBarracks(ai)) {
+    const defStats = ['health', 'damage', 'speed'];
+    for (const ut of LIVE_ARMY.UNIT_ORDER) {
+      const rec = LIVE_ARMY.unitRecord(ai, ut);
+      if (!rec.unlocked) continue;
+      for (const stat of defStats) {
+        if ((rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) continue;
+        const cost = LIVE_ARMY.statUpgradeCost(ai, ut, stat);
+        if (ai.coins < cost) continue;
+        survivalAiPushMove(moves, 'defend', b(stat === 'health' ? 20 : 10), () => buyBarracksUpgrade(1, 'stat', ut, stat));
+      }
+    }
+  }
+
+  if (ctx.threat) {
+    survivalAiPushMove(moves, 'defend', b(130), () => survivalAiDeployDefenders(ai, ctx));
+  }
+}
+
+function survivalAiCollectAttackMoves(ai, brain, moves, ctx) {
+  const b = (extra) => survivalAiGoalBonus(brain, 'attack') + extra;
+
+  if (!LIVE_ARMY.hasBarracks(ai) && ai.coins >= towerCost(ai, 'barracks')) {
+    survivalAiPushMove(moves, 'attack', b(44), () => survivalAiTryPlaceTower(ai, 'barracks'));
+  }
+  if (!LIVE_ARMY.hasEngineers(ai) && ai.coins >= towerCost(ai, 'engineers')) {
+    survivalAiPushMove(moves, 'attack', b(38), () => survivalAiTryPlaceTower(ai, 'engineers'));
+  }
+
+  if (LIVE_ARMY.hasBarracks(ai)) {
+    const locked = LIVE_ARMY.UNIT_ORDER.filter(
+      (ut) => !LIVE_ARMY.unitUnlocked(ai, ut) && ai.coins >= LIVE_ARMY.unitUnlockCost(ut),
+    );
+    for (const ut of locked) {
+      const extra = ut === 'speed' || ut === 'striker' || ut === 'goblin' ? 28 : 16;
+      survivalAiPushMove(moves, 'attack', b(extra), () => buyBarracksUpgrade(1, 'unlock', ut));
+    }
+    const atkStats = ['damage', 'speed', 'health'];
+    for (const ut of LIVE_ARMY.UNIT_ORDER) {
+      const rec = LIVE_ARMY.unitRecord(ai, ut);
+      if (!rec.unlocked) continue;
+      for (const stat of atkStats) {
+        if ((rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) continue;
+        const cost = LIVE_ARMY.statUpgradeCost(ai, ut, stat);
+        if (ai.coins < cost) continue;
+        survivalAiPushMove(moves, 'attack', b(stat === 'damage' ? 24 : 12), () => buyBarracksUpgrade(1, 'stat', ut, stat));
+      }
+    }
+  }
+
+  if (LIVE_ARMY.hasEngineers(ai)) {
+    const locked = LIVE_ARMY.COMBAT_TOWERS.filter(
+      (tt) => !LIVE_ARMY.towerUnlocked(ai, tt) && ai.coins >= LIVE_ARMY.towerUnlockCost(tt),
+    );
+    for (const tt of locked) {
+      const extra = tt === 'spread' || tt === 'missile' ? 26 : 14;
+      survivalAiPushMove(moves, 'attack', b(extra), () => buyEngineersUpgrade(1, 'unlock', tt));
+    }
+    const atkBranches = ['damage', 'range', 'knockback', 'health'];
+    for (const tt of LIVE_ARMY.COMBAT_TOWERS) {
+      const rec = LIVE_ARMY.towerRecord(ai, tt);
+      if (!rec.unlocked) continue;
+      for (const branch of atkBranches) {
+        if ((rec[branch] || 0) >= LIVE_ARMY.ENGINEER_STAT_MAX) continue;
+        const cost = LIVE_ARMY.engineersUpgradeCost(ai, tt, branch);
+        if (ai.coins < cost) continue;
+        const extra = branch === 'damage' ? 22 : 10;
+        survivalAiPushMove(moves, 'attack', b(extra), () => buyEngineersUpgrade(1, 'stat', tt, branch));
+      }
+    }
+    const atkTower = survivalAiPickCombatTower(ai, brain, true);
+    if (atkTower && ai.coins >= towerCost(ai, atkTower)) {
+      survivalAiPushMove(moves, 'attack', b(30), () => survivalAiTryPlaceTower(ai, atkTower));
+    }
+  }
+
+  const attackReady = ctx.combatTime > 45 || ctx.playerHpPct < 0.85;
+  if (attackReady && ctx.aiUnits < SURVIVAL_AI_MAX_UNITS - 1) {
+    survivalAiPushMove(moves, 'attack', b(ctx.playerHpPct < 0.5 ? 90 : 36), () => survivalAiLaunchAttack(ai, ctx));
+  }
+}
+
+function survivalAiCollectMoves(ai, brain) {
+  const moves = [];
+  const ctx = survivalAiContext(ai);
+
+  if (survivalAiPlayerHasMissiles()) {
+    survivalAiPushMove(moves, 'defend', survivalAiGoalBonus(brain, 'defend') + 85, () => survivalAiMaintainMissileBait(ai) || false);
+  }
+
+  if (ctx.live) {
+    survivalAiCollectEconomyMoves(ai, brain, moves, ctx);
+    survivalAiCollectDefenseMoves(ai, brain, moves, ctx);
+    survivalAiCollectAttackMoves(ai, brain, moves, ctx);
+  }
+
+  if (!moves.length) {
+    survivalAiPushMove(moves, 'defend', 20, () => survivalAiTryRandomTower(ai));
+  }
+
+  if (ctx.playerHpPct < 0.35 && ctx.aiUnits < SURVIVAL_AI_MAX_UNITS - 2) {
+    survivalAiPushMove(moves, 'attack', survivalAiGoalBonus(brain, 'attack') + 120, () => survivalAiLaunchAttack(ai, ctx, true));
+  }
+
+  return moves;
+}
+
+function survivalAiDeployDefenders(ai, ctx) {
+  if (ctx.aiUnits >= SURVIVAL_AI_MAX_UNITS) return false;
+  const order = ['tank', 'peka', 'striker', 'sniper', 'speed'];
+  for (const type of order) {
+    if (!LIVE_ARMY?.unitUnlocked(ai, type)) continue;
+    if (survivalAiTrySpawnUnitOfType(ai, type)) return true;
+  }
+  return survivalAiTrySpawnRandomUnit(ai);
+}
+
+function survivalAiLaunchAttack(ai, ctx, allIn = false) {
+  survivalResetBattleSpeedOnEnemyAttack();
+  const prefer = allIn
+    ? ['speed', 'striker', 'goblin', 'tank', 'sniper', 'peka']
+    : ['speed', 'striker', 'goblin', 'sniper', 'tank'];
+  let deployed = false;
+  const maxSpawns = allIn ? 8 : 4;
+  for (let i = 0; i < maxSpawns; i++) {
+    if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) break;
+    let spawned = false;
+    for (const type of prefer) {
+      if (survivalAiTrySpawnUnitOfType(ai, type, false)) { spawned = true; deployed = true; break; }
+    }
+    if (!spawned) break;
+  }
+  const atkTower = survivalAiPickCombatTower(ai, survivalAiBrain, true);
+  if (atkTower && ai.coins >= towerCost(ai, atkTower)) survivalAiTryPlaceTower(ai, atkTower);
+  if (deployed) addLog(allIn ? '🤖 Enemy all-in assault!' : '🤖 Enemy launched an attack');
+  return deployed;
 }
 
 function isEconomyTower(type) {
@@ -3763,21 +4689,17 @@ function survivalAiAverageTowerCost(ai) {
   return types.reduce((sum, type) => sum + towerCost(ai, type), 0) / types.length;
 }
 
-function survivalDeployedUnitValue(pid) {
-  let total = 0;
-  for (const u of combatUnits) {
-    if (u.owner !== pid || u.hp <= 0) continue;
-    total += UNIT_TYPES[u.type]?.cost || 0;
-  }
-  return total;
-}
-
 function survivalAiHasImmediateThreat() {
   return combatUnits.some(u => u.owner === 0 && u.hp > 0);
 }
 
 function survivalAiTryRandomTower(ai) {
-  const types = enabledTowerTypes();
+  const types = enabledTowerTypes().filter((t) => {
+    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && LIVE_ARMY.COMBAT_TOWERS.includes(t)) {
+      return LIVE_ARMY.towerUnlocked(ai, t);
+    }
+    return true;
+  });
   if (!types.length) return false;
   const towerType = types[Math.floor(Math.random() * types.length)];
   if (ai.coins < towerCost(ai, towerType)) return false;
@@ -3785,126 +4707,18 @@ function survivalAiTryRandomTower(ai) {
 }
 
 function survivalAiTrySpawnRandomUnit(ai, logDeploy = true) {
-  const liveUnits = combatUnits.filter(u => u.owner === 1 && u.hp > 0).length;
+  const liveUnits = combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
   if (liveUnits >= SURVIVAL_AI_MAX_UNITS) return false;
-  const affordable = Object.keys(UNIT_TYPES).filter((t) => {
-    if (!isUnitEnabled(t) || ai.coins < UNIT_TYPES[t].cost) return false;
-    if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(ai, t)) return false;
+  const pool = LIVE_ARMY?.isActive() ? LIVE_ARMY.UNIT_ORDER : Object.keys(UNIT_TYPES);
+  const affordable = pool.filter((t) => {
+    if (!UNIT_TYPES[t] || !isUnitEnabled(t)) return false;
+    if (LIVE_ARMY?.isActive() && !LIVE_ARMY.unitUnlocked(ai, t)) return false;
+    if (ai.coins < unitDef(t, 1).cost) return false;
     return true;
   });
   if (!affordable.length) return false;
   const type = affordable[Math.floor(Math.random() * affordable.length)];
-  const idx = combatUnits.filter(u => u.owner === 1 && u.type === type).length;
-  if (survivalTryLiveSpawnUnit(type, idx)) {
-    if (logDeploy) addLog(`🤖 Enemy deployed ${UNIT_TYPES[type].name}`);
-    return true;
-  }
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const alt = affordable[Math.floor(Math.random() * affordable.length)];
-    const altIdx = combatUnits.filter(u => u.owner === 1 && u.type === alt).length;
-    if (survivalTryLiveSpawnUnit(alt, altIdx)) {
-      if (logDeploy) addLog(`🤖 Enemy deployed ${UNIT_TYPES[alt].name}`);
-      return true;
-    }
-  }
-  return false;
-}
-
-function survivalAiTryBudgetAttack(ai, budget) {
-  const target = Math.ceil(budget);
-  if (target <= 0) return false;
-
-  survivalResetBattleSpeedOnEnemyAttack();
-
-  let spent = 0;
-  let deployed = false;
-  for (let i = 0; i < SURVIVAL_AI_MAX_UNITS; i++) {
-    if (spent >= target) break;
-    const coinsBefore = ai.coins;
-    if (!survivalAiTrySpawnRandomUnit(ai, false)) break;
-    spent += coinsBefore - ai.coins;
-    deployed = true;
-  }
-  if (deployed) addLog(`🤖 Enemy raided (~${spent}🪙)`);
-  return deployed;
-}
-
-function survivalAiTryUnlockBarracksUnit(ai) {
-  if (typeof LIVE_ARMY === 'undefined' || !LIVE_ARMY.isActive() || !LIVE_ARMY.hasBarracks(ai)) return false;
-  const locked = LIVE_ARMY.UNIT_ORDER.filter((ut) => !LIVE_ARMY.unitUnlocked(ai, ut) && ai.coins >= LIVE_ARMY.unitUnlockCost(ut));
-  if (!locked.length) return false;
-  locked.sort((a, b) => LIVE_ARMY.unitUnlockCost(a) - LIVE_ARMY.unitUnlockCost(b));
-  return buyBarracksUpgrade(1, 'unlock', locked[0]);
-}
-
-function survivalAiTryEconomyUpgrade(ai) {
-  if (!LIVE_ARMY?.isActive()) return false;
-  const eco = LIVE_ARMY.economyRecord(ai);
-  const tries = [];
-  if (!eco.farm.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('farm')) tries.push(['unlock', 'farm']);
-  if (!eco.mint.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('mint')) tries.push(['unlock', 'mint']);
-  if (eco.farm.unlocked && eco.farm.speed < LIVE_ARMY.speedMax()) {
-    const cost = LIVE_ARMY.economySpeedCost(ai, 'farm');
-    if (cost != null && ai.coins >= cost) tries.push(['speed', 'farm']);
-  }
-  if (eco.farm.unlocked && eco.farm.yield < LIVE_ARMY.yieldMax()) {
-    const cost = LIVE_ARMY.economyYieldCost(ai, 'farm');
-    if (cost != null && ai.coins >= cost) tries.push(['yield', 'farm']);
-  }
-  if (eco.mint.unlocked && eco.mint.speed < LIVE_ARMY.speedMax()) {
-    const cost = LIVE_ARMY.economySpeedCost(ai, 'mint');
-    if (cost != null && ai.coins >= cost) tries.push(['speed', 'mint']);
-  }
-  if (eco.mint.unlocked && eco.mint.yield < LIVE_ARMY.yieldMax()) {
-    const cost = LIVE_ARMY.economyYieldCost(ai, 'mint');
-    if (cost != null && ai.coins >= cost) tries.push(['yield', 'mint']);
-  }
-  for (const branch of LIVE_ARMY.BASE_BRANCHES || []) {
-    const lvl = eco.base[branch] || 0;
-    if (lvl < LIVE_ARMY.baseBranchMax(branch) && ai.coins >= LIVE_ARMY.economyBaseCost(ai, branch)) {
-      tries.push(['base', branch]);
-    }
-  }
-  if (!tries.length) return false;
-  const [kind, target] = tries[0];
-  return buyEconomyUpgrade(1, kind, target);
-}
-
-function survivalAiTryPeaceBuild(ai) {
-  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
-    if (survivalAiTryEconomyUpgrade(ai)) return true;
-    if (!LIVE_ARMY.hasBarracks(ai) && LIVE_ARMY.canPlaceStructure(ai, 'barracks') && ai.coins >= towerCost(ai, 'barracks')) {
-      if (survivalAiTryPlaceTower(ai, 'barracks')) return true;
-    }
-    if (survivalAiTryUnlockBarracksUnit(ai)) return true;
-    if (LIVE_ARMY.farmUnlocked(ai) && !aiHasLivingTower(ai, 'farm') && ai.coins >= towerCost(ai, 'farm')) {
-      if (survivalAiTryPlaceTower(ai, 'farm')) return true;
-    }
-  }
-  const avgTowerCost = survivalAiAverageTowerCost(ai);
-  const raidsUnlocked = combatTime >= SURVIVAL_AI_PEACE_ATTACK_DELAY;
-  if (raidsUnlocked && Math.random() < SURVIVAL_AI_PEACE_ATTACK_CHANCE) {
-    return survivalAiTryBudgetAttack(ai, avgTowerCost);
-  }
-  return survivalAiTryRandomTower(ai);
-}
-
-function survivalAiCounterDeploy(ai) {
-  const playerValue = survivalDeployedUnitValue(0);
-  const target = playerValue * SURVIVAL_AI_COUNTER_MULT;
-  if (survivalDeployedUnitValue(1) > target) return false;
-
-  survivalResetBattleSpeedOnEnemyAttack();
-
-  let deployed = false;
-  for (let i = 0; i < SURVIVAL_AI_MAX_UNITS; i++) {
-    if (survivalDeployedUnitValue(1) > target) break;
-    const liveUnits = combatUnits.filter(u => u.owner === 1 && u.hp > 0).length;
-    if (liveUnits >= SURVIVAL_AI_MAX_UNITS) break;
-    if (!survivalAiTryRandomUnit(ai)) break;
-    deployed = true;
-  }
-  return deployed;
+  return survivalAiTrySpawnUnitOfType(ai, type, logDeploy);
 }
 
 function survivalAiPlayerHasMissiles() {
@@ -4031,6 +4845,9 @@ function setupSurvivalLive() {
   selectedTool = firstEnabledDeployTool();
   addLog('⚔️ Local Live Battle — all gameplay runs in your browser.');
   addLog('⚔️ Open Economy to unlock Farm & Mint, then climb each skill tree.');
+  if (survivalAiBrain) {
+    addLog(`🤖 Enemy strategy: ${survivalAiGoalLabel(survivalAiBrain.primary)} (primary), ${survivalAiGoalLabel(survivalAiBrain.secondary)} (support)`);
+  }
   updateUI();
 }
 
@@ -4158,9 +4975,6 @@ function getPvpSnapshot() {
     })),
     combatUnits: combatUnits.map(serializeUnit),
   };
-  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isPvpMode() && pvpOnline) {
-    return LIVE_ARMY.sanitizeSnapshotForOpponent(snap, pvpOnline.playerId);
-  }
   return snap;
 }
 
@@ -4170,7 +4984,7 @@ function applyPvpSnapshot(state) {
   combatTime = state.combatTime ?? combatTime;
   survivalIncomeTimer = state.survivalIncomeTimer ?? survivalIncomeTimer;
   survivalFarmTimer = state.survivalFarmTimer ?? survivalFarmTimer;
-  if (state.survivalSpeed) survivalSpeed = state.survivalSpeed;
+  if (state.survivalSpeed != null) setSurvivalSpeed(state.survivalSpeed);
 
   for (let i = 0; i < 2; i++) {
     const src = state.players[i];
@@ -4181,7 +4995,13 @@ function applyPvpSnapshot(state) {
     p.baseMaxHp = src.baseMaxHp;
     p.name = src.name;
     p.incomeUpgrades = { ...src.incomeUpgrades };
-    if (src.liveArmy) p.liveArmy = JSON.parse(JSON.stringify(src.liveArmy));
+    if (src.liveArmy) {
+      p.liveArmy = JSON.parse(JSON.stringify(src.liveArmy));
+      if (typeof LIVE_ARMY !== 'undefined') {
+        LIVE_ARMY.initPlayer(p);
+        LIVE_ARMY.economyRecord(p);
+      }
+    }
     p.turrets = (src.turrets || []).map((t) => ({ ...t }));
     p.rubble = (src.rubble || []).map((r) => ({ ...r }));
   }
@@ -4230,7 +5050,7 @@ function applyPvpRemoteAction(fromPlayerId, action) {
     return buyBarracksUpgrade(fromPlayerId, action.upgradeKind, action.unitType, action.stat);
   }
   if (type === 'engineers_upgrade') {
-    return buyEngineersUpgrade(fromPlayerId, action.branch);
+    return buyEngineersUpgrade(fromPlayerId, action.upgradeKind, action.towerType, action.stat);
   }
   if (type === 'missile_upgrade') {
     return buyMissileUpgrade(fromPlayerId, action.towerId, action.branch);
@@ -4270,9 +5090,6 @@ function tickSurvivalHarvest(pid, type) {
     ? LIVE_ARMY.harvestAmount(p, type)
     : survivalIncomeAmount(pid, type);
   if (amt <= 0) return;
-  if (type === 'farm' && LIVE_ARMY?.isActive()) {
-    amt = Math.max(0, Math.floor(amt * LIVE_ARMY.farmIncomeScale(combatTime)));
-  }
   const color = type === 'farm'
     ? (pid === 0 ? '#86efac' : '#4ade80')
     : (pid === 0 ? '#fde047' : '#fbbf24');
@@ -4372,16 +5189,11 @@ function updateSurvivalLiveAI(dt) {
   const ai = players[1];
   if (!survivalAiBrain || ai.baseHp <= 0) return;
 
-  if (survivalAiPlayerHasMissiles() && survivalAiMaintainMissileBait(ai)) return;
+  const moves = survivalAiCollectMoves(ai, survivalAiBrain);
+  if (!moves.length) return;
 
-  const avgTowerCost = survivalAiAverageTowerCost(ai);
-  if (ai.coins <= avgTowerCost) return;
-
-  if (survivalAiHasImmediateThreat()) {
-    survivalAiCounterDeploy(ai);
-  } else {
-    survivalAiTryPeaceBuild(ai);
-  }
+  const pick = survivalAiPickMove(moves, ai, survivalAiBrain);
+  if (pick?.fn?.()) updateUI();
 }
 
 function updateSurvivalLive(dt) {
@@ -7886,6 +8698,7 @@ function towerPlaceFailReason(pid, towerType, x, y, excludeId) {
     if (towerType === 'mint') return 'Unlock Mint in Economy first.';
     if (towerType === 'barracks') return 'Only one Barracks per team.';
     if (towerType === 'engineers') return 'Only one Engineers Camp per team.';
+    if (LIVE_ARMY.COMBAT_TOWERS.includes(towerType)) return 'Unlock this tower in Engineers first.';
     return 'Cannot place that structure.';
   }
   const cost = towerCost(p, towerType);
@@ -7960,6 +8773,9 @@ function mintIncomePerMint(pid = activePlayer ?? 0) {
 }
 
 function farmIncomePerFarm(pid = activePlayer ?? 0) {
+  if (isSurvivalLive() && LIVE_ARMY?.isActive()) {
+    return LIVE_ARMY.harvestAmount(players[pid], 'farm');
+  }
   return isSurvivalLive() ? survivalIncomeAmount(pid, 'farm') : (towerDef('farm').incomePerRound || 0);
 }
 
@@ -10507,8 +11323,16 @@ function handleClick(pos) {
   if (isTowerTool(selectedTool)) {
     const fail = towerPlaceFailReason(pid, selectedTool, pos.x, pos.y, null);
     if (fail) { addLog(fail); return; }
-    const def = towerDef(selectedTool);
+    const def = towerDef(selectedTool, pid);
     const cost = towerCost(p, selectedTool);
+    if (isSurvivalLive() && phase === 'combat') {
+      if (survivalLivePlaceTower(pid, selectedTool, pos.x, pos.y)) {
+        if (gameMode === 'survival' && pid === 0) survivalRecordPlayerTower(selectedTool);
+        addLog(`${def.name} placed (-${cost} coins)`);
+        updateUI();
+      }
+      return;
+    }
     p.turrets.push(createTower(pos.x, pos.y, selectedTool, pid));
     p.coins -= cost;
     syncLiveArmyStructures();
@@ -10583,10 +11407,19 @@ canvas.addEventListener('mouseup', () => {
   }
   dragging = null;
 });
+let suppressCanvasClick = false;
 canvas.addEventListener('click', (e) => {
-  if (dragging) return;
+  if (dragging || suppressCanvasClick) return;
   handleClick(canvasPos(e));
 });
+canvas.addEventListener('touchend', (e) => {
+  if (dragging) return;
+  const touch = e.changedTouches && e.changedTouches[0];
+  if (!touch) return;
+  suppressCanvasClick = true;
+  setTimeout(() => { suppressCanvasClick = false; }, 500);
+  handleClick(canvasPos(touch));
+}, { passive: true });
 
 // Right-click or shift-click to remove deployment
 canvas.addEventListener('contextmenu', (e) => {
@@ -10616,7 +11449,12 @@ function updateUI() {
   }
   const speedPill = document.getElementById('survival-speed-pill');
   if (speedPill) {
-    speedPill.classList.toggle('hidden', gameMode !== 'survival' || phase !== 'combat');
+    const showSpeed = isSurvivalLive() && phase === 'combat';
+    speedPill.classList.toggle('hidden', !showSpeed);
+    speedPill.querySelectorAll('.surv-speed-btn').forEach((btn) => {
+      btn.disabled = isSurvivalPvp() && !pvpOnline?.isHost;
+      btn.title = btn.disabled ? 'Only the host controls battle speed' : '';
+    });
   }
   const roundLabel = document.getElementById('round-label');
   const roundEl = document.getElementById('round-display');
@@ -10726,7 +11564,7 @@ function updateUI() {
   }
   if (missileBtn) {
     const hasMissile = p.turrets.some((t) => t.towerType === 'missile' && t.hp > 0);
-    missileBtn.classList.toggle('hidden', !liveCombat || !hasMissile);
+    missileBtn.classList.toggle('hidden', !liveCombat || !hasMissile || !!LIVE_ARMY?.isActive());
   }
   if (!liveCombat) {
     toggleBarracksPanel(false);
@@ -10893,15 +11731,19 @@ document.getElementById('engineers-upgrade-panel').addEventListener('click', (e)
   if (e.target.id === 'engineers-upgrade-panel') toggleEngineersPanel(false);
 });
 document.getElementById('engineers-upgrade-list').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-eng-branch]');
+  const unlockBtn = e.target.closest('[data-eng-unlock]');
+  const statBtn = e.target.closest('[data-eng-stat]');
+  const btn = unlockBtn || statBtn;
   if (!btn || btn.disabled) return;
-  const branch = btn.dataset.engBranch;
   const pid = getLocalPlayerId();
+  const action = unlockBtn
+    ? { type: 'engineers_upgrade', upgradeKind: 'unlock', towerType: unlockBtn.dataset.engUnlock }
+    : { type: 'engineers_upgrade', upgradeKind: 'stat', towerType: statBtn.dataset.engTower, stat: statBtn.dataset.engStat };
   if (isSurvivalPvp() && !pvpOnline.isHost) {
-    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction({ type: 'engineers_upgrade', branch });
+    if (window.TDG_PVP?.sendAction) window.TDG_PVP.sendAction(action);
     return;
   }
-  buyEngineersUpgrade(pid, branch);
+  buyEngineersUpgrade(pid, action.upgradeKind, action.towerType, action.stat);
 });
 
 document.getElementById('missile-upgrade-btn').addEventListener('click', () => toggleMissilePanel());
@@ -11002,6 +11844,7 @@ document.getElementById('survival-difficulty-screen').addEventListener('click', 
 
 document.querySelectorAll('.surv-speed-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (isSurvivalPvp() && !pvpOnline?.isHost) return;
     setSurvivalSpeed(Number(btn.dataset.speed));
   });
 });
@@ -11379,17 +12222,100 @@ function render(time) {
 let mousePos = null;
 canvas.addEventListener('mousemove', (e) => { mousePos = canvasPos(e); });
 
+function isCoarseOrNarrow() {
+  return window.matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+}
+
+function isFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function syncFullscreenBtn() {
+  const btn = document.getElementById('fullscreen-btn');
+  if (!btn) return;
+  const on = isFullscreen() || document.body.classList.contains('immersive-mode');
+  btn.textContent = on ? '⤓' : '⤢';
+  btn.title = on ? 'Exit fullscreen' : 'Enter fullscreen';
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+
+function updateMobileLayout() {
+  const immersive = isFullscreen() || document.body.classList.contains('immersive-mode');
+  const mobile = immersive || isCoarseOrNarrow();
+  document.body.classList.toggle('mobile-mode', mobile);
+  document.body.classList.toggle('fullscreen-mode', immersive);
+  syncFullscreenBtn();
+  resize();
+}
+
+async function exitFullscreenSafe() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (fn) {
+    try { await fn.call(document); } catch (_) {}
+  }
+}
+
+async function requestFullscreenSafe() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (fn) {
+    try { await fn.call(el); } catch (_) {}
+  }
+}
+
+async function toggleImmersive() {
+  if (isFullscreen() || document.body.classList.contains('immersive-mode')) {
+    document.body.classList.remove('immersive-mode');
+    await exitFullscreenSafe();
+  } else {
+    document.body.classList.add('immersive-mode');
+    await requestFullscreenSafe();
+  }
+  updateMobileLayout();
+}
+
+document.getElementById('fullscreen-btn').addEventListener('click', () => { toggleImmersive(); });
+['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => {
+  document.addEventListener(ev, () => {
+    if (!isFullscreen()) document.body.classList.remove('immersive-mode');
+    updateMobileLayout();
+  });
+});
+window.addEventListener('orientationchange', () => setTimeout(updateMobileLayout, 100));
+
 // Scale canvas to fit
 function resize() {
   const wrapper = document.getElementById('game-wrapper');
-  const maxW = window.innerWidth - 40;
-  const maxH = window.innerHeight - 120;
-  const scale = Math.min(maxW / W, maxH / H, 1);
+  const mobile = document.body.classList.contains('mobile-mode');
+  const immersive = document.body.classList.contains('fullscreen-mode');
+  const padX = immersive ? 0 : (mobile ? 8 : 40);
+  const padY = immersive ? 0 : (mobile ? 48 : 120);
+  if (immersive) {
+    wrapper.style.position = 'fixed';
+    wrapper.style.inset = '0';
+    wrapper.style.width = '100vw';
+    wrapper.style.height = '100vh';
+    wrapper.style.borderRadius = '0';
+    wrapper.style.maxWidth = 'none';
+    wrapper.style.maxHeight = 'none';
+  } else {
+    wrapper.style.position = 'relative';
+    wrapper.style.inset = '';
+    wrapper.style.width = '';
+    wrapper.style.height = '';
+    wrapper.style.borderRadius = '';
+    wrapper.style.maxWidth = '';
+    wrapper.style.maxHeight = '';
+  }
+  const maxW = window.innerWidth - padX;
+  const maxH = window.innerHeight - padY;
+  const cap = immersive || mobile ? Infinity : 1;
+  const scale = Math.min(maxW / W, maxH / H, cap);
   canvas.style.width = (W * scale) + 'px';
   canvas.style.height = (H * scale) + 'px';
 }
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize', updateMobileLayout);
+updateMobileLayout();
 
 window.__TDG = {
   setupSurvivalLivePvp,
