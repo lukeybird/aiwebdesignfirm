@@ -125,8 +125,8 @@ window.LIVE_ARMY = (function () {
     const el = document.getElementById('economy-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Unlock farms and mints, then climb each tree. Mint has more tiers than farms. Enemy upgrade levels are hidden.'
-      : 'Unlock Farm and Mint, upgrade your HQ, and climb each branch — deeper tiers cost more. Mint upgrades further than Farm.';
+      ? 'Unlock farms and mints, then grow each branch outward. Mint has more tiers. Enemy levels are hidden.'
+      : 'Start at HQ, branch outward. Unlock Farm & Mint, then climb each row — locked tiers show chains.';
   }
 
   function initPlayer(p) {
