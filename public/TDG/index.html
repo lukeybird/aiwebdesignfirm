@@ -67,12 +67,15 @@
       flex-shrink: 0;
       width: 1280px;
       height: 720px;
+      overflow: hidden;
     }
 
     #game-wrapper {
-      position: relative;
-      width: 100%;
-      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1280px;
+      height: 720px;
       transform-origin: top left;
       border-radius: 16px;
       overflow: hidden;
@@ -81,6 +84,8 @@
 
     canvas {
       display: block;
+      width: 1280px;
+      height: 720px;
       cursor: crosshair;
       touch-action: none;
       -webkit-user-select: none;
@@ -12305,6 +12310,8 @@ function resize() {
 
   stage.style.width = `${W * scale}px`;
   stage.style.height = `${H * scale}px`;
+  wrapper.style.width = `${W}px`;
+  wrapper.style.height = `${H}px`;
   wrapper.style.transform = `scale(${scale})`;
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
