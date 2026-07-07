@@ -2937,10 +2937,14 @@ let pvpOnline = null;
 // PvP lockstep (client-authoritative, deterministic inputs)
 // Online PvP sim runs at 15 updates/sec by request.
 const PVP_FIXED_DT = 1 / 15;
-const PVP_INPUT_DELAY_FRAMES = 2; // ~133ms at 15fps; reduces late-input rollbacks
-const PVP_SNAPSHOT_INTERVAL_FRAMES = 4;
+const PVP_INPUT_DELAY_FRAMES = 4; // ~266ms scheduling delay so remote inputs usually arrive on time
+const PVP_MAX_LEAD_FRAMES = 14; // never simulate more than ~0.9s ahead of the peer's known frame
+const PVP_SNAPSHOT_INTERVAL_FRAMES = 3;
 const PVP_FRAME_MS = PVP_FIXED_DT * 1000;
-let pvpLock = null; // { frame, queueByFrame: Map<number, {0:[],1:[]}>, history: Array<{frame,state}> }
+const PVP_HEARTBEAT_MS = 250; // frame-sync heartbeat cadence during lulls
+const PVP_PEER_TIMEOUT_MS = 3000; // if peer goes silent this long, advance on wall clock to avoid freezing
+let pvpLock = null; // { frame, peerFrame, queueByFrame: Map<number, {0:[],1:[]}>, history, seenActionIds }
+let pvpLocalActionSeq = 0; // unique-per-client action counter for de-duplicating self-echoed inputs
 
 function isSurvivalLive() {
   return gameMode === 'survival' || gameMode === 'survival-pvp';
@@ -4788,9 +4792,14 @@ function setupSurvivalLivePvp(opts) {
   pvpOnline = { playerId: myPlayerId, roomId, sessionToken, opponentName, startMs: startsAt || Date.now() };
   pvpLock = {
     frame: 0,
+    peerFrame: 0,
+    lastPeerMsgAt: 0,
+    lastSentAt: 0,
     queueByFrame: new Map(),
     history: [],
+    seenActionIds: new Set(),
   };
+  pvpLocalActionSeq = 0;
 
   combatUnits = [];
   pellets = [];
@@ -4889,6 +4898,7 @@ function getPvpSnapshot() {
     survivalIncomeTimer,
     survivalFarmTimer,
     survivalSpeed,
+    rng: getPvpRngState(),
     players: players.map((p) => ({
       coins: p.coins,
       baseHp: p.baseHp,
@@ -4916,6 +4926,7 @@ function applyPvpSnapshot(state) {
   survivalIncomeTimer = state.survivalIncomeTimer ?? survivalIncomeTimer;
   survivalFarmTimer = state.survivalFarmTimer ?? survivalFarmTimer;
   if (state.survivalSpeed != null) setSurvivalSpeed(state.survivalSpeed);
+  if (state.rng) setPvpRngState(state.rng);
 
   for (let i = 0; i < 2; i++) {
     const src = state.players[i];
@@ -4964,13 +4975,31 @@ function pvpEnsureFrameBucket(frame) {
   return bucket;
 }
 
+function pvpEarliestReplayFrame() {
+  return pvpLock.history.length ? pvpLock.history[0].frame : pvpLock.frame;
+}
+
 function pvpEnqueueAction(fromPlayerId, payload) {
   if (!pvpLock || !isSurvivalPvp()) return false;
-  const frame = payload?.frame;
+  let frame = payload?.frame;
   const action = payload?.action;
   if (!Number.isFinite(frame) || frame < 0 || !action) return false;
   if (fromPlayerId !== 0 && fromPlayerId !== 1) return false;
 
+  // De-dup self-echoed inputs. Server-triggered Pusher events are delivered
+  // back to the sender too, so without this the sender would apply its own
+  // action twice while the opponent applies it once.
+  if (payload.aid) {
+    if (pvpLock.seenActionIds.has(payload.aid)) return false;
+    pvpLock.seenActionIds.add(payload.aid);
+  }
+
+  // Never drop a late input: clamp to the earliest frame we can still replay
+  // from. With the peer-lead cap this should effectively never trigger.
+  const floorFrame = pvpEarliestReplayFrame();
+  if (frame < floorFrame) frame = floorFrame;
+
+  if (payload.aid && action.__aid === undefined) action.__aid = payload.aid;
   const bucket = pvpEnsureFrameBucket(frame);
   bucket[fromPlayerId].push(action);
 
@@ -4984,18 +5013,43 @@ function pvpEnqueueAction(fromPlayerId, payload) {
 function pvpSendLocalAction(action) {
   if (!pvpLock || !isSurvivalPvp() || !pvpOnline) return false;
   const pid = getLocalPlayerId();
-  const frame = Math.max(pvpLock.frame, pvpNowFrame()) + PVP_INPUT_DELAY_FRAMES;
+  // Schedule ahead of whichever client is further along so the input lands in
+  // the future for both sides (minimizes rollbacks).
+  const base = Math.max(pvpLock.frame, pvpLock.peerFrame);
+  const frame = base + PVP_INPUT_DELAY_FRAMES;
+  const aid = `${pid}-${++pvpLocalActionSeq}`;
   // Apply locally via queue so both sides follow identical timing.
-  pvpEnqueueAction(pid, { frame, action });
-  window.TDG_PVP?.sendAction?.({ frame, action });
+  pvpEnqueueAction(pid, { frame, action, aid });
+  pvpLock.lastSentAt = Date.now();
+  window.TDG_PVP?.sendAction?.({ frame, action, aid, nowFrame: pvpLock.frame });
   return true;
+}
+
+function pvpMaybeSendHeartbeat() {
+  if (!pvpLock || !pvpOnline) return;
+  const now = Date.now();
+  if (now - (pvpLock.lastSentAt || 0) < PVP_HEARTBEAT_MS) return;
+  pvpLock.lastSentAt = now;
+  // Frame-sync ping only (no game action) so the peer keeps advancing our
+  // lead cap even when neither player is doing anything.
+  window.TDG_PVP?.sendAction?.({ nowFrame: pvpLock.frame });
+}
+
+function pvpActionSeq(a) {
+  // aid is "<pid>-<seq>"; sort by the monotonic per-client seq so both clients
+  // apply same-frame inputs in identical order even if Pusher reorders them.
+  const s = a && a.__aid ? Number(String(a.__aid).split('-')[1]) : 0;
+  return Number.isFinite(s) ? s : 0;
 }
 
 function pvpApplyActionsForFrame(frame) {
   if (!pvpLock) return;
   const bucket = pvpLock.queueByFrame.get(frame);
   if (!bucket) return;
-  // deterministic order: player 0 actions, then player 1 actions, in enqueue order
+  // deterministic order: player 0 actions, then player 1 actions, each ordered
+  // by the sender's sequence id.
+  bucket[0].sort((a, b) => pvpActionSeq(a) - pvpActionSeq(b));
+  bucket[1].sort((a, b) => pvpActionSeq(a) - pvpActionSeq(b));
   for (const a of bucket[0]) applyPvpAction(0, a);
   for (const a of bucket[1]) applyPvpAction(1, a);
   pvpLock.queueByFrame.delete(frame);
@@ -5005,9 +5059,17 @@ function pvpRecordSnapshotIfNeeded() {
   if (!pvpLock) return;
   if (pvpLock.frame % PVP_SNAPSHOT_INTERVAL_FRAMES !== 0) return;
   const state = getPvpSnapshot();
-  pvpLock.history.push({ frame: pvpLock.frame, state });
-  // keep bounded
-  if (pvpLock.history.length > 40) pvpLock.history.shift();
+  const hist = pvpLock.history;
+  // Re-simulation after a rollback revisits frames we've already snapshotted;
+  // overwrite in place instead of piling up duplicates.
+  const existing = hist.length ? hist[hist.length - 1] : null;
+  if (existing && existing.frame === pvpLock.frame) {
+    existing.state = state;
+    return;
+  }
+  hist.push({ frame: pvpLock.frame, state });
+  // keep ~8s of history (40 * 3 frames at 15fps)
+  if (hist.length > 40) hist.shift();
 }
 
 function pvpRollbackAndResim(targetFrame) {
@@ -5020,10 +5082,13 @@ function pvpRollbackAndResim(targetFrame) {
   for (let i = pvpLock.history.length - 1; i >= 0; i--) {
     if (pvpLock.history[i].frame <= targetFrame) { snap = pvpLock.history[i]; break; }
   }
-  if (!snap) return; // no snapshot yet
+  if (!snap) snap = pvpLock.history[0]; // clamp to oldest we have rather than drop the input
+  if (!snap) return; // no snapshot at all yet
 
   applyPvpSnapshot(snap.state);
   pvpLock.frame = snap.frame;
+  // Discard now-invalid future snapshots; resim re-records them in order.
+  pvpLock.history = pvpLock.history.filter((h) => h.frame <= snap.frame);
 
   // resim forward to previous current frame
   while (pvpLock.frame < curFrame) {
@@ -5037,9 +5102,18 @@ function pvpRollbackAndResim(targetFrame) {
 
 function pvpTick(rawDt) {
   if (!pvpLock) return;
-  const targetFrame = pvpNowFrame();
-  if (targetFrame < pvpLock.frame) return;
-  const maxSteps = 6; // avoids spiral of death
+  const wallFrame = pvpNowFrame();
+  // Stay coupled to the opponent: never run more than PVP_MAX_LEAD_FRAMES ahead
+  // of the last frame we heard they were on. This neutralizes wall-clock skew
+  // between the two devices (the root cause of "they never saw my attack") and
+  // keeps any rollback window small and bounded.
+  let cap = pvpLock.peerFrame + PVP_MAX_LEAD_FRAMES;
+  if (Date.now() - (pvpLock.lastPeerMsgAt || 0) > PVP_PEER_TIMEOUT_MS) {
+    // Peer silent (still connecting or a network blip) — don't freeze.
+    cap = wallFrame;
+  }
+  const targetFrame = Math.min(wallFrame, cap);
+  const maxSteps = PVP_MAX_LEAD_FRAMES + 6; // allow catching up after a stall
   let steps = 0;
   while (pvpLock.frame <= targetFrame && steps < maxSteps) {
     pvpApplyActionsForFrame(pvpLock.frame);
@@ -5049,6 +5123,7 @@ function pvpTick(rawDt) {
     pvpRecordSnapshotIfNeeded();
     steps++;
   }
+  pvpMaybeSendHeartbeat();
 }
 
 function pvpNowFrame() {
@@ -5097,10 +5172,26 @@ function applyPvpAction(fromPlayerId, action) {
   return false;
 }
 
-function applyPvpRemoteAction(fromPlayerId, action) {
-  if (!isSurvivalPvp() || !pvpOnline) return false;
-  // payload is expected to be { frame, action }
-  return pvpEnqueueAction(fromPlayerId, action);
+function applyPvpRemoteAction(fromPlayerId, payload) {
+  if (!isSurvivalPvp() || !pvpOnline || !pvpLock) return false;
+  if (fromPlayerId !== 0 && fromPlayerId !== 1) return false;
+
+  // Pusher echoes our own server-triggered events back to us. Ignore those for
+  // peer tracking (our own frame must not advance the peer-lead cap); the aid
+  // de-dup in pvpEnqueueAction handles the echoed action itself.
+  const isFromPeer = fromPlayerId !== getLocalPlayerId();
+  if (isFromPeer) {
+    // Any peer message tells us where they are and that they're alive.
+    if (Number.isFinite(payload?.nowFrame)) {
+      pvpLock.peerFrame = Math.max(pvpLock.peerFrame, payload.nowFrame);
+    }
+    pvpLock.lastPeerMsgAt = Date.now();
+  }
+
+  // Heartbeats carry no game action.
+  if (!payload?.action) return true;
+  // payload is { frame, action, aid, nowFrame }
+  return pvpEnqueueAction(fromPlayerId, payload);
 }
 
 function buildPvpActionFromClick(pos) {
@@ -8623,7 +8714,11 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 // Deterministic RNG for PvP lockstep. Only used by `rand()` / `uid()`.
-let pvpRng = null;
+// State is kept in plain variables (not a closure) so it can be captured in
+// rollback snapshots and restored exactly — otherwise re-simulation would
+// consume a different random stream and the two clients would diverge.
+let pvpRngActive = false;
+let pvpRngState = 0;
 let pvpUidCounter = 0;
 
 function fnv1a32(str) {
@@ -8635,30 +8730,37 @@ function fnv1a32(str) {
   return h >>> 0;
 }
 
-function makeMulberry32(seed) {
-  let a = seed >>> 0;
-  return function () {
-    a |= 0;
-    a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 function seedPvpRng(seedStr) {
-  pvpRng = makeMulberry32(fnv1a32(String(seedStr || 'pvp')));
+  pvpRngActive = true;
+  pvpRngState = fnv1a32(String(seedStr || 'pvp'));
   pvpUidCounter = 0;
 }
 
+function getPvpRngState() {
+  return { s: pvpRngState >>> 0, u: pvpUidCounter };
+}
+
+function setPvpRngState(st) {
+  if (!st) return;
+  pvpRngState = (st.s || 0) >>> 0;
+  pvpUidCounter = st.u || 0;
+}
+
 function rng() {
-  return pvpRng ? pvpRng() : Math.random();
+  if (!pvpRngActive) return Math.random();
+  // mulberry32
+  let a = pvpRngState | 0;
+  a = (a + 0x6D2B79F5) | 0;
+  pvpRngState = a >>> 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
 function rand(min, max) { return min + rng() * (max - min); }
 
 function uid() {
-  if (!pvpRng) return Math.random().toString(36).slice(2, 9);
+  if (!pvpRngActive) return Math.random().toString(36).slice(2, 9);
   // stable ids across lockstep clients
   pvpUidCounter++;
   return `p${pvpUidCounter.toString(36)}${Math.floor(rng() * 1e6).toString(36)}`;
