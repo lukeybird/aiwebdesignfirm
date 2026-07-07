@@ -27,8 +27,8 @@ window.LIVE_ARMY = (function () {
   const ENG_HEALTH_PER_LVL = 0.30; // +90% hp at max
   // Spreader knockback ramps from near-nothing to a strong shove only when the
   // knockback branch is fully upgraded.
-  const SPREAD_KB_WEAK = 3;
-  const SPREAD_KB_STRONG = 26;
+  const SPREAD_KB_WEAK = 1;
+  const SPREAD_KB_STRONG = 11;
   const TOWER_LABELS = {
     turret: 'Cannon', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile',
   };
@@ -497,6 +497,7 @@ window.LIVE_ARMY = (function () {
   function spreadKnockback(def, unit, pellet) {
     let kb = def.knockback != null ? def.knockback : SPREAD_KB_WEAK;
     if (unit.type === 'peka') kb *= 0.06;
+    else if (unit.type === 'speed') kb *= 2; // Wolves are light — spreaders shove them twice as far.
     const spd = Math.hypot(pellet.vx, pellet.vy) || 1;
     return { nx: pellet.vx / spd, ny: pellet.vy / spd, kb };
   }

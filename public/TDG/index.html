@@ -2788,9 +2788,9 @@ function closeRulebook() {
 
 const UNIT_MANUAL = {
   tank: 'Heavy frontline fighter. Marches toward the enemy base and trades damage with anything in its path. Best as the backbone of your army.',
-  speed: 'Lightning-fast wolf that dodges cannon and spread pellets. Flanks around enemy lines to slip past blockers. Fragile but hard to hit.',
+  speed: 'Lightning-fast wolf that dodges cannon and spread pellets. Hunts enemy Snipers first, then flanks around other blockers to slip past towers. Fragile but hard to hit.',
   striker: 'Aggressive hunter that prioritizes enemy units over towers. Good for picking off swarms before they reach your base.',
-  sniper: 'Small soldier who creeps across the battlefield. Extremely long range. Shoots enemy troops first, then towers, then the enemy base.',
+  sniper: 'Small soldier who creeps across the battlefield. Extremely long range. Shoots enemy troops first (ignores Wolves), then towers, then the enemy base.',
   peka: 'Massive siege unit. Ignores enemy troops entirely — marches straight for towers and the enemy base. Very expensive but very tough.',
   bloop: 'Cheap jelly rush unit. Ignores fights and beelines for the enemy base. Splits into two mini-Bloops when killed. Killing enemy Bloops earns you coin bounties!',
 };
@@ -2917,6 +2917,22 @@ const SURVIVAL_AI_INCOME_MULT = {
 const SURVIVAL_AI_GOALS = ['economy', 'attack', 'defend'];
 const SURVIVAL_AI_GOAL_LABELS = { economy: 'Make money', attack: 'Attack', defend: 'Defend' };
 const SURVIVAL_AI_SPLURGE_CHANCE = { easy: 0.3, medium: 0.18, hard: 0.1 };
+// Seconds to wait between offensive waves (per difficulty). The AI saves up and
+// does economy/defense during the gap, then commits to a big wave — instead of
+// dribbling out troops every second.
+const SURVIVAL_AI_ATTACK_GAP = {
+  easy: [11, 20],
+  medium: [8, 15],
+  hard: [6, 11],
+};
+// How big each committed wave is (number of troops).
+const SURVIVAL_AI_WAVE_SIZE = {
+  easy: [3, 5],
+  medium: [4, 7],
+  hard: [5, 9],
+};
+// Human-like delay between individual troop placements within a wave (seconds).
+const SURVIVAL_AI_SPAWN_STAGGER = [0.18, 0.5];
 const INCOME_UPGRADE_MAX = 8;
 const INCOME_UPGRADE_DEFS = {
   base: { name: 'Base Income', icon: '🏛', baseYield: SURVIVAL_BASE_INCOME, upgradeStep: 5, baseCost: 110, intervalLabel: '3s' },
@@ -3079,10 +3095,10 @@ function barracksUnlockMeta(ut) {
   const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
   const tips = {
     tank: 'Heavy frontline unit with high HP and steady damage.',
-    speed: 'Fast rush wolf — reaches enemy lines quickly.',
+    speed: 'Fast rush wolf — hunts enemy Snipers first, then reaches enemy lines quickly.',
     goblin: 'Immune to rail gun beams. Steals coins from farms and mints on every hit — upgrade the Loot branch to steal more.',
     striker: 'Balanced knight — solid speed, attack, and health.',
-    sniper: 'Long-range damage dealer. Fragile but hits hard from afar.',
+    sniper: 'Long-range damage dealer. Ignores Wolves — targets other troops, then towers and base.',
     peka: 'Elite armored powerhouse. Very expensive but devastating.',
   };
   return {
@@ -4160,7 +4176,26 @@ function freshSurvivalAiBrain() {
     playerDeployed: {},
     playerTowers: {},
     towerLearn: { spread: 0, laser: 0, turret: 0, missile: 0 },
+    // Offensive rhythm: hold fire until nextAttackTime, then drain a queued
+    // wave one troop at a time with a randomized delay between placements.
+    nextAttackTime: survivalAiRollAttackGap() * 0.6,
+    attackQueue: [],
+    attackPrefer: null,
+    attackStagger: 0,
   };
+}
+
+function survivalAiRandRange([lo, hi]) {
+  return lo + Math.random() * (hi - lo);
+}
+
+function survivalAiRollAttackGap() {
+  return survivalAiRandRange(SURVIVAL_AI_ATTACK_GAP[survivalDifficulty] || SURVIVAL_AI_ATTACK_GAP.easy);
+}
+
+function survivalAiRollWaveSize() {
+  const [lo, hi] = SURVIVAL_AI_WAVE_SIZE[survivalDifficulty] || SURVIVAL_AI_WAVE_SIZE.easy;
+  return Math.round(lo + Math.random() * (hi - lo));
 }
 
 function survivalAiGoalLabel(goal) {
@@ -4416,7 +4451,12 @@ function survivalAiCollectAttackMoves(ai, brain, moves, ctx) {
     }
   }
 
-  const attackReady = ctx.combatTime > 45 || ctx.playerHpPct < 0.85;
+  // Hold offensive waves until the cadence timer allows the next one — the AI
+  // saves up and varies its choices during the gap instead of attacking every
+  // second. A wave already draining also blocks starting another.
+  const waveActive = brain.attackQueue && brain.attackQueue.length > 0;
+  const cooldownReady = ctx.combatTime >= (brain.nextAttackTime || 0);
+  const attackReady = (ctx.combatTime > 45 || ctx.playerHpPct < 0.85) && cooldownReady && !waveActive;
   if (attackReady && ctx.aiUnits < SURVIVAL_AI_MAX_UNITS - 1) {
     survivalAiPushMove(moves, 'attack', b(ctx.playerHpPct < 0.5 ? 90 : 36), () => survivalAiLaunchAttack(ai, ctx));
   }
@@ -4440,7 +4480,10 @@ function survivalAiCollectMoves(ai, brain) {
     survivalAiPushMove(moves, 'defend', 20, () => survivalAiTryRandomTower(ai));
   }
 
-  if (ctx.playerHpPct < 0.35 && ctx.aiUnits < SURVIVAL_AI_MAX_UNITS - 2) {
+  // Finishing blow: if the player is nearly dead, go all-in regardless of the
+  // normal cadence (but still only if a wave isn't already draining).
+  const waveActive = brain.attackQueue && brain.attackQueue.length > 0;
+  if (ctx.playerHpPct < 0.35 && !waveActive && ctx.aiUnits < SURVIVAL_AI_MAX_UNITS - 2) {
     survivalAiPushMove(moves, 'attack', survivalAiGoalBonus(brain, 'attack') + 120, () => survivalAiLaunchAttack(ai, ctx, true));
   }
 
@@ -4458,24 +4501,62 @@ function survivalAiDeployDefenders(ai, ctx) {
 }
 
 function survivalAiLaunchAttack(ai, ctx, allIn = false) {
-  survivalResetBattleSpeedOnEnemyAttack();
+  const brain = survivalAiBrain;
+  if (!brain) return false;
+  // Don't stack waves — one wave drains at a time.
+  if (brain.attackQueue && brain.attackQueue.length) return false;
+
   const prefer = allIn
     ? ['speed', 'striker', 'goblin', 'tank', 'sniper', 'peka']
     : ['speed', 'striker', 'goblin', 'sniper', 'tank'];
-  let deployed = false;
-  const maxSpawns = allIn ? 8 : 4;
-  for (let i = 0; i < maxSpawns; i++) {
-    if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) break;
-    let spawned = false;
-    for (const type of prefer) {
-      if (survivalAiTrySpawnUnitOfType(ai, type, false)) { spawned = true; deployed = true; break; }
-    }
-    if (!spawned) break;
-  }
-  const atkTower = survivalAiPickCombatTower(ai, survivalAiBrain, true);
+  const waveSize = allIn
+    ? Math.max(6, survivalAiRollWaveSize() + 3)
+    : survivalAiRollWaveSize();
+
+  // Commit to a wave: queue N spawn intents that drain one-at-a-time with a
+  // human-like delay. Affordability is re-checked as each troop is placed.
+  brain.attackQueue = new Array(waveSize).fill(0);
+  brain.attackPrefer = prefer;
+  brain.attackAllIn = allIn;
+  brain.attackStagger = 0; // first troop goes out on the next frame
+  brain.nextAttackTime = ctx.combatTime + survivalAiRollAttackGap();
+
+  survivalResetBattleSpeedOnEnemyAttack();
+  addLog(allIn ? '🤖 Enemy all-in assault!' : '🤖 Enemy is massing an attack...');
+
+  const atkTower = survivalAiPickCombatTower(ai, brain, true);
   if (atkTower && ai.coins >= towerCost(ai, atkTower)) survivalAiTryPlaceTower(ai, atkTower);
-  if (deployed) addLog(allIn ? '🤖 Enemy all-in assault!' : '🤖 Enemy launched an attack');
-  return deployed;
+  return true;
+}
+
+// Drains the queued attack wave, placing one troop at a time with a randomized
+// delay so it reads like a person deploying rather than an instant dump.
+function survivalAiDrainAttackQueue(ai, dt) {
+  const brain = survivalAiBrain;
+  if (!brain || !brain.attackQueue || !brain.attackQueue.length) return false;
+
+  brain.attackStagger -= dt;
+  if (brain.attackStagger > 0) return true;
+  brain.attackStagger = survivalAiRandRange(SURVIVAL_AI_SPAWN_STAGGER);
+
+  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) {
+    brain.attackQueue = [];
+    return false;
+  }
+
+  const prefer = brain.attackPrefer || ['speed', 'striker', 'goblin', 'sniper', 'tank'];
+  let spawned = false;
+  for (const type of prefer) {
+    if (survivalAiTrySpawnUnitOfType(ai, type, false)) { spawned = true; break; }
+  }
+  // Whether or not we could afford one this beat, consume a slot so a stalled
+  // wave (e.g. broke) can't drain forever.
+  brain.attackQueue.pop();
+  if (!brain.attackQueue.length) {
+    brain.attackPrefer = null;
+    brain.attackAllIn = false;
+  }
+  return true;
 }
 
 function isEconomyTower(type) {
@@ -5318,12 +5399,20 @@ function survivalTryLiveSpawnUnit(type, slotIndex) {
 }
 
 function updateSurvivalLiveAI(dt) {
+  const ai = players[1];
+  if (!survivalAiBrain || ai.baseHp <= 0) return;
+
+  // Drain any in-progress attack wave every frame so troops trickle out with a
+  // human-like delay rather than appearing all at once. While a wave is
+  // draining, the AI stays focused on deploying it.
+  if (survivalAiDrainAttackQueue(ai, dt)) {
+    updateUI();
+    return;
+  }
+
   survivalAiTimer -= dt;
   if (survivalAiTimer > 0) return;
   survivalAiTimer = SURVIVAL_AI_THINK_INTERVAL;
-
-  const ai = players[1];
-  if (!survivalAiBrain || ai.baseHp <= 0) return;
 
   const moves = survivalAiCollectMoves(ai, survivalAiBrain);
   if (!moves.length) return;
@@ -9997,6 +10086,20 @@ function drawFreeEnemyTank(u) {
   });
 }
 
+// Shifts a #rrggbb color lighter (amt>0) or darker (amt<0), amt in [-1,1].
+function shadeColor(hex, amt) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const t = amt < 0 ? 0 : 255;
+  const p = Math.abs(amt);
+  r = Math.round(r + (t - r) * p);
+  g = Math.round(g + (t - g) * p);
+  b = Math.round(b + (t - b) * p);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
 // Wolf/dog breed palettes. Primary look is a white wolf with gray hair (index
 // 0); the rest give each spawned wolf a slightly different scheme to portray a
 // different breed. `hair` is the darker saddle/back coloring.
@@ -10043,96 +10146,259 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
     const breed = wolfBreed(opts.unitId);
     const bodyL = w * 0.92;
     const bodyW = h * 0.66;
+    const shade = shadeColor(breed.hair, -0.28); // darker edge/paw tone
 
-    // Bushy tail at the rear (-x)
-    ctx.fillStyle = breed.hair;
+    // Bushy tail at the rear (-x) — layered for a furry look
+    ctx.fillStyle = shade;
     ctx.beginPath();
-    ctx.moveTo(-bodyL * 0.4, -h * 0.06);
-    ctx.quadraticCurveTo(-bodyL * 0.74, -h * 0.26, -bodyL * 0.64, 0);
-    ctx.quadraticCurveTo(-bodyL * 0.74, h * 0.24, -bodyL * 0.4, h * 0.08);
+    ctx.moveTo(-bodyL * 0.38, -h * 0.09);
+    ctx.quadraticCurveTo(-bodyL * 0.8, -h * 0.3, -bodyL * 0.66, 0);
+    ctx.quadraticCurveTo(-bodyL * 0.8, h * 0.3, -bodyL * 0.38, h * 0.11);
     ctx.closePath();
     ctx.fill();
-
-    // Legs
     ctx.fillStyle = breed.hair;
+    ctx.beginPath();
+    ctx.moveTo(-bodyL * 0.4, -h * 0.05);
+    ctx.quadraticCurveTo(-bodyL * 0.7, -h * 0.2, -bodyL * 0.6, 0.5);
+    ctx.quadraticCurveTo(-bodyL * 0.7, h * 0.2, -bodyL * 0.4, h * 0.07);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = breed.belly; // pale tail tip
+    ctx.beginPath();
+    ctx.ellipse(-bodyL * 0.62, 0, w * 0.05, h * 0.09, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs with darker paws
     for (const [lx, ly] of [[-0.22, -0.34], [-0.22, 0.34], [0.24, -0.34], [0.24, 0.34]]) {
+      ctx.fillStyle = breed.hair;
       ctx.beginPath();
-      ctx.ellipse(bodyL * lx, bodyW * ly, w * 0.07, h * 0.14, 0, 0, Math.PI * 2);
+      ctx.ellipse(bodyL * lx, bodyW * ly, w * 0.075, h * 0.15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = shade;
+      ctx.beginPath();
+      ctx.ellipse(bodyL * lx + w * 0.04, bodyW * ly, w * 0.045, h * 0.07, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Body
+    // Body with soft outline
+    ctx.fillStyle = shade;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.04, 0, bodyL * 0.52, bodyW * 0.53, 0, 0, Math.PI * 2);
+    ctx.fill();
     const bg = ctx.createLinearGradient(0, -bodyW / 2, 0, bodyW / 2);
     bg.addColorStop(0, breed.base);
     bg.addColorStop(1, breed.belly);
     ctx.fillStyle = bg;
     ctx.beginPath();
-    ctx.ellipse(-w * 0.04, 0, bodyL * 0.5, bodyW * 0.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.04, 0, bodyL * 0.49, bodyW * 0.49, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Gray hair saddle along the back
+    // Gray hair saddle along the back with fur tufts
     ctx.fillStyle = breed.hair;
     ctx.beginPath();
-    ctx.ellipse(-w * 0.1, 0, bodyL * 0.36, bodyW * 0.3, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.1, 0, bodyL * 0.36, bodyW * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shade;
+    ctx.lineWidth = 0.8;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.1 + i * w * 0.1, -bodyW * 0.14);
+      ctx.lineTo(-w * 0.1 + i * w * 0.1, bodyW * 0.14);
+      ctx.stroke();
+    }
+
+    // Neck ruff before the head
+    const hx = bodyL * 0.42;
+    ctx.fillStyle = breed.hair;
+    ctx.beginPath();
+    ctx.ellipse(hx - h * 0.18, 0, h * 0.26, h * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Head near the front (+x)
-    const hx = bodyL * 0.42;
+    ctx.fillStyle = shade;
+    ctx.beginPath();
+    ctx.arc(hx, 0, h * 0.335, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = breed.base;
     ctx.beginPath();
-    ctx.arc(hx, 0, h * 0.32, 0, Math.PI * 2);
+    ctx.arc(hx, 0, h * 0.31, 0, Math.PI * 2);
     ctx.fill();
 
-    // Ears
+    // Forehead stripe of hair color
     ctx.fillStyle = breed.hair;
     ctx.beginPath();
-    ctx.moveTo(hx - h * 0.06, -h * 0.24);
-    ctx.lineTo(hx - h * 0.24, -h * 0.4);
-    ctx.lineTo(hx + h * 0.04, -h * 0.14);
-    ctx.moveTo(hx - h * 0.06, h * 0.24);
-    ctx.lineTo(hx - h * 0.24, h * 0.4);
-    ctx.lineTo(hx + h * 0.04, h * 0.14);
+    ctx.moveTo(hx - h * 0.22, 0);
+    ctx.quadraticCurveTo(hx, -h * 0.05, hx + h * 0.14, 0);
+    ctx.quadraticCurveTo(hx, h * 0.05, hx - h * 0.22, 0);
     ctx.fill();
+
+    // Ears with inner detail
+    for (const dir of [-1, 1]) {
+      ctx.fillStyle = breed.hair;
+      ctx.beginPath();
+      ctx.moveTo(hx - h * 0.06, dir * h * 0.24);
+      ctx.lineTo(hx - h * 0.26, dir * h * 0.42);
+      ctx.lineTo(hx + h * 0.05, dir * h * 0.14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = shadeColor(breed.belly, -0.12);
+      ctx.beginPath();
+      ctx.moveTo(hx - h * 0.08, dir * h * 0.24);
+      ctx.lineTo(hx - h * 0.19, dir * h * 0.34);
+      ctx.lineTo(hx, dir * h * 0.18);
+      ctx.closePath();
+      ctx.fill();
+    }
 
     // Snout
     ctx.fillStyle = breed.belly;
     ctx.beginPath();
-    ctx.moveTo(hx + h * 0.06, -h * 0.13);
-    ctx.lineTo(hx + h * 0.4, 0);
-    ctx.lineTo(hx + h * 0.06, h * 0.13);
+    ctx.moveTo(hx + h * 0.05, -h * 0.14);
+    ctx.quadraticCurveTo(hx + h * 0.42, 0, hx + h * 0.05, h * 0.14);
     ctx.closePath();
     ctx.fill();
 
-    // Nose + eyes
-    ctx.fillStyle = '#20242a';
+    // Nose + eyes with a small shine
+    ctx.fillStyle = '#15181c';
     ctx.beginPath();
-    ctx.arc(hx + h * 0.38, 0, 1.7, 0, Math.PI * 2);
+    ctx.ellipse(hx + h * 0.4, 0, 2.1, 1.7, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#111318';
     ctx.beginPath();
-    ctx.arc(hx + h * 0.06, -h * 0.13, 1.4, 0, Math.PI * 2);
-    ctx.arc(hx + h * 0.06, h * 0.13, 1.4, 0, Math.PI * 2);
+    ctx.arc(hx + h * 0.05, -h * 0.14, 1.6, 0, Math.PI * 2);
+    ctx.arc(hx + h * 0.05, h * 0.14, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath();
+    ctx.arc(hx + h * 0.08, -h * 0.15, 0.5, 0, Math.PI * 2);
+    ctx.arc(hx + h * 0.08, h * 0.13, 0.5, 0, Math.PI * 2);
     ctx.fill();
   } else if (type === 'striker') {
     const isKnight = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive();
     if (isKnight) {
-      ctx.fillStyle = '#3f2a1a';
+      // Top-down mounted knight, facing +x.
+      const horse = '#7c5230';
+      const horseDark = shadeColor(horse, -0.3);
+      const horseLite = shadeColor(horse, 0.12);
+      const steel = '#c8ccd2';
+      const steelDark = '#8b929c';
+
+      // Horse tail at the rear
+      ctx.fillStyle = horseDark;
       ctx.beginPath();
-      ctx.ellipse(-w * 0.15, h * 0.22, w * 0.42, h * 0.12, 0, 0, Math.PI * 2);
+      ctx.moveTo(-w * 0.34, -h * 0.06);
+      ctx.quadraticCurveTo(-w * 0.5, 0, -w * 0.34, h * 0.06);
+      ctx.quadraticCurveTo(-w * 0.44, 0, -w * 0.34, -h * 0.06);
       ctx.fill();
-      ctx.fillStyle = '#8B4513';
-      roundRect(-w * 0.35, -h * 0.15, w * 0.55, h * 0.35, 3);
+
+      // Four legs
+      ctx.fillStyle = horseDark;
+      for (const [lx, ly] of [[-0.2, -0.32], [-0.2, 0.32], [0.18, -0.32], [0.18, 0.32]]) {
+        ctx.beginPath();
+        ctx.ellipse(w * lx, h * ly, w * 0.05, h * 0.13, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Horse body
+      ctx.fillStyle = horseDark;
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.08, 0, w * 0.42, h * 0.36, 0, 0, Math.PI * 2);
       ctx.fill();
+      const hg = ctx.createLinearGradient(0, -h * 0.3, 0, h * 0.3);
+      hg.addColorStop(0, horseLite);
+      hg.addColorStop(1, horse);
+      ctx.fillStyle = hg;
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.08, 0, w * 0.39, h * 0.32, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Caparison (colored cloth) under the rider
       ctx.fillStyle = ut.color;
-      roundRect(-w * 0.12, -h * 0.55, w * 0.22, h * 0.5, 2);
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.08, 0, w * 0.3, h * 0.28, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#c0c0c0';
-      roundRect(w * 0.08, -h * 0.2, w * 0.55, 5, 1);
+      ctx.fillStyle = shadeColor(ut.color, -0.18);
+      roundRect(-w * 0.3, -h * 0.26, w * 0.08, h * 0.52, 2);
       ctx.fill();
+
+      // Horse head + ears at the front
+      ctx.fillStyle = horse;
+      ctx.beginPath();
+      ctx.ellipse(w * 0.42, 0, w * 0.16, h * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = horseDark;
+      for (const dir of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(w * 0.36, dir * h * 0.12);
+        ctx.lineTo(w * 0.34, dir * h * 0.26);
+        ctx.lineTo(w * 0.44, dir * h * 0.14);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.fillStyle = '#1a1a1a';
       ctx.beginPath();
-      ctx.arc(-w * 0.28, h * 0.2, h * 0.11, 0, Math.PI * 2);
-      ctx.arc(w * 0.18, h * 0.2, h * 0.11, 0, Math.PI * 2);
+      ctx.arc(w * 0.52, 0, h * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Couched lance with steel tip and colored pennon
+      ctx.fillStyle = '#5b4127';
+      roundRect(-w * 0.05, -h * 0.42, w * 0.06, h * 0.62, 1);
+      ctx.fill();
+      ctx.fillStyle = steel;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.01, -h * 0.42);
+      ctx.lineTo(-w * 0.04, -h * 0.42);
+      ctx.lineTo(-w * 0.015, -h * 0.56);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = ut.color;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.01, -h * 0.34);
+      ctx.lineTo(w * 0.14, -h * 0.3);
+      ctx.lineTo(w * 0.01, -h * 0.26);
+      ctx.closePath();
+      ctx.fill();
+
+      // Round shield on the near side
+      ctx.fillStyle = steelDark;
+      ctx.beginPath();
+      ctx.arc(-w * 0.06, h * 0.26, h * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = ut.color;
+      ctx.beginPath();
+      ctx.arc(-w * 0.06, h * 0.26, h * 0.11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = steel;
+      ctx.beginPath();
+      ctx.arc(-w * 0.06, h * 0.26, h * 0.035, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Armored rider torso (pauldrons + breastplate)
+      ctx.fillStyle = steelDark;
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.02, 0, w * 0.15, h * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const bg2 = ctx.createLinearGradient(0, -h * 0.15, 0, h * 0.15);
+      bg2.addColorStop(0, steel);
+      bg2.addColorStop(1, steelDark);
+      ctx.fillStyle = bg2;
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.02, 0, w * 0.11, h * 0.15, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Helmet with plume
+      ctx.fillStyle = steel;
+      ctx.beginPath();
+      ctx.arc(w * 0.05, 0, h * 0.13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = steelDark;
+      roundRect(w * 0.1, -h * 0.03, h * 0.1, h * 0.06, 1);
+      ctx.fill();
+      ctx.fillStyle = shadeColor(ut.color, 0.1);
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.02, 0);
+      ctx.quadraticCurveTo(-w * 0.12, -h * 0.05, -w * 0.16, 0);
+      ctx.quadraticCurveTo(-w * 0.12, h * 0.05, -w * 0.02, 0);
       ctx.fill();
     } else {
       drawTrackedHull(w * 0.95, h * 0.9, ut.color, ut.accent);
@@ -10615,6 +10881,10 @@ function startCombat() {
   updateUI();
 }
 
+function sniperIgnoresUnitType(unitType) {
+  return unitType === 'speed'; // Wolves move too fast — snipers don't track them.
+}
+
 function getMovementGoal(unit) {
   const ut = unitDef(unit.type, unit.owner);
   const enemy = enemyId(unit.owner);
@@ -10684,6 +10954,7 @@ function getMovementGoal(unit) {
   if (behavior === 'sniper') {
     for (const u of combatUnits) {
       if (u.owner !== enemy || u.hp <= 0) continue;
+      if (sniperIgnoresUnitType(u.type)) continue;
       return { x: u.x, y: u.y };
     }
     let best = null, bestD = Infinity;
@@ -10696,22 +10967,52 @@ function getMovementGoal(unit) {
     return basePos(enemy);
   }
 
+  if (behavior === 'flank') {
+    let bestSniper = null, bestD = Infinity;
+    for (const u of combatUnits) {
+      if (u.owner !== enemy || u.hp <= 0 || u.type !== 'sniper') continue;
+      const d = dist(unit, u);
+      if (d < bestD) { bestD = d; bestSniper = { x: u.x, y: u.y }; }
+    }
+    if (bestSniper) return bestSniper;
+    return basePos(enemy);
+  }
+
   return basePos(enemy);
 }
 
 function findTarget(unit) {
   const ut = unitDef(unit.type, unit.owner);
   const enemy = enemyId(unit.owner);
+  const behavior = ut.behavior || 'default';
   const canUnits = ut.targetsUnits !== false;
   const canTowers = ut.targetsTowers !== false;
   const canBase = ut.targetsBase !== false;
   const prefersUnits = ut.prefersUnits === true;
+
+  // Wolves hunt enemy snipers first — ignore other targets while any sniper lives.
+  if (behavior === 'flank') {
+    let bestSniper = null, bestScore = -Infinity;
+    for (const u of combatUnits) {
+      if (u.owner !== enemy || u.hp <= 0 || u.type !== 'sniper') continue;
+      const d = dist(unit, u);
+      if (d <= ut.range) {
+        const counter = getCounter(unit.type, u.type);
+        const score = counter * 100 - d;
+        if (score > bestScore) { bestScore = score; bestSniper = { type: 'unit', obj: u, dist: d }; }
+      }
+    }
+    if (bestSniper) return bestSniper;
+    const snipersAlive = combatUnits.some((u) => u.owner === enemy && u.hp > 0 && u.type === 'sniper');
+    if (snipersAlive) return null;
+  }
 
   let best = null, bestScore = -Infinity;
 
   if (canUnits) {
     for (const u of combatUnits) {
       if (u.owner !== enemy || u.hp <= 0) continue;
+      if (behavior === 'sniper' && sniperIgnoresUnitType(u.type)) continue;
       const d = dist(unit, u);
       if (d <= ut.range) {
         const counter = getCounter(unit.type, u.type);
@@ -10892,10 +11193,11 @@ function steerUnit(unit, dt) {
     }
   }
 
-  // speed units path around enemy forces
+  // Wolves path around blockers but rush straight at snipers.
   if (behavior === 'flank') {
     for (const u of combatUnits) {
       if (u.owner === unit.owner || u.hp <= 0) continue;
+      if (u.type === 'sniper') continue;
       const d = dist(unit, u);
       const avoidR = getUnitSize(u) + usz + 62;
       if (d < avoidR && d > 0) {
@@ -10927,6 +11229,7 @@ function steerUnit(unit, dt) {
     }
     for (const u of combatUnits) {
       if (u.owner === unit.owner || u.hp <= 0) continue;
+      if (sniperIgnoresUnitType(u.type)) continue;
       const d = dist(unit, u);
       const keepAway = getUnitSize(u) + usz + 50;
       if (d < keepAway && d > 0) {
@@ -11034,11 +11337,13 @@ function applyPelletHit(pellet, unit) {
       const spd = Math.hypot(pellet.vx, pellet.vy) || 1;
       nx = pellet.vx / spd;
       ny = pellet.vy / spd;
+      if (unit.type === 'speed') kb *= 2;
     }
+    const shove = unit.type === 'speed' ? 12 : 6;
     unit.vx += nx * kb;
     unit.vy += ny * kb;
-    unit.x += nx * 6;
-    unit.y += ny * 6;
+    unit.x += nx * shove;
+    unit.y += ny * shove;
     unit.x = clamp(unit.x, 30, W - 30);
     unit.y = clamp(unit.y, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
     spawnParticles(unit.x - nx * 8, unit.y - ny * 8, '#FBBF24', 2);
