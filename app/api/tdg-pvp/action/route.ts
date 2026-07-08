@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pusher } from '@/lib/pusher';
+import { safeTrigger } from '@/lib/pusher';
 import { ensureTdgPvpTables, touchQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
@@ -27,13 +27,16 @@ export async function POST(request: NextRequest) {
 
     await touchQueueSession(sessionToken);
 
-    await pusher.trigger(`tdg-room-${roomId}`, 'action', {
+    // A Pusher outage/quota rejection must not fail the request: the game is
+    // lockstep and resends frame-sync heartbeats, so a dropped broadcast is
+    // recoverable and should not surface as a 500.
+    const delivered = await safeTrigger(`tdg-room-${roomId}`, 'action', {
       action,
       from: player.player_slot,
       t: Date.now(),
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, delivered });
   } catch (error) {
     console.error('tdg-pvp action error:', error);
     return NextResponse.json({ error: 'Action failed.' }, { status: 500 });

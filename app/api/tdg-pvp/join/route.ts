@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
-import { pusher } from '@/lib/pusher';
+import { safeTrigger } from '@/lib/pusher';
 import {
   cleanupStaleTdgQueue,
   ensureTdgPvpTables,
@@ -136,13 +136,13 @@ export async function POST(request: NextRequest) {
         };
 
         await Promise.all([
-          pusher.trigger(`tdg-player-${partner.session_token}`, 'match_found', {
+          safeTrigger(`tdg-player-${partner.session_token}`, 'match_found', {
             ...matchPayload,
             playerId: 0,
             opponentName: name,
             isHost: true,
           }),
-          pusher.trigger(`tdg-player-${sessionToken}`, 'match_found', {
+          safeTrigger(`tdg-player-${sessionToken}`, 'match_found', {
             ...matchPayload,
             playerId: 1,
             opponentName: partner.player_name,

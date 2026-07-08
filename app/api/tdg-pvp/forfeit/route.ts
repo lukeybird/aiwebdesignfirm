@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pusher } from '@/lib/pusher';
+import { safeTrigger } from '@/lib/pusher';
 import { ensureTdgPvpTables, removeQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not in this match.' }, { status: 403 });
     }
 
-    await pusher.trigger(`tdg-room-${roomId}`, 'forfeit', {
+    await safeTrigger(`tdg-room-${roomId}`, 'forfeit', {
       from: player.player_slot,
       name: player.player_name,
       t: Date.now(),

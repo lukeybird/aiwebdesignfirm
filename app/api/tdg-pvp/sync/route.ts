@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pusher } from '@/lib/pusher';
+import { safeTrigger } from '@/lib/pusher';
 import { ensureTdgPvpTables, touchQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     await touchQueueSession(sessionToken);
 
-    await pusher.trigger(`tdg-room-${roomId}`, 'state', {
+    await safeTrigger(`tdg-room-${roomId}`, 'state', {
       state: body.state,
       from: player.player_slot,
       t: Date.now(),
