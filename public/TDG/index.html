@@ -2538,10 +2538,14 @@ function defaultStartingTowers(pid) {
   const x = pid === 0 ? 200 : W - 200;
   const type = isTowerEnabled('turret') ? 'turret' : enabledTowerTypes().find(t => t !== 'mint' && t !== 'farm');
   if (!type) return [];
-  return [
+  const towers = [
     createTower(x, MID_Y - START_TOWER_SPREAD, type, pid),
     createTower(x, MID_Y + START_TOWER_SPREAD, type, pid),
   ];
+  if (type === 'turret') {
+    for (const tw of towers) tw.baseCannon = true;
+  }
+  return towers;
 }
 
 function getDeployBounds(pid) {
@@ -2616,6 +2620,16 @@ const TOWER_TYPES = {
 
 const BASE_SIZE = 56;
 const RUBBLE_RADIUS = 28;
+
+// Starting cannons are unique to the base: gold barrels, yellow shells, and one
+// free engineer level (damage/fire-rate/range) baked in. The base structure's
+// own defensive cannon fires the same yellow shells.
+const BASE_CANNON_ACCENT = '#F5C542';
+const BASE_CANNON_BARREL = '#C99A2E';
+const CANNON_YELLOW_PELLET = '#FFD400';
+const BASE_CANNON_DMG_MULT = 2;    // engineer damage level 1
+const BASE_CANNON_RATE_MULT = 2;   // engineer fire-rate level 1
+const BASE_CANNON_RANGE_MULT = 1.3; // engineer range level 1
 
 const DEFAULT_GAME_RULES = {
   startCoins: 250,
@@ -5531,6 +5545,7 @@ function serializeTower(t) {
     laserTarget: t.laserTarget,
     missileUpgrades: t.missileUpgrades ? { ...t.missileUpgrades } : undefined,
     isBaseDefense: !!t.isBaseDefense,
+    baseCannon: !!t.baseCannon,
   };
 }
 
@@ -6086,10 +6101,10 @@ function endSurvivalLive() {
 const COUNTERS = {
   // Elephant: strong vs Spreaders (immune to shock/knockback), extremely weak vs Wolves.
   tank:    { tank: 1.0, speed: 0.45, striker: 1.2,  sniper: 0.85, peka: 0.85, bloop: 1.05, turret: 1.15, laser: 1.2,  spread: 1.45, missile: 0.95, mint: 1.1,  farm: 1.1,  base: 0.95 },
-  // Wolf: pack devours Elephants; Snipers can't track them; strong vs most towers.
-  speed:   { tank: 1.45, speed: 1.0, striker: 1.3,  sniper: 1.4,  peka: 0.6,  bloop: 1.05, turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  mint: 1.15, farm: 1.15, base: 1.25 },
-  // Knight: strong vs Wolves and almost every unit/tower; weak vs Elephant+Sniper and Dragons.
-  striker: { tank: 0.7,  speed: 1.35, striker: 1.0,  sniper: 1.2,  peka: 0.65, bloop: 1.15, turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  mint: 1.2,  farm: 1.2,  base: 1.2 },
+  // Wolf: pack devours Elephants; double damage to Snipers (who can't track them); strong vs most towers.
+  speed:   { tank: 1.45, speed: 1.0, striker: 1.3,  sniper: 2.0,  peka: 0.6,  bloop: 1.05, turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  mint: 1.15, farm: 1.15, base: 1.25 },
+  // Knight: strong vs Wolves and almost every unit/tower; does only 1/4 damage to Elephants; weak vs Sniper and Dragons.
+  striker: { tank: 0.25, speed: 1.35, striker: 1.0,  sniper: 1.2,  peka: 0.65, bloop: 1.15, turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  mint: 1.2,  farm: 1.2,  base: 1.2 },
   // Sniper: strong with a frontline tank; extremely weak vs Wolves (their hard counter).
   sniper:  { tank: 1.05, speed: 0.4,  striker: 1.15, sniper: 1.0,  peka: 1.35, bloop: 0.95, turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, mint: 1.2,  farm: 1.2,  base: 1.1 },
   // Dragon: weak to Cannons & Snipers; hates Goblins (chases them first).
@@ -9540,6 +9555,27 @@ function towerDef(type, ownerId) {
   return def;
 }
 
+// The base's starting cannons: normal cannon stats plus one baked-in engineer
+// level on every branch, with a gold barrel and yellow shells. Independent of
+// the player's shared cannon (engineer) upgrades.
+function baseCannonDef(ownerId) {
+  const base = towerDef('turret', ownerId);
+  const def = { ...base };
+  def.damage = (base.damage || 24) * BASE_CANNON_DMG_MULT;
+  def.fireRate = (base.fireRate || 1.2) * BASE_CANNON_RATE_MULT;
+  def.range = (base.range || 178) * BASE_CANNON_RANGE_MULT;
+  def.color = BASE_CANNON_BARREL;
+  def.accent = BASE_CANNON_ACCENT;
+  def.pelletColor = CANNON_YELLOW_PELLET;
+  def.isBaseCannon = true;
+  return def;
+}
+
+function towerDefFor(t, ownerId) {
+  if (t && t.baseCannon) return baseCannonDef(ownerId);
+  return towerDef(t.towerType, ownerId);
+}
+
 function unitDef(type, pid) {
   const ut = UNIT_TYPES[type];
   if (!ut) return null;
@@ -10317,7 +10353,7 @@ function drawTower(t, ownerColor, alpha = 1) {
   for (let i = 0; i < 2; i++) {
     if (players[i].turrets.includes(t)) ownerId = i;
   }
-  const def = towerDef(t.towerType, ownerId);
+  const def = towerDefFor(t, ownerId);
   const sz = def.size;
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -10340,13 +10376,19 @@ function drawTower(t, ownerColor, alpha = 1) {
   const pulse = Math.sin(animFrame * 0.05 + t.x) * 1.5;
 
   if (def.style === 'cannon') {
-    ctx.fillStyle = '#3d454d';
+    ctx.fillStyle = def.isBaseCannon ? '#5a4a1c' : '#3d454d';
     roundRect(-10, -9, 20, 18, 3);
     ctx.fill();
     const barrel = ctx.createLinearGradient(0, -4, 26, 4);
-    barrel.addColorStop(0, '#2a3036');
-    barrel.addColorStop(0.5, '#5a646e');
-    barrel.addColorStop(1, '#1a1e22');
+    if (def.isBaseCannon) {
+      barrel.addColorStop(0, '#8a6a18');
+      barrel.addColorStop(0.5, BASE_CANNON_ACCENT);
+      barrel.addColorStop(1, '#6b4f10');
+    } else {
+      barrel.addColorStop(0, '#2a3036');
+      barrel.addColorStop(0.5, '#5a646e');
+      barrel.addColorStop(1, '#1a1e22');
+    }
     ctx.fillStyle = barrel;
     roundRect(2, -5, 24 + pulse, 10, 2);
     ctx.fill();
@@ -12192,7 +12234,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
 
   if (target.defenderType === 'turret' || TOWER_TYPES[target.defenderType]) {
     const t = target.obj;
-    const def = towerDef(t.towerType);
+    const def = towerDefFor(t);
     const wasAlive = t.hp > 0;
     applyHpLoss(t, dmg);
     t.lastHitBy = attacker.owner;
@@ -12414,7 +12456,7 @@ function towerAttackDamage(towerType, unitType, mult = 1, ownerId = null) {
 }
 
 function spawnTowerPellet(tower, ownerId, angle, towerType, opts = {}) {
-  const def = towerDef(towerType, ownerId);
+  const def = opts.def || towerDef(towerType, ownerId);
   const speed = def.pelletSpeed || 380;
   const muzzle = def.size + 6;
   pellets.push({
@@ -12426,7 +12468,7 @@ function spawnTowerPellet(tower, ownerId, angle, towerType, opts = {}) {
     ownerId,
     towerType,
     damageMult: opts.damageMult || 1,
-    color: def.color,
+    color: opts.pelletColor || def.pelletColor || def.color,
     size: towerType === 'spread' ? 3 : 4.5,
     life: 2.4,
     maxRange: def.range || 200,
@@ -13049,7 +13091,7 @@ function checkFieldAchievements(dt) {
 }
 
 function enemiesInRange(t, ownerId) {
-  const def = towerDef(t.towerType, ownerId);
+  const def = towerDefFor(t, ownerId);
   const list = [];
   const isCannon = def.style === 'cannon';
   for (const u of combatUnits) {
@@ -13074,8 +13116,8 @@ function updateBaseCannon(p, dt) {
   const angle = Math.atan2(nearest.y - bp.y, nearest.x - bp.x);
   if (p.baseCannonCd <= 0) {
     p.baseCannonCd = 1 / def.fireRate;
-    spawnTowerPellet(fakeTower, p.id, angle, 'turret');
-    beams.push({ x1: bp.x, y1: bp.y, x2: bp.x + Math.cos(angle) * 40, y2: bp.y + Math.sin(angle) * 40, color: def.color, life: 0.08, maxLife: 0.08, style: 'cannon', width: 4 });
+    spawnTowerPellet(fakeTower, p.id, angle, 'turret', { pelletColor: CANNON_YELLOW_PELLET });
+    beams.push({ x1: bp.x, y1: bp.y, x2: bp.x + Math.cos(angle) * 40, y2: bp.y + Math.sin(angle) * 40, color: CANNON_YELLOW_PELLET, life: 0.08, maxLife: 0.08, style: 'cannon', width: 4 });
   }
 }
 
@@ -13084,7 +13126,7 @@ function updateTowers(dt) {
     updateBaseCannon(p, dt);
     for (const t of p.turrets) {
       if (t.hp <= 0) continue;
-      const def = towerDef(t.towerType, p.id);
+      const def = towerDefFor(t, p.id);
       t.cooldown = (t.cooldown || 0) - dt;
 
       if (def.style === 'cannon') {
@@ -13094,8 +13136,9 @@ function updateTowers(dt) {
         t.angle = Math.atan2(nearest.y - t.y, nearest.x - t.x);
         if (t.cooldown <= 0) {
           t.cooldown = 1 / def.fireRate;
-          spawnTowerPellet(t, p.id, t.angle, 'turret');
-          beams.push({ x1: t.x, y1: t.y, x2: t.x + Math.cos(t.angle) * 18, y2: t.y + Math.sin(t.angle) * 18, color: def.color, life: 0.08, maxLife: 0.08, style: 'cannon', width: 3 });
+          const cannonOpts = t.baseCannon ? { def, pelletColor: def.pelletColor, damageMult: BASE_CANNON_DMG_MULT } : {};
+          spawnTowerPellet(t, p.id, t.angle, 'turret', cannonOpts);
+          beams.push({ x1: t.x, y1: t.y, x2: t.x + Math.cos(t.angle) * 18, y2: t.y + Math.sin(t.angle) * 18, color: t.baseCannon ? CANNON_YELLOW_PELLET : def.color, life: 0.08, maxLife: 0.08, style: 'cannon', width: 3 });
         }
       } else if (def.style === 'laser' || def.style === 'railgun') {
         const inRange = enemiesInRange(t, p.id);
@@ -13218,6 +13261,32 @@ function resolveUnitOverlaps() {
   }
 }
 
+// Elephants slam the ground when they attack: a radial stomp that damages and
+// briefly shocks nearby enemy ground troops. Wolves are nimble enough to shrug
+// off both the stomp and the shock, and flying dragons pass over it entirely.
+const TANK_STOMP_RADIUS = 74;
+const TANK_STOMP_DMG_RATIO = 0.6; // fraction of the elephant's attack, dealt to everyone in range
+const TANK_STOMP_SHOCK = 0.45;    // seconds of paralyze (shock)
+
+function tankStomp(tank) {
+  const dmg = getUnitDamage(tank) * TANK_STOMP_DMG_RATIO;
+  let hitAny = false;
+  for (const other of combatUnits) {
+    if (other === tank || other.owner === tank.owner || other.hp <= 0) continue;
+    if (other.type === 'speed') continue;      // Wolves are immune to stomp & shock
+    if (unitIsFlying(other)) continue;         // flying dragons pass over the stomp
+    const d = Math.hypot(other.x - tank.x, other.y - tank.y);
+    if (d > TANK_STOMP_RADIUS + getUnitSize(other)) continue;
+    other.lastHitBy = tank.owner;
+    applyHpLoss(other, dmg);
+    trackDamageDealt(tank.owner, dmg, false);
+    spawnParticles(other.x, other.y, '#e0c088', 3);
+    other.paralyze = Math.max(other.paralyze || 0, TANK_STOMP_SHOCK);
+    hitAny = true;
+  }
+  blasts.push({ x: tank.x, y: tank.y, maxR: TANK_STOMP_RADIUS, life: 0.3, maxLife: 0.3, color: hitAny ? '#f0c674' : '#d9b38c' });
+}
+
 function updateCombat(dt) {
   combatTime += dt;
 
@@ -13252,6 +13321,7 @@ function updateCombat(dt) {
       else defenderType = 'base';
       if (u.type === 'sniper') fireSniperShot(u, tgt);
       applyDamageToTarget(u, { obj: tgt.obj, defenderType }, getUnitDamage(u));
+      if (u.type === 'tank') tankStomp(u);
     } else {
       steerUnit(u, dt);
     }
