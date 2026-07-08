@@ -9689,10 +9689,14 @@ function getDrawState(pid) {
 }
 
 function addLog(msg) {
+  const el = document.getElementById('log-feed');
+  if (isSurvivalPvp()) {
+    if (el) el.innerHTML = '';
+    return;
+  }
   logs.unshift(msg);
   if (logs.length > 6) logs.pop();
-  const el = document.getElementById('log-feed');
-  el.innerHTML = logs.map(l => `<div class="log-line">${l}</div>`).join('');
+  if (el) el.innerHTML = logs.map(l => `<div class="log-line">${l}</div>`).join('');
 }
 
 function freshCombatStats() {
@@ -13058,8 +13062,26 @@ function enemiesInRange(t, ownerId) {
   return list;
 }
 
+function updateBaseCannon(p, dt) {
+  if (p.baseHp <= 0) return;
+  const bp = basePos(p.id);
+  const fakeTower = { x: bp.x, y: bp.y, towerType: 'turret' };
+  const def = towerDef('turret', p.id);
+  p.baseCannonCd = (p.baseCannonCd || 0) - dt;
+  const inRange = enemiesInRange(fakeTower, p.id);
+  if (!inRange.length) return;
+  const nearest = inRange[0].unit;
+  const angle = Math.atan2(nearest.y - bp.y, nearest.x - bp.x);
+  if (p.baseCannonCd <= 0) {
+    p.baseCannonCd = 1 / def.fireRate;
+    spawnTowerPellet(fakeTower, p.id, angle, 'turret');
+    beams.push({ x1: bp.x, y1: bp.y, x2: bp.x + Math.cos(angle) * 40, y2: bp.y + Math.sin(angle) * 40, color: def.color, life: 0.08, maxLife: 0.08, style: 'cannon', width: 4 });
+  }
+}
+
 function updateTowers(dt) {
   for (const p of players) {
+    updateBaseCannon(p, dt);
     for (const t of p.turrets) {
       if (t.hp <= 0) continue;
       const def = towerDef(t.towerType, p.id);

@@ -216,6 +216,12 @@ window.LIVE_ARMY = (function () {
     gameRules.units.goblin = true;
     for (const p of players) {
       p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
+      // Starting cannons begin pre-upgraded to level 2 on every branch.
+      const cannonRec = towerRecord(p, 'turret');
+      cannonRec.unlocked = true;
+      cannonRec.damage = 2;
+      cannonRec.firerate = 2;
+      cannonRec.range = 2;
     }
     syncBuildToolbar();
     syncBarracksPanelCopy();
