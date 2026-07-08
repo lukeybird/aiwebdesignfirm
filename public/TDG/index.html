@@ -3122,11 +3122,13 @@ function barracksUnlockMeta(ut) {
 
 function barracksStatBranchLabel(unitType, stat) {
   if (unitType === 'goblin' && stat === 'damage') return GOBLIN_LOOT_LABEL;
+  if (unitType === 'sniper' && stat === 'speed') return 'Range';
   return STAT_FULL_LABEL[stat];
 }
 
 function barracksStatBranchIcon(unitType, stat) {
   if (unitType === 'goblin' && stat === 'damage') return '🪙';
+  if (unitType === 'sniper' && stat === 'speed') return '🎯';
   return STAT_SKILL_ICONS[stat];
 }
 
@@ -3136,6 +3138,7 @@ function barracksStatTierIcon(unitType, stat, tier) {
 
 function barracksStatBranchTheme(unitType, stat) {
   if (unitType === 'goblin' && stat === 'damage') return 'loot';
+  if (unitType === 'sniper' && stat === 'speed') return 'eng-rng';
   return STAT_THEME_MAP[stat];
 }
 
@@ -3156,14 +3159,16 @@ function barracksStatMeta(unitLabel, stat, tier, unitType) {
   }
   const statName = barracksStatBranchLabel(unitType, stat);
   const tips = {
-    speed: `${multLabel} movement speed for all ${unitLabel}s.`,
+    speed: unitType === 'sniper'
+      ? `${multLabel} shot range for all ${unitLabel}s.`
+      : `${multLabel} movement speed for all ${unitLabel}s.`,
     damage: `${multLabel} attack damage for all ${unitLabel}s.`,
     health: `${multLabel} hit points for all ${unitLabel}s.`,
   };
   return {
     title: `${unitLabel} ${statName} ${tier}`,
     tooltip: tips[stat],
-    theme: STAT_THEME_MAP[stat],
+    theme: barracksStatBranchTheme(unitType, stat),
     nodeLabel: multLabel,
   };
 }
@@ -3574,7 +3579,7 @@ function buyBarracksUpgrade(pid, kind, unitType, stat) {
   p.coins -= cost;
     rec[stat] = (rec[stat] || 0) + 1;
     const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
-    const statLabel = (unitType === 'goblin' && stat === 'damage') ? 'loot' : (stat === 'damage' ? 'attack' : stat);
+    const statLabel = barracksStatBranchLabel(unitType, stat).toLowerCase();
     addLog(`🏕 ${p.name}: ${label} ${statLabel} Lv${rec[stat]}`);
   } else {
     return false;
