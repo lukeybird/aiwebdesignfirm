@@ -9,7 +9,7 @@ window.LIVE_ARMY = (function () {
   const ECON_TOWERS = ['farm', 'mint'];
   const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'sniper', 'peka'];
   const UNIT_LABELS = {
-    tank: 'Tank', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'PEKA',
+    tank: 'Elephant', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
     tank: 145, speed: 115, striker: 155, sniper: 190, goblin: 170, peka: 550,
@@ -17,9 +17,14 @@ window.LIVE_ARMY = (function () {
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 5;
   const ENGINEER_BRANCHES = ['damage', 'range', 'health', 'knockback'];
-  const ENGINEER_BRANCH_LABELS = { damage: 'Damage', range: 'Range', health: 'Health', knockback: 'Knockback' };
-  const ENGINEER_BRANCH_ICONS = { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨' };
+  const TURRET_ENGINEER_BRANCHES = ['damage', 'firerate', 'range'];
+  const ENGINEER_BRANCH_LABELS = { damage: 'Damage', range: 'Range', health: 'Health', knockback: 'Knockback', firerate: 'Fire Rate' };
+  const ENGINEER_BRANCH_ICONS = { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨', firerate: '🔥' };
   const ENGINEER_STAT_MAX = 3;
+  // Cannon-specific upgrade curves (tier 1/2/3 = index 1/2/3; index 0 = no upgrade).
+  const CANNON_DAMAGE_MULT = [1, 2, 3, 4];
+  const CANNON_FIRERATE_MULT = [1, 2, 3, 4];
+  const CANNON_RANGE_MULT = [1, 1.3, 1.6, 2];
   // Per-level tower upgrade strength (each branch caps at ENGINEER_STAT_MAX).
   const ENG_DAMAGE_PER_LVL = 0.30; // +90% damage at max
   const ENG_FIRERATE_PER_LVL = 0.12; // +36% fire rate at max (rides the damage branch)
@@ -27,8 +32,8 @@ window.LIVE_ARMY = (function () {
   const ENG_HEALTH_PER_LVL = 0.30; // +90% hp at max
   // Spreader knockback ramps from near-nothing to a strong shove only when the
   // knockback branch is fully upgraded.
-  const SPREAD_KB_WEAK = 1;
-  const SPREAD_KB_STRONG = 11;
+  const SPREAD_KB_WEAK = 0.5;
+  const SPREAD_KB_STRONG = 4;
   const TOWER_LABELS = {
     turret: 'Cannon', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile',
   };
@@ -37,24 +42,55 @@ window.LIVE_ARMY = (function () {
   };
 
   function freshTowerRecord() {
-    return { unlocked: false, damage: 0, range: 0, health: 0, knockback: 0 };
+    return { unlocked: false, damage: 0, range: 0, health: 0, knockback: 0, firerate: 0 };
   }
 
+  const ENGINEER_STAT_KEYS = ['damage', 'firerate', 'range', 'health', 'knockback'];
+
+  // Normalize IN PLACE so the record keeps its object identity. Callers capture
+  // a reference to this object and mutate it (e.g. buying an upgrade); returning
+  // a fresh copy here would silently orphan those writes.
   function normalizeTowerRecord(rec) {
     if (!rec) return freshTowerRecord();
-    return {
-      unlocked: !!rec.unlocked,
-      damage: rec.damage || 0,
-      range: rec.range || 0,
-      health: rec.health || 0,
-      knockback: rec.knockback || 0,
-    };
+    rec.unlocked = !!rec.unlocked;
+    rec.damage = rec.damage || 0;
+    rec.range = rec.range || 0;
+    rec.health = rec.health || 0;
+    rec.knockback = rec.knockback || 0;
+    rec.firerate = rec.firerate || 0;
+    return rec;
+  }
+
+  function mergeTowerRecord(target, source) {
+    const out = normalizeTowerRecord(target);
+    const src = normalizeTowerRecord(source);
+    out.unlocked = out.unlocked || src.unlocked;
+    for (const key of ENGINEER_STAT_KEYS) {
+      out[key] = Math.max(out[key] || 0, src[key] || 0);
+    }
+    return out;
+  }
+
+  function migrateEngineerTowerRecords(eng) {
+    if (!eng?.towers) return;
+    for (const strayKey of Object.keys(eng.towers)) {
+      if (COMBAT_TOWERS.includes(strayKey)) continue;
+      const stray = eng.towers[strayKey];
+      if (!stray) {
+        delete eng.towers[strayKey];
+        continue;
+      }
+      // Recover upgrades that were saved under a bad key (e.g. undefined tower type).
+      eng.towers.turret = mergeTowerRecord(eng.towers.turret, stray);
+      delete eng.towers[strayKey];
+    }
   }
 
   function normalizeEngineers(eng) {
     if (!eng) return freshEngineers();
     if (eng.towers) {
       eng.built = !!eng.built;
+      migrateEngineerTowerRecords(eng);
       for (const tt of COMBAT_TOWERS) {
         eng.towers[tt] = normalizeTowerRecord(eng.towers[tt]);
       }
@@ -251,26 +287,39 @@ window.LIVE_ARMY = (function () {
       d.size = STRUCTURE_SIZE; d.name = 'Missile Base'; d.style = 'missile_live';
       d.fireInterval = 9; d.damage = 4; d.blastRadius = 72; d.missileSpeed = 260;
     }
-    else if (type === 'laser') { d.size = COMBAT_TOWER_SIZE; d.name = 'Rail Gun'; d.style = 'railgun'; d.color = '#EAB308'; d.accent = '#CA8A04'; }
+    else if (type === 'laser') { d.size = COMBAT_TOWER_SIZE; d.name = 'Rail Gun'; d.style = 'railgun'; d.color = '#EAB308'; d.accent = '#CA8A04'; d.range = 340; }
     else if (type === 'spread') { d.size = COMBAT_TOWER_SIZE; d.knockback = SPREAD_KB_WEAK; d.name = 'Spreader'; }
     else if (type === 'turret') { d.size = COMBAT_TOWER_SIZE; d.hp = 140; d.damage = 24; d.name = 'Cannon'; }
 
     if (ownerId != null && COMBAT_TOWERS.includes(type) && playersRef?.[ownerId]) {
       const rec = towerRecord(playersRef[ownerId], type);
-      if (rec.unlocked) {
-        const max = ENGINEER_STAT_MAX;
-        const dmgLvl = Math.min(rec.damage || 0, max);
-        const rngLvl = Math.min(rec.range || 0, max);
-        const hpLvl = Math.min(rec.health || 0, max);
-        const kbLvl = Math.min(rec.knockback || 0, max);
-        const dmgMult = 1 + dmgLvl * ENG_DAMAGE_PER_LVL;
-        d.damage = (d.damage || d.pelletDamage || 0) * dmgMult;
-        if (d.pelletDamage) d.pelletDamage *= dmgMult;
-        d.range = (d.range || 160) * (1 + rngLvl * ENG_RANGE_PER_LVL);
-        d.hp = (d.hp || 80) * (1 + hpLvl * ENG_HEALTH_PER_LVL);
-        d.fireRate = (d.fireRate || 1) * (1 + dmgLvl * ENG_FIRERATE_PER_LVL);
-        if (type === 'spread') {
-          d.knockback = SPREAD_KB_WEAK + (SPREAD_KB_STRONG - SPREAD_KB_WEAK) * (kbLvl / max);
+      const max = ENGINEER_STAT_MAX;
+      const engLvl = type === 'turret'
+        ? (rec.damage || 0) + (rec.firerate || 0) + (rec.range || 0)
+        : (rec.damage || 0) + (rec.range || 0) + (rec.health || 0) + (rec.knockback || 0);
+      if (rec.unlocked || engLvl > 0) {
+        if (type === 'turret') {
+          const dmgLvl = Math.min(rec.damage || 0, max);
+          const rateLvl = Math.min(rec.firerate || 0, max);
+          const rngLvl = Math.min(rec.range || 0, max);
+          d.damage = (d.damage || 24) * (CANNON_DAMAGE_MULT[dmgLvl] || 1);
+          d.fireRate = (d.fireRate || 1.2) * (CANNON_FIRERATE_MULT[rateLvl] || 1);
+          d.range = (d.range || 178) * (CANNON_RANGE_MULT[rngLvl] || 1);
+        } else {
+          const dmgLvl = Math.min(rec.damage || 0, max);
+          const rngLvl = Math.min(rec.range || 0, max);
+          const hpLvl = Math.min(rec.health || 0, max);
+          const kbLvl = Math.min(rec.knockback || 0, max);
+          const dmgMult = 1 + dmgLvl * ENG_DAMAGE_PER_LVL;
+          d.damage = (d.damage || d.pelletDamage || 0) * dmgMult;
+          if (d.pelletDamage) d.pelletDamage *= dmgMult;
+          d.range = (d.range || 160) * (1 + rngLvl * ENG_RANGE_PER_LVL);
+          d.hp = (d.hp || 80) * (1 + hpLvl * ENG_HEALTH_PER_LVL);
+          d.maxHp = d.hp;
+          d.fireRate = (d.fireRate || 1) * (1 + dmgLvl * ENG_FIRERATE_PER_LVL);
+          if (type === 'spread') {
+            d.knockback = SPREAD_KB_WEAK + (SPREAD_KB_STRONG - SPREAD_KB_WEAK) * (kbLvl / max);
+          }
         }
       }
     }
@@ -376,8 +425,32 @@ window.LIVE_ARMY = (function () {
 
   function engineersUpgradeCost(p, towerType, branch) {
     const rec = towerRecord(p, towerType);
-    const lvl = rec[branch] || 0;
+    const lvl = engineerStatLevel(rec, branch);
     return Math.floor(75 * Math.pow(1.68, lvl) + lvl * 30);
+  }
+
+  function isCombatTowerType(type) {
+    return COMBAT_TOWERS.includes(type);
+  }
+
+  function turretEngineerBranches() {
+    return TURRET_ENGINEER_BRANCHES.slice();
+  }
+
+  function engineerBranchesForTower(towerType) {
+    if (towerType === 'turret') return turretEngineerBranches();
+    return ENGINEER_BRANCHES.filter((b) => b !== 'knockback' || towerType === 'spread');
+  }
+
+  function engineerStatLevel(rec, branch) {
+    if (!rec || !ENGINEER_STAT_KEYS.includes(branch)) return 0;
+    return rec[branch] || 0;
+  }
+
+  function incrementEngineerStat(rec, branch) {
+    if (!rec || !ENGINEER_STAT_KEYS.includes(branch)) return false;
+    rec[branch] = engineerStatLevel(rec, branch) + 1;
+    return true;
   }
 
   function economyUnlockCost(type) {
@@ -496,8 +569,9 @@ window.LIVE_ARMY = (function () {
 
   function spreadKnockback(def, unit, pellet) {
     let kb = def.knockback != null ? def.knockback : SPREAD_KB_WEAK;
-    if (unit.type === 'peka') kb *= 0.06;
-    else if (unit.type === 'speed') kb *= 2; // Wolves are light — spreaders shove them twice as far.
+    if (unit.type === 'tank') kb = 0; // Elephants are too heavy — they feel no pushback.
+    else if (unit.type === 'peka') kb *= 0.06;
+    else if (unit.type === 'speed') kb *= 1.4; // Wolves are light — pushed a bit farther.
     const spd = Math.hypot(pellet.vx, pellet.vy) || 1;
     return { nx: pellet.vx / spd, ny: pellet.vy / spd, kb };
   }
@@ -524,15 +598,13 @@ window.LIVE_ARMY = (function () {
     if (t.towerType === 'missile' && !t.missileUpgrades) t.missileUpgrades = freshMissileUpgrades();
     if (t.towerType === 'barracks') playersRef[ownerId].liveArmy.barracks.built = true;
     if (t.towerType === 'engineers') playersRef[ownerId].liveArmy.engineers.built = true;
-    const def = modifyTowerDef(t.towerType, { hp: 80, maxHp: 80 }, ownerId);
-    t.hp = def.hp || t.hp;
-    t.maxHp = t.hp;
     return t;
   }
 
   function missileStats(t, ownerId) {
     const rec = playersRef?.[ownerId] ? towerRecord(playersRef[ownerId], 'missile') : null;
-    if (active && rec?.unlocked) {
+    const engLvl = rec ? (rec.damage || 0) + (rec.range || 0) : 0;
+    if (active && rec && (rec.unlocked || engLvl > 0)) {
       const dmg = rec.damage || 0;
       const rng = rec.range || 0;
       return {
@@ -568,7 +640,7 @@ window.LIVE_ARMY = (function () {
       const towers = {};
       for (const tt of COMBAT_TOWERS) {
         const rec = ep.liveArmy.engineers.towers?.[tt];
-        towers[tt] = { unlocked: !!rec?.unlocked, damage: 0, range: 0, health: 0, knockback: 0 };
+        towers[tt] = { unlocked: !!rec?.unlocked, damage: 0, range: 0, health: 0, knockback: 0, firerate: 0 };
       }
       ep.liveArmy.engineers = { built: !!ep.liveArmy.engineers.built, towers };
     }
@@ -667,6 +739,10 @@ window.LIVE_ARMY = (function () {
     freshEngineers,
     freshEconomy,
     COMBAT_TOWERS,
+    isCombatTowerType,
+    engineerBranchesForTower,
+    engineerStatLevel,
+    incrementEngineerStat,
     TOWER_LABELS,
     TOWER_UNLOCK_COST,
     UNIT_ORDER,
@@ -675,9 +751,13 @@ window.LIVE_ARMY = (function () {
     STAT_BRANCHES,
     STAT_MAX,
     ENGINEER_BRANCHES,
+    TURRET_ENGINEER_BRANCHES,
     ENGINEER_BRANCH_LABELS,
     ENGINEER_BRANCH_ICONS,
     ENGINEER_STAT_MAX,
+    CANNON_DAMAGE_MULT,
+    CANNON_FIRERATE_MULT,
+    CANNON_RANGE_MULT,
     ECON_UNLOCK_COST,
     ECON_BRANCH_COSTS,
     BASE_BRANCHES,
