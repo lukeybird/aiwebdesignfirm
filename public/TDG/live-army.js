@@ -15,12 +15,18 @@ window.LIVE_ARMY = (function () {
     tank: 145, speed: 115, striker: 155, sniper: 190, goblin: 170, peka: 550,
   };
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
-  const STAT_MAX = 5;
+  const STAT_MAX = 3;
+  const STAT_UPGRADE_COSTS = [150, 450, 1200];
+  // Tier 0 = no upgrade; tiers 1–3 are purchased levels.
+  const UNIT_DAMAGE_MULT = [1, 2, 4, 8];
+  const UNIT_HEALTH_MULT = [1, 3, 6, 10];
+  const UNIT_SPEED_MULT = [1, 1.3, 1.6, 2];
   const ENGINEER_BRANCHES = ['damage', 'range', 'health', 'knockback'];
   const TURRET_ENGINEER_BRANCHES = ['damage', 'firerate', 'range'];
   const ENGINEER_BRANCH_LABELS = { damage: 'Damage', range: 'Range', health: 'Health', knockback: 'Knockback', firerate: 'Fire Rate' };
   const ENGINEER_BRANCH_ICONS = { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨', firerate: '🔥' };
   const ENGINEER_STAT_MAX = 3;
+  const ENGINEER_UPGRADE_COSTS = [150, 300, 600];
   // Cannon-specific upgrade curves (tier 1/2/3 = index 1/2/3; index 0 = no upgrade).
   const CANNON_DAMAGE_MULT = [1, 2, 3, 4];
   const CANNON_FIRERATE_MULT = [1, 2, 3, 4];
@@ -133,23 +139,28 @@ window.LIVE_ARMY = (function () {
 
   const ECON_UNLOCK_COST = { farm: 140, mint: 235 };
   const ECON_BRANCH_MAX = 3;
-  const ECON_BRANCH_COSTS = [300, 600, 1200];
+  const ECON_BRANCH_COSTS = [300, 900, 3200];
   const HARVEST_BASE_INTERVAL = 4;
-  const YIELD_START = 1;
-  const YIELD_MAX = 4;
+  const FARM_YIELD_LEVELS = [5, 10, 15, 25];
+  const MINT_YIELD_LEVELS = [10, 15, 20, 25];
+  const FARM_YIELD_START = FARM_YIELD_LEVELS[0];
+  const MINT_YIELD_START = MINT_YIELD_LEVELS[0];
+  const YIELD_MAX = 25;
 
-  function normalizeEcoBuilding(rec) {
+  function normalizeEcoBuilding(rec, type) {
     if (!rec) return { unlocked: false, speed: 0, yield: 0 };
+    const baseYield = type === 'mint' ? MINT_YIELD_START : FARM_YIELD_START;
     if (rec.speed == null) rec.speed = 0;
     if (rec.yield == null) rec.yield = 0;
     if (rec.unlocked && !rec.yieldCoinAmount) {
-      rec.yield = Math.min(YIELD_MAX, (rec.yield || 0) + YIELD_START);
+      rec.yield = baseYield;
       rec.yieldCoinAmount = true;
     }
-    if (rec.unlocked && rec.yield < YIELD_START) rec.yield = YIELD_START;
+    if (rec.unlocked && rec.yield < baseYield) rec.yield = baseYield;
     return rec;
   }
   const BASE_BRANCH_MAX = { income: 3, health: 3, defense: 3 };
+  const BASE_INCOME_UPGRADE_COSTS = [150, 300, 450];
   const BASE_BRANCHES = ['income', 'health', 'defense'];
   const BASE_BRANCH_LABELS = { income: 'Income', health: 'Health', defense: 'Guns' };
   const BASE_BRANCH_ICONS = { income: '🪙', health: '❤️', defense: '🔫' };
@@ -183,8 +194,8 @@ window.LIVE_ARMY = (function () {
     if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
     if (!p.liveArmy.economy) p.liveArmy.economy = freshEconomy();
     const eco = p.liveArmy.economy;
-    eco.farm = normalizeEcoBuilding(eco.farm);
-    eco.mint = normalizeEcoBuilding(eco.mint);
+    eco.farm = normalizeEcoBuilding(eco.farm, 'farm');
+    eco.mint = normalizeEcoBuilding(eco.mint, 'mint');
     if (eco.farmAcc == null) eco.farmAcc = 0;
     if (eco.mintAcc == null) eco.mintAcc = 0;
     return eco;
@@ -242,7 +253,7 @@ window.LIVE_ARMY = (function () {
     if (!el) return;
     el.textContent = pvpMode
       ? 'Unlock farms and mints, then upgrade harvest speed and yield on separate branches. Enemy levels are hidden.'
-      : 'Unlock Farm or Mint at the top, then upgrade harvest speed (4s→1s) and coins per harvest (1→4) on separate branches.';
+      : 'Unlock farms and mints, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.';
   }
 
   function initPlayer(p) {
@@ -329,45 +340,37 @@ window.LIVE_ARMY = (function () {
   function applyStatBonuses(u, type, pid) {
     const rec = playersRef?.[pid]?.liveArmy?.barracks?.units?.[type];
     if (!rec) return;
-    const spd = rec.speed || 0;
-    const dmg = rec.damage || 0;
-    const hp = rec.health || 0;
-    if (type === 'tank') {
-      u.hp = (u.hp || 205) + hp * 35;
-      u.damage = (u.damage || 16) + dmg * 4;
-      u.speed = (u.speed || 50) + spd * 5;
-    } else if (type === 'speed') {
-      u.speed = (u.speed || 112) + spd * 7;
-      u.damage = (u.damage || 17) + dmg * 3;
-      u.hp = (u.hp || 58) + hp * 8;
-    } else if (type === 'striker') {
+    const spdLvl = Math.min(rec.speed || 0, STAT_MAX);
+    const dmgLvl = Math.min(rec.damage || 0, STAT_MAX);
+    const hpLvl = Math.min(rec.health || 0, STAT_MAX);
+    const dmgMult = UNIT_DAMAGE_MULT[dmgLvl] || 1;
+    const hpMult = UNIT_HEALTH_MULT[hpLvl] || 1;
+    const spdMult = UNIT_SPEED_MULT[spdLvl] || 1;
+
+    if (type === 'striker') {
       u.name = 'Knight';
       u.behavior = 'knight';
       u.prefersUnits = true;
-      u.speed = (u.speed || 92) + spd * 6;
-      u.damage = (u.damage || 24) + dmg * 8;
-      u.hp = (u.hp || 75) + hp * 25;
-    } else if (type === 'sniper') {
-      u.damage = (u.damage || 24) + dmg * 6;
-      u.range = (u.range || 198) + spd * 18;
-      u.hp = (u.hp || 62) + hp * 10;
-    } else if (type === 'peka') {
-      u.hp = (u.hp || 550) + hp * 60;
-      u.damage = (u.damage || 44) + dmg * 8;
-      u.speed = (u.speed || 28) + spd * 3;
     } else if (type === 'goblin') {
       u.name = 'Goblin';
       u.behavior = 'goblin';
-      u.speed = (u.speed || 145) + spd * 8;
-      u.hp = (u.hp || 42) + hp * 10;
-      u.damage = (u.damage || 11) + dmg * 3;
       u.cost = 22;
       u.size = 14;
       u.targetsUnits = false;
       u.targetsTowers = true;
       u.targetsBase = false;
       u.immuneRailgun = true;
-      u.lootMult = 1 + dmg * 0.35;
+      u.lootMult = dmgMult;
+    }
+
+    const baseHp = u.hp || 0;
+    const baseDmg = u.damage || 0;
+    const baseSpd = u.speed || 0;
+    u.hp = Math.round(baseHp * hpMult);
+    u.damage = Math.round(baseDmg * dmgMult);
+    u.speed = Math.round(baseSpd * spdMult);
+    if (type === 'sniper' && u.range) {
+      u.range = Math.round(u.range * spdMult);
     }
   }
 
@@ -404,7 +407,8 @@ window.LIVE_ARMY = (function () {
   function statUpgradeCost(p, type, stat) {
     const rec = unitRecord(p, type);
     const lvl = rec[stat] || 0;
-    return Math.floor(65 * Math.pow(1.68, lvl) + lvl * 25);
+    if (lvl >= STAT_MAX) return null;
+    return STAT_UPGRADE_COSTS[lvl];
   }
 
   function towerUnlocked(p, type) {
@@ -426,7 +430,8 @@ window.LIVE_ARMY = (function () {
   function engineersUpgradeCost(p, towerType, branch) {
     const rec = towerRecord(p, towerType);
     const lvl = engineerStatLevel(rec, branch);
-    return Math.floor(75 * Math.pow(1.68, lvl) + lvl * 30);
+    if (lvl >= ENGINEER_STAT_MAX) return null;
+    return ENGINEER_UPGRADE_COSTS[lvl];
   }
 
   function isCombatTowerType(type) {
@@ -468,11 +473,33 @@ window.LIVE_ARMY = (function () {
     return economyBranchCost(rec.speed || 0);
   }
 
+  function harvestYieldLevels(type) {
+    return type === 'mint' ? MINT_YIELD_LEVELS : FARM_YIELD_LEVELS;
+  }
+
+  function harvestYieldBase(type) {
+    return harvestYieldLevels(type)[0];
+  }
+
+  function harvestYieldTier(rec, type) {
+    const levels = harvestYieldLevels(type);
+    const idx = levels.indexOf(rec.yield);
+    return idx >= 0 ? idx : 0;
+  }
+
+  function nextHarvestYield(type, currentYield) {
+    const levels = harvestYieldLevels(type);
+    const tier = harvestYieldTier({ yield: currentYield }, type);
+    if (tier >= levels.length - 1) return null;
+    return levels[tier + 1];
+  }
+
   function economyYieldCost(p, type) {
     const eco = economyRecord(p);
     const rec = type === 'farm' ? eco.farm : eco.mint;
-    const upgradeTier = Math.max(0, (rec.yield || YIELD_START) - YIELD_START);
-    return economyBranchCost(upgradeTier);
+    const tier = harvestYieldTier(rec, type);
+    if (tier >= ECON_BRANCH_MAX) return null;
+    return ECON_BRANCH_COSTS[tier];
   }
 
   function harvestInterval(p, type) {
@@ -486,13 +513,17 @@ window.LIVE_ARMY = (function () {
     const eco = economyRecord(p);
     const rec = type === 'farm' ? eco.farm : eco.mint;
     if (!rec.unlocked) return 0;
-    return Math.max(YIELD_START, rec.yield || YIELD_START);
+    return rec.yield || harvestYieldBase(type);
   }
 
   function economyBaseCost(p, branch) {
     const eco = economyRecord(p);
     const lvl = eco.base[branch] || 0;
-    const bases = { income: 58, health: 125, defense: 155 };
+    if (branch === 'income') {
+      if (lvl >= BASE_INCOME_UPGRADE_COSTS.length) return null;
+      return BASE_INCOME_UPGRADE_COSTS[lvl];
+    }
+    const bases = { health: 125, defense: 155 };
     return Math.floor((bases[branch] || 80) * Math.pow(1.72, lvl) + lvl * 35);
   }
 
@@ -577,7 +608,8 @@ window.LIVE_ARMY = (function () {
   }
 
   function goblinLootMult(damageTier) {
-    return 1 + (damageTier || 0) * 0.35;
+    const lvl = Math.min(damageTier || 0, STAT_MAX);
+    return UNIT_DAMAGE_MULT[lvl] || 1;
   }
 
   function goblinLootPreview(damageTier, towerType) {
@@ -663,6 +695,14 @@ window.LIVE_ARMY = (function () {
     return state;
   }
 
+  function unitStatMultiplier(stat, tier) {
+    const lvl = Math.min(tier, STAT_MAX);
+    if (stat === 'damage') return UNIT_DAMAGE_MULT[lvl] || 1;
+    if (stat === 'health') return UNIT_HEALTH_MULT[lvl] || 1;
+    if (stat === 'speed') return UNIT_SPEED_MULT[lvl] || 1;
+    return 1;
+  }
+
   function syncBuildToolbar() {
     const strikerBtn = document.querySelector('.btn-striker');
     const bloopBtn = document.querySelector('.btn-bloop');
@@ -717,8 +757,13 @@ window.LIVE_ARMY = (function () {
     speedMax,
     harvestInterval,
     harvestAmount,
+    harvestYieldBase,
+    harvestYieldTier,
+    nextHarvestYield,
+    unitStatMultiplier,
     ECON_BRANCH_MAX,
-    YIELD_START,
+    FARM_YIELD_START,
+    MINT_YIELD_START,
     YIELD_MAX,
     baseBranchMax,
     economyIncomeLevel,

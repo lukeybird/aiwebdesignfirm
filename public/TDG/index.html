@@ -2363,7 +2363,7 @@
             <h3 class="st-header-title">Economy Skill Tree</h3>
             <button id="econ-panel-close" class="st-header-close" type="button">✕</button>
           </div>
-          <p id="economy-upgrade-desc" class="st-panel-desc">Unlock Farm or Mint at the top, then upgrade harvest speed (4s→1s) and coins per harvest (1→4).</p>
+          <p id="economy-upgrade-desc" class="st-panel-desc">Unlock Farm or Mint at the top, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.</p>
           <div class="st-scroll-wrap">
             <div id="econ-upgrade-list" class="st-skill-scroll"></div>
             <div class="st-scroll-nav" aria-label="Scroll economy tree">
@@ -3066,19 +3066,22 @@ const BASE_BRANCH_THEME = { income: 'income', health: 'health', defense: 'defens
 function econHarvestSpeedMeta(type, tier) {
   const interval = Math.max(1, 4 - tier);
   const label = type === 'farm' ? 'Farm Speed' : 'Mint Speed';
+  const costs = [300, 900, 3200];
   return {
     title: `${label} ${tier}`,
-    tooltip: `Harvest every ${interval} seconds instead of every ${interval + 1}s. Level ${tier} speeds up payouts.`,
+    tooltip: `Harvest every ${interval}s (was ${interval + 1}s). Costs ${costs[tier - 1]}🪙.`,
   };
 }
 
 function econHarvestYieldMeta(type, tier) {
-  const amount = 1 + tier;
+  const levels = type === 'farm' ? [5, 10, 15, 25] : [10, 15, 20, 25];
+  const amount = levels[tier];
+  const from = levels[tier - 1];
+  const costs = [300, 900, 3200];
   const label = type === 'farm' ? 'Farm Yield' : 'Mint Yield';
-  const from = amount - 1;
   return {
     title: `${label} ${tier}`,
-    tooltip: `Raises harvest from ${from} to ${amount} coin${amount === 1 ? '' : 's'} per payout.`,
+    tooltip: `Raises harvest from ${from} to ${amount}🪙 per payout. Costs ${costs[tier - 1]}🪙.`,
   };
 }
 
@@ -3137,6 +3140,8 @@ function barracksStatBranchTheme(unitType, stat) {
 }
 
 function barracksStatMeta(unitLabel, stat, tier, unitType) {
+  const mult = LIVE_ARMY.unitStatMultiplier(stat, tier);
+  const multLabel = mult === Math.floor(mult) ? `${mult}×` : `${mult}×`;
   if (unitType === 'goblin' && stat === 'damage') {
     const farm = LIVE_ARMY.goblinLootPreview(tier, 'farm');
     const mint = LIVE_ARMY.goblinLootPreview(tier, 'mint');
@@ -3144,17 +3149,23 @@ function barracksStatMeta(unitLabel, stat, tier, unitType) {
     const prevMint = LIVE_ARMY.goblinLootPreview(tier - 1, 'mint');
     return {
       title: `${unitLabel} Loot ${tier}`,
-      tooltip: `Steals ${farm}🪙 per farm hit and ${mint}🪙 per mint hit (up from ${prevFarm}/${prevMint}). Also +3 damage vs buildings.`,
+      tooltip: `Steals ${farm}🪙 per farm hit and ${mint}🪙 per mint hit (up from ${prevFarm}/${prevMint}). ${multLabel} loot & damage.`,
       theme: 'loot',
+      nodeLabel: multLabel,
     };
   }
   const statName = barracksStatBranchLabel(unitType, stat);
   const tips = {
-    speed: `Increases ${unitLabel} movement speed. Level ${tier} reaches targets faster.`,
-    damage: `Boosts ${unitLabel} attack damage. Level ${tier} hits harder.`,
-    health: `Raises ${unitLabel} hit points. Level ${tier} survives more punishment.`,
+    speed: `${multLabel} movement speed for all ${unitLabel}s.`,
+    damage: `${multLabel} attack damage for all ${unitLabel}s.`,
+    health: `${multLabel} hit points for all ${unitLabel}s.`,
   };
-  return { title: `${unitLabel} ${statName}`, tooltip: tips[stat], theme: STAT_THEME_MAP[stat] };
+  return {
+    title: `${unitLabel} ${statName} ${tier}`,
+    tooltip: tips[stat],
+    theme: STAT_THEME_MAP[stat],
+    nodeLabel: multLabel,
+  };
 }
 
 function engineersBranchMeta(towerLabel, branch, tier, towerType) {
@@ -3425,7 +3436,7 @@ function buyEconomyUpgrade(pid, kind, target) {
     if (rec.unlocked || p.coins < cost) return false;
     p.coins -= cost;
     rec.unlocked = true;
-    rec.yield = LIVE_ARMY.YIELD_START || 1;
+    rec.yield = LIVE_ARMY.harvestYieldBase(target);
     rec.yieldCoinAmount = true;
     addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building (+${rec.yield} per harvest)`);
   } else if (kind === 'speed') {
@@ -3440,11 +3451,12 @@ function buyEconomyUpgrade(pid, kind, target) {
     addLog(`💰 ${p.name}: ${label} harvest speed T${rec.speed} (every ${interval}s)`);
   } else if (kind === 'yield') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
-    if (!rec.unlocked || rec.yield >= LIVE_ARMY.yieldMax()) return false;
+    const nextYield = LIVE_ARMY.nextHarvestYield(target, rec.yield);
+    if (!rec.unlocked || !nextYield) return false;
     const cost = LIVE_ARMY.economyYieldCost(p, target);
     if (cost == null || p.coins < cost) return false;
     p.coins -= cost;
-    rec.yield += 1;
+    rec.yield = nextYield;
     const amt = LIVE_ARMY.harvestAmount(p, target);
     const label = target === 'farm' ? 'Farm' : 'Mint';
     addLog(`💰 ${p.name}: ${label} harvest yield → ${amt} per harvest`);
@@ -3558,7 +3570,7 @@ function buyBarracksUpgrade(pid, kind, unitType, stat) {
   } else if (kind === 'stat' && stat) {
     if (!rec.unlocked || (rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) return false;
     const cost = LIVE_ARMY.statUpgradeCost(p, unitType, stat);
-  if (p.coins < cost) return false;
+    if (cost == null || p.coins < cost) return false;
   p.coins -= cost;
     rec[stat] = (rec[stat] || 0) + 1;
     const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
@@ -3594,7 +3606,7 @@ function buyEngineersUpgrade(pid, kind, towerType, branch) {
   } else if (kind === 'stat' && branch) {
     if (!rec.unlocked || LIVE_ARMY.engineerStatLevel(rec, branch) >= LIVE_ARMY.ENGINEER_STAT_MAX) return false;
     const cost = LIVE_ARMY.engineersUpgradeCost(p, towerType, branch);
-    if (p.coins < cost) return false;
+    if (cost == null || p.coins < cost) return false;
     p.coins -= cost;
     if (!LIVE_ARMY.incrementEngineerStat(rec, branch)) return false;
     const label = LIVE_ARMY.TOWER_LABELS[towerType] || towerType;
@@ -3711,6 +3723,7 @@ function updateBarracksUpgradeUI(force) {
           theme: branchTheme,
           dataAttrs: ` data-barracks-stat="${stat}" data-barracks-unit="${ut}"`,
           tip: meta.tooltip,
+          nodeLabel: meta.nodeLabel,
         }));
       }
       html += '<div class="brk-stat-line">';
@@ -4132,8 +4145,8 @@ function updateIncomeUpgradeUI(force) {
     const theme = type === 'farm' ? 'farm' : 'mint';
     const unlockTitle = type === 'farm' ? 'Unlock Farm' : 'Unlock Mint';
     const unlockTip = type === 'farm'
-      ? 'Unlock farm buildings. Starts at 1 coin every 4 seconds per farm.'
-      : 'Unlock mint buildings. Starts at 1 coin every 4 seconds per mint.';
+      ? 'Unlock farm buildings. Starts at 5 coins every 4 seconds per farm.'
+      : 'Unlock mint buildings. Starts at 10 coins every 4 seconds per mint.';
 
     let side = '<div class="st-section st-half st-econ-side">';
     side += `<div class="st-section-title">${title}</div>`;
@@ -4176,7 +4189,7 @@ function updateIncomeUpgradeUI(force) {
         theme,
         title: meta.title,
         tooltip: meta.tooltip,
-        tier, maxTier, ownedTier: unlocked ? Math.max(0, (rec.yield || 1) - 1) : 0, unlocked,
+        tier, maxTier, ownedTier: unlocked ? LIVE_ARMY.harvestYieldTier(rec, type) : 0, unlocked,
         cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '🌾' : '🪙',
         dataAttrs: ` data-econ-yield="${type}"`,
       }));
