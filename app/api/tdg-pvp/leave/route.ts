@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   ensureTdgPvpTables,
+  findQueueRowByToken,
   notifyOpponentSessionEnded,
   removeQueueSession,
 } from '@/lib/tdg-pvp';
+import { recordDisconnect } from '@/lib/tdg-pvp-activity';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,9 +19,14 @@ export async function POST(request: NextRequest) {
 
     await ensureTdgPvpTables();
 
-    const row = await removeQueueSession(sessionToken);
-    if (row?.room_id) {
-      await notifyOpponentSessionEnded(row, 'match_cancelled', {
+    const row = await findQueueRowByToken(sessionToken);
+    if (row?.room_id && row.status === 'matched' && row.player_slot !== null) {
+      await recordDisconnect(row.room_id, row.player_slot);
+    }
+
+    const removed = await removeQueueSession(sessionToken);
+    if (removed?.room_id) {
+      await notifyOpponentSessionEnded(removed, 'match_cancelled', {
         reason: 'opponent_left',
         t: Date.now(),
       });

@@ -9,6 +9,7 @@ import {
   removeQueueSession,
   touchQueueSession,
 } from '@/lib/tdg-pvp';
+import { recordMatchStart } from '@/lib/tdg-pvp-activity';
 import { sql } from '@/lib/db';
 
 function makeToken() {
@@ -113,6 +114,8 @@ export async function POST(request: NextRequest) {
 
       if (updated[0]) {
         const partner = updated[0];
+
+        await recordMatchStart(roomId, partner.player_name, name);
 
         await sql`
           INSERT INTO tdg_pvp_queue (

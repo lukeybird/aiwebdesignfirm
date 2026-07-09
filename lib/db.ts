@@ -426,6 +426,38 @@ export async function initDatabase() {
       WHERE status = 'waiting'
     `;
 
+    await sql`
+      CREATE TABLE IF NOT EXISTS tdg_pvp_matches (
+        id SERIAL PRIMARY KEY,
+        room_id VARCHAR(64) UNIQUE NOT NULL,
+        player0_name VARCHAR(50) NOT NULL,
+        player1_name VARCHAR(50) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        winner_slot SMALLINT,
+        end_reason VARCHAR(32),
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ended_at TIMESTAMP
+      )
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tdg_pvp_matches_status
+      ON tdg_pvp_matches (status, started_at DESC)
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tdg_pvp_matches_ended
+      ON tdg_pvp_matches (ended_at DESC)
+      WHERE status = 'completed'
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS tdg_pvp_player_stats (
+        player_name VARCHAR(50) PRIMARY KEY,
+        wins INT NOT NULL DEFAULT 0,
+        losses INT NOT NULL DEFAULT 0,
+        draws INT NOT NULL DEFAULT 0,
+        last_played_at TIMESTAMP
+      )
+    `;
+
     await initBookingTables(sql);
 
     console.log('Database initialized successfully');

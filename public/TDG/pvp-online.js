@@ -353,8 +353,29 @@
     }
   }
 
-  async function notifyGameOver() {
-    // Lockstep PvP: both clients simulate and will independently end match.
+  async function notifyGameOver(outcome) {
+    if (!session?.roomId || !session?.sessionToken || session.reportedGameOver) return;
+    session.reportedGameOver = true;
+    saveSession(session);
+
+    const winnerSlot =
+      outcome?.winnerSlot === 0 || outcome?.winnerSlot === 1 ? outcome.winnerSlot : null;
+    const endReason =
+      outcome?.endReason === 'draw' || winnerSlot === null ? 'draw' : 'base_destroyed';
+
+    try {
+      await fetchJson('/api/tdg-pvp/match-complete', {
+        method: 'POST',
+        body: JSON.stringify({
+          roomId: session.roomId,
+          sessionToken: session.sessionToken,
+          winnerSlot,
+          endReason,
+        }),
+      });
+    } catch {
+      // ignore — opponent may have reported first
+    }
   }
 
   function cleanup() {
