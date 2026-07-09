@@ -287,7 +287,7 @@ window.LIVE_ARMY = (function () {
 
   const FARM_SEPARATION_GAP = 10;
 
-  function modifyTowerDef(type, def, ownerId) {
+  function modifyTowerDef(type, def, ownerId, opts) {
     if (!active) return def;
     const d = { ...def };
     if (type === 'farm') { d.size = FARM_SIZE; d.name = 'Farm'; d.style = 'farm_live'; }
@@ -301,6 +301,10 @@ window.LIVE_ARMY = (function () {
     else if (type === 'laser') { d.size = COMBAT_TOWER_SIZE; d.name = 'Rail Gun'; d.style = 'railgun'; d.color = '#EAB308'; d.accent = '#CA8A04'; d.range = 340; }
     else if (type === 'spread') { d.size = COMBAT_TOWER_SIZE; d.knockback = SPREAD_KB_WEAK; d.name = 'Spreader'; }
     else if (type === 'turret') { d.size = COMBAT_TOWER_SIZE; d.hp = 140; d.damage = 24; d.name = 'Cannon'; }
+
+    // Base cannons run on their own dedicated skill tree, so callers can request
+    // the live-adjusted base stats without the shared engineer-tower bonuses.
+    if (opts && opts.skipEngineerBonus) return d;
 
     if (ownerId != null && COMBAT_TOWERS.includes(type) && playersRef?.[ownerId]) {
       const rec = towerRecord(playersRef[ownerId], type);

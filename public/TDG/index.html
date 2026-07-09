@@ -2082,6 +2082,118 @@
 
     #missile-upgrade-panel.hidden { display: none; }
 
+    /* Commander circular FABs (count, formation, commander face) */
+    .cmd-fab {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 3px solid #fcd34d;
+      background: radial-gradient(circle at 35% 30%, #3b4763, #1b2236);
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      transition: transform 0.15s;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cmd-fab:hover { transform: scale(1.08); }
+    .cmd-fab.hidden { display: none; }
+    .cmd-fab svg { width: 100%; height: 100%; }
+    .cmd-fab .cmd-hat { fill: #fcd34d; stroke: none; }
+    .cmd-fab .cmd-fig { stroke: #e8eefc; stroke-linecap: round; fill: none; }
+    .cmd-fab .cmd-icon { stroke: #e8eefc; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .cmd-fab .cmd-icon-accent { stroke: #fcd34d; fill: #fcd34d; }
+
+    #commander-fab {
+      position: absolute;
+      right: 16px;
+      bottom: 92px;
+      z-index: 17;
+    }
+
+    #commander-quickbar {
+      position: absolute;
+      right: 84px;
+      bottom: 92px;
+      z-index: 17;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #commander-quickbar.hidden { display: none; }
+
+    #cmd-count-fab-num {
+      font-family: Rajdhani, sans-serif;
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #fcd34d;
+      line-height: 1;
+      user-select: none;
+    }
+
+    #commander-panel {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 12, 28, 0.82);
+      z-index: 19;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    #commander-panel.hidden { display: none; }
+
+    .cmd-panel-inner {
+      background: linear-gradient(160deg, #1c2540, #10162a);
+      border: 3px solid #fcd34d;
+      border-radius: 16px;
+      width: min(380px, 94%);
+      max-height: 86%;
+      overflow-y: auto;
+      padding: 14px 16px 16px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+    }
+    .cmd-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .cmd-header h3 { margin: 0; font-size: 1.1rem; }
+    #commander-close {
+      border: none; background: rgba(255,255,255,0.12); color: #fff;
+      width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+    }
+    .cmd-sub { font-size: 0.72rem; opacity: 0.75; margin: 0 0 12px; }
+    .cmd-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .cmd-label { font-weight: 700; font-size: 0.85rem; }
+    .cmd-stepper { display: flex; align-items: center; gap: 10px; }
+    .cmd-stepper button {
+      width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #fcd34d, #f59e0b); color: #1a1a2e;
+      font-size: 1.2rem; font-weight: 800; line-height: 1;
+    }
+    .cmd-stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
+    #cmd-count { min-width: 24px; text-align: center; font-size: 1.15rem; font-weight: 800; }
+    .cmd-formations { display: flex; gap: 8px; margin-bottom: 12px; }
+    .cmd-form-btn {
+      flex: 1; padding: 8px 4px; border-radius: 10px; cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
+      color: #dfe6f5; font-weight: 700; font-size: 0.76rem;
+    }
+    .cmd-form-btn.active { border-color: #fcd34d; background: rgba(252,211,77,0.18); color: #fff; }
+    #commander-preview {
+      width: 100%; height: auto; display: block; border-radius: 10px;
+      background: #0c1120; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px;
+    }
+    .cmd-skilltree { display: flex; flex-direction: column; gap: 8px; }
+    .cmd-skill-btn {
+      border: none; border-radius: 10px; padding: 9px 12px; cursor: pointer;
+      background: linear-gradient(135deg, #fcd34d, #f59e0b); color: #1a1a2e;
+      font-weight: 700; font-size: 0.8rem; text-align: left;
+    }
+    .cmd-skill-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cmd-skill-btn.owned { background: rgba(134,239,172,0.25); color: #bbf7d0; cursor: default; }
+
     .econ-panel-inner {
       background: linear-gradient(160deg, #1a2e1a, #121a12);
       border: 3px solid #86efac;
@@ -2308,7 +2420,7 @@
       <div id="achievement-feed-p0"></div>
       <div id="achievement-feed-p1"></div>
       <button id="ach-medal-btn" class="hidden" title="View achievements">🏅</button>
-      <button id="econ-upgrade-btn" class="hidden" type="button" title="Income upgrades">Economy</button>
+      <button id="econ-upgrade-btn" class="hidden" type="button" title="Base upgrades">Base</button>
       <button id="barracks-upgrade-btn" class="hidden" type="button" title="Barracks upgrades">Barracks</button>
       <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower upgrades">Engineers</button>
       <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
@@ -2360,7 +2472,7 @@
         <div class="st-panel economy-st-panel">
           <div class="st-header">
             <span class="st-header-emblem">⚜</span>
-            <h3 class="st-header-title">Economy Skill Tree</h3>
+            <h3 class="st-header-title">Base Skill Tree</h3>
             <button id="econ-panel-close" class="st-header-close" type="button">✕</button>
           </div>
           <p id="economy-upgrade-desc" class="st-panel-desc">Unlock Farm or Mint at the top, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.</p>
@@ -2402,6 +2514,50 @@
         <button class="tool-btn btn-goblin hidden" id="btn-goblin-live" data-tool="goblin">👺 Goblin<div class="cost">22</div></button>
         <button class="tool-btn btn-move" data-tool="move">✋ Move</button>
         <button class="tool-btn btn-ready" id="ready-btn">Ready! ▶</button>
+      </div>
+      <button id="commander-fab" class="cmd-fab hidden" type="button" title="Commander — upgrades & preview">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path class="cmd-hat" d="M12 17 L36 17 L33 12 Q24 8 15 12 Z" />
+          <rect class="cmd-hat" x="10" y="17" width="28" height="4" rx="2" />
+          <circle class="cmd-fig" cx="24" cy="26" r="3.4" fill="none" stroke-width="2.4" />
+          <line class="cmd-fig" x1="24" y1="29" x2="24" y2="38" stroke-width="2.4" />
+          <line class="cmd-fig" x1="24" y1="31.5" x2="17" y2="35" stroke-width="2.4" />
+          <line class="cmd-fig" x1="24" y1="31.5" x2="31" y2="35" stroke-width="2.4" />
+          <line class="cmd-fig" x1="24" y1="38" x2="18.5" y2="44" stroke-width="2.4" />
+          <line class="cmd-fig" x1="24" y1="38" x2="29.5" y2="44" stroke-width="2.4" />
+        </svg>
+      </button>
+      <div id="commander-quickbar" class="hidden">
+        <button id="cmd-count-fab" class="cmd-fab" type="button" title="Units per drop — tap to cycle">
+          <span id="cmd-count-fab-num">1</span>
+        </button>
+        <button id="cmd-form-fab" class="cmd-fab" type="button" title="Formation — tap to cycle">
+          <svg id="cmd-form-fab-svg" viewBox="0 0 48 48" aria-hidden="true"></svg>
+        </button>
+      </div>
+      <div id="commander-panel" class="hidden">
+        <div class="cmd-panel-inner">
+          <div class="cmd-header">
+            <h3>🎖️ Commander</h3>
+            <button id="commander-close" type="button">✕</button>
+          </div>
+          <p class="cmd-sub">Pick a unit from the bar, then click the battlefield to drop a whole formation at once.</p>
+          <div class="cmd-row">
+            <span class="cmd-label">Units at once</span>
+            <div class="cmd-stepper">
+              <button id="cmd-minus" type="button">−</button>
+              <span id="cmd-count">1</span>
+              <button id="cmd-plus" type="button">+</button>
+            </div>
+          </div>
+          <div class="cmd-formations" id="cmd-formations">
+            <button class="cmd-form-btn" type="button" data-formation="front">Front Line</button>
+            <button class="cmd-form-btn" type="button" data-formation="train">Train</button>
+            <button class="cmd-form-btn" type="button" data-formation="group">Group</button>
+          </div>
+          <canvas id="commander-preview" width="300" height="150"></canvas>
+          <div class="cmd-skilltree" id="cmd-skilltree"></div>
+        </div>
       </div>
       <div id="phase-banner" class="hidden">
         <h2 id="banner-title">Round Complete</h2>
@@ -2627,9 +2783,148 @@ const RUBBLE_RADIUS = 28;
 const BASE_CANNON_ACCENT = '#F5C542';
 const BASE_CANNON_BARREL = '#C99A2E';
 const CANNON_YELLOW_PELLET = '#FFD400';
-const BASE_CANNON_DMG_MULT = 2;    // engineer damage level 1
-const BASE_CANNON_RATE_MULT = 2;   // engineer fire-rate level 1
-const BASE_CANNON_RANGE_MULT = 1.3; // engineer range level 1
+
+// Dedicated base-cannon skill tree (separate from the Engineers cannon tree).
+// The two starting cannons and the base's own cannon begin at a normal cannon's
+// stats (index 0 = ×1) and climb these two-tier branches. cost[L] is the price
+// to advance from level L to L+1.
+const BASE_CANNON_SKILL = {
+  firerate: { label: 'Fire Rate', mults: [1, 2, 3], costs: [300, 600] },
+  damage:   { label: 'Attack Damage', mults: [1, 2, 3], costs: [300, 600] },
+  range:    { label: 'Range', mults: [1, 1.3, 1.7], costs: [300, 600] },
+};
+const BASE_CANNON_SKILL_MAX = 2;
+
+function freshBaseCannonSkills() {
+  return { firerate: 0, damage: 0, range: 0 };
+}
+
+function getBaseCannonSkills(p) {
+  if (!p) return freshBaseCannonSkills();
+  if (!p.baseCannonSkills) p.baseCannonSkills = freshBaseCannonSkills();
+  return p.baseCannonSkills;
+}
+
+function baseCannonSkillMult(branch, lvl) {
+  const cfg = BASE_CANNON_SKILL[branch];
+  if (!cfg) return 1;
+  return cfg.mults[Math.min(lvl || 0, cfg.mults.length - 1)] || 1;
+}
+
+function baseCannonSkillCost(branch, lvl) {
+  const cfg = BASE_CANNON_SKILL[branch];
+  if (!cfg || (lvl || 0) >= BASE_CANNON_SKILL_MAX) return null;
+  return cfg.costs[lvl || 0];
+}
+
+// Structures that are locked in place once built — they cannot be dragged with
+// the Move tool. Combat towers (cannon/laser/spread) and mints stay movable.
+const IMMOVABLE_TOWER_TYPES = new Set(['farm', 'barracks', 'engineers', 'missile']);
+function isImmovableTower(towerType) {
+  return IMMOVABLE_TOWER_TYPES.has(towerType);
+}
+
+// ─── Commander (multi-unit deployment) ───────────────────────────────────────
+// Unlocking the Commander (300, in the Base tree) lets you drop several units
+// with one click. The Commander's own menu upgrades the cap: 600 → up to 6,
+// 900 → up to 9. tier: 0 locked · 1 = cap 3 · 2 = cap 6 · 3 = cap 9.
+const COMMANDER_CAP_BY_TIER = [0, 3, 6, 9];
+const COMMANDER_TIER_COST = [300, 600, 900]; // cost to reach tier index+1
+const COMMANDER_FORMATIONS = ['front', 'train', 'group'];
+const COMMANDER_FORMATION_LABEL = { front: 'Front Line', train: 'Train', group: 'Group' };
+
+function freshCommander() {
+  return { tier: 0 };
+}
+function getCommander(p) {
+  if (!p) return freshCommander();
+  if (!p.commander) p.commander = freshCommander();
+  return p.commander;
+}
+function commanderCap(p) {
+  return COMMANDER_CAP_BY_TIER[getCommander(p).tier] || 0;
+}
+function commanderUnlocked(p) {
+  return getCommander(p).tier >= 1;
+}
+function commanderTierCost(tier) {
+  return COMMANDER_TIER_COST[tier - 1] ?? null;
+}
+
+// Bulk-deploy surcharge: 1 unit = base price, then the whole batch is scaled by
+// 1 + count/10 (2 → 1.2×, 3 → 1.3× … 9 → 1.9×).
+function commanderCostFactor(count) {
+  return count <= 1 ? 1 : 1 + count / 10;
+}
+function commanderBatchCost(pid, type, count) {
+  const ut = unitDef(type, pid);
+  return Math.round(ut.cost * count * commanderCostFactor(count));
+}
+
+// Local player's live selection (not part of synced game state — each player
+// controls their own, and deployments are broadcast as explicit positions).
+let commanderCount = 1;
+let commanderFormation = 'front';
+
+function buyCommanderUpgrade(pid, tier) {
+  if (!isSurvivalLive()) return false;
+  const p = players[pid];
+  if (!p || p.baseHp <= 0) return false;
+  const c = getCommander(p);
+  if (tier !== c.tier + 1) return false;      // must be the next tier in sequence
+  const cost = commanderTierCost(tier);
+  if (cost == null || p.coins < cost) return false;
+  p.coins -= cost;
+  c.tier = tier;
+  addLog(`🎖️ ${p.name}: Commander → up to ${commanderCap(p)} units`);
+  if (pid === getLocalPlayerId()) {
+    commanderCount = Math.min(commanderCount, commanderCap(p));
+    updateCommanderPanelUI();
+  }
+  updateIncomeUpgradeUI(true);
+  updateUI();
+  return true;
+}
+
+// Formation offsets relative to the click point, in a frame where +x points at
+// the enemy. Real placement mirrors dx by the player's attack direction.
+function commanderFormationOffsets(count, formation, spacing) {
+  const offs = [];
+  const mid = (count - 1) / 2;
+  if (formation === 'train') {
+    for (let i = 0; i < count; i++) offs.push({ dx: (i - mid) * spacing, dy: 0 });
+  } else if (formation === 'group') {
+    if (count === 1) { offs.push({ dx: 0, dy: 0 }); }
+    else {
+      let idx = 0;
+      // center fills first once the ring gets crowded
+      if (count >= 7) { offs.push({ dx: 0, dy: 0 }); idx = 1; }
+      const ringN = count - idx;
+      const r = Math.max(spacing * 0.95, (ringN * spacing) / (2 * Math.PI));
+      for (let i = 0; i < ringN; i++) {
+        const a = (2 * Math.PI * i) / ringN - Math.PI / 2;
+        offs.push({ dx: Math.cos(a) * r, dy: Math.sin(a) * r });
+      }
+    }
+  } else { // front line — shoulder to shoulder, perpendicular to the enemy
+    for (let i = 0; i < count; i++) offs.push({ dx: 0, dy: (i - mid) * spacing });
+  }
+  return offs;
+}
+
+function commanderDeployPositions(pos, pid, type, count, formation) {
+  const dir = pid === 0 ? 1 : -1;
+  const spacing = (UNIT_TYPES[type]?.size || 18) * 2 + 12;
+  // In live combat units can go anywhere in your own zone (front to back), so
+  // clamp to the full zone — not the narrow front deploy strip.
+  const z = playerZone(pid);
+  const xMin = z.x + 40, xMax = z.x2 - 20;
+  const yMin = LAND_TOP + LAND_PAD, yMax = LAND_BOTTOM - LAND_PAD;
+  return commanderFormationOffsets(count, formation, spacing).map(({ dx, dy }) => ({
+    x: clamp(pos.x + dx * dir, xMin, xMax),
+    y: clamp(pos.y + dy, yMin, yMax),
+  }));
+}
 
 const DEFAULT_GAME_RULES = {
   startCoins: 250,
@@ -2922,13 +3217,24 @@ function closeManual() {
 }
 
 const SURVIVAL_START_COINS = 85;
+// Testing bank for human player(s) in Live Battle — CPU still uses SURVIVAL_START_COINS.
+const SURVIVAL_PLAYER_TEST_COINS = 10000;
+
+function survivalLiveStartCoins(pid, pvp) {
+  if (pvp) return SURVIVAL_PLAYER_TEST_COINS;
+  return pid === 0 ? SURVIVAL_PLAYER_TEST_COINS : SURVIVAL_START_COINS;
+}
 const SURVIVAL_INCOME_INTERVAL = 3;
 const SURVIVAL_FARM_INTERVAL = 2;
 const SURVIVAL_BASE_INCOME = 25;
 const SURVIVAL_MINT_INCOME = 5;
 const SURVIVAL_FARM_INCOME = 2;
-const SURVIVAL_AI_THINK_INTERVAL = 1;
-const SURVIVAL_AI_MAX_UNITS = 22;
+// The CPU re-thinks ~3x per second so its placement rate is gated by its money,
+// not by an artificial clock.
+const SURVIVAL_AI_THINK_INTERVAL = 0.33;
+// Effectively "money is the limit" — a high ceiling that only exists to stop a
+// runaway swarm from tanking performance, not to throttle normal play.
+const SURVIVAL_AI_MAX_UNITS = 60;
 // When the player floods this many live units, the CPU answers with a Dragon.
 const SURVIVAL_AI_VOLUME_THRESHOLD = 5;
 const SURVIVAL_AI_INCOME_MULT = {
@@ -2936,6 +3242,25 @@ const SURVIVAL_AI_INCOME_MULT = {
   medium: 3,
   hard: 5,
 };
+// Flat coin edge on every HQ income tick for the CPU, plus +5 more per HQ income
+// upgrade level it has purchased (stacks on top of the normal upgrade yield).
+const SURVIVAL_AI_BASE_INCOME_EDGE = 5;
+const SURVIVAL_AI_BASE_INCOME_EDGE_PER_UPGRADE = 5;
+
+function survivalAiBaseIncomeBonus(pid) {
+  if (pid !== 1 || gameMode !== 'survival') return 0;
+  const eco = LIVE_ARMY?.isActive()
+    ? LIVE_ARMY.economyRecord(players[pid])
+    : null;
+  const incomeUpgrades = eco
+    ? (eco.base.income || 0)
+    : Math.max(0, incomeUpgradeLevel(pid, 'base') - 1);
+  return SURVIVAL_AI_BASE_INCOME_EDGE + incomeUpgrades * SURVIVAL_AI_BASE_INCOME_EDGE_PER_UPGRADE;
+}
+// If the player does nothing meaningful in the opening, the CPU blindsides them
+// with a huge ambush after this many seconds (no long observe/prepare wait).
+const SURVIVAL_AI_IDLE_STRIKE_AFTER = 18;
+const SURVIVAL_AI_IDLE_AMBUSH_BONUS = 220;
 // Strategic planner phases — the CPU observes, banks in secret, then commits one
 // big strike before recovering. No constant wave spam.
 const SURVIVAL_AI_OBSERVE_TIME = { easy: 28, medium: 22, hard: 16 };
@@ -2954,8 +3279,13 @@ const SURVIVAL_AI_STRIKE_SIZE = {
   medium: [5, 8],
   hard: [6, 10],
 };
-// Human-like delay between troop placements during a committed strike (seconds).
-const SURVIVAL_AI_SPAWN_STAGGER = [0.35, 0.85];
+// Delay between troop placements during a trickle strike (seconds) — kept short
+// so the CPU can lay down roughly three units per second when it isn't using the
+// Commander to mass-drop them.
+const SURVIVAL_AI_SPAWN_STAGGER = [0.28, 0.36];
+// Forrest tempo — "get there the firstest": shorten the prep phase so the CPU
+// commits its concentrated strikes faster and keeps the initiative.
+const SURVIVAL_AI_FORREST_TEMPO = 0.68;
 const INCOME_UPGRADE_MAX = 8;
 const INCOME_UPGRADE_DEFS = {
   base: { name: 'Base Income', icon: '🏛', baseYield: SURVIVAL_BASE_INCOME, upgradeStep: 5, baseCost: 110, intervalLabel: '3s' },
@@ -3112,6 +3442,18 @@ function econBaseSkillMeta(branch, tier) {
     defense: `Adds cannon turrets beside your HQ that auto-attack invaders. Level ${tier} adds more guns.`,
   };
   return { title: `${names[branch]} ${tier}`, tooltip: tips[branch], theme: BASE_BRANCH_THEME[branch] };
+}
+
+function econCannonSkillMeta(branch, tier) {
+  const cfg = BASE_CANNON_SKILL[branch];
+  const mult = cfg.mults[tier] || 1;
+  const verb = { firerate: 'fire', damage: 'hit', range: 'reach' };
+  const adverb = { firerate: 'faster', damage: 'harder', range: 'farther' };
+  return {
+    title: `${cfg.label} ${tier}`,
+    tooltip: `Your two front cannons and the base's own cannon ${verb[branch]} ${mult}× ${adverb[branch]}.`,
+    theme: BASE_BRANCH_THEME[branch] || 'defense',
+  };
 }
 
 const UNIT_SKILL_ICONS = { tank: '🐘', speed: '🐺', goblin: '👺', striker: '🐴', sniper: '🎯', peka: '🐉' };
@@ -3547,7 +3889,7 @@ function survivalIncomeAmount(pid, type) {
     if (type === 'base') {
       const eco = LIVE_ARMY.economyRecord(players[pid]);
       const lvl = 1 + (eco.base.income || 0);
-      return survivalIncomeAmountAtLevel('base', lvl);
+      return survivalIncomeAmountAtLevel('base', lvl) + survivalAiBaseIncomeBonus(pid);
     }
     if (type === 'farm' || type === 'mint') {
       let amt = LIVE_ARMY.harvestAmount(players[pid], type);
@@ -3559,7 +3901,10 @@ function survivalIncomeAmount(pid, type) {
   const lvl = incomeUpgradeLevel(pid, type);
   if (lvl < 1) return 0;
   let amt = survivalIncomeAmountAtLevel(type, lvl);
-  if (pid === 1 && gameMode === 'survival') amt *= survivalAiIncomeMult();
+  if (pid === 1 && gameMode === 'survival') {
+    if (type === 'base') amt += survivalAiBaseIncomeBonus(pid);
+    else amt *= survivalAiIncomeMult();
+  }
   return amt;
 }
 
@@ -3904,6 +4249,174 @@ function toggleMissilePanel(show) {
   if (open) updateMissileUpgradeUI();
 }
 
+function buyBaseCannonUpgrade(pid, branch) {
+  if (!isSurvivalLive()) return false;
+  const p = players[pid];
+  if (!p || p.baseHp <= 0) return false;
+  const skills = getBaseCannonSkills(p);
+  if (!(branch in skills)) return false;
+  const lvl = skills[branch] || 0;
+  const cost = baseCannonSkillCost(branch, lvl);
+  if (cost == null || p.coins < cost) return false;
+  p.coins -= cost;
+  skills[branch] = lvl + 1;
+  addLog(`🎯 ${p.name}: Cannon ${BASE_CANNON_SKILL[branch].label} Lv${skills[branch]}`);
+  updateIncomeUpgradeUI(true);
+  updateUI();
+  return true;
+}
+
+function toggleCommanderPanel(show) {
+  const panel = document.getElementById('commander-panel');
+  if (!panel) return;
+  const open = show !== undefined ? show : panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !open);
+  if (open) updateCommanderPanelUI();
+}
+
+function commanderFormFabSvg(formation) {
+  const sw = 2.4;
+  if (formation === 'train') {
+    // Left ↔ right arrows — units in a line toward the enemy.
+    return `<path class="cmd-icon" stroke-width="${sw}" d="M11 24 H19 M15 20 L11 24 L15 28" />
+      <path class="cmd-icon" stroke-width="${sw}" d="M37 24 H29 M33 20 L37 24 L33 28" />`;
+  }
+  if (formation === 'group') {
+    // Circular arrow — units in a ring.
+    return `<circle class="cmd-icon" stroke-width="${sw}" cx="24" cy="24" r="11" />
+      <path class="cmd-icon-accent" stroke-width="${sw}" d="M33 24 A9 9 0 1 1 24 15" fill="none" />
+      <path class="cmd-icon-accent" d="M24 15 L20 11 L28 11 Z" />`;
+  }
+  // Front line — up/down arrows (side-by-side row perpendicular to enemy).
+  return `<path class="cmd-icon" stroke-width="${sw}" d="M24 11 V19 M20 15 L24 11 L28 15" />
+    <path class="cmd-icon" stroke-width="${sw}" d="M24 37 V29 M20 33 L24 37 L28 33" />`;
+}
+
+function updateCommanderFormFabIcon() {
+  const svg = document.getElementById('cmd-form-fab-svg');
+  if (!svg) return;
+  svg.innerHTML = commanderFormFabSvg(commanderFormation);
+  const titles = {
+    front: 'Front Line — tap to change',
+    train: 'Train — tap to change',
+    group: 'Group — tap to change',
+  };
+  const btn = document.getElementById('cmd-form-fab');
+  if (btn) btn.title = titles[commanderFormation] || 'Formation — tap to cycle';
+}
+
+function syncCommanderControlsUI() {
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const cap = commanderCap(p);
+  commanderCount = clamp(commanderCount, 1, Math.max(1, cap));
+
+  const countEl = document.getElementById('cmd-count');
+  if (countEl) countEl.textContent = commanderCount;
+  const fabNum = document.getElementById('cmd-count-fab-num');
+  if (fabNum) fabNum.textContent = commanderCount;
+  const countFab = document.getElementById('cmd-count-fab');
+  if (countFab) countFab.title = `Deploy ${commanderCount} unit${commanderCount === 1 ? '' : 's'} — tap to cycle`;
+
+  const minus = document.getElementById('cmd-minus');
+  if (minus) minus.disabled = commanderCount <= 1;
+  const plus = document.getElementById('cmd-plus');
+  if (plus) plus.disabled = commanderCount >= cap;
+
+  document.querySelectorAll('#cmd-formations .cmd-form-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.formation === commanderFormation);
+  });
+  updateCommanderFormFabIcon();
+}
+
+function commanderCycleCount() {
+  const cap = commanderCap(players[getLocalPlayerId()]);
+  commanderCount = commanderCount >= cap ? 1 : commanderCount + 1;
+  syncCommanderControlsUI();
+  drawCommanderPreview();
+}
+
+function commanderCycleFormation() {
+  const idx = COMMANDER_FORMATIONS.indexOf(commanderFormation);
+  commanderFormation = COMMANDER_FORMATIONS[(idx + 1) % COMMANDER_FORMATIONS.length];
+  syncCommanderControlsUI();
+  drawCommanderPreview();
+}
+
+function updateCommanderPanelUI() {
+  syncCommanderControlsUI();
+  const panel = document.getElementById('commander-panel');
+  if (!panel || panel.classList.contains('hidden')) { drawCommanderPreview(); return; }
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const tier = getCommander(p).tier;
+
+  const tree = document.getElementById('cmd-skilltree');
+  const rows = [
+    { tier: 2, cap: 6 },
+    { tier: 3, cap: 9 },
+  ];
+  tree.innerHTML = rows.map(({ tier: t, cap: c }) => {
+    const cost = commanderTierCost(t);
+    if (tier >= t) return `<button type="button" class="cmd-skill-btn owned" disabled>✓ Up to ${c} units — owned</button>`;
+    const buyable = tier === t - 1;
+    const disabled = !buyable || p.coins < cost ? 'disabled' : '';
+    const lockNote = buyable ? '' : ' (unlock previous first)';
+    return `<button type="button" class="cmd-skill-btn" data-commander-tier="${t}" ${disabled}>Up to ${c} units — ${cost}🪙${lockNote}</button>`;
+  }).join('');
+
+  drawCommanderPreview();
+}
+
+function updateCommanderQuickBar() {
+  const bar = document.getElementById('commander-quickbar');
+  if (!bar) return;
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const show = isSurvivalLive() && phase === 'combat' && commanderUnlocked(p);
+  bar.classList.toggle('hidden', !show);
+  if (show) syncCommanderControlsUI();
+}
+
+function drawCommanderPreview() {
+  const cv = document.getElementById('commander-preview');
+  if (!cv) return;
+  const g = cv.getContext('2d');
+  const W2 = cv.width, H2 = cv.height;
+  g.clearRect(0, 0, W2, H2);
+  g.fillStyle = '#0c1120';
+  g.fillRect(0, 0, W2, H2);
+
+  // Enemy direction arrow (enemy to the right in the preview).
+  g.strokeStyle = 'rgba(248,113,113,0.7)';
+  g.fillStyle = 'rgba(248,113,113,0.85)';
+  g.lineWidth = 2;
+  const ay = 16;
+  g.beginPath(); g.moveTo(W2 - 74, ay); g.lineTo(W2 - 14, ay); g.stroke();
+  g.beginPath(); g.moveTo(W2 - 14, ay); g.lineTo(W2 - 24, ay - 5); g.lineTo(W2 - 24, ay + 5); g.closePath(); g.fill();
+  g.font = '10px sans-serif';
+  g.fillStyle = 'rgba(248,113,113,0.9)';
+  g.fillText('enemy', W2 - 112, ay + 3);
+
+  const cap = commanderCap(players[getLocalPlayerId()]);
+  const count = clamp(commanderCount, 1, Math.max(1, cap));
+  const spacing = 22;
+  const offs = commanderFormationOffsets(count, commanderFormation, spacing);
+  const cx = W2 / 2, cy = H2 / 2 + 8;
+  for (const { dx, dy } of offs) {
+    const x = cx + dx, y = cy + dy;
+    g.beginPath();
+    g.arc(x, y, 7, 0, Math.PI * 2);
+    g.fillStyle = '#7dd3fc';
+    g.fill();
+    g.lineWidth = 2;
+    g.strokeStyle = '#0ea5e9';
+    g.stroke();
+    // little facing tick toward the enemy (+x)
+    g.beginPath(); g.moveTo(x + 7, y); g.lineTo(x + 12, y); g.strokeStyle = '#38bdf8'; g.stroke();
+  }
+}
+
 function spawnFloatText(x, y, text, color = '#fcd34d') {
   floatTexts.push({
     x: x + rand(-5, 5),
@@ -4148,6 +4661,53 @@ function updateIncomeUpgradeUI(force) {
     html += dramaticSkillRow(nodes, true, BASE_BRANCH_THEME[branch]);
     html += '</div>';
   }
+
+  // The two front cannons + the base's own cannon share this dedicated tree.
+  const cannonSkills = getBaseCannonSkills(p);
+  const cannonThemes = { firerate: 'eng-rate', damage: 'eng-dmg', range: 'eng-rng' };
+  const cannonIcons = { firerate: '⚡', damage: '⚔️', range: '🎯' };
+  for (const branch of ['firerate', 'damage', 'range']) {
+    const cfg = BASE_CANNON_SKILL[branch];
+    const owned = cannonSkills[branch] || 0;
+    const cost = baseCannonSkillCost(branch, owned);
+    const nodes = [];
+    for (let tier = 1; tier <= BASE_CANNON_SKILL_MAX; tier++) {
+      const meta = econCannonSkillMeta(branch, tier);
+      nodes.push(dramaticSkillNodeHtml({
+        theme: cannonThemes[branch],
+        title: meta.title,
+        tooltip: meta.tooltip,
+        tier, maxTier: BASE_CANNON_SKILL_MAX, ownedTier: owned, unlocked: true,
+        cost, afford: cost != null && p.coins >= cost, icon: cannonIcons[branch],
+        dataAttrs: ` data-cannon-branch="${branch}"`,
+      }));
+    }
+    html += '<div class="st-branch-block">';
+    html += `<div class="st-branch-name">Cannon ${cfg.label}</div>`;
+    html += dramaticSkillRow(nodes, true, cannonThemes[branch]);
+    html += '</div>';
+  }
+
+  // Commander unlock (300). Higher unit caps are bought inside the Commander menu.
+  {
+    const cmd = getCommander(p);
+    const unlocked = cmd.tier >= 1;
+    const cost = commanderTierCost(1);
+    const node = dramaticSkillNodeHtml({
+      theme: 'loot',
+      icon: '🎖️',
+      title: 'Commander',
+      tooltip: 'Deploy up to 3 units at once in a chosen formation. Opens the Commander menu (bottom-right) where you can raise the cap to 6 and 9.',
+      isUnlock: true, unlocked, afford: p.coins >= cost, cost,
+      tier: 0, maxTier: 0, ownedTier: unlocked ? 1 : 0,
+      dataAttrs: unlocked ? '' : ' data-commander-unlock="1"',
+    });
+    html += '<div class="st-branch-block">';
+    html += '<div class="st-branch-name">Commander</div>';
+    html += dramaticSkillRow([node], true, 'loot');
+    html += '</div>';
+  }
+
   const baseAmt = survivalIncomeAmount(pid, 'base');
   html += `<p class="st-footnote">HQ +${baseAmt}/3s · +${LIVE_ARMY.baseHealthBonus(p)} bonus HP · ${LIVE_ARMY.baseDefenseLevel(p)} defense cannon${LIVE_ARMY.baseDefenseLevel(p) === 1 ? '' : 's'}</p>`;
   html += '</div>';
@@ -4296,6 +4856,12 @@ const CPU_PLAN = {
   GOBLIN_RAID: 'goblin_raid',
   DRAGON_ASSAULT: 'dragon_assault',
   FINISHER: 'finisher',
+  // Extended counters — one dedicated answer per common player strategy.
+  SNIPER_HUNT: 'sniper_hunt',
+  SWARM_BREAKER: 'swarm_breaker',
+  WALL_SIEGE: 'wall_siege',
+  RUSH_PUNISH: 'rush_punish',
+  MINT_RAID: 'mint_raid',
 };
 
 const CPU_PLAN_LABELS = {
@@ -4306,6 +4872,11 @@ const CPU_PLAN_LABELS = {
   goblin_raid: 'Goblin Raid',
   dragon_assault: 'Dragon Assault',
   finisher: 'All-In Finisher',
+  sniper_hunt: 'Sniper Hunt',
+  swarm_breaker: 'Swarm Breaker',
+  wall_siege: 'Wall Siege',
+  rush_punish: 'Rush Punish',
+  mint_raid: 'Mint Raid',
 };
 
 function freshSurvivalAiBrain() {
@@ -4326,6 +4897,11 @@ function freshSurvivalAiBrain() {
     consecutiveFailures: 0,
     lastStrikeTime: 0,
     observeLogDone: false,
+    goblinRaidDone: false,
+    midEcoRaidDone: false,
+    idleStrikeDone: false,
+    idleStrikePrimed: false,
+    detectedBehaviors: [],
   };
 }
 
@@ -4334,7 +4910,8 @@ function survivalAiRandRange([lo, hi]) {
 }
 
 function survivalAiRollPrepTime() {
-  return survivalAiRandRange(SURVIVAL_AI_PREP_TIME[survivalDifficulty] || SURVIVAL_AI_PREP_TIME.easy);
+  return survivalAiRandRange(SURVIVAL_AI_PREP_TIME[survivalDifficulty] || SURVIVAL_AI_PREP_TIME.easy)
+    * SURVIVAL_AI_FORREST_TEMPO;
 }
 
 function survivalAiRollRecoverTime() {
@@ -4381,6 +4958,14 @@ function survivalAiIntel(ai) {
     towers[t.towerType] = (towers[t.towerType] || 0) + 1;
   }
 
+  const pEco = LIVE_ARMY?.isActive() ? LIVE_ARMY.economyRecord(player) : null;
+  const pCmd = getCommander(player);
+  const pSkills = getBaseCannonSkills(player);
+  const baseCannonUp = (pSkills.firerate || 0) + (pSkills.damage || 0) + (pSkills.range || 0);
+  const extraCannons = Math.max(0, (towers.turret || 0) - 2);
+  const combatTowers = (towers.spread || 0) + (towers.turret || 0)
+    + (towers.laser || 0) + (towers.missile || 0);
+
   return {
     field,
     wolves: blend('speed'),
@@ -4392,12 +4977,192 @@ function survivalAiIntel(ai) {
     bloops: blend('bloop'),
     farms: towers.farm || 0,
     mints: towers.mint || 0,
+    barracks: towers.barracks || 0,
+    engineers: towers.engineers || 0,
     spreadTowers: towers.spread || 0,
     cannonTowers: towers.turret || 0,
+    extraCannons,
     laserTowers: towers.laser || 0,
+    missileTowers: towers.missile || 0,
+    combatTowers,
+    baseIncomeUp: pEco ? (pEco.base.income || 0) : 0,
+    baseHealthUp: pEco ? (pEco.base.health || 0) : 0,
+    baseDefenseUp: pEco ? (pEco.base.defense || 0) : 0,
+    baseCannonUp,
+    commanderTier: pCmd.tier || 0,
     playerUnitsOnField: Object.values(field).reduce((sum, n) => sum + n, 0),
+    economyScore: (towers.farm || 0) * 2 + (towers.mint || 0) * 2.5
+      + (pEco ? (pEco.base.income || 0) * 3 : 0),
   };
 }
+
+// ─── Master counter matrix ────────────────────────────────────────────────────
+// Every detectable player behavior maps to a dedicated CPU counter-plan.
+// survivalAiDetectBehaviors scores what the player is doing; pickPlan chooses
+// the highest-priority counter that the CPU can actually execute.
+const SURVIVAL_AI_BEHAVIOR_COUNTERS = [
+  {
+    id: 'player_idle',
+    detect: (intel, ctx) => survivalAiPlayerIsIdle(intel, ctx) && ctx.combatTime >= SURVIVAL_AI_IDLE_STRIKE_AFTER,
+    priority: () => 250,
+    plan: CPU_PLAN.RUSH_PUNISH,
+  },
+  {
+    id: 'finisher_window',
+    detect: (intel, ctx) => ctx.playerHpPct < 0.55,
+    priority: (intel, ctx) => 200 + (1 - ctx.playerHpPct) * 120,
+    plan: CPU_PLAN.FINISHER,
+  },
+  {
+    id: 'farm_economy',
+    detect: (intel) => intel.farms >= 2,
+    priority: (intel) => 55 + intel.farms * 22,
+    plan: CPU_PLAN.GOBLIN_RAID,
+  },
+  {
+    id: 'mint_economy',
+    detect: (intel) => intel.mints >= 2,
+    priority: (intel) => 50 + intel.mints * 20,
+    plan: CPU_PLAN.MINT_RAID,
+  },
+  {
+    id: 'heavy_economy',
+    detect: (intel) => intel.economyScore >= 8,
+    priority: (intel) => 45 + intel.economyScore * 4,
+    plan: CPU_PLAN.GOBLIN_RAID,
+  },
+  {
+    id: 'sniper_army',
+    detect: (intel) => intel.snipers >= 1,
+    priority: (intel) => 70 + intel.snipers * 24,
+    plan: CPU_PLAN.SNIPER_HUNT,
+  },
+  {
+    id: 'knight_army',
+    detect: (intel) => intel.knights >= 1,
+    priority: (intel) => 68 + intel.knights * 20,
+    plan: CPU_PLAN.KNIGHT_BREAKER,
+  },
+  {
+    id: 'elephant_army',
+    detect: (intel) => intel.elephants >= 0.5,
+    priority: (intel) => 62 + intel.elephants * 18,
+    plan: CPU_PLAN.WOLF_PACK,
+  },
+  {
+    id: 'wolf_swarm',
+    detect: (intel) => intel.wolves >= 1.5,
+    priority: (intel) => 75 + intel.wolves * 22,
+    plan: CPU_PLAN.SWARM_BREAKER,
+  },
+  {
+    id: 'goblin_swarm',
+    detect: (intel) => intel.goblins >= 1,
+    priority: (intel) => 58 + intel.goblins * 16,
+    plan: CPU_PLAN.SWARM_BREAKER,
+  },
+  {
+    id: 'bloop_rush',
+    detect: (intel) => intel.bloops >= 1,
+    priority: (intel) => 64 + intel.bloops * 18,
+    plan: CPU_PLAN.SWARM_BREAKER,
+  },
+  {
+    id: 'dragon_threat',
+    detect: (intel) => intel.dragons >= 0.5,
+    priority: (intel) => 72 + intel.dragons * 20,
+    plan: CPU_PLAN.DRAGON_ASSAULT,
+  },
+  {
+    id: 'spread_wall',
+    detect: (intel) => intel.spreadTowers >= 1,
+    priority: (intel) => 60 + intel.spreadTowers * 20,
+    plan: CPU_PLAN.SPREAD_BREAKER,
+  },
+  {
+    id: 'cannon_wall',
+    detect: (intel) => intel.extraCannons >= 1 || intel.baseCannonUp >= 1,
+    priority: (intel) => 58 + intel.extraCannons * 18 + intel.baseCannonUp * 12,
+    plan: CPU_PLAN.CANNON_PUSH,
+  },
+  {
+    id: 'laser_wall',
+    detect: (intel) => intel.laserTowers >= 1,
+    priority: (intel) => 56 + intel.laserTowers * 18,
+    plan: CPU_PLAN.CANNON_PUSH,
+  },
+  {
+    id: 'missile_defense',
+    detect: (intel) => intel.missileTowers >= 1,
+    priority: (intel) => 54 + intel.missileTowers * 16,
+    plan: CPU_PLAN.WALL_SIEGE,
+  },
+  {
+    id: 'tower_fortress',
+    detect: (intel) => intel.combatTowers >= 4,
+    priority: (intel) => 80 + intel.combatTowers * 14,
+    plan: CPU_PLAN.WALL_SIEGE,
+  },
+  {
+    id: 'commander_mass',
+    detect: (intel) => intel.commanderTier >= 1 && intel.playerUnitsOnField >= 3,
+    priority: (intel) => 66 + intel.commanderTier * 10 + intel.playerUnitsOnField * 6,
+    plan: CPU_PLAN.SWARM_BREAKER,
+  },
+  {
+    id: 'early_rush',
+    detect: (intel, ctx) => ctx.combatTime < 90 && intel.barracks >= 1
+      && intel.playerUnitsOnField >= 2 && intel.farms < 2,
+    priority: (intel, ctx) => 85 + intel.playerUnitsOnField * 12,
+    plan: CPU_PLAN.RUSH_PUNISH,
+  },
+  {
+    id: 'engineers_tech',
+    detect: (intel) => intel.engineers >= 1 && intel.combatTowers >= 2,
+    priority: (intel) => 52 + intel.combatTowers * 10,
+    plan: CPU_PLAN.WALL_SIEGE,
+  },
+  {
+    id: 'turtle',
+    detect: (intel, ctx) => intel.combatTowers >= 2 && intel.playerUnitsOnField <= 1
+      && ctx.combatTime > 60,
+    priority: (intel) => 48 + intel.combatTowers * 12,
+    plan: CPU_PLAN.WALL_SIEGE,
+  },
+  {
+    id: 'late_pressure',
+    detect: (intel, ctx) => ctx.combatTime > 120,
+    priority: (intel, ctx) => 30 + (ctx.combatTime - 120) * 0.4,
+    plan: CPU_PLAN.DRAGON_ASSAULT,
+  },
+];
+
+function survivalAiDetectBehaviors(intel, ctx) {
+  return SURVIVAL_AI_BEHAVIOR_COUNTERS
+    .filter((entry) => entry.detect(intel, ctx))
+    .map((entry) => ({
+      id: entry.id,
+      plan: entry.plan,
+      score: entry.priority(intel, ctx),
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+// Prep priorities keyed to the counter-plan — unlock/build what that plan needs.
+const SURVIVAL_AI_PLAN_PREP = {
+  [CPU_PLAN.GOBLIN_RAID]: { units: ['goblin', 'speed'], towers: ['spread'] },
+  [CPU_PLAN.MINT_RAID]: { units: ['goblin', 'speed'], towers: ['spread'] },
+  [CPU_PLAN.SNIPER_HUNT]: { units: ['speed'], towers: ['spread'] },
+  [CPU_PLAN.WOLF_PACK]: { units: ['speed', 'striker'], towers: ['spread'] },
+  [CPU_PLAN.KNIGHT_BREAKER]: { units: ['tank', 'sniper'], towers: ['laser'] },
+  [CPU_PLAN.SPREAD_BREAKER]: { units: ['tank', 'striker'], towers: ['laser'] },
+  [CPU_PLAN.CANNON_PUSH]: { units: ['tank', 'striker'], towers: ['spread'] },
+  [CPU_PLAN.SWARM_BREAKER]: { units: ['striker', 'speed'], towers: ['spread', 'missile'] },
+  [CPU_PLAN.WALL_SIEGE]: { units: ['tank', 'striker', 'peka'], towers: ['laser', 'missile'] },
+  [CPU_PLAN.RUSH_PUNISH]: { units: ['striker', 'speed'], towers: ['spread'] },
+  [CPU_PLAN.DRAGON_ASSAULT]: { units: ['peka', 'tank', 'striker', 'speed'], towers: ['turret'] },
+  [CPU_PLAN.FINISHER]: { units: ['peka', 'striker', 'tank', 'speed'], towers: [] },
+};
 
 function survivalAiEconStrength(ai) {
   const incomeBuildings = countAiTowers(ai, 'farm') + countAiTowers(ai, 'mint') * 2;
@@ -4414,8 +5179,13 @@ function survivalAiBankTarget(planId, strikeSize) {
     spread_breaker: 520,
     cannon_push: 560,
     goblin_raid: 220,
+    mint_raid: 240,
     dragon_assault: 1150,
     finisher: 900,
+    sniper_hunt: 300,
+    swarm_breaker: 380,
+    wall_siege: 980,
+    rush_punish: 260,
   };
   const base = costs[planId] || 400;
   return base + strikeSize * 55;
@@ -4481,6 +5251,11 @@ const CPU_PLAN_ARCHETYPE = {
   goblin_raid: 'goblin',
   dragon_assault: 'dragon',
   finisher: 'mixed',
+  sniper_hunt: 'wolf',
+  swarm_breaker: 'wolf',
+  wall_siege: 'elephant',
+  rush_punish: 'knight',
+  mint_raid: 'goblin',
 };
 
 function survivalAiClassifyComposition(composition) {
@@ -4556,66 +5331,46 @@ function survivalAiGradeStrike(brain) {
 function survivalAiScorePlan(planId, intel, ai, ctx, brain) {
   const scenarioKey = survivalAiScenarioKey(intel);
   const arch = CPU_PLAN_ARCHETYPE[planId];
-  let score = 10;
+  let score = 0;
+
+  // Primary scoring: sum priority from every detected behavior this plan counters.
+  for (const b of survivalAiDetectBehaviors(intel, ctx)) {
+    if (b.plan === planId) score += b.score;
+  }
+
+  if (score <= 0) {
+    // Legacy fallback weights for plans with no active behavior match.
+    switch (planId) {
+      case CPU_PLAN.CANNON_PUSH: score = 12; break;
+      default: score = 0;
+    }
+  }
 
   if (arch) score *= survivalAiArchetypeMultiplier(scenarioKey, arch);
 
-  // Penalize repeating a plan that just failed against this wall.
   if (!brain.lastStrikeSuccess && brain.plan?.id === planId && (brain.consecutiveFailures || 0) >= 1) {
     score *= 0.25;
   }
 
-  switch (planId) {
-    case CPU_PLAN.WOLF_PACK:
-      // Wolves devour Snipers & Elephants; weak into spread pellets.
-      if (intel.snipers >= 0.5) score += 48 + intel.snipers * 20;
-      if (intel.elephants >= 0.5) score += 42 + intel.elephants * 16;
-      if (intel.spreadTowers >= 1) score -= 35;
-      if (intel.laserTowers >= 1) score -= 18;
-      break;
-    case CPU_PLAN.KNIGHT_BREAKER:
-      // Elephant tanks knight; snipers delete from behind.
-      if (intel.knights >= 0.5) score += 52 + intel.knights * 18;
-      if (intel.wolves >= 1) score -= 30;
-      break;
-    case CPU_PLAN.SPREAD_BREAKER:
-      // Elephants immune to spread shock; wolves get shredded.
-      if (intel.spreadTowers >= 1) score += 50 + intel.spreadTowers * 18;
-      if (intel.wolves >= 1.5) score -= 40;
-      break;
-    case CPU_PLAN.CANNON_PUSH:
-      // Elephant shields + knight pack overwhelms cannons.
-      if (intel.cannonTowers >= 1) score += 44 + intel.cannonTowers * 16;
-      if (intel.laserTowers >= 1) score += 12;
-      if (intel.wolves >= 1) score -= 20;
-      break;
-    case CPU_PLAN.GOBLIN_RAID:
-      if (intel.farms >= 1) score += 36 + intel.farms * 22;
-      if (intel.mints >= 1) score += 24 + intel.mints * 14;
-      if (intel.playerUnitsOnField >= 4) score -= 25;
-      break;
-    case CPU_PLAN.DRAGON_ASSAULT:
-      if (!LIVE_ARMY.unitUnlocked(ai, 'peka')) score = 0;
-      else if (ai.coins < unitDef('peka', 1).cost + 300) score *= 0.4;
-      if (ctx.combatTime < 70) score *= 0.3;
-      if (survivalAiEconStrength(ai) < 2.5) score *= 0.45;
-      if (intel.snipers >= 2 && !LIVE_ARMY.unitUnlocked(ai, 'speed')) score *= 0.35;
-      else score += 38;
-      if (ctx.playerHpPct < 0.75) score += 28;
-      if (ctx.combatTime > 100) score += 22;
-      break;
-    case CPU_PLAN.FINISHER:
-      if (ctx.playerHpPct >= 0.4) score = 0;
-      else score += 80 + (1 - ctx.playerHpPct) * 60;
-      break;
-    default:
-      score = 0;
+  // Hard gates — plans the CPU literally cannot run yet.
+  if (planId === CPU_PLAN.DRAGON_ASSAULT || planId === CPU_PLAN.WALL_SIEGE) {
+    if (!LIVE_ARMY.unitUnlocked(ai, 'peka') && planId === CPU_PLAN.DRAGON_ASSAULT) {
+      if (ctx.combatTime < 90 || !LIVE_ARMY.hasBarracks(ai)) score *= 0.15;
+      else score *= 0.5;
+    }
+    if (ai.coins < unitDef('peka', 1).cost + 200) score *= 0.55;
   }
+  if ((planId === CPU_PLAN.GOBLIN_RAID || planId === CPU_PLAN.MINT_RAID)
+      && !isUnitEnabled('goblin')) score = 0;
+  if (planId === CPU_PLAN.FINISHER && ctx.playerHpPct >= 0.55) score = 0;
 
   return score;
 }
 
 function survivalAiPickPlan(intel, ai, ctx, brain) {
+  const behaviors = survivalAiDetectBehaviors(intel, ctx);
+  brain.detectedBehaviors = behaviors;
+
   const candidates = Object.values(CPU_PLAN);
   let best = null;
   let bestScore = -1;
@@ -4623,12 +5378,23 @@ function survivalAiPickPlan(intel, ai, ctx, brain) {
     const s = survivalAiScorePlan(planId, intel, ai, ctx, brain);
     if (s > bestScore) { bestScore = s; best = planId; }
   }
+
+  if (behaviors.length && behaviors[0].plan && bestScore >= 40) {
+    best = behaviors[0].plan;
+  }
+
   if (!best || bestScore < 8) {
-    best = intel.knights >= 0.5 ? CPU_PLAN.KNIGHT_BREAKER
-      : intel.snipers >= 0.5 ? CPU_PLAN.WOLF_PACK
+    best = intel.farms >= 2 ? CPU_PLAN.GOBLIN_RAID
+      : intel.mints >= 2 ? CPU_PLAN.MINT_RAID
+      : intel.snipers >= 0.5 ? CPU_PLAN.SNIPER_HUNT
+      : intel.knights >= 0.5 ? CPU_PLAN.KNIGHT_BREAKER
+      : intel.wolves >= 1 ? CPU_PLAN.SWARM_BREAKER
       : intel.spreadTowers >= 1 ? CPU_PLAN.SPREAD_BREAKER
+      : intel.combatTowers >= 3 ? CPU_PLAN.WALL_SIEGE
       : CPU_PLAN.CANNON_PUSH;
   }
+
+  if (ctx.playerHpPct < 0.55) best = CPU_PLAN.FINISHER;
   return best;
 }
 
@@ -4650,6 +5416,10 @@ function survivalAiComposeStrike(planId, intel, strikeSize, ai, brain) {
       fill('speed', Math.min(4, strikeSize - 1));
       if (order.length < strikeSize && has('striker')) order.push('striker');
       break;
+    case CPU_PLAN.SNIPER_HUNT:
+      fill('speed', Math.min(strikeSize, 4 + fails));
+      if (order.length < strikeSize && has('striker')) order.push('striker');
+      break;
     case CPU_PLAN.KNIGHT_BREAKER:
       if (has('tank')) order.push('tank');
       fill('sniper', Math.min(3, strikeSize - order.length));
@@ -4664,7 +5434,21 @@ function survivalAiComposeStrike(planId, intel, strikeSize, ai, brain) {
       fill('striker', strikeSize - order.length);
       break;
     case CPU_PLAN.GOBLIN_RAID:
-      fill('goblin', Math.min(3, strikeSize));
+    case CPU_PLAN.MINT_RAID:
+      fill('goblin', Math.min(Math.ceil(strikeSize * 0.65), strikeSize - 1));
+      fill('speed', strikeSize - order.length);
+      break;
+    case CPU_PLAN.SWARM_BREAKER:
+      fill('striker', Math.min(3, strikeSize - 2));
+      fill('speed', strikeSize - order.length);
+      break;
+    case CPU_PLAN.WALL_SIEGE:
+      fill('tank', Math.min(3, strikeSize - 2));
+      if (has('peka') && ai.coins >= unitDef('peka', 1).cost) order.push('peka');
+      fill('striker', strikeSize - order.length);
+      break;
+    case CPU_PLAN.RUSH_PUNISH:
+      fill('striker', Math.min(4, strikeSize));
       fill('speed', strikeSize - order.length);
       break;
     case CPU_PLAN.DRAGON_ASSAULT:
@@ -4693,10 +5477,15 @@ function survivalAiComposeStrike(planId, intel, strikeSize, ai, brain) {
 function survivalAiStrikeRevealLog(planId) {
   const logs = {
     wolf_pack: '🤖 Enemy commits a Wolf Pack — hunting your back line!',
+    sniper_hunt: '🤖 Enemy unleashes Wolves to hunt your Snipers!',
     knight_breaker: '🤖 Enemy launches a Knight Breaker — armored spearhead!',
     spread_breaker: '🤖 Enemy sends Elephant shields through your spreaders!',
     cannon_push: '🤖 Enemy masses Knights behind Elephant shields!',
     goblin_raid: '🤖 Enemy raids your economy with Goblins!',
+    mint_raid: '🤖 Enemy sends Goblins to plunder your mints!',
+    swarm_breaker: '🤖 Enemy counters your swarm with Knights and Wolves!',
+    wall_siege: '🤖 Enemy begins a siege — Elephants and Dragon at your wall!',
+    rush_punish: '🤖 Enemy punishes your early rush!',
     dragon_assault: '🤖 Enemy unveils a Dragon-led assault!',
     finisher: '🤖 Enemy goes all-in for the kill!',
   };
@@ -4711,17 +5500,8 @@ function survivalAiUnitUnlockedOrCanUnlock(ai, type) {
 
 function survivalAiPrepUnlocks(ai, planId, intel) {
   if (!LIVE_ARMY.hasBarracks(ai)) return false;
-  const need = [];
-  switch (planId) {
-    case CPU_PLAN.WOLF_PACK: need.push('speed'); break;
-    case CPU_PLAN.KNIGHT_BREAKER: need.push('tank', 'sniper'); break;
-    case CPU_PLAN.SPREAD_BREAKER: need.push('tank'); break;
-    case CPU_PLAN.CANNON_PUSH: need.push('tank', 'striker'); break;
-    case CPU_PLAN.GOBLIN_RAID: need.push('goblin', 'speed'); break;
-    case CPU_PLAN.DRAGON_ASSAULT: need.push('peka', 'tank', 'striker', 'speed'); break;
-    case CPU_PLAN.FINISHER: need.push('peka', 'striker', 'tank'); break;
-    default: break;
-  }
+  const prep = SURVIVAL_AI_PLAN_PREP[planId] || { units: [], towers: [] };
+  const need = prep.units.slice();
   for (const ut of need) {
     if (LIVE_ARMY.unitUnlocked(ai, ut)) continue;
     if (ai.coins >= LIVE_ARMY.unitUnlockCost(ut)) {
@@ -4731,8 +5511,10 @@ function survivalAiPrepUnlocks(ai, planId, intel) {
   return false;
 }
 
-function survivalAiPrepTowerUnlock(ai, intel) {
+function survivalAiPrepTowerUnlock(ai, intel, planId) {
   if (!LIVE_ARMY.hasEngineers(ai)) return false;
+  const prep = SURVIVAL_AI_PLAN_PREP[planId] || { units: [], towers: [] };
+  const planTowers = prep.towers || [];
   const locked = LIVE_ARMY.COMBAT_TOWERS.filter(
     (tt) => !LIVE_ARMY.towerUnlocked(ai, tt) && ai.coins >= LIVE_ARMY.towerUnlockCost(tt),
   );
@@ -4740,11 +5522,11 @@ function survivalAiPrepTowerUnlock(ai, intel) {
   let pick = locked[0];
   let best = -1;
   for (const tt of locked) {
-    let w = 10;
+    let w = planTowers.includes(tt) ? 40 : 10;
     if (tt === 'turret' && intel.dragons >= 0.5) w += 50;
-    if (tt === 'spread' && (intel.wolves + intel.goblins) >= 2) w += 30;
+    if (tt === 'spread' && (intel.wolves + intel.goblins + intel.bloops) >= 1) w += 35;
     if (tt === 'laser' && intel.snipers >= 0.5) w += 28;
-    if (tt === 'missile' && intel.wolves >= 1) w += 22;
+    if (tt === 'missile' && (intel.wolves >= 1 || intel.dragons >= 0.5)) w += 25;
     if (w > best) { best = w; pick = tt; }
   }
   return buyEngineersUpgrade(1, 'unlock', pick);
@@ -4755,10 +5537,13 @@ function survivalAiPickDefenseTower(ai, intel) {
   if (!unlocked.length) return null;
   const weights = { turret: 3, laser: 3, spread: 2, missile: 2 };
   if (intel.dragons >= 0.5) weights.turret += 8;
-  const swarm = intel.wolves + intel.goblins;
-  if (swarm >= 2) { weights.spread += 6; weights.missile += 4; weights.laser *= 0.5; }
+  const swarm = intel.wolves + intel.goblins + intel.bloops;
+  if (swarm >= 1) { weights.spread += 8; weights.missile += 5; weights.laser *= 0.5; }
+  if (swarm >= 3) weights.spread += 6;
   if (intel.snipers >= 0.5) weights.laser += 6;
   if (intel.elephants >= 1) { weights.laser += 5; weights.spread *= 0.5; }
+  if (intel.knights >= 1) weights.spread += 4;
+  if (intel.missileTowers >= 1) weights.missile += 3;
   if (intel.dragons >= 0.5 && countAiTowers(ai, 'turret') === 0 && unlocked.includes('turret')) return 'turret';
   for (const tt of unlocked) {
     const owned = countAiTowers(ai, tt);
@@ -4818,9 +5603,139 @@ function survivalAiQuietDefense(ai, intel, ctx) {
   if (defTower && ai.coins >= towerCost(ai, defTower)) {
     return survivalAiTryPlaceTower(ai, defTower);
   }
-  if (ctx.threat && ctx.aiUnits < SURVIVAL_AI_MAX_UNITS - 2) {
-    return survivalAiSpawnDefender(ai, intel);
+  // Quiet phases are strictly passive: build defensive towers only. Reactive
+  // troops are handled by the threat-proportional defense in
+  // survivalAiEmergencyReact, so the CPU no longer dumps units every tick just
+  // because a stray enemy is on the field — it can bank and plan instead.
+  return false;
+}
+
+// ─── Full-doctrine investment ─────────────────────────────────────────────────
+// A "perfect" CPU never lets coins rot: once its core economy is rolling it
+// pours the surplus into every upgrade system the player also has —
+// battle-hardened base cannons, a Commander for mass drops, veteran troops, and
+// upgraded defensive towers. Everything below spends only the war-chest SURPLUS
+// so investing never delays a strike the CPU is banking for.
+function survivalAiInvestReserve(brain, ctx) {
+  // While actively banking for a strike, treat the whole bank target as reserve
+  // (only true excess gets invested). Otherwise keep a small safety cushion.
+  if (brain.phase === 'prepare' && brain.plan) return brain.plan.bankTarget;
+  return ctx.combatTime < 30 ? 130 : 90;
+}
+
+function survivalAiBuyBaseCannon(ai, budget) {
+  const skills = getBaseCannonSkills(ai);
+  // Level the three branches up as evenly as possible (ties keep dmg>rate>range).
+  const branches = ['damage', 'firerate', 'range'].sort(
+    (a, b) => (skills[a] || 0) - (skills[b] || 0),
+  );
+  for (const branch of branches) {
+    const cost = baseCannonSkillCost(branch, skills[branch] || 0);
+    if (cost != null && budget >= cost && ai.coins >= cost) {
+      return buyBaseCannonUpgrade(1, branch);
+    }
   }
+  return false;
+}
+
+function survivalAiBuyCommander(ai, budget) {
+  const c = getCommander(ai);
+  if (c.tier >= 3) return false;
+  const nextTier = c.tier + 1;
+  const cost = commanderTierCost(nextTier);
+  if (cost == null || budget < cost || ai.coins < cost) return false;
+  // Tier 1 is a top priority — grab it as soon as we have a Barracks so the CPU
+  // can start placing multiple troops at once. Higher tiers (place even more)
+  // are gated behind a stronger economy.
+  if (nextTier === 1) {
+    if (!LIVE_ARMY.hasBarracks(ai)) return false;
+  } else {
+    const gate = [0, 4, 6][c.tier] ?? 6;
+    if (survivalAiEconStrength(ai) < gate) return false;
+  }
+  return buyCommanderUpgrade(1, nextTier);
+}
+
+// Upgrade priority per unit — matched to the role each plays in CPU doctrine.
+const SURVIVAL_AI_UNIT_UPGRADE_PLAN = {
+  tank: ['health', 'damage', 'health'],
+  striker: ['damage', 'health', 'damage'],
+  sniper: ['damage', 'speed', 'damage'],
+  speed: ['damage', 'speed', 'health'],
+  goblin: ['damage', 'speed', 'health'],
+  peka: ['damage', 'health', 'damage'],
+};
+
+function survivalAiBuyUnitMastery(ai, intel, budget) {
+  const relevance = {
+    tank: 1 + intel.knights + intel.cannonTowers + intel.spreadTowers + intel.combatTowers * 0.5,
+    striker: 1 + intel.wolves + intel.elephants + intel.goblins + intel.bloops,
+    sniper: 1 + intel.dragons * 2 + intel.knights,
+    speed: 1 + intel.snipers * 2 + intel.elephants,
+    goblin: 0.5 + intel.farms + intel.mints,
+    peka: LIVE_ARMY.unitUnlocked(ai, 'peka') ? 2 : 0,
+  };
+  // Boost whatever counters the player's detected behaviors right now.
+  for (const b of (survivalAiBrain?.detectedBehaviors || [])) {
+    const prep = SURVIVAL_AI_PLAN_PREP[b.plan];
+    if (!prep) continue;
+    for (const u of prep.units) relevance[u] = (relevance[u] || 1) + b.score * 0.08;
+  }
+  const types = Object.keys(SURVIVAL_AI_UNIT_UPGRADE_PLAN)
+    .filter((t) => LIVE_ARMY.unitUnlocked(ai, t))
+    .sort((a, b) => (relevance[b] || 0) - (relevance[a] || 0));
+  // Raise the roster evenly: fill everyone's level-1 first, then 2, then 3.
+  for (let targetLvl = 1; targetLvl <= LIVE_ARMY.STAT_MAX; targetLvl++) {
+    for (const type of types) {
+      const rec = LIVE_ARMY.unitRecord(ai, type);
+      for (const stat of SURVIVAL_AI_UNIT_UPGRADE_PLAN[type]) {
+        if ((rec[stat] || 0) >= targetLvl || (rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) continue;
+        const cost = LIVE_ARMY.statUpgradeCost(ai, type, stat);
+        if (cost != null && budget >= cost && ai.coins >= cost) {
+          return buyBarracksUpgrade(1, 'stat', type, stat);
+        }
+      }
+    }
+  }
+  return false;
+}
+
+const SURVIVAL_AI_TOWER_UPGRADE_PLAN = {
+  turret: ['damage', 'firerate', 'range'],
+  laser: ['damage', 'range', 'health'],
+  spread: ['knockback', 'damage', 'range'],
+  missile: ['damage', 'range', 'health'],
+};
+
+function survivalAiBuyTowerMastery(ai, budget) {
+  const owned = LIVE_ARMY.COMBAT_TOWERS.filter(
+    (tt) => countAiTowers(ai, tt) > 0 && LIVE_ARMY.towerUnlocked(ai, tt),
+  );
+  for (let targetLvl = 1; targetLvl <= LIVE_ARMY.ENGINEER_STAT_MAX; targetLvl++) {
+    for (const tt of owned) {
+      const rec = LIVE_ARMY.towerRecord(ai, tt);
+      for (const branch of (SURVIVAL_AI_TOWER_UPGRADE_PLAN[tt] || [])) {
+        const lvl = LIVE_ARMY.engineerStatLevel(rec, branch);
+        if (lvl >= targetLvl || lvl >= LIVE_ARMY.ENGINEER_STAT_MAX) continue;
+        const cost = LIVE_ARMY.engineersUpgradeCost(ai, tt, branch);
+        if (cost != null && budget >= cost && ai.coins >= cost) {
+          return buyEngineersUpgrade(1, 'stat', tt, branch);
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function survivalAiInvestSurplus(ai, brain, intel, ctx) {
+  const budget = ai.coins - survivalAiInvestReserve(brain, ctx);
+  if (budget <= 0) return false;
+  // Commander FIRST (so the CPU can place more troops at once ASAP) → base
+  // cannons (cheap, always-on) → troop mastery → tower mastery.
+  if (survivalAiBuyCommander(ai, budget)) return true;
+  if (survivalAiBuyBaseCannon(ai, budget)) return true;
+  if (survivalAiBuyUnitMastery(ai, intel, budget)) return true;
+  if (survivalAiBuyTowerMastery(ai, budget)) return true;
   return false;
 }
 
@@ -4837,8 +5752,9 @@ const SURVIVAL_AI_COUNTER_DOCTRINE = [
   { threat: 'tank', counter: 'striker' },
   { threat: 'striker', counter: 'speed', requireInTowerRange: true, slot: 'wolfBait' },
   { threat: 'sniper', counter: 'speed' },
-  { threat: 'speed', counter: 'striker' },
-  { threat: 'goblin', counter: 'striker' },
+  { threat: 'speed', counter: 'striker', slot: 'baseDefense' },
+  { threat: 'goblin', counter: 'striker', slot: 'baseDefense' },
+  { threat: 'bloop', counter: 'speed', slot: 'baseDefense' },
 ];
 
 function survivalAiLivePlayerUnits() {
@@ -4877,9 +5793,24 @@ function survivalAiThreatAdvancing() {
     u.owner === 0 && u.hp > 0 && (u.x > mid || survivalAiUnitNearAiTowers(u)));
 }
 
+// Count the player units actively pressing into the CPU's half (or under its
+// tower fire) — the force it must answer right now. Used to size the defensive
+// response so the CPU spawns just enough counters to break the attack instead
+// of endlessly pumping troops.
+function survivalAiAdvancingThreatCount() {
+  const mid = W / 2;
+  let n = 0;
+  for (const u of combatUnits) {
+    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.x > mid || survivalAiUnitNearAiTowers(u)) n += 1;
+  }
+  return n;
+}
+
 function survivalAiCounterSlotFn(entry) {
   if (entry.slot === 'sniperFlank') return (idx, pid) => getSniperFlankSlot(idx, pid);
   if (entry.slot === 'wolfBait') return (idx, pid) => getWolfKnightBaitSlot(idx, pid);
+  if (entry.slot === 'baseDefense') return (idx, pid) => getBaseDefenseSlot(idx, pid);
   return null;
 }
 
@@ -4909,6 +5840,148 @@ function survivalAiCounterVolumeWithDragon(ai) {
   if (state !== 'ready') return false;
   if (survivalAiTrySpawnUnitOfType(ai, 'peka', false)) {
     addLog('🤖 Enemy unleashes a Dragon to burn down your swarm!');
+    return true;
+  }
+  return false;
+}
+
+// Drop a wall of `type` right in front of the CPU base as one commander batch,
+// shrinking the batch until it fits the CPU's coins (incl. surcharge) and room.
+// Returns how many were actually placed.
+function survivalAiCommanderBatchAtBase(ai, type, wantCount) {
+  const cap = Math.max(1, commanderCap(ai));
+  const bp = basePos(1);
+  // Right on the doorstep of the base so the wall forms between the base and the
+  // incoming attackers.
+  const pos = { x: bp.x - 52, y: MID_Y };
+  for (let count = Math.min(wantCount, cap); count >= 2; count--) {
+    const positions = commanderDeployPositions(pos, 1, type, count, 'front');
+    if (commanderValidateBatch(1, type, positions) && commanderPlaceBatch(1, type, positions)) {
+      return count;
+    }
+  }
+  return 0;
+}
+
+// How close a player unit must be to the CPU base to count as an imminent
+// base threat that must be answered with defenders right at the base.
+const AI_BASE_DEFENSE_RANGE = 320;
+
+// Emergency base guard: when enemy units are near our base, spawn enough
+// counters HUGGING the base to outnumber them — counting only the defenders
+// already near the base (units off attacking elsewhere don't count). This is
+// what stops a Wolf pack that has reached the base.
+function survivalAiDefendBase(ai) {
+  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
+  const bp = basePos(1);
+
+  const nearThreats = {};
+  let threatN = 0;
+  for (const u of combatUnits) {
+    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (dist(u, bp) > AI_BASE_DEFENSE_RANGE) continue;
+    nearThreats[u.type] = (nearThreats[u.type] || 0) + 1;
+    threatN += 1;
+  }
+  if (threatN === 0) return false;
+
+  const nearDefenders = combatUnits.filter(
+    (u) => u.owner === 1 && u.hp > 0 && dist(u, bp) <= AI_BASE_DEFENSE_RANGE,
+  ).length;
+  const need = threatN + 1 - nearDefenders;
+  if (need <= 0) return false;
+
+  // Counter the dominant nearby threat. Wolves are always answered with Knights
+  // (never Snipers — Wolves do double damage to them).
+  let domType = null, domN = 0;
+  for (const [t, n] of Object.entries(nearThreats)) { if (n > domN) { domN = n; domType = t; } }
+  const doctrine = SURVIVAL_AI_COUNTER_DOCTRINE.find((d) => d.threat === domType);
+  let counter = doctrine ? doctrine.counter : 'striker';
+  if (domType === 'speed') counter = 'striker';
+
+  // Ensure the counter is fieldable; unlock it on the spot, else use any melee.
+  if (!LIVE_ARMY.unitUnlocked(ai, counter)) {
+    if (LIVE_ARMY.hasBarracks(ai) && ai.coins >= LIVE_ARMY.unitUnlockCost(counter)) {
+      return buyBarracksUpgrade(1, 'unlock', counter);
+    }
+    counter = ['striker', 'tank', 'speed'].find(
+      (t) => LIVE_ARMY.unitUnlocked(ai, t) && ai.coins >= unitDef(t, 1).cost,
+    );
+    if (!counter) return false;
+  }
+
+  // Prefer a one-tick Commander wall right at the base.
+  if (commanderUnlocked(ai) && need >= 2) {
+    const placed = survivalAiCommanderBatchAtBase(ai, counter, Math.min(need, commanderCap(ai)));
+    if (placed >= 2) {
+      addLog(`🤖 Enemy walls ${placed}× ${UNIT_TYPES[counter].name} at its base!`);
+      return true;
+    }
+  }
+
+  // Otherwise spawn a burst of defenders hugging the base.
+  let spawned = 0;
+  let guard = 0;
+  while (spawned < need && guard < 9) {
+    guard += 1;
+    if (!survivalAiTrySpawnUnitOfType(ai, counter, false, (idx, pid) => getBaseDefenseSlot(idx, pid))) break;
+    spawned += 1;
+  }
+  if (spawned > 0) {
+    addLog(`🤖 Enemy rushes ${spawned}× ${UNIT_TYPES[counter].name} to hold its base!`);
+    return true;
+  }
+  return false;
+}
+
+// React to a real advancing attack by rush-buying (if needed) and using the
+// Commander to slam down a whole wall of hard-counters at our base in one tick —
+// this is how the CPU answers a big Wolf/Knight push fast instead of trickling
+// one unit per second.
+function survivalAiReactiveCommanderCounter(ai, intel, ctx) {
+  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
+
+  // Tally the enemy force actually pressing into our half, by type.
+  const mid = W / 2;
+  const adv = {};
+  let advTotal = 0;
+  for (const u of combatUnits) {
+    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.x > mid || survivalAiUnitNearAiTowers(u)) {
+      adv[u.type] = (adv[u.type] || 0) + 1;
+      advTotal += 1;
+    }
+  }
+  // Small pokes are handled by the normal per-unit counters.
+  if (advTotal < 3) return false;
+
+  let threatType = null, threatN = 0;
+  for (const [t, n] of Object.entries(adv)) { if (n > threatN) { threatN = n; threatType = t; } }
+  const doctrine = SURVIVAL_AI_COUNTER_DOCTRINE.find((d) => d.threat === threatType);
+  const counter = doctrine ? doctrine.counter : 'striker';
+
+  // Make sure the counter unit exists — unlock it on the spot if we can.
+  if (!LIVE_ARMY.unitUnlocked(ai, counter)) {
+    if (LIVE_ARMY.hasBarracks(ai) && ai.coins >= LIVE_ARMY.unitUnlockCost(counter)) {
+      return buyBarracksUpgrade(1, 'unlock', counter);
+    }
+    return false;
+  }
+
+  // Ensure a Commander is ready; in an emergency, rush-buy tier 1 on the fly as
+  // long as we can still afford a couple of counter units afterward.
+  if (!commanderUnlocked(ai)) {
+    const cost = commanderTierCost(1);
+    if (cost != null && ai.coins >= cost + unitDef(counter, 1).cost * 2) {
+      return buyCommanderUpgrade(1, 1);
+    }
+    return false; // can't rush the Commander → fall back to normal defenders
+  }
+
+  const want = Math.min(commanderCap(ai), threatN + 1);
+  const placed = survivalAiCommanderBatchAtBase(ai, counter, want);
+  if (placed >= 2) {
+    addLog(`🤖 Enemy scrambles ${placed}× ${UNIT_TYPES[counter].name} to defend its base!`);
     return true;
   }
   return false;
@@ -4997,6 +6070,24 @@ function getWolfKnightBaitSlot(index, pid) {
   };
 }
 
+// Defensive placement: cluster units just in front of the owner's own base so
+// they intercept attackers before they can reach it. Used when the CPU spawns
+// Knights to shut down a Wolf rush.
+function getBaseDefenseSlot(index, pid) {
+  const bp = basePos(pid);
+  const side = pid === 0 ? 1 : -1; // hug the base, facing the enemy
+  const lanes = [
+    MID_Y, MID_Y - 44, MID_Y + 44, MID_Y - 88, MID_Y + 88,
+    MID_Y - 132, MID_Y + 132, MID_Y - 22, MID_Y + 22,
+  ];
+  const row = Math.floor(index / lanes.length);
+  const x = bp.x + side * (38 + row * 24);
+  return {
+    x: clamp(x + rand(-6, 6), 40, W - 40),
+    y: clamp(lanes[index % lanes.length] + rand(-8, 8), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
+  };
+}
+
 function survivalAiStrikeSlotFn(planId, type, index, pid) {
   if (type === 'sniper') return getSniperFlankSlot(index, pid);
   if (planId === CPU_PLAN.WOLF_PACK && type === 'speed') {
@@ -5007,12 +6098,27 @@ function survivalAiStrikeSlotFn(planId, type, index, pid) {
       y: clamp(lanes[index % lanes.length] + rand(-10, 10), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
     };
   }
-  if (planId === CPU_PLAN.GOBLIN_RAID && type === 'goblin') {
+  if (planId === CPU_PLAN.SNIPER_HUNT && type === 'speed') {
+    const db = getDeployBounds(pid);
+    const lanes = [MID_Y - 175, MID_Y + 175, MID_Y - 95, MID_Y + 95, MID_Y - 140, MID_Y + 140];
+    return {
+      x: clamp((pid === 0 ? db.xMax - 14 : db.xMin + 14) + rand(-8, 8), db.xMin + 8, db.xMax - 8),
+      y: clamp(lanes[index % lanes.length] + rand(-10, 10), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
+    };
+  }
+  if ((planId === CPU_PLAN.GOBLIN_RAID || planId === CPU_PLAN.MINT_RAID) && type === 'goblin') {
     const db = getDeployBounds(pid);
     const lanes = [MID_Y - 90, MID_Y + 90, MID_Y];
     return {
       x: clamp((pid === 0 ? db.xMax - 28 : db.xMin + 28) + rand(-10, 10), db.xMin + 8, db.xMax - 8),
       y: clamp(lanes[index % lanes.length] + rand(-12, 12), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
+    };
+  }
+  if (planId === CPU_PLAN.RUSH_PUNISH && type === 'striker') {
+    const db = getDeployBounds(pid);
+    return {
+      x: clamp((pid === 0 ? db.xMax - 10 : db.xMin + 10) + rand(-6, 6), db.xMin + 8, db.xMax - 8),
+      y: clamp(MID_Y + (index % 3 - 1) * 55 + rand(-10, 10), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
     };
   }
   return getUnitFormationSlot(type, index, pid);
@@ -5079,7 +6185,7 @@ function survivalAiTryWolfKnightBait(ai, intel) {
 
 function survivalAiBeginPrepare(brain, intel, ai, ctx) {
   let planId = survivalAiPickPlan(intel, ai, ctx, brain);
-  if (ctx.playerHpPct < 0.35) planId = CPU_PLAN.FINISHER;
+  if (ctx.playerHpPct < 0.55) planId = CPU_PLAN.FINISHER;
   const strikeSize = survivalAiRollStrikeSize() + Math.min(brain.consecutiveFailures || 0, 2);
   brain.plan = {
     id: planId,
@@ -5093,20 +6199,129 @@ function survivalAiBeginPrepare(brain, intel, ai, ctx) {
   // Hidden intention — no log until the strike commits.
 }
 
+// Mass-drop a whole strike composition as combined-arms formations in one
+// commander push. Blocks are shrunk until they fit the CPU's coins (including
+// the bulk surcharge) and the field, so it never stalls — anything it can't
+// batch it drops as a single unit instead.
+// Forrest doctrine — "get there firstest with the mostest": pick the player's
+// weakest-defended lane and hurl the entire strike at that one decisive point,
+// concentrated in a single overwhelming column at the forward edge.
+function survivalAiPickAttackLane() {
+  const player = players[0];
+  const lanes = [MID_Y - 165, MID_Y, MID_Y + 165];
+  let bestY = MID_Y, bestScore = Infinity;
+  for (const y of lanes) {
+    let coverage = 0;
+    for (const t of player.turrets) {
+      if (t.hp <= 0 || !LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType)) continue;
+      const range = towerDef(t.towerType, 0).range || 220;
+      const dy = Math.abs(t.y - y);
+      if (dy < range) coverage += 1 - dy / range;
+    }
+    // Tiny bias toward the flanks (harder for the player to reinforce).
+    if (y !== MID_Y) coverage -= 0.15;
+    if (coverage < bestScore) { bestScore = coverage; bestY = y; }
+  }
+  return clamp(bestY, DEPLOY_Y_MIN + 60, DEPLOY_Y_MAX - 60);
+}
+
+// "The mostest": once the war chest is full, pile extra mass onto the strike —
+// the cheapest hard-pressing troops we can still afford (keeping a small
+// defensive reserve) — so the column hits as heavy as the economy allows.
+function survivalAiForrestReinforce(ai, composition) {
+  const room = SURVIVAL_AI_MAX_UNITS - combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  if (composition.length >= room) return composition.slice(0, room);
+  let budget = ai.coins - 150; // keep a little back for defense
+  for (const t of composition) budget -= unitDef(t, 1).cost;
+  const pool = ['striker', 'speed', 'tank', 'sniper', 'goblin'].filter((t) => LIVE_ARMY.unitUnlocked(ai, t));
+  if (!pool.length) return composition;
+  const extra = [];
+  let guard = 0;
+  while (composition.length + extra.length < room && guard < 60) {
+    guard += 1;
+    let added = false;
+    for (const t of pool) {
+      const c = unitDef(t, 1).cost;
+      if (budget >= c) { extra.push(t); budget -= c; added = true; break; }
+    }
+    if (!added) break;
+  }
+  return composition.concat(extra);
+}
+
+function survivalAiCommanderStrike(ai, composition) {
+  if (!composition || !composition.length) return false;
+  const counts = {};
+  for (const t of composition) counts[t] = (counts[t] || 0) + 1;
+  const cap = Math.max(1, commanderCap(ai));
+  const formationByType = {
+    tank: 'front', sniper: 'front', peka: 'front',
+    speed: 'group', striker: 'group', bloop: 'group', goblin: 'train',
+  };
+  const liveCount = () => combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  // One decisive lane, forward edge — concentrate the whole punch there.
+  const targetY = survivalAiPickAttackLane();
+  const db = getDeployBounds(1);
+  const frontX = clamp(db.xMin + 26, db.xMin + 8, db.xMax - 8);
+  // Deploy the biggest blocks first so the combined-arms column lands together.
+  const ordered = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  let anyPlaced = false;
+  let block = 0;
+  for (const type of ordered) {
+    if (!LIVE_ARMY.unitUnlocked(ai, type)) continue;
+    if (liveCount() >= SURVIVAL_AI_MAX_UNITS) break;
+    // Stack blocks tightly around the target lane (small alternating offset so
+    // they don't perfectly overlap but stay concentrated in the same band).
+    const yOff = (block % 2 === 0 ? 1 : -1) * Math.ceil(block / 2) * 46;
+    const pos = {
+      x: frontX,
+      y: clamp(targetY + yOff, DEPLOY_Y_MIN + 20, DEPLOY_Y_MAX - 20),
+    };
+    block += 1;
+    const form = formationByType[type] || 'front';
+    let placed = false;
+    for (let count = Math.min(counts[type], cap); count >= 2; count--) {
+      const positions = commanderDeployPositions(pos, 1, type, count, form);
+      if (commanderValidateBatch(1, type, positions)) {
+        if (commanderPlaceBatch(1, type, positions)) { anyPlaced = true; placed = true; }
+        break;
+      }
+    }
+    if (!placed && survivalAiTrySpawnUnitOfType(ai, type, false)) anyPlaced = true;
+  }
+  return anyPlaced;
+}
+
 function survivalAiBeginStrike(brain, ai, intel) {
   const plan = brain.plan;
   if (!plan) return false;
   brain.lastPlanId = plan.id;
   const composition = survivalAiComposeStrike(plan.id, intel, plan.strikeSize, ai, brain);
+  brain.lastStrikeTime = combatTime;
+  brain.plan = null;
+  survivalResetBattleSpeedOnEnemyAttack();
+  survivalAiStrikeRevealLog(plan.id);
+
+  // With a Commander unlocked the CPU mass-drops the entire strike as
+  // combined-arms formations in a single push, then goes straight to recover —
+  // no slow trickle to pick apart.
+  if (commanderUnlocked(ai)) {
+    const massed = survivalAiForrestReinforce(ai, composition);
+    survivalAiCommanderStrike(ai, massed);
+    survivalAiArmStrikeEval(brain, massed, intel);
+    brain.strikeQueue = [];
+    brain.strikeComposition = null;
+    brain.strikeIntel = null;
+    brain.phase = 'recover';
+    brain.phaseUntil = combatTime + survivalAiRollRecoverTime();
+    return true;
+  }
+
   brain.strikeQueue = new Array(plan.strikeSize).fill(0);
   brain.strikeComposition = composition;
   brain.strikeIntel = intel;
   brain.strikeStagger = 0;
   brain.phase = 'strike';
-  brain.lastStrikeTime = combatTime;
-  brain.plan = null;
-  survivalResetBattleSpeedOnEnemyAttack();
-  survivalAiStrikeRevealLog(plan.id);
   return true;
 }
 
@@ -5160,6 +6375,238 @@ function survivalAiDrainStrikeQueue(ai, dt) {
   return true;
 }
 
+// If the player has invested in base cannons (upgraded them or added an extra
+// cannon), the raid goblins come pre-toughened: +1 Health and +1 Loot (damage)
+// each, once, so they can punch through the cannon fire and still plunder farms.
+function survivalAiUpgradeRaidGoblins(ai) {
+  const player = players[0];
+  const sk = getBaseCannonSkills(player);
+  const cannonSkilled = (sk.firerate || 0) + (sk.damage || 0) + (sk.range || 0) > 0;
+  const turretCount = player.turrets.filter((t) => t.towerType === 'turret').length;
+  const baseDefLvl = LIVE_ARMY.baseDefenseLevel ? LIVE_ARMY.baseDefenseLevel(player) : 0;
+  const extraCannon = turretCount > 2 || baseDefLvl > 0;
+  if (!cannonSkilled && !extraCannon) return;
+  const rec = LIVE_ARMY.unitRecord(ai, 'goblin');
+  if ((rec.health || 0) < 1) rec.health = 1;
+  if ((rec.damage || 0) < 1) rec.damage = 1; // "loot" branch
+}
+
+// Send a fast Goblin pack straight at the player's Farms/Mints. Goblins only
+// target economy buildings, so a pack overwhelms an early farm build. Prefers a
+// one-tick Commander mass-drop, else spawns a burst aimed at the farm lane.
+function survivalAiLaunchGoblinRaid(ai, intel) {
+  survivalAiUpgradeRaidGoblins(ai);
+  const eco = players[0].turrets.filter(
+    (t) => (t.towerType === 'farm' || t.towerType === 'mint') && t.hp > 0,
+  );
+  const targetY = eco.length ? eco[Math.floor(Math.random() * eco.length)].y : MID_Y;
+  // Overwhelming pack: 6 minimum, up to 9 as the player commits more economy.
+  const econCommit = intel.farms + intel.mints;
+  const want = Math.min(9, 6 + Math.max(0, Math.floor(econCommit) - 1));
+  const db = getDeployBounds(1);
+  const laneFn = (idx, pid) => {
+    const lanes = [targetY, targetY - 42, targetY + 42, targetY - 84, targetY + 84];
+    return {
+      x: clamp(db.xMin + 24 + Math.floor(idx / lanes.length) * 20, db.xMin + 8, db.xMax - 8),
+      y: clamp(lanes[idx % lanes.length] + rand(-10, 10), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
+    };
+  };
+
+  let spawned = 0;
+  if (commanderUnlocked(ai)) {
+    let remaining = want;
+    while (remaining >= 2 && spawned < want) {
+      const pos = {
+        x: clamp(db.xMin + 24 + Math.floor(spawned / 3) * 18, db.xMin + 8, db.xMax - 8),
+        y: clamp(targetY + (spawned % 3 - 1) * 36, DEPLOY_Y_MIN + 20, DEPLOY_Y_MAX - 20),
+      };
+      const batch = Math.min(remaining, commanderCap(ai));
+      let placed = 0;
+      for (let count = batch; count >= 2; count--) {
+        const positions = commanderDeployPositions(pos, 1, 'goblin', count, 'train');
+        if (commanderValidateBatch(1, 'goblin', positions) && commanderPlaceBatch(1, 'goblin', positions)) {
+          placed = count;
+          break;
+        }
+      }
+      if (placed < 2) break;
+      spawned += placed;
+      remaining -= placed;
+    }
+  }
+  if (spawned < want) {
+    let guard = 0;
+    while (spawned < want && guard < want + 6) {
+      guard += 1;
+      if (ai.coins < unitDef('goblin', 1).cost) break;
+      if (!survivalAiTrySpawnUnitOfType(ai, 'goblin', false, laneFn)) break;
+      spawned += 1;
+    }
+  }
+  if (spawned >= 6) addLog(`🤖 Enemy sends ${spawned} Goblins to raid your farms!`);
+  return spawned >= 6;
+}
+
+// True when the player hasn't committed to any meaningful opening — no economy
+// structures, no army buildings, no units, no extra towers, no base upgrades.
+function survivalAiPlayerIsIdle(intel, ctx) {
+  if (intel.playerUnitsOnField > 0) return false;
+  if (intel.farms > 0 || intel.mints > 0) return false;
+  if (intel.barracks > 0 || intel.engineers > 0) return false;
+  if (intel.extraCannons > 0) return false;
+  if (intel.spreadTowers > 0 || intel.laserTowers > 0 || intel.missileTowers > 0) return false;
+  if (intel.baseIncomeUp > 0 || intel.baseHealthUp > 0 || intel.baseDefenseUp > 0) return false;
+  if (intel.baseCannonUp > 0 || intel.commanderTier > 0) return false;
+  return true;
+}
+
+// Dump every coin into a concentrated knight/wolf ambush at the weakest lane.
+function survivalAiLaunchSurpriseStrike(ai, intel) {
+  if (!LIVE_ARMY.unitUnlocked(ai, 'striker')) return false;
+  const liveRoom = SURVIVAL_AI_MAX_UNITS
+    - combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  const composition = [];
+  let budget = ai.coins;
+  let guard = 0;
+  while (composition.length < Math.min(18, liveRoom) && guard < 50) {
+    guard += 1;
+    let added = false;
+    for (const t of ['striker', 'striker', 'striker', 'speed']) {
+      if (!LIVE_ARMY.unitUnlocked(ai, t)) continue;
+      const c = unitDef(t, 1).cost;
+      if (budget < c) continue;
+      composition.push(t);
+      budget -= c;
+      added = true;
+      break;
+    }
+    if (!added) break;
+  }
+  if (composition.length < 5) return false;
+
+  survivalResetBattleSpeedOnEnemyAttack();
+  if (commanderUnlocked(ai)) {
+    survivalAiCommanderStrike(ai, composition);
+    return true;
+  }
+
+  const db = getDeployBounds(1);
+  const targetY = survivalAiPickAttackLane();
+  let spawned = 0;
+  for (let i = 0; i < composition.length; i++) {
+    const type = composition[i];
+    const slotFn = (idx, pid) => ({
+      x: clamp(db.xMin + 12 + (i % 5) * 16, db.xMin + 8, db.xMax - 8),
+      y: clamp(targetY + (Math.floor(i / 5) % 3 - 1) * 44, DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
+    });
+    if (survivalAiTrySpawnUnitOfType(ai, type, false, slotFn)) spawned += 1;
+  }
+  return spawned >= 5;
+}
+
+// Opening punish: sit on your hands and the CPU techs an ambush in ~18 seconds
+// then drops a huge surprise strike — bypasses the normal observe/prepare wait.
+function survivalAiIdleSurpriseStrike(ai, brain, intel, ctx) {
+  if (brain.idleStrikeDone) return false;
+  if (ctx.combatTime < SURVIVAL_AI_IDLE_STRIKE_AFTER) return false;
+
+  if (!survivalAiPlayerIsIdle(intel, ctx)) {
+    if (ctx.combatTime > 50) brain.idleStrikeDone = true;
+    return false;
+  }
+
+  // One-time war chest so the ambush is genuinely huge even on a short timer.
+  if (!brain.idleStrikePrimed) {
+    brain.idleStrikePrimed = true;
+    ai.coins += SURVIVAL_AI_IDLE_AMBUSH_BONUS;
+    addLog('🤖 Enemy is preparing something...');
+  }
+
+  // Rush tech — block all other spending until the ambush is ready.
+  if (!LIVE_ARMY.hasBarracks(ai)) {
+    if (ai.coins >= towerCost(ai, 'barracks')) return survivalAiTryPlaceTower(ai, 'barracks');
+    return true;
+  }
+  if (!LIVE_ARMY.unitUnlocked(ai, 'striker')) {
+    if (ai.coins >= LIVE_ARMY.unitUnlockCost('striker')) return buyBarracksUpgrade(1, 'unlock', 'striker');
+    return true;
+  }
+  if (!LIVE_ARMY.unitUnlocked(ai, 'speed') && ai.coins >= LIVE_ARMY.unitUnlockCost('speed')) {
+    return buyBarracksUpgrade(1, 'unlock', 'speed');
+  }
+  if (!commanderUnlocked(ai) && ai.coins >= commanderTierCost(1) + unitDef('striker', 1).cost * 4) {
+    return buyCommanderUpgrade(1, 1);
+  }
+
+  if (ai.coins < unitDef('striker', 1).cost * 5) return true;
+
+  if (survivalAiLaunchSurpriseStrike(ai, intel)) {
+    brain.idleStrikeDone = true;
+    brain.plan = null;
+    brain.strikeQueue = [];
+    brain.phase = 'recover';
+    brain.phaseUntil = ctx.combatTime + 18;
+    addLog('🤖 SURPRISE AMBUSH — the enemy strikes while you waited!');
+    return true;
+  }
+  return false;
+}
+
+// Opening punish: if the player opens by building Farms while light on defense,
+// the CPU techs straight to Goblins and raids the economy before it pays off.
+// One-time move, committed early — it will save coins for the raid rather than
+// spending them on its own economy while the window is open.
+function survivalAiOpeningGoblinRaid(ai, brain, intel, ctx) {
+  if (brain.goblinRaidDone) return false;
+  if (!isUnitEnabled('goblin')) { brain.goblinRaidDone = true; return false; }
+  // Opening window only.
+  if (ctx.combatTime > 200) { brain.goblinRaidDone = true; return false; }
+  // Trigger on a committed early economy: 2+ farms (so a 3-farm opening always
+  // gets punished). Base/extra cannons do NOT cancel the raid — the goblins get
+  // upgraded to punch through them (see survivalAiUpgradeRaidGoblins).
+  if (intel.farms < 2) return false;
+  // Only a real early ARMY (units) makes a cheap goblin raid pointless; skip and
+  // retry later rather than cancelling for good.
+  if (intel.playerUnitsOnField >= 4) return false;
+
+  // Tech toward the raid one step per tick, blocking normal economy spend so the
+  // coins are there when we need them.
+  if (!LIVE_ARMY.hasBarracks(ai)) {
+    if (ai.coins >= towerCost(ai, 'barracks')) return survivalAiTryPlaceTower(ai, 'barracks');
+    return true; // save up — don't let quiet economy spend the coins
+  }
+  if (!LIVE_ARMY.unitUnlocked(ai, 'goblin')) {
+    if (ai.coins >= LIVE_ARMY.unitUnlockCost('goblin')) return buyBarracksUpgrade(1, 'unlock', 'goblin');
+    return true; // save up
+  }
+  const econCommit = intel.farms + intel.mints;
+  const raidSize = Math.min(9, 6 + Math.max(0, Math.floor(econCommit) - 1));
+  const packCost = unitDef('goblin', 1).cost * raidSize;
+  if (ai.coins < packCost) return true; // save up for the full overwhelming pack
+  if (survivalAiLaunchGoblinRaid(ai, intel)) {
+    brain.goblinRaidDone = true;
+    return true;
+  }
+  return false;
+}
+
+// Mid-game economy punish — if the player keeps stacking farms after the opening
+// raid, hit them again once the CPU can afford another overwhelming goblin pack.
+function survivalAiMidGameEcoRaid(ai, brain, intel) {
+  if (brain.midEcoRaidDone || !brain.goblinRaidDone) return false;
+  if (!isUnitEnabled('goblin') || !LIVE_ARMY.unitUnlocked(ai, 'goblin')) return false;
+  if (intel.farms < 3 && intel.mints < 2) return false;
+  if (intel.playerUnitsOnField >= 5) return false;
+  const raidSize = Math.min(9, 6 + Math.max(0, intel.farms + intel.mints - 3));
+  if (ai.coins < unitDef('goblin', 1).cost * raidSize) return false;
+  if (survivalAiLaunchGoblinRaid(ai, intel)) {
+    brain.midEcoRaidDone = true;
+    addLog('🤖 Enemy sends another Goblin raid — your economy is too exposed!');
+    return true;
+  }
+  return false;
+}
+
 function survivalAiEmergencyReact(ai, brain, intel, ctx) {
   // Dragon on the field → snipers are the hard counter; interrupt any plan.
   const liveDragon = combatUnits.some((u) => u.owner === 0 && u.hp > 0 && u.type === 'peka');
@@ -5174,15 +6621,39 @@ function survivalAiEmergencyReact(ai, brain, intel, ctx) {
     if (survivalAiRushSnipersAgainstDragon(ai, intel)) return true;
   }
 
-  // Lots of volume → answer with a Dragon of our own.
+  // TOP PRIORITY: enemy units at our base → wall it with counters hugging the
+  // base until we outnumber the attackers right there. Losing the base loses the
+  // game, so this outranks everything else.
+  if (survivalAiDefendBase(ai)) return true;
+
+  // A real attack is pressing in at midfield → slam down a Commander wall of
+  // counters at our base in one tick (rush-buying the Commander if we have to).
+  if (survivalAiReactiveCommanderCounter(ai, intel, ctx)) return true;
+
+  // Lots of volume the Commander couldn't answer → unleash a Dragon of our own.
   if (survivalAiCounterVolumeWithDragon(ai)) return true;
 
   // Knight under our towers → swarm it with Wolves to finish it off.
   if (survivalAiTryWolfKnightBait(ai, intel)) return true;
 
-  // Field the doctrine counter once a threat is advancing on us (or base is low).
-  if ((survivalAiThreatAdvancing() || ctx.aiHpPct < 0.6) && brain.phase !== 'strike') {
-    if (survivalAiSpawnDefender(ai, intel)) return true;
+  // Field doctrine counters against the ACTIVE advancing threat. We spawn in
+  // VOLUME (several per think tick, spending freely) until our live force
+  // matches the incoming attack, then stop and let the planner bank/build
+  // again. As the enemy attack is destroyed the required force shrinks to zero,
+  // so the CPU naturally returns to deciding normally instead of over-spawning.
+  const threatCount = survivalAiAdvancingThreatCount();
+  const desperate = ctx.aiHpPct < 0.5;
+  if ((threatCount > 0 || desperate) && brain.phase !== 'strike') {
+    const needed = desperate ? threatCount + 2 : threatCount;
+    let acted = false;
+    let guard = 0;
+    while (ctx.aiUnits < needed && guard < 6) {
+      guard += 1;
+      if (!survivalAiSpawnDefender(ai, intel)) break;
+      ctx.aiUnits += 1;
+      acted = true;
+    }
+    if (acted) return true;
   }
 
   return false;
@@ -5194,6 +6665,15 @@ function survivalAiTickPlanner(ai, brain) {
 
   if (survivalAiEmergencyReact(ai, brain, intel, ctx)) return true;
 
+  // Idle opening punish — huge surprise ambush if the player does nothing.
+  if (survivalAiIdleSurpriseStrike(ai, brain, intel, ctx)) return true;
+
+  // Opening economy raid — punish an early farm build with a fast Goblin pack.
+  if (survivalAiOpeningGoblinRaid(ai, brain, intel, ctx)) return true;
+
+  // Mid-game follow-up raid if the player keeps greed-stacking economy.
+  if (survivalAiMidGameEcoRaid(ai, brain, intel)) return true;
+
   if (brain.phase === 'observe') {
     if (!brain.observeLogDone && combatTime > 8) {
       addLog('🤖 Enemy is watching your build...');
@@ -5201,6 +6681,7 @@ function survivalAiTickPlanner(ai, brain) {
     }
     if (survivalAiQuietEconomy(ai, ctx)) return true;
     if (survivalAiQuietDefense(ai, intel, ctx)) return true;
+    if (survivalAiInvestSurplus(ai, brain, intel, ctx)) return true;
     if (combatTime >= brain.phaseUntil) {
       survivalAiBeginPrepare(brain, intel, ai, ctx);
     }
@@ -5216,15 +6697,20 @@ function survivalAiTickPlanner(ai, brain) {
 
     // Quiet buildup — economy, unlocks, defenses. No attack troops yet.
     if (survivalAiPrepUnlocks(ai, plan.id, intel)) return true;
-    if (survivalAiPrepTowerUnlock(ai, intel)) return true;
+    if (survivalAiPrepTowerUnlock(ai, intel, plan.id)) return true;
     if (survivalAiQuietEconomy(ai, ctx)) return true;
     if (survivalAiQuietDefense(ai, intel, ctx)) return true;
+    if (survivalAiInvestSurplus(ai, brain, intel, ctx)) return true;
 
     const banked = ai.coins >= plan.bankTarget;
     const timedOut = combatTime >= plan.readyAt;
-    const finisherNow = plan.id === CPU_PLAN.FINISHER && ctx.playerHpPct < 0.35;
+    const finisherNow = plan.id === CPU_PLAN.FINISHER && ctx.playerHpPct < 0.55;
+    // Forrest: if the war chest is overflowing (economy has outrun the plan),
+    // don't sit on it — hit now with the extra mass.
+    const overflowing = ai.coins >= plan.bankTarget * 1.5;
 
-    if ((banked && timedOut) || finisherNow || (timedOut && ai.coins >= plan.bankTarget * 0.72)) {
+    if ((banked && timedOut) || overflowing || finisherNow
+        || (timedOut && ai.coins >= plan.bankTarget * 0.72)) {
       brain.lastPlanId = plan.id;
       return survivalAiBeginStrike(brain, ai, intel);
     }
@@ -5232,8 +6718,15 @@ function survivalAiTickPlanner(ai, brain) {
   }
 
   if (brain.phase === 'recover') {
+    // Chain-strike: a successful hit while the player is still hurt → skip the
+    // long recover and immediately plan the next concentrated push.
+    if (brain.lastStrikeSuccess && ctx.playerHpPct < 0.7) {
+      survivalAiBeginPrepare(brain, intel, ai, ctx);
+      return true;
+    }
     if (survivalAiQuietEconomy(ai, ctx)) return true;
     if (survivalAiQuietDefense(ai, intel, ctx)) return true;
+    if (survivalAiInvestSurplus(ai, brain, intel, ctx)) return true;
     if (combatTime >= brain.phaseUntil) {
       brain.phase = 'observe';
       brain.phaseUntil = combatTime + (SURVIVAL_AI_OBSERVE_TIME[survivalDifficulty] || 12) * 0.5;
@@ -5415,19 +6908,26 @@ function setupSurvivalLive() {
     p.baseDamageThisRound = 0;
     p.combatReward = 0;
     p.bloopBounty = 0;
-    p.coins = SURVIVAL_START_COINS;
+    p.coins = survivalLiveStartCoins(i, false);
     p.baseHp = gameRules.baseHp;
     p.baseMaxHp = gameRules.baseHp;
     p.rubble = [];
     p.turrets = defaultStartingTowers(i);
     p.incomeUpgrades = defaultIncomeUpgrades();
+    p.baseCannonSkills = freshBaseCannonSkills();
+    p.commander = freshCommander();
   }
+  commanderCount = 1;
+  commanderFormation = 'front';
 
   players[1].isAI = true;
   players[1].name = 'Enemy';
   activePlayer = 0;
   phase = 'combat';
   combatTime = 0;
+  // Goblins are the CPU's economy-raiding tool (they only attack Farms/Mints),
+  // so make sure they're available in Live Battle.
+  gameRules.units.goblin = true;
   if (typeof LIVE_ARMY !== 'undefined') {
     LIVE_ARMY.onBattleStart(players, gameRules, { pvp: false });
     LIVE_ARMY.setPlayersRef(players);
@@ -5503,13 +7003,17 @@ function setupSurvivalLivePvp(opts) {
     p.baseDamageThisRound = 0;
     p.combatReward = 0;
     p.bloopBounty = 0;
-    p.coins = SURVIVAL_START_COINS;
+    p.coins = survivalLiveStartCoins(i, true);
     p.baseHp = gameRules.baseHp;
     p.baseMaxHp = gameRules.baseHp;
     p.rubble = [];
     p.turrets = defaultStartingTowers(i);
     p.incomeUpgrades = defaultIncomeUpgrades();
+    p.baseCannonSkills = freshBaseCannonSkills();
+    p.commander = freshCommander();
   }
+  commanderCount = 1;
+  commanderFormation = 'front';
 
   activePlayer = myPlayerId;
   phase = 'combat';
@@ -5587,6 +7091,8 @@ function getPvpSnapshot() {
       baseMaxHp: p.baseMaxHp,
       name: p.name,
       incomeUpgrades: { ...p.incomeUpgrades },
+      baseCannonSkills: { ...getBaseCannonSkills(p) },
+      commander: { ...getCommander(p) },
       liveArmy: p.liveArmy ? JSON.parse(JSON.stringify(p.liveArmy)) : null,
       turrets: p.turrets.map(serializeTower),
       rubble: p.rubble.map((r) => ({ ...r })),
@@ -5620,6 +7126,8 @@ function applyPvpSnapshot(state) {
     p.baseMaxHp = src.baseMaxHp;
     p.name = src.name;
     p.incomeUpgrades = { ...src.incomeUpgrades };
+    p.baseCannonSkills = { ...freshBaseCannonSkills(), ...(src.baseCannonSkills || {}) };
+    p.commander = { ...freshCommander(), ...(src.commander || {}) };
     if (src.liveArmy) {
       p.liveArmy = JSON.parse(JSON.stringify(src.liveArmy));
       if (typeof LIVE_ARMY !== 'undefined') {
@@ -5823,13 +7331,16 @@ function applyPvpAction(fromPlayerId, action) {
   if (type === 'spawn_unit') {
     return survivalLiveSpawnUnit(fromPlayerId, action.unitType, action.x, action.y);
   }
+  if (type === 'commander_deploy') {
+    return commanderPlaceBatch(fromPlayerId, action.unitType, action.positions || []);
+  }
   if (type === 'place_tower') {
     return survivalLivePlaceTower(fromPlayerId, action.towerType, action.x, action.y);
   }
   if (type === 'move_tower') {
     const p = players[fromPlayerId];
     const tw = p.turrets.find((t) => t.id === action.towerId);
-    if (!tw || tw.isBaseDefense) return false;
+    if (!tw || tw.isBaseDefense || isImmovableTower(tw.towerType)) return false;
     if (!canPlaceTurret(action.x, action.y, fromPlayerId, tw.id)) return false;
     tw.x = action.x;
     tw.y = action.y;
@@ -5852,6 +7363,12 @@ function applyPvpAction(fromPlayerId, action) {
   }
   if (type === 'missile_upgrade') {
     return buyMissileUpgrade(fromPlayerId, action.towerId, action.branch);
+  }
+  if (type === 'cannon_upgrade') {
+    return buyBaseCannonUpgrade(fromPlayerId, action.branch);
+  }
+  if (type === 'commander_upgrade') {
+    return buyCommanderUpgrade(fromPlayerId, action.tier);
   }
   return false;
 }
@@ -6019,6 +7536,13 @@ function updateSurvivalLiveAI(dt) {
   survivalAiTimer = SURVIVAL_AI_THINK_INTERVAL;
 
   if (survivalAiTickPlanner(ai, survivalAiBrain)) updateUI();
+
+  // While the base is under direct threat, re-evaluate several times a second so
+  // the CPU can keep piling on defenders instead of waiting a full think cycle.
+  const bp = basePos(1);
+  if (combatUnits.some((u) => u.owner === 0 && u.hp > 0 && dist(u, bp) <= AI_BASE_DEFENSE_RANGE)) {
+    survivalAiTimer = Math.min(survivalAiTimer, 0.3);
+  }
 }
 
 function updateSurvivalLive(dt) {
@@ -9555,15 +11079,21 @@ function towerDef(type, ownerId) {
   return def;
 }
 
-// The base's starting cannons: normal cannon stats plus one baked-in engineer
-// level on every branch, with a gold barrel and yellow shells. Independent of
-// the player's shared cannon (engineer) upgrades.
+// The base's cannons (two starting cannons + the base's own turret): a normal
+// cannon's stats scaled by their own dedicated skill tree, with a gold barrel
+// and yellow shells. Deliberately independent of the Engineers cannon upgrades.
 function baseCannonDef(ownerId) {
-  const base = towerDef('turret', ownerId);
+  let base;
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
+    base = LIVE_ARMY.modifyTowerDef('turret', TOWER_TYPES.turret, ownerId, { skipEngineerBonus: true });
+  } else {
+    base = TOWER_TYPES.turret;
+  }
+  const skills = getBaseCannonSkills(ownerId != null ? players[ownerId] : null);
   const def = { ...base };
-  def.damage = (base.damage || 24) * BASE_CANNON_DMG_MULT;
-  def.fireRate = (base.fireRate || 1.2) * BASE_CANNON_RATE_MULT;
-  def.range = (base.range || 178) * BASE_CANNON_RANGE_MULT;
+  def.damage = (base.damage || 24) * baseCannonSkillMult('damage', skills.damage);
+  def.fireRate = (base.fireRate || 1.2) * baseCannonSkillMult('firerate', skills.firerate);
+  def.range = (base.range || 178) * baseCannonSkillMult('range', skills.range);
   def.color = BASE_CANNON_BARREL;
   def.accent = BASE_CANNON_ACCENT;
   def.pelletColor = CANNON_YELLOW_PELLET;
@@ -12468,6 +13998,7 @@ function spawnTowerPellet(tower, ownerId, angle, towerType, opts = {}) {
     ownerId,
     towerType,
     damageMult: opts.damageMult || 1,
+    baseDamage: opts.baseDamage != null ? opts.baseDamage : null,
     color: opts.pelletColor || def.pelletColor || def.color,
     size: towerType === 'spread' ? 3 : 4.5,
     life: 2.4,
@@ -12487,7 +14018,11 @@ function applySpreadParalysis(unit) {
 }
 
 function applyPelletHit(pellet, unit) {
-  const dmg = towerAttackDamage(pellet.towerType, unit.type, pellet.damageMult, pellet.ownerId);
+  // Base cannons carry their own resolved per-shot damage so they stay
+  // independent of the Engineers cannon upgrades; reuse the turret counter table.
+  const dmg = pellet.baseDamage != null
+    ? pellet.baseDamage * getCounter('turret', unit.type) * (pellet.damageMult || 1)
+    : towerAttackDamage(pellet.towerType, unit.type, pellet.damageMult, pellet.ownerId);
   const hpBefore = unit.hp;
   unit.lastHitBy = pellet.ownerId;
   applyHpLoss(unit, dmg);
@@ -12881,7 +14416,25 @@ function updatePellets(dt) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.traveled += step;
-    if (p.life <= 0 || p.traveled > p.maxRange || p.x < 0 || p.x > W || p.y < LAND_TOP || p.y > LAND_BOTTOM) {
+    const expired = p.life <= 0 || p.traveled > p.maxRange || p.x < 0 || p.x > W || p.y < LAND_TOP || p.y > LAND_BOTTOM;
+
+    if (p.water) {
+      waterDouseAlong(p, dt);
+      const enemyW = enemyId(p.ownerId);
+      let hitW = false;
+      for (const u of combatUnits) {
+        if (u.owner !== enemyW || u.hp <= 0) continue;
+        if (unitIsFlying(u)) continue; // water can't strike flying dragons
+        if (dist(p, u) <= getUnitSize(u) + p.size) { hitW = true; break; }
+      }
+      if (hitW || expired) {
+        waterSplash(p);
+        pellets.splice(i, 1);
+      }
+      continue;
+    }
+
+    if (expired) {
       pellets.splice(i, 1);
       continue;
     }
@@ -13107,8 +14660,9 @@ function enemiesInRange(t, ownerId) {
 function updateBaseCannon(p, dt) {
   if (p.baseHp <= 0) return;
   const bp = basePos(p.id);
-  const fakeTower = { x: bp.x, y: bp.y, towerType: 'turret' };
-  const def = towerDef('turret', p.id);
+  // Flagged baseCannon so range/def resolve through the base-cannon skill tree.
+  const fakeTower = { x: bp.x, y: bp.y, towerType: 'turret', baseCannon: true };
+  const def = baseCannonDef(p.id);
   p.baseCannonCd = (p.baseCannonCd || 0) - dt;
   const inRange = enemiesInRange(fakeTower, p.id);
   if (!inRange.length) return;
@@ -13116,7 +14670,7 @@ function updateBaseCannon(p, dt) {
   const angle = Math.atan2(nearest.y - bp.y, nearest.x - bp.x);
   if (p.baseCannonCd <= 0) {
     p.baseCannonCd = 1 / def.fireRate;
-    spawnTowerPellet(fakeTower, p.id, angle, 'turret', { pelletColor: CANNON_YELLOW_PELLET });
+    spawnTowerPellet(fakeTower, p.id, angle, 'turret', { def, pelletColor: def.pelletColor, baseDamage: def.damage });
     beams.push({ x1: bp.x, y1: bp.y, x2: bp.x + Math.cos(angle) * 40, y2: bp.y + Math.sin(angle) * 40, color: CANNON_YELLOW_PELLET, life: 0.08, maxLife: 0.08, style: 'cannon', width: 4 });
   }
 }
@@ -13136,7 +14690,7 @@ function updateTowers(dt) {
         t.angle = Math.atan2(nearest.y - t.y, nearest.x - t.x);
         if (t.cooldown <= 0) {
           t.cooldown = 1 / def.fireRate;
-          const cannonOpts = t.baseCannon ? { def, pelletColor: def.pelletColor, damageMult: BASE_CANNON_DMG_MULT } : {};
+          const cannonOpts = t.baseCannon ? { def, pelletColor: def.pelletColor, baseDamage: def.damage } : {};
           spawnTowerPellet(t, p.id, t.angle, 'turret', cannonOpts);
           beams.push({ x1: t.x, y1: t.y, x2: t.x + Math.cos(t.angle) * 18, y2: t.y + Math.sin(t.angle) * 18, color: t.baseCannon ? CANNON_YELLOW_PELLET : def.color, life: 0.08, maxLife: 0.08, style: 'cannon', width: 3 });
         }
@@ -13268,6 +14822,52 @@ const TANK_STOMP_RADIUS = 74;
 const TANK_STOMP_DMG_RATIO = 0.6; // fraction of the elephant's attack, dealt to everyone in range
 const TANK_STOMP_SHOCK = 0.45;    // seconds of paralyze (shock)
 
+// Elephants spray water as they walk, snuffing out dragon fire around them —
+// both the burning patches on the ground and flames stuck to itself and allies.
+const TANK_DOUSE_RADIUS = 96;
+const TANK_DOUSE_LIFE_RATE = 4.5;  // seconds of fire life drained per second
+const TANK_DOUSE_SHRINK = 2.4;     // how fast a doused patch shrinks
+
+function tankDouseFire(tank, dt) {
+  if (tank.hp <= 0) return;
+  let dousedAny = false;
+
+  // Put out ground fire fields around the elephant.
+  for (let i = fireFields.length - 1; i >= 0; i--) {
+    const f = fireFields[i];
+    const reach = TANK_DOUSE_RADIUS + f.r;
+    const d = Math.hypot(f.x - tank.x, f.y - tank.y);
+    if (d > reach) continue;
+    const closeness = 1 - Math.min(1, d / reach); // 0 at edge → 1 at center
+    const strength = 0.5 + closeness;
+    f.life -= dt * TANK_DOUSE_LIFE_RATE * strength;
+    f.r *= (1 - dt * TANK_DOUSE_SHRINK * strength);
+    dousedAny = true;
+    if (f.life <= 0 || f.r < 3) fireFields.splice(i, 1);
+  }
+
+  // Extinguish flames burning on the elephant itself and nearby allies.
+  for (const u of combatUnits) {
+    if (!u.ignite || u.hp <= 0) continue;
+    if (u !== tank && u.owner !== tank.owner) continue;
+    if (Math.hypot(u.x - tank.x, u.y - tank.y) > TANK_DOUSE_RADIUS) continue;
+    u.ignite.life -= dt * TANK_DOUSE_LIFE_RATE;
+    if (u.ignite.life <= 0) delete u.ignite;
+    dousedAny = true;
+  }
+
+  // Sprinkle a little water/steam so the effect is visible.
+  if (dousedAny) {
+    tank._douseSplashCd = (tank._douseSplashCd || 0) - dt;
+    if (tank._douseSplashCd <= 0) {
+      tank._douseSplashCd = 0.16;
+      const a = rand(0, Math.PI * 2);
+      const rr = rand(TANK_DOUSE_RADIUS * 0.35, TANK_DOUSE_RADIUS * 0.85);
+      spawnParticles(tank.x + Math.cos(a) * rr, tank.y + Math.sin(a) * rr, '#9fd8ff', 3);
+    }
+  }
+}
+
 function tankStomp(tank) {
   const dmg = getUnitDamage(tank) * TANK_STOMP_DMG_RATIO;
   let hitAny = false;
@@ -13287,6 +14887,121 @@ function tankStomp(tank) {
   blasts.push({ x: tank.x, y: tank.y, maxR: TANK_STOMP_RADIUS, life: 0.3, maxLife: 0.3, color: hitAny ? '#f0c674' : '#d9b38c' });
 }
 
+// Elephants also spray water jets across the battlefield. The stream snuffs out
+// any fire it flies over, and on impact it bursts into a splash that shoves and
+// briefly shocks every ground unit nearby. It cannot hit flying dragons.
+const TANK_WATER_INTERVAL = 1.5;   // seconds between water jets
+const TANK_WATER_RANGE = 470;      // how far a jet travels
+const TANK_WATER_SPEED = 360;
+const TANK_WATER_SPLASH = 82;      // splash radius on impact
+const TANK_WATER_KB = 165;         // pushback impulse
+const TANK_WATER_SHOCK = 0.5;      // seconds of paralyze (a little shock)
+const TANK_WATER_DMG = 3;          // light splash damage
+const TANK_WATER_COLOR = '#7ec8ff';
+
+function tankWaterTarget(tank) {
+  // Prefer the nearest enemy ground unit; otherwise aim at the nearest fire.
+  const enemy = enemyId(tank.owner);
+  let best = null, bestD = TANK_WATER_RANGE;
+  for (const u of combatUnits) {
+    if (u.owner !== enemy || u.hp <= 0) continue;
+    if (unitIsFlying(u)) continue; // can't attack flying dragons
+    const d = Math.hypot(u.x - tank.x, u.y - tank.y);
+    if (d < bestD) { bestD = d; best = { x: u.x, y: u.y }; }
+  }
+  if (best) return best;
+  let fBest = null, fD = TANK_WATER_RANGE;
+  for (const f of fireFields) {
+    const d = Math.hypot(f.x - tank.x, f.y - tank.y);
+    if (d < fD) { fD = d; fBest = { x: f.x, y: f.y }; }
+  }
+  return fBest;
+}
+
+function fireTankWater(tank, aim) {
+  const angle = Math.atan2(aim.y - tank.y, aim.x - tank.x);
+  const muzzle = getUnitSize(tank) + 8;
+  const mx = tank.x + Math.cos(angle) * muzzle;
+  const my = tank.y + Math.sin(angle) * muzzle - 4;
+  pellets.push({
+    id: uid(),
+    x: mx,
+    y: my,
+    vx: Math.cos(angle) * TANK_WATER_SPEED,
+    vy: Math.sin(angle) * TANK_WATER_SPEED,
+    ownerId: tank.owner,
+    towerType: 'water',
+    water: true,
+    damageMult: 1,
+    baseDamage: null,
+    color: TANK_WATER_COLOR,
+    size: 5,
+    life: 2.6,
+    maxRange: TANK_WATER_RANGE,
+    traveled: 0,
+    spawnX: tank.x,
+    spawnY: tank.y,
+  });
+  tank.facing = angle;
+  spawnParticles(mx, my, '#bfe6ff', 3);
+}
+
+function tankWaterUpdate(tank, dt) {
+  if (tank.hp <= 0) return;
+  tank.waterCd = (tank.waterCd == null ? TANK_WATER_INTERVAL : tank.waterCd) - dt;
+  if (tank.waterCd > 0) return;
+  const aim = tankWaterTarget(tank);
+  if (!aim) { tank.waterCd = 0.4; return; } // nothing to spray yet — check again soon
+  tank.waterCd = TANK_WATER_INTERVAL;
+  fireTankWater(tank, aim);
+}
+
+// The moving jet washes out any fire it passes directly over.
+function waterDouseAlong(p, dt) {
+  const R = 42;
+  for (let j = fireFields.length - 1; j >= 0; j--) {
+    const f = fireFields[j];
+    if (Math.hypot(f.x - p.x, f.y - p.y) > R + f.r) continue;
+    f.life -= dt * 7;
+    f.r *= (1 - dt * 3.2);
+    if (f.life <= 0 || f.r < 3) fireFields.splice(j, 1);
+  }
+}
+
+// Impact burst: extinguish a patch of fire and shove/shock nearby ground units.
+function waterSplash(p) {
+  for (let j = fireFields.length - 1; j >= 0; j--) {
+    const f = fireFields[j];
+    if (Math.hypot(f.x - p.x, f.y - p.y) > TANK_WATER_SPLASH + f.r) continue;
+    fireFields.splice(j, 1);
+  }
+  const enemy = enemyId(p.ownerId);
+  for (const u of combatUnits) {
+    if (u.owner !== enemy || u.hp <= 0) continue;
+    if (unitIsFlying(u)) continue; // flying dragons are untouched
+    const dx = u.x - p.x, dy = u.y - p.y;
+    const d = Math.hypot(dx, dy);
+    if (d > TANK_WATER_SPLASH + getUnitSize(u) * 0.5) continue;
+    if (TANK_WATER_DMG > 0) {
+      u.lastHitBy = p.ownerId;
+      applyHpLoss(u, TANK_WATER_DMG);
+      trackDamageDealt(p.ownerId, TANK_WATER_DMG, false);
+    }
+    const nx = d > 0.01 ? dx / d : 1;
+    const ny = d > 0.01 ? dy / d : 0;
+    const kb = u.type === 'tank' ? TANK_WATER_KB * 0.4 : TANK_WATER_KB;
+    const shove = u.type === 'tank' ? 4 : 9;
+    u.vx += nx * kb;
+    u.vy += ny * kb;
+    u.x = clamp(u.x + nx * shove, 30, W - 30);
+    u.y = clamp(u.y + ny * shove, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
+    u.paralyze = Math.max(u.paralyze || 0, TANK_WATER_SHOCK);
+    if (u.ignite) { u.ignite.life -= 1.2; if (u.ignite.life <= 0) delete u.ignite; }
+    spawnParticles(u.x - nx * 8, u.y - ny * 8, '#bfe6ff', 3);
+  }
+  blasts.push({ x: p.x, y: p.y, maxR: TANK_WATER_SPLASH, life: 0.28, maxLife: 0.28, color: '#9fd8ff' });
+}
+
 function updateCombat(dt) {
   combatTime += dt;
 
@@ -13294,6 +15009,10 @@ function updateCombat(dt) {
     if (UNIT_TYPES[u.type]?.dodges) updateSpeedDodge(u, dt);
     if (u.paralyze > 0) u.paralyze = Math.max(0, u.paralyze - dt);
     u.attackCooldown -= dt;
+
+    // Elephants sprinkle water as they move and spray water jets at range,
+    // putting out fire all around them and across the battlefield.
+    if (u.type === 'tank') { tankDouseFire(u, dt); tankWaterUpdate(u, dt); }
 
     // Dragons breathe fire at the closest enemy.
     if (unitDef(u.type, u.owner).behavior === 'dragon') {
@@ -13530,9 +15249,82 @@ function createTower(x, y, towerType, ownerId) {
   return tw;
 }
 
+// All-or-nothing: every unit in the formation must fit (room + coins) or none
+// are placed. Checks map bounds, overlap with existing units, and overlap
+// between the batch's own units.
+function commanderValidateBatch(pid, type, positions) {
+  const p = players[pid];
+  if (!p || !isSurvivalLive()) return false;
+  if (!isUnitEnabled(type)) return false;
+  if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, type)) return false;
+  const n = positions.length;
+  if (n === 0) return false;
+  if (p.coins < commanderBatchCost(pid, type, n)) return false;
+  const sz = UNIT_TYPES[type].size;
+  for (let i = 0; i < n; i++) {
+    const q = positions[i];
+    if (!canPlaceUnit(q.x, q.y, pid, type)) return false;
+    for (const u of combatUnits) {
+      if (u.owner !== pid || u.hp <= 0) continue;
+      if (dist(u, q) < getUnitSize(u) + sz + 4) return false;
+    }
+    for (let j = 0; j < i; j++) {
+      if (dist(positions[j], q) < sz * 2 + 4) return false;
+    }
+  }
+  return true;
+}
+
+function commanderPlaceBatch(pid, type, positions) {
+  if (!commanderValidateBatch(pid, type, positions)) return false;
+  const p = players[pid];
+  p.coins -= commanderBatchCost(pid, type, positions.length);
+  for (const q of positions) {
+    combatUnits.push(makeCombatUnit({ type, x: q.x, y: q.y }, pid));
+    if (pid === 0) survivalRecordPlayerDeploy(type);
+  }
+  if (pid === 1) survivalResetBattleSpeedOnEnemyAttack();
+  return true;
+}
+
+function commanderPlaceFailReason(pid, type, positions) {
+  const p = players[pid];
+  const ut = unitDef(type, pid);
+  const n = positions.length;
+  const total = commanderBatchCost(pid, type, n);
+  if (p.coins < total) return `Need ${total} coins to deploy all ${n} ${ut.name}s`;
+  return `Not enough room to place all ${n} units`;
+}
+
+function commanderDeploy(pos, pid) {
+  const type = selectedTool;
+  const count = Math.min(commanderCount, commanderCap(players[pid]));
+  const positions = commanderDeployPositions(pos, pid, type, count, commanderFormation);
+  if (!commanderValidateBatch(pid, type, positions)) {
+    addLog(commanderPlaceFailReason(pid, type, positions));
+    return;
+  }
+  const name = unitDef(type, pid).name;
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction({ type: 'commander_deploy', unitType: type, positions });
+    addLog(`🎖️ Deploying ${count}× ${name}`);
+  } else {
+    commanderPlaceBatch(pid, type, positions);
+    addLog(`🎖️ Deployed ${count}× ${name}`);
+  }
+  updateUI();
+}
+
 function handleClick(pos) {
   if (!canPlayerBuildNow()) return;
   const pid = getLocalPlayerId();
+
+  // Commander: one click drops a whole formation of the selected unit.
+  if (isSurvivalLive() && phase === 'combat' && UNIT_TYPES[selectedTool]
+      && commanderUnlocked(players[pid]) && commanderCount > 1) {
+    commanderDeploy(pos, pid);
+    return;
+  }
 
   if (isSurvivalPvp()) {
     const action = buildPvpActionFromClick(pos);
@@ -13604,7 +15396,7 @@ canvas.addEventListener('mousedown', (e) => {
 
   if (selectedTool === 'move') {
     for (const t of p.turrets) {
-      if (t.isBaseDefense) continue;
+      if (t.isBaseDefense || isImmovableTower(t.towerType)) continue;
       const sz = towerDef(t.towerType).size;
       if (dist(pos, t) < sz + 10) {
         dragging = { turret: t, offsetX: pos.x - t.x, offsetY: pos.y - t.y, playerId: pid };
@@ -13788,10 +15580,16 @@ function updateUI() {
     const hasMissile = p.turrets.some((t) => t.towerType === 'missile' && t.hp > 0);
     missileBtn.classList.toggle('hidden', !liveCombat || !hasMissile || !!LIVE_ARMY?.isActive());
   }
+  const commanderFab = document.getElementById('commander-fab');
+  if (commanderFab) {
+    commanderFab.classList.toggle('hidden', !liveCombat || !commanderUnlocked(p));
+  }
+  updateCommanderQuickBar();
   if (!liveCombat) {
     toggleBarracksPanel(false);
     toggleEngineersPanel(false);
     toggleMissilePanel(false);
+    toggleCommanderPanel(false);
   } else if (liveCombat) {
     if (document.getElementById('barracks-upgrade-panel') && !document.getElementById('barracks-upgrade-panel').classList.contains('hidden')) {
       updateBarracksUpgradeUI();
@@ -13801,6 +15599,9 @@ function updateUI() {
     }
     if (document.getElementById('missile-upgrade-panel') && !document.getElementById('missile-upgrade-panel').classList.contains('hidden')) {
       updateMissileUpgradeUI();
+    }
+    if (document.getElementById('commander-panel') && !document.getElementById('commander-panel').classList.contains('hidden')) {
+      updateCommanderPanelUI();
     }
   }
 
@@ -13889,6 +15690,8 @@ document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
   const speedBtn = e.target.closest('[data-econ-speed]');
   const yieldBtn = e.target.closest('[data-econ-yield]');
   const baseBtn = e.target.closest('[data-econ-base]');
+  const cannonBtn = e.target.closest('[data-cannon-branch]');
+  const commanderBtn = e.target.closest('[data-commander-unlock]');
   const legacyBtn = e.target.closest('[data-upgrade]');
   const pid = getLocalPlayerId();
   let action = null;
@@ -13900,6 +15703,10 @@ document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
     action = { type: 'economy_upgrade', kind: 'yield', target: yieldBtn.dataset.econYield };
   } else if (baseBtn && !baseBtn.disabled) {
     action = { type: 'economy_upgrade', kind: 'base', target: baseBtn.dataset.econBase };
+  } else if (cannonBtn && !cannonBtn.disabled) {
+    action = { type: 'cannon_upgrade', branch: cannonBtn.dataset.cannonBranch };
+  } else if (commanderBtn && !commanderBtn.disabled) {
+    action = { type: 'commander_upgrade', tier: 1 };
   } else if (legacyBtn && !legacyBtn.disabled) {
     action = { type: 'income_upgrade', upgradeType: legacyBtn.dataset.upgrade };
   }
@@ -13910,6 +15717,10 @@ document.getElementById('econ-upgrade-list').addEventListener('click', (e) => {
   }
   if (action.type === 'economy_upgrade') {
     buyEconomyUpgrade(pid, action.kind, action.target);
+  } else if (action.type === 'cannon_upgrade') {
+    buyBaseCannonUpgrade(pid, action.branch);
+  } else if (action.type === 'commander_upgrade') {
+    buyCommanderUpgrade(pid, action.tier);
   } else {
     buyIncomeUpgrade(pid, action.upgradeType);
   }
@@ -13986,6 +15797,44 @@ document.getElementById('missile-upgrade-list').addEventListener('click', (e) =>
     return;
   }
   buyMissileUpgrade(pid, activeMissileTowerId, branch);
+});
+
+document.getElementById('commander-fab').addEventListener('click', () => toggleCommanderPanel());
+document.getElementById('commander-close').addEventListener('click', () => toggleCommanderPanel(false));
+document.getElementById('commander-panel').addEventListener('click', (e) => {
+  if (e.target.id === 'commander-panel') toggleCommanderPanel(false);
+});
+function commanderAdjustCount(delta) {
+  const cap = commanderCap(players[getLocalPlayerId()]);
+  commanderCount = clamp(commanderCount + delta, 1, Math.max(1, cap));
+  syncCommanderControlsUI();
+  drawCommanderPreview();
+}
+document.getElementById('cmd-minus').addEventListener('click', () => commanderAdjustCount(-1));
+document.getElementById('cmd-plus').addEventListener('click', () => commanderAdjustCount(1));
+document.getElementById('cmd-count-fab').addEventListener('click', () => commanderCycleCount());
+document.getElementById('cmd-form-fab').addEventListener('click', () => commanderCycleFormation());
+function commanderPickFormation(formation) {
+  if (!formation || !COMMANDER_FORMATIONS.includes(formation)) return;
+  commanderFormation = formation;
+  syncCommanderControlsUI();
+  drawCommanderPreview();
+}
+document.getElementById('cmd-formations').addEventListener('click', (e) => {
+  const btn = e.target.closest('.cmd-form-btn');
+  if (!btn) return;
+  commanderPickFormation(btn.dataset.formation);
+});
+document.getElementById('cmd-skilltree').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-commander-tier]');
+  if (!btn || btn.disabled) return;
+  const tier = Number(btn.dataset.commanderTier);
+  const pid = getLocalPlayerId();
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction({ type: 'commander_upgrade', tier });
+    return;
+  }
+  buyCommanderUpgrade(pid, tier);
 });
 
 document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
@@ -14419,20 +16268,60 @@ function renderFrame(time) {
       }
     } else if (UNIT_TYPES[selectedTool]) {
       const ut = UNIT_TYPES[selectedTool];
-      const ok = !unitPlaceFailReason(buildPid, selectedTool, mousePos.x, mousePos.y);
-      ctx.globalAlpha = ok ? 0.55 : 0.4;
-      if (!ok) ctx.filter = 'hue-rotate(-40deg) saturate(2)';
-      drawUnitSprite(selectedTool, mousePos.x, mousePos.y, buildPid === 0 ? 0 : Math.PI, ut.size);
-      ctx.filter = 'none';
-      ctx.globalAlpha = 1;
-      if (!ok) {
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.arc(mousePos.x, mousePos.y, ut.size + 8, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
+      const commanderMulti = isSurvivalLive() && phase === 'combat'
+        && commanderUnlocked(p) && commanderCount > 1;
+      if (commanderMulti) {
+        // Ghost the whole formation. Green only if ALL of them can be placed.
+        const count = Math.min(commanderCount, commanderCap(p));
+        const positions = commanderDeployPositions(mousePos, buildPid, selectedTool, count, commanderFormation);
+        const okAll = commanderValidateBatch(buildPid, selectedTool, positions);
+        let minY = Infinity, sumX = 0;
+        for (const q of positions) {
+          minY = Math.min(minY, q.y);
+          sumX += q.x;
+          ctx.globalAlpha = okAll ? 0.55 : 0.4;
+          if (!okAll) ctx.filter = 'hue-rotate(-40deg) saturate(2)';
+          drawUnitSprite(selectedTool, q.x, q.y, buildPid === 0 ? 0 : Math.PI, ut.size);
+          ctx.filter = 'none';
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = okAll ? 'rgba(56,189,248,0.9)' : '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath();
+          ctx.arc(q.x, q.y, ut.size + 6, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        // Total cost of the whole batch, shown above the formation.
+        const total = commanderBatchCost(buildPid, selectedTool, count);
+        const cx = sumX / positions.length;
+        const ly = minY - ut.size - 12;
+        ctx.save();
+        ctx.font = '800 16px Rajdhani, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillStyle = okAll ? '#fcd34d' : '#ef4444';
+        const label = `${total} 🪙`;
+        ctx.strokeText(label, cx, ly);
+        ctx.fillText(label, cx, ly);
+        ctx.restore();
+      } else {
+        const ok = !unitPlaceFailReason(buildPid, selectedTool, mousePos.x, mousePos.y);
+        ctx.globalAlpha = ok ? 0.55 : 0.4;
+        if (!ok) ctx.filter = 'hue-rotate(-40deg) saturate(2)';
+        drawUnitSprite(selectedTool, mousePos.x, mousePos.y, buildPid === 0 ? 0 : Math.PI, ut.size);
+        ctx.filter = 'none';
+        ctx.globalAlpha = 1;
+        if (!ok) {
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath();
+          ctx.arc(mousePos.x, mousePos.y, ut.size + 8, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
     }
   }
