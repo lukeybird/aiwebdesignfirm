@@ -3217,13 +3217,6 @@ function closeManual() {
 }
 
 const SURVIVAL_START_COINS = 85;
-// Testing bank for human player(s) in Live Battle — CPU still uses SURVIVAL_START_COINS.
-const SURVIVAL_PLAYER_TEST_COINS = 10000;
-
-function survivalLiveStartCoins(pid, pvp) {
-  if (pvp) return SURVIVAL_PLAYER_TEST_COINS;
-  return pid === 0 ? SURVIVAL_PLAYER_TEST_COINS : SURVIVAL_START_COINS;
-}
 const SURVIVAL_INCOME_INTERVAL = 3;
 const SURVIVAL_FARM_INTERVAL = 2;
 const SURVIVAL_BASE_INCOME = 25;
@@ -6908,7 +6901,7 @@ function setupSurvivalLive() {
     p.baseDamageThisRound = 0;
     p.combatReward = 0;
     p.bloopBounty = 0;
-    p.coins = survivalLiveStartCoins(i, false);
+    p.coins = SURVIVAL_START_COINS;
     p.baseHp = gameRules.baseHp;
     p.baseMaxHp = gameRules.baseHp;
     p.rubble = [];
@@ -7003,7 +6996,7 @@ function setupSurvivalLivePvp(opts) {
     p.baseDamageThisRound = 0;
     p.combatReward = 0;
     p.bloopBounty = 0;
-    p.coins = survivalLiveStartCoins(i, true);
+    p.coins = SURVIVAL_START_COINS;
     p.baseHp = gameRules.baseHp;
     p.baseMaxHp = gameRules.baseHp;
     p.rubble = [];
