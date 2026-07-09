@@ -2776,6 +2776,9 @@ const TOWER_TYPES = {
 
 const BASE_SIZE = 56;
 const RUBBLE_RADIUS = 28;
+const RUBBLE_LIFETIME = 30;
+const BASE_TOWER_SLOT_COUNT = 3;
+const BASE_SLOT_RADIUS = 24;
 
 // Starting cannons are unique to the base: gold barrels, yellow shells, and one
 // free engineer level (damage/fire-rate/range) baked in. The base structure's
@@ -3150,7 +3153,8 @@ function buildManualUI() {
       <li><strong>Troops</strong> go in the wide deploy strip near the center line (marked on screen during prep).</li>
       <li><strong>Towers</strong> are placed anywhere on your half of the battlefield (on land only, not in the sky).</li>
       <li><strong>Move tool</strong> — Drag existing towers to reposition them during prep.</li>
-      <li>Destroyed towers leave rubble that blocks new placement until cleared.</li>
+      <li>Destroyed buildings leave ruins for 30 seconds — they look like wrecked versions of that building, then the tile is buildable again (a faint scorch mark may remain).</li>
+      <li>Base-mounted cannon pads are fixed concrete slabs — nothing else can be built on them.</li>
     </ul>
   </div>`;
 
@@ -3222,14 +3226,13 @@ const SURVIVAL_FARM_INTERVAL = 2;
 const SURVIVAL_BASE_INCOME = 25;
 const SURVIVAL_MINT_INCOME = 5;
 const SURVIVAL_FARM_INCOME = 2;
-// The CPU re-thinks ~3x per second so its placement rate is gated by its money,
-// not by an artificial clock.
-const SURVIVAL_AI_THINK_INTERVAL = 0.33;
-// Effectively "money is the limit" — a high ceiling that only exists to stop a
-// runaway swarm from tanking performance, not to throttle normal play.
-const SURVIVAL_AI_MAX_UNITS = 60;
+// The CPU re-thinks on a steady cadence — fast enough to react, slow enough to
+// bank up for real concentrated strikes instead of constant trickle pressure.
+const SURVIVAL_AI_THINK_INTERVAL = 0.55;
+// Cap field presence so the CPU masses waves instead of flooding the map.
+const SURVIVAL_AI_MAX_UNITS = 38;
 // When the player floods this many live units, the CPU answers with a Dragon.
-const SURVIVAL_AI_VOLUME_THRESHOLD = 5;
+const SURVIVAL_AI_VOLUME_THRESHOLD = 6;
 const SURVIVAL_AI_INCOME_MULT = {
   easy: 2,
   medium: 3,
@@ -3252,8 +3255,8 @@ function survivalAiBaseIncomeBonus(pid) {
 }
 // If the player does nothing meaningful in the opening, the CPU blindsides them
 // with a huge ambush after this many seconds (no long observe/prepare wait).
-const SURVIVAL_AI_IDLE_STRIKE_AFTER = 18;
-const SURVIVAL_AI_IDLE_AMBUSH_BONUS = 220;
+const SURVIVAL_AI_IDLE_STRIKE_AFTER = 22;
+const SURVIVAL_AI_IDLE_AMBUSH_BONUS = 140;
 // Strategic planner phases — the CPU observes, banks in secret, then commits one
 // big strike before recovering. No constant wave spam.
 const SURVIVAL_AI_OBSERVE_TIME = { easy: 28, medium: 22, hard: 16 };
@@ -3268,17 +3271,16 @@ const SURVIVAL_AI_RECOVER_TIME = {
   hard: [28, 50],
 };
 const SURVIVAL_AI_STRIKE_SIZE = {
-  easy: [4, 6],
-  medium: [5, 8],
-  hard: [6, 10],
+  easy: [5, 7],
+  medium: [6, 9],
+  hard: [7, 11],
 };
 // Delay between troop placements during a trickle strike (seconds) — kept short
 // so the CPU can lay down roughly three units per second when it isn't using the
 // Commander to mass-drop them.
 const SURVIVAL_AI_SPAWN_STAGGER = [0.28, 0.36];
-// Forrest tempo — "get there the firstest": shorten the prep phase so the CPU
-// commits its concentrated strikes faster and keeps the initiative.
-const SURVIVAL_AI_FORREST_TEMPO = 0.68;
+// Forrest tempo — shorten prep a little, but keep enough bank time for big waves.
+const SURVIVAL_AI_FORREST_TEMPO = 0.82;
 const INCOME_UPGRADE_MAX = 8;
 const INCOME_UPGRADE_DEFS = {
   base: { name: 'Base Income', icon: '🏛', baseYield: SURVIVAL_BASE_INCOME, upgradeStep: 5, baseCost: 110, intervalLabel: '3s' },
@@ -3353,21 +3355,36 @@ function syncEconomyBaseHealth(pid) {
   p.baseMaxHp = newMax;
 }
 
+function hasBaseTowerSlots() {
+  return typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive();
+}
+
+function getBaseTowerSlots(pid) {
+  const bp = basePos(pid);
+  const sign = pid === 0 ? 1 : -1;
+  return [
+    { x: bp.x + sign * 52, y: bp.y - 42 },
+    { x: bp.x + sign * 52, y: bp.y + 42 },
+    { x: bp.x + sign * 78, y: bp.y },
+  ];
+}
+
+function isBaseTowerSlotOccupied(pid, slot) {
+  return players[pid].turrets.some(
+    (t) => t.isBaseDefense && t.hp > 0 && dist(t, slot) < 14,
+  );
+}
+
 function syncBaseDefenseTurrets(pid) {
   if (typeof LIVE_ARMY === 'undefined' || !LIVE_ARMY.isActive()) return;
   const p = players[pid];
   const lvl = LIVE_ARMY.baseDefenseLevel(p);
   p.turrets = p.turrets.filter((t) => !t.isBaseDefense);
-  const bp = basePos(pid);
-  const sign = pid === 0 ? 1 : -1;
-  const slots = [
-    { x: bp.x + sign * 52, y: bp.y - 42 },
-    { x: bp.x + sign * 52, y: bp.y + 42 },
-    { x: bp.x + sign * 78, y: bp.y },
-  ];
+  const slots = getBaseTowerSlots(pid);
   for (let i = 0; i < lvl && i < slots.length; i++) {
     const tw = createTower(slots[i].x, slots[i].y, 'turret', pid);
     tw.isBaseDefense = true;
+    tw.baseCannon = true;
     tw.hp = tw.maxHp = 95 + i * 30;
     p.turrets.push(tw);
   }
@@ -4996,7 +5013,7 @@ function survivalAiIntel(ai) {
 const SURVIVAL_AI_BEHAVIOR_COUNTERS = [
   {
     id: 'player_idle',
-    detect: (intel, ctx) => survivalAiPlayerIsIdle(intel, ctx) && ctx.combatTime >= SURVIVAL_AI_IDLE_STRIKE_AFTER,
+    detect: (intel, ctx) => survivalAiPlayerDeservesAmbush(intel, ctx) && ctx.combatTime >= SURVIVAL_AI_IDLE_STRIKE_AFTER,
     priority: () => 250,
     plan: CPU_PLAN.RUSH_PUNISH,
   },
@@ -5276,6 +5293,143 @@ function survivalAiEnemyWallHp() {
 
 function survivalAiEnemyWallCount() {
   return players[0].turrets.filter((t) => LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType) && t.hp > 0).length;
+}
+
+// ─── Win-now strike calculus — attack the instant the math says base dies ─────
+// Rough DPS×survival model: existing army + coins we can spend right now vs
+// player base HP, wall HP, defenders, and tower fire on the chosen lane.
+function survivalAiUnitStrikeThreat(type, pid, hpFrac = 1) {
+  const ut = UNIT_TYPES[type];
+  if (!ut) return 0;
+  const udef = unitDef(type, pid);
+  const dps = (udef.damage || 10) * (udef.attackRate || 1);
+  let baseWeight = 0.4;
+  if (ut.targetsBase === true) baseWeight = 1;
+  else if (ut.behavior === 'baseRush') baseWeight = 0.92;
+  else if (ut.behavior === 'goblin' || (ut.targetsTowers && !ut.targetsBase)) baseWeight = 0;
+  else if (ut.prefersUnits || ut.behavior === 'hunter' || ut.behavior === 'flank') baseWeight = 0.48;
+  else if (type === 'tank') baseWeight = 0.58;
+  const pressure = dps * baseWeight * 14;
+  const towerClear = (ut.behavior === 'goblin' || (ut.targetsTowers && !ut.targetsBase))
+    ? dps * 16 + (udef.hp || 40) * hpFrac * 0.22 : 0;
+  const survive = (udef.hp || 40) * hpFrac * 0.18;
+  return pressure + towerClear + survive;
+}
+
+function survivalAiExistingStrikeThreat(ai) {
+  let threat = 0;
+  const midX = W * 0.44;
+  const deepX = W * 0.62;
+  for (const u of combatUnits) {
+    if (u.owner !== 1 || u.hp <= 0) continue;
+    const maxHp = u.maxHp || unitDef(u.type, 1).hp || 1;
+    const hpFrac = u.hp / maxHp;
+    let w = 0.32;
+    if (u.x >= deepX) w = 1.25;
+    else if (u.x >= midX) w = 0.82;
+    threat += survivalAiUnitStrikeThreat(u.type, 1, hpFrac) * w;
+  }
+  return threat;
+}
+
+function survivalAiGreedyAffordableThreat(ai, reserve = 70) {
+  const room = SURVIVAL_AI_MAX_UNITS
+    - combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  if (room <= 0) return 0;
+  let budget = Math.max(0, ai.coins - reserve);
+  let threat = 0;
+  const pool = ['peka', 'striker', 'bloop', 'tank', 'speed', 'sniper', 'goblin']
+    .filter((t) => LIVE_ARMY.unitUnlocked(ai, t));
+  let guard = 0;
+  let bought = 0;
+  while (bought < room && budget > 0 && guard < 90) {
+    guard += 1;
+    let pick = null;
+    let bestVal = 0;
+    for (const t of pool) {
+      const c = unitDef(t, 1).cost;
+      if (c > budget) continue;
+      const val = survivalAiUnitStrikeThreat(t, 1, 1) / c;
+      if (val > bestVal) { bestVal = val; pick = t; }
+    }
+    if (!pick) break;
+    const c = unitDef(pick, 1).cost;
+    threat += survivalAiUnitStrikeThreat(pick, 1, 1);
+    budget -= c;
+    bought += 1;
+  }
+  return threat;
+}
+
+function survivalAiPlayerFortification(intel) {
+  const player = players[0];
+  let fort = Math.max(0, player.baseHp);
+  fort += survivalAiEnemyWallHp() * 0.78;
+  const midX = W * 0.48;
+  for (const u of combatUnits) {
+    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.x >= midX) fort += u.hp * 0.38;
+  }
+  fort += (intel.baseHealthUp || 0) * 90;
+  fort += (intel.baseDefenseUp || 0) * 45;
+  return fort;
+}
+
+function survivalAiEstimateApproachLoss(intel) {
+  const laneY = survivalAiPickAttackLane();
+  let dps = 0;
+  for (const t of players[0].turrets) {
+    if (t.hp <= 0 || !LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType)) continue;
+    const tw = towerDef(t.towerType, 0);
+    const range = tw.range || 180;
+    const dy = Math.abs(t.y - laneY);
+    if (dy > range) continue;
+    const falloff = 1 - (dy / range) * 0.35;
+    dps += (tw.damage || 12) * (tw.fireRate || 1) * falloff;
+  }
+  dps += (intel.baseCannonUp || 0) * 9 + (intel.extraCannons || 0) * 14;
+  return dps * 9;
+}
+
+function survivalAiWinStrikeMargin(ctx) {
+  if (ctx.playerHpPct < 0.35) return 1.02;
+  if (ctx.playerHpPct < 0.55) return 1.06;
+  if (ctx.playerHpPct < 0.75) return 1.1;
+  return 1.14;
+}
+
+function survivalAiCanWinStrike(ai, intel, ctx) {
+  if (!LIVE_ARMY.hasBarracks(ai)) return false;
+  const reserve = commanderUnlocked(ai) ? 100 : 55;
+  const threat = survivalAiExistingStrikeThreat(ai)
+    + survivalAiGreedyAffordableThreat(ai, reserve)
+    - survivalAiEstimateApproachLoss(intel) * 0.6;
+  const fort = survivalAiPlayerFortification(intel);
+  return threat >= fort * survivalAiWinStrikeMargin(ctx);
+}
+
+function survivalAiTryWinNowStrike(ai, brain, intel, ctx) {
+  if (brain.phase === 'strike') return false;
+  if (!survivalAiCanWinStrike(ai, intel, ctx)) return false;
+
+  if (brain.phase !== 'prepare' || !brain.plan) {
+    survivalAiBeginPrepare(brain, intel, ai, ctx);
+  }
+  const plan = brain.plan;
+  if (!plan) return false;
+
+  const live = combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  const room = SURVIVAL_AI_MAX_UNITS - live;
+  plan.id = CPU_PLAN.FINISHER;
+  plan.strikeSize = Math.min(
+    SURVIVAL_AI_MAX_UNITS,
+    Math.max(plan.strikeSize || 6, Math.min(room, 8 + Math.floor(ai.coins / 35))),
+  );
+  plan.bankTarget = 0;
+  plan.readyAt = combatTime;
+  brain.lastPlanId = plan.id;
+  addLog('🤖 Enemy sees a killing blow — committing everything NOW!');
+  return survivalAiBeginStrike(brain, ai, intel);
 }
 
 function survivalAiArmStrikeEval(brain, composition, intel) {
@@ -5737,14 +5891,14 @@ function survivalAiInvestSurplus(ai, brain, intel, ctx) {
 //   Dragon    → Snipers
 //   Elephant  → Knights
 //   Knight    → Wolves (only once the Knight is under the CPU's defense towers)
-//   Sniper    → Wolves
+//   Sniper    → Wolves (spawned as close to the sniper as possible)
 //   Wolf      → Knights
 //   Goblin    → Knights
 const SURVIVAL_AI_COUNTER_DOCTRINE = [
   { threat: 'peka', counter: 'sniper', slot: 'sniperFlank' },
   { threat: 'tank', counter: 'striker' },
   { threat: 'striker', counter: 'speed', requireInTowerRange: true, slot: 'wolfBait' },
-  { threat: 'sniper', counter: 'speed' },
+  { threat: 'sniper', counter: 'speed', slot: 'wolfHunt' },
   { threat: 'speed', counter: 'striker', slot: 'baseDefense' },
   { threat: 'goblin', counter: 'striker', slot: 'baseDefense' },
   { threat: 'bloop', counter: 'speed', slot: 'baseDefense' },
@@ -5800,8 +5954,162 @@ function survivalAiAdvancingThreatCount() {
   return n;
 }
 
+function survivalAiAdvancingThreatsByType() {
+  const mid = W / 2;
+  const counts = {};
+  for (const u of combatUnits) {
+    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.x > mid || survivalAiUnitNearAiTowers(u)) {
+      counts[u.type] = (counts[u.type] || 0) + 1;
+    }
+  }
+  return counts;
+}
+
+function survivalAiNearBaseThreatsByType() {
+  const bp = basePos(1);
+  const counts = {};
+  for (const u of combatUnits) {
+    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (dist(u, bp) <= AI_BASE_DEFENSE_RANGE) {
+      counts[u.type] = (counts[u.type] || 0) + 1;
+    }
+  }
+  return counts;
+}
+
+function survivalAiLiveAiUnitsByType() {
+  const counts = {};
+  for (const u of combatUnits) {
+    if (u.owner !== 1 || u.hp <= 0) continue;
+    counts[u.type] = (counts[u.type] || 0) + 1;
+  }
+  return counts;
+}
+
+function survivalAiCountersNearBase(counterType) {
+  const bp = basePos(1);
+  let n = 0;
+  for (const u of combatUnits) {
+    if (u.owner !== 1 || u.hp <= 0 || u.type !== counterType) continue;
+    if (dist(u, bp) <= AI_BASE_DEFENSE_RANGE) n += 1;
+  }
+  return n;
+}
+
+function survivalAiEffectiveCounterCount(entry) {
+  if (entry.counter === 'sniper') {
+    return combatUnits.filter((u) => u.owner === 1 && u.hp > 0 && u.type === 'sniper').length;
+  }
+  if (entry.threat === 'sniper' && entry.counter === 'speed') {
+    const snipers = combatUnits.filter((u) => u.owner === 0 && u.hp > 0 && u.type === 'sniper');
+    if (!snipers.length) return survivalAiLiveAiUnitsByType().speed || 0;
+    let n = 0;
+    for (const w of combatUnits) {
+      if (w.owner !== 1 || w.hp <= 0 || w.type !== 'speed') continue;
+      let nearest = Infinity;
+      for (const s of snipers) nearest = Math.min(nearest, dist(w, s));
+      if (nearest < 240) n += 1;
+    }
+    return n;
+  }
+  if (entry.slot === 'baseDefense' || (entry.nearN || 0) > 0) {
+    return survivalAiCountersNearBase(entry.counter);
+  }
+  return survivalAiLiveAiUnitsByType()[entry.counter] || 0;
+}
+
+// Size every active threat and how many hard-counters the CPU still owes.
+function survivalAiCounterNeeds() {
+  const advancing = survivalAiAdvancingThreatsByType();
+  const nearBase = survivalAiNearBaseThreatsByType();
+  const needs = [];
+
+  for (const entry of SURVIVAL_AI_COUNTER_DOCTRINE) {
+    let threatN = 0;
+    if (entry.requireInTowerRange) {
+      if (!survivalAiUnitInTowerRange(entry.threat)) continue;
+      threatN = advancing[entry.threat] || 0;
+    } else {
+      threatN = Math.max(advancing[entry.threat] || 0, nearBase[entry.threat] || 0);
+    }
+    const nearN = nearBase[entry.threat] || 0;
+    if (threatN <= 0 && nearN <= 0) continue;
+
+    const want = threatN + (nearN > 0 ? 1 : 0);
+    const counterN = survivalAiEffectiveCounterCount({ ...entry, nearN });
+    const deficit = want - counterN;
+    if (deficit <= 0) continue;
+
+    let priority = threatN * 12 + nearN * 24;
+    if (entry.threat === 'peka') priority += 120;
+    if (entry.threat === 'sniper') priority += 40;
+    if (entry.threat === 'speed' && nearN > 0) priority += 30;
+    if (entry.threat === 'striker' && nearN > 0) priority += 18;
+
+    needs.push({
+      ...entry,
+      threatN,
+      nearN,
+      counterN,
+      deficit,
+      priority,
+    });
+  }
+
+  const advTotal = Object.values(advancing).reduce((sum, n) => sum + n, 0);
+  if (advTotal >= SURVIVAL_AI_VOLUME_THRESHOLD) {
+    const dragons = survivalAiLiveAiUnitsByType().peka || 0;
+    if (dragons < 1) {
+      needs.push({
+        threat: 'swarm',
+        counter: 'peka',
+        deficit: 1,
+        priority: 95,
+        threatN: advTotal,
+        nearN: 0,
+        slot: null,
+      });
+    }
+  }
+
+  return needs.sort((a, b) => b.priority - a.priority);
+}
+
+// Spend on every under-covered counter at once — one spawn per deficit line per
+// pass, cycling until maxSpawns or no affordable gaps remain.
+function survivalAiDeployCounterGaps(ai, maxSpawns = 3) {
+  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
+  const needs = survivalAiCounterNeeds();
+  if (!needs.length) return false;
+
+  let spent = 0;
+  let guard = 0;
+  while (spent < maxSpawns && guard < maxSpawns * needs.length + 4) {
+    guard += 1;
+    let placed = false;
+    for (const need of needs) {
+      if (spent >= maxSpawns) break;
+      const state = survivalAiReadyCounterUnit(ai, need.counter);
+      if (state === 'unlocking') return true;
+      if (state !== 'ready') continue;
+      const slotFn = survivalAiCounterSlotFn(need);
+      if (survivalAiTrySpawnUnitOfType(ai, need.counter, spent === 0, slotFn)) {
+        spent += 1;
+        need.deficit -= 1;
+        need.counterN += 1;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) break;
+  }
+  return spent > 0;
+}
+
 function survivalAiCounterSlotFn(entry) {
   if (entry.slot === 'sniperFlank') return (idx, pid) => getSniperFlankSlot(idx, pid);
+  if (entry.slot === 'wolfHunt') return (idx, pid) => getWolfSniperHuntSlot(idx, pid);
   if (entry.slot === 'wolfBait') return (idx, pid) => getWolfKnightBaitSlot(idx, pid);
   if (entry.slot === 'baseDefense') return (idx, pid) => getBaseDefenseSlot(idx, pid);
   return null;
@@ -5866,65 +6174,31 @@ const AI_BASE_DEFENSE_RANGE = 320;
 // what stops a Wolf pack that has reached the base.
 function survivalAiDefendBase(ai) {
   if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
-  const bp = basePos(1);
-
-  const nearThreats = {};
-  let threatN = 0;
-  for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
-    if (dist(u, bp) > AI_BASE_DEFENSE_RANGE) continue;
-    nearThreats[u.type] = (nearThreats[u.type] || 0) + 1;
-    threatN += 1;
-  }
+  const nearBase = survivalAiNearBaseThreatsByType();
+  const threatN = Object.values(nearBase).reduce((sum, n) => sum + n, 0);
   if (threatN === 0) return false;
 
+  const needs = survivalAiCounterNeeds().filter((n) => n.nearN > 0);
+  if (!needs.length) return false;
+
   const nearDefenders = combatUnits.filter(
-    (u) => u.owner === 1 && u.hp > 0 && dist(u, bp) <= AI_BASE_DEFENSE_RANGE,
+    (u) => u.owner === 1 && u.hp > 0 && dist(u, basePos(1)) <= AI_BASE_DEFENSE_RANGE,
   ).length;
-  const need = threatN + 1 - nearDefenders;
-  if (need <= 0) return false;
+  const totalDeficit = needs.reduce((sum, n) => sum + n.deficit, 0);
+  if (nearDefenders >= threatN + 1) return false;
 
-  // Counter the dominant nearby threat. Wolves are always answered with Knights
-  // (never Snipers — Wolves do double damage to them).
-  let domType = null, domN = 0;
-  for (const [t, n] of Object.entries(nearThreats)) { if (n > domN) { domN = n; domType = t; } }
-  const doctrine = SURVIVAL_AI_COUNTER_DOCTRINE.find((d) => d.threat === domType);
-  let counter = doctrine ? doctrine.counter : 'striker';
-  if (domType === 'speed') counter = 'striker';
-
-  // Ensure the counter is fieldable; unlock it on the spot, else use any melee.
-  if (!LIVE_ARMY.unitUnlocked(ai, counter)) {
-    if (LIVE_ARMY.hasBarracks(ai) && ai.coins >= LIVE_ARMY.unitUnlockCost(counter)) {
-      return buyBarracksUpgrade(1, 'unlock', counter);
-    }
-    counter = ['striker', 'tank', 'speed'].find(
-      (t) => LIVE_ARMY.unitUnlocked(ai, t) && ai.coins >= unitDef(t, 1).cost,
-    );
-    if (!counter) return false;
-  }
-
-  // Prefer a one-tick Commander wall right at the base.
-  if (commanderUnlocked(ai) && need >= 2) {
-    const placed = survivalAiCommanderBatchAtBase(ai, counter, Math.min(need, commanderCap(ai)));
+  // Prefer a one-tick Commander wall for the highest-priority base threat.
+  const top = needs[0];
+  if (commanderUnlocked(ai) && top.deficit >= 2) {
+    const placed = survivalAiCommanderBatchAtBase(ai, top.counter, Math.min(top.deficit, commanderCap(ai)));
     if (placed >= 2) {
-      addLog(`🤖 Enemy walls ${placed}× ${UNIT_TYPES[counter].name} at its base!`);
+      addLog(`🤖 Enemy walls ${placed}× ${UNIT_TYPES[top.counter].name} at its base!`);
       return true;
     }
   }
 
-  // Otherwise spawn a burst of defenders hugging the base.
-  let spawned = 0;
-  let guard = 0;
-  while (spawned < need && guard < 9) {
-    guard += 1;
-    if (!survivalAiTrySpawnUnitOfType(ai, counter, false, (idx, pid) => getBaseDefenseSlot(idx, pid))) break;
-    spawned += 1;
-  }
-  if (spawned > 0) {
-    addLog(`🤖 Enemy rushes ${spawned}× ${UNIT_TYPES[counter].name} to hold its base!`);
-    return true;
-  }
-  return false;
+  // Otherwise spawn counters for every base threat type that is still under-covered.
+  return survivalAiDeployCounterGaps(ai, Math.min(4, Math.max(2, totalDeficit)));
 }
 
 // React to a real advancing attack by rush-buying (if needed) and using the
@@ -5934,26 +6208,14 @@ function survivalAiDefendBase(ai) {
 function survivalAiReactiveCommanderCounter(ai, intel, ctx) {
   if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
 
-  // Tally the enemy force actually pressing into our half, by type.
-  const mid = W / 2;
-  const adv = {};
-  let advTotal = 0;
-  for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
-    if (u.x > mid || survivalAiUnitNearAiTowers(u)) {
-      adv[u.type] = (adv[u.type] || 0) + 1;
-      advTotal += 1;
-    }
-  }
-  // Small pokes are handled by the normal per-unit counters.
+  const advTotal = survivalAiAdvancingThreatCount();
   if (advTotal < 3) return false;
 
-  let threatType = null, threatN = 0;
-  for (const [t, n] of Object.entries(adv)) { if (n > threatN) { threatN = n; threatType = t; } }
-  const doctrine = SURVIVAL_AI_COUNTER_DOCTRINE.find((d) => d.threat === threatType);
-  const counter = doctrine ? doctrine.counter : 'striker';
+  const needs = survivalAiCounterNeeds().filter((n) => n.threatN > 0);
+  if (!needs.length) return false;
+  const top = needs[0];
+  const counter = top.counter;
 
-  // Make sure the counter unit exists — unlock it on the spot if we can.
   if (!LIVE_ARMY.unitUnlocked(ai, counter)) {
     if (LIVE_ARMY.hasBarracks(ai) && ai.coins >= LIVE_ARMY.unitUnlockCost(counter)) {
       return buyBarracksUpgrade(1, 'unlock', counter);
@@ -5961,17 +6223,15 @@ function survivalAiReactiveCommanderCounter(ai, intel, ctx) {
     return false;
   }
 
-  // Ensure a Commander is ready; in an emergency, rush-buy tier 1 on the fly as
-  // long as we can still afford a couple of counter units afterward.
   if (!commanderUnlocked(ai)) {
     const cost = commanderTierCost(1);
     if (cost != null && ai.coins >= cost + unitDef(counter, 1).cost * 2) {
       return buyCommanderUpgrade(1, 1);
     }
-    return false; // can't rush the Commander → fall back to normal defenders
+    return false;
   }
 
-  const want = Math.min(commanderCap(ai), threatN + 1);
+  const want = Math.min(commanderCap(ai), top.deficit + 1);
   const placed = survivalAiCommanderBatchAtBase(ai, counter, want);
   if (placed >= 2) {
     addLog(`🤖 Enemy scrambles ${placed}× ${UNIT_TYPES[counter].name} to defend its base!`);
@@ -5981,31 +6241,7 @@ function survivalAiReactiveCommanderCounter(ai, intel, ctx) {
 }
 
 function survivalAiSpawnDefender(ai, intel) {
-  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
-
-  // Volume of units → Dragon (highest-priority reactive answer).
-  if (survivalAiCounterVolumeWithDragon(ai)) return true;
-
-  const { counts } = survivalAiLivePlayerUnits();
-  const picks = SURVIVAL_AI_COUNTER_DOCTRINE
-    .filter((d) => (counts[d.threat] || 0) > 0
-      && (!d.requireInTowerRange || survivalAiUnitInTowerRange(d.threat)))
-    .sort((a, b) => (counts[b.threat] || 0) - (counts[a.threat] || 0));
-
-  for (const entry of picks) {
-    const state = survivalAiReadyCounterUnit(ai, entry.counter);
-    if (state === 'unlocking') return true;
-    if (state !== 'ready') continue;
-    if (survivalAiTrySpawnUnitOfType(ai, entry.counter, true, survivalAiCounterSlotFn(entry))) return true;
-  }
-
-  // Fallback: whatever solid defender we can field.
-  for (const type of ['striker', 'sniper', 'speed', 'tank']) {
-    if (!LIVE_ARMY.unitUnlocked(ai, type)) continue;
-    if (ai.coins < unitDef(type, 1).cost) continue;
-    if (survivalAiTrySpawnUnitOfType(ai, type)) return true;
-  }
-  return false;
+  return survivalAiDeployCounterGaps(ai, 1);
 }
 
 function survivalAiTrySpawnUnitOfType(ai, type, logDeploy = true, slotFn = null) {
@@ -6040,6 +6276,35 @@ function getSniperFlankSlot(index, pid) {
   return {
     x: clamp(x + rand(-6, 6), db.xMin + 8, db.xMax - 8),
     y: clamp(y + rand(-8, 8), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
+  };
+}
+
+// Drop Wolves on the same lane as a live player Sniper, as far forward in our
+// deploy strip as placement allows — they hard-counter Snipers and need to be
+// on top of them fast.
+function getWolfSniperHuntSlot(index, pid) {
+  const db = getDeployBounds(pid);
+  const snipers = combatUnits.filter((u) => u.owner === 0 && u.hp > 0 && u.type === 'sniper');
+  const forwardEdge = pid === 0 ? db.xMax : db.xMin;
+  const towardEnemy = pid === 0 ? 1 : -1;
+
+  if (snipers.length) {
+    const sorted = snipers.slice().sort((a, b) => (pid === 1 ? b.x - a.x : a.x - b.x));
+    const target = sorted[index % sorted.length];
+    const laneOffset = (index % 3 - 1) * 18;
+    let x = forwardEdge - towardEnemy * (8 + (Math.floor(index / snipers.length) % 3) * 16);
+    const hugX = target.x - towardEnemy * 34;
+    if (hugX >= db.xMin + 8 && hugX <= db.xMax - 8) x = hugX;
+    x = clamp(x + rand(-5, 5), db.xMin + 8, db.xMax - 8);
+    const y = clamp(target.y + laneOffset + rand(-8, 8), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8);
+    return { x, y };
+  }
+
+  const lanes = [MID_Y - 158, MID_Y + 158, MID_Y - 95, MID_Y + 95, MID_Y - 45, MID_Y + 45];
+  const depth = 10 + Math.floor(index / lanes.length) * 14;
+  return {
+    x: clamp(forwardEdge - towardEnemy * depth + rand(-6, 6), db.xMin + 8, db.xMax - 8),
+    y: clamp(lanes[index % lanes.length] + rand(-8, 8), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
   };
 }
 
@@ -6092,12 +6357,7 @@ function survivalAiStrikeSlotFn(planId, type, index, pid) {
     };
   }
   if (planId === CPU_PLAN.SNIPER_HUNT && type === 'speed') {
-    const db = getDeployBounds(pid);
-    const lanes = [MID_Y - 175, MID_Y + 175, MID_Y - 95, MID_Y + 95, MID_Y - 140, MID_Y + 140];
-    return {
-      x: clamp((pid === 0 ? db.xMax - 14 : db.xMin + 14) + rand(-8, 8), db.xMin + 8, db.xMax - 8),
-      y: clamp(lanes[index % lanes.length] + rand(-10, 10), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
-    };
+    return getWolfSniperHuntSlot(index, pid);
   }
   if ((planId === CPU_PLAN.GOBLIN_RAID || planId === CPU_PLAN.MINT_RAID) && type === 'goblin') {
     const db = getDeployBounds(pid);
@@ -6134,22 +6394,15 @@ function survivalAiRushSnipersAgainstDragon(ai, intel) {
     return false;
   }
   const liveSnipers = combatUnits.filter((u) => u.owner === 1 && u.type === 'sniper' && u.hp > 0).length;
-  const want = threat.live > 0 ? Math.min(5, 2 + threat.live * 2) : 2;
+  const want = threat.live > 0 ? Math.min(4, 1 + threat.live * 2) : 2;
   if (liveSnipers >= want) return false;
-  let spawned = 0;
+  if (ai.coins < unitDef('sniper', 1).cost) return false;
   const slotFn = (idx, pid) => getSniperFlankSlot(idx, pid);
-  for (let i = liveSnipers; i < want; i++) {
-    if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) break;
-    if (ai.coins < unitDef('sniper', 1).cost) break;
-    if (!survivalAiTrySpawnUnitOfType(ai, 'sniper', spawned === 0, slotFn)) break;
-    spawned++;
+  if (!survivalAiTrySpawnUnitOfType(ai, 'sniper', true, slotFn)) return false;
+  if (threat.live > 0) {
+    addLog('🤖 Enemy rushes Snipers to the outer flanks — dragon counter!');
   }
-  if (spawned > 0) {
-    addLog(threat.live > 0
-      ? '🤖 Enemy rushes Snipers to the outer flanks — dragon counter!'
-      : '🤖 Enemy posts Snipers on the flanks — expecting a dragon...');
-  }
-  return spawned > 0;
+  return true;
 }
 
 function survivalAiTryWolfKnightBait(ai, intel) {
@@ -6453,6 +6706,41 @@ function survivalAiPlayerIsIdle(intel, ctx) {
   return true;
 }
 
+function survivalAiPlayerBarracksInvestment(player) {
+  if (!LIVE_ARMY?.isActive() || !LIVE_ARMY.hasBarracks(player)) return 0;
+  let score = 0;
+  for (const ut of LIVE_ARMY.UNIT_ORDER) {
+    const rec = LIVE_ARMY.unitRecord(player, ut);
+    if (rec.unlocked) score += 2;
+    score += (rec.health || 0) + (rec.damage || 0) + (rec.speed || 0);
+  }
+  return score;
+}
+
+// Barracks-only or upgrade-only turtle — built an army base or spent on upgrades
+// but never deployed troops and didn't invest in economy or tower walls.
+function survivalAiPlayerPassiveForAmbush(intel, ctx) {
+  if (intel.playerUnitsOnField > 0) return false;
+  if (intel.farms > 0 || intel.mints > 0) return false;
+  if (intel.engineers > 0) return false;
+  if (intel.extraCannons > 0) return false;
+  if (intel.spreadTowers > 0 || intel.laserTowers > 0 || intel.missileTowers > 0) return false;
+
+  if (intel.barracks > 0) return true;
+
+  const baseUpgrades = (intel.baseIncomeUp || 0) + (intel.baseHealthUp || 0) + (intel.baseDefenseUp || 0);
+  if (baseUpgrades > 0) return true;
+  if ((intel.baseCannonUp || 0) > 0) return true;
+  if ((intel.commanderTier || 0) > 0) return true;
+  if (survivalAiPlayerBarracksInvestment(players[0]) > 0) return true;
+
+  return false;
+}
+
+function survivalAiPlayerDeservesAmbush(intel, ctx) {
+  return survivalAiPlayerIsIdle(intel, ctx) || survivalAiPlayerPassiveForAmbush(intel, ctx);
+}
+
 // Dump every coin into a concentrated knight/wolf ambush at the weakest lane.
 function survivalAiLaunchSurpriseStrike(ai, intel) {
   if (!LIVE_ARMY.unitUnlocked(ai, 'striker')) return false;
@@ -6497,22 +6785,26 @@ function survivalAiLaunchSurpriseStrike(ai, intel) {
   return spawned >= 5;
 }
 
-// Opening punish: sit on your hands and the CPU techs an ambush in ~18 seconds
-// then drops a huge surprise strike — bypasses the normal observe/prepare wait.
+// Opening punish: turtle on barracks/upgrades without fighting and the CPU
+// techs an ambush, then drops a huge surprise strike.
 function survivalAiIdleSurpriseStrike(ai, brain, intel, ctx) {
   if (brain.idleStrikeDone) return false;
   if (ctx.combatTime < SURVIVAL_AI_IDLE_STRIKE_AFTER) return false;
 
-  if (!survivalAiPlayerIsIdle(intel, ctx)) {
+  if (!survivalAiPlayerDeservesAmbush(intel, ctx)) {
     if (ctx.combatTime > 50) brain.idleStrikeDone = true;
     return false;
   }
 
+  const passiveBarracks = survivalAiPlayerPassiveForAmbush(intel, ctx) && !survivalAiPlayerIsIdle(intel, ctx);
+
   // One-time war chest so the ambush is genuinely huge even on a short timer.
   if (!brain.idleStrikePrimed) {
     brain.idleStrikePrimed = true;
-    ai.coins += SURVIVAL_AI_IDLE_AMBUSH_BONUS;
-    addLog('🤖 Enemy is preparing something...');
+    ai.coins += SURVIVAL_AI_IDLE_AMBUSH_BONUS + (passiveBarracks ? 60 : 0);
+    addLog(passiveBarracks
+      ? '🤖 Enemy sees your Barracks but no army in the field...'
+      : '🤖 Enemy is preparing something...');
   }
 
   // Rush tech — block all other spending until the ambush is ready.
@@ -6539,7 +6831,9 @@ function survivalAiIdleSurpriseStrike(ai, brain, intel, ctx) {
     brain.strikeQueue = [];
     brain.phase = 'recover';
     brain.phaseUntil = ctx.combatTime + 18;
-    addLog('🤖 SURPRISE AMBUSH — the enemy strikes while you waited!');
+    addLog(passiveBarracks
+      ? '🤖 SURPRISE AMBUSH — you built an army but never used it!'
+      : '🤖 SURPRISE AMBUSH — the enemy strikes while you waited!');
     return true;
   }
   return false;
@@ -6629,24 +6923,13 @@ function survivalAiEmergencyReact(ai, brain, intel, ctx) {
   // Knight under our towers → swarm it with Wolves to finish it off.
   if (survivalAiTryWolfKnightBait(ai, intel)) return true;
 
-  // Field doctrine counters against the ACTIVE advancing threat. We spawn in
-  // VOLUME (several per think tick, spending freely) until our live force
-  // matches the incoming attack, then stop and let the planner bank/build
-  // again. As the enemy attack is destroyed the required force shrinks to zero,
-  // so the CPU naturally returns to deciding normally instead of over-spawning.
+  // Counter every active threat at once — cycle spend across all deficits.
   const threatCount = survivalAiAdvancingThreatCount();
-  const desperate = ctx.aiHpPct < 0.5;
-  if ((threatCount > 0 || desperate) && brain.phase !== 'strike') {
-    const needed = desperate ? threatCount + 2 : threatCount;
-    let acted = false;
-    let guard = 0;
-    while (ctx.aiUnits < needed && guard < 6) {
-      guard += 1;
-      if (!survivalAiSpawnDefender(ai, intel)) break;
-      ctx.aiUnits += 1;
-      acted = true;
-    }
-    if (acted) return true;
+  const nearBaseN = Object.values(survivalAiNearBaseThreatsByType()).reduce((s, n) => s + n, 0);
+  const activeThreats = threatCount + nearBaseN;
+  if (activeThreats > 0 && brain.phase !== 'strike') {
+    const maxSpawns = activeThreats >= 5 ? 4 : activeThreats >= 3 ? 3 : 2;
+    if (survivalAiDeployCounterGaps(ai, maxSpawns)) return true;
   }
 
   return false;
@@ -6711,8 +6994,7 @@ function survivalAiTickPlanner(ai, brain) {
   }
 
   if (brain.phase === 'recover') {
-    // Chain-strike: a successful hit while the player is still hurt → skip the
-    // long recover and immediately plan the next concentrated push.
+    // Chain-strike only after a successful push while the player is still hurt.
     if (brain.lastStrikeSuccess && ctx.playerHpPct < 0.7) {
       survivalAiBeginPrepare(brain, intel, ai, ctx);
       return true;
@@ -6905,6 +7187,7 @@ function setupSurvivalLive() {
     p.baseHp = gameRules.baseHp;
     p.baseMaxHp = gameRules.baseHp;
     p.rubble = [];
+    p.ruinScars = [];
     p.turrets = defaultStartingTowers(i);
     p.incomeUpgrades = defaultIncomeUpgrades();
     p.baseCannonSkills = freshBaseCannonSkills();
@@ -7000,6 +7283,7 @@ function setupSurvivalLivePvp(opts) {
     p.baseHp = gameRules.baseHp;
     p.baseMaxHp = gameRules.baseHp;
     p.rubble = [];
+    p.ruinScars = [];
     p.turrets = defaultStartingTowers(i);
     p.incomeUpgrades = defaultIncomeUpgrades();
     p.baseCannonSkills = freshBaseCannonSkills();
@@ -7089,6 +7373,7 @@ function getPvpSnapshot() {
       liveArmy: p.liveArmy ? JSON.parse(JSON.stringify(p.liveArmy)) : null,
       turrets: p.turrets.map(serializeTower),
       rubble: p.rubble.map((r) => ({ ...r })),
+      ruinScars: (p.ruinScars || []).map((s) => ({ ...s })),
     })),
     combatUnits: combatUnits.map(serializeUnit),
     pellets: pellets.map((p) => ({ ...p })),
@@ -7129,7 +7414,21 @@ function applyPvpSnapshot(state) {
       }
     }
     p.turrets = (src.turrets || []).map((t) => ({ ...t }));
-    p.rubble = (src.rubble || []).map((r) => ({ ...r }));
+    p.rubble = (src.rubble || []).map((r) => ({
+      x: r.x,
+      y: r.y,
+      towerType: r.towerType || 'turret',
+      angle: r.angle || 0,
+      wreckTilt: r.wreckTilt ?? (((r.x * 0.031 + r.y * 0.019) % 0.42) - 0.21),
+      bornAt: r.bornAt ?? rubbleNow(),
+    }));
+    p.ruinScars = (src.ruinScars || []).map((s) => ({
+      x: s.x,
+      y: s.y,
+      towerType: s.towerType || 'turret',
+      seed: s.seed ?? (((s.x * 7.31 + s.y * 11.17) % 1000) / 1000),
+      wreckTilt: s.wreckTilt ?? 0,
+    }));
   }
 
   syncLiveArmyStructures();
@@ -7530,11 +7829,11 @@ function updateSurvivalLiveAI(dt) {
 
   if (survivalAiTickPlanner(ai, survivalAiBrain)) updateUI();
 
-  // While the base is under direct threat, re-evaluate several times a second so
-  // the CPU can keep piling on defenders instead of waiting a full think cycle.
+  // While the base is under direct threat, re-evaluate a little faster so the
+  // CPU can answer — but not so fast that it trickle-spams units.
   const bp = basePos(1);
   if (combatUnits.some((u) => u.owner === 0 && u.hp > 0 && dist(u, bp) <= AI_BASE_DEFENSE_RANGE)) {
-    survivalAiTimer = Math.min(survivalAiTimer, 0.3);
+    survivalAiTimer = Math.min(survivalAiTimer, 0.45);
   }
 }
 
@@ -7770,10 +8069,10 @@ let animFrame = 0;
 
 const players = [
   { id: 0, name: 'Player 1', coins: DEFAULT_GAME_RULES.startCoins, baseHp: DEFAULT_GAME_RULES.baseHp, baseMaxHp: DEFAULT_GAME_RULES.baseHp,
-    turrets: [], rubble: [], deployments: [], baseDamageThisRound: 0, isAI: false, color: P1_COLOR,
+    turrets: [], rubble: [], ruinScars: [], deployments: [], baseDamageThisRound: 0, isAI: false, color: P1_COLOR,
     incomeUpgrades: { base: 1, mint: 1, farm: 1 } },
   { id: 1, name: 'Player 2', coins: DEFAULT_GAME_RULES.startCoins, baseHp: DEFAULT_GAME_RULES.baseHp, baseMaxHp: DEFAULT_GAME_RULES.baseHp,
-    turrets: [], rubble: [], deployments: [], baseDamageThisRound: 0, isAI: false, color: P2_COLOR,
+    turrets: [], rubble: [], ruinScars: [], deployments: [], baseDamageThisRound: 0, isAI: false, color: P2_COLOR,
     incomeUpgrades: { base: 1, mint: 1, farm: 1 } },
 ];
 
@@ -8668,9 +8967,11 @@ function setupFree2pMode() {
   players[0].turrets = [];
   players[0].deployments = [];
   players[0].rubble = [];
+  players[0].ruinScars = [];
   players[1].turrets = [];
   players[1].deployments = [];
   players[1].rubble = [];
+  players[1].ruinScars = [];
 
   freeGenerateMazeBlocks();
 
@@ -9084,9 +9385,11 @@ function setupFreeMode() {
   players[0].turrets = [];
   players[0].deployments = [];
   players[0].rubble = [];
+  players[0].ruinScars = [];
   players[1].turrets = [];
   players[1].deployments = [];
   players[1].rubble = [];
+  players[1].ruinScars = [];
 
   freePlayer = {
     x: FREE_WORLD_W / 2,
@@ -9562,7 +9865,7 @@ function freeFirePlayerLaser() {
       spawnParticles(tw.x, tw.y, '#F472B6', 4);
       if (tw.hp <= 0) {
         const dead = { x: tw.x, y: tw.y, towerType: tw.towerType };
-        players[1].rubble.push({ x: tw.x, y: tw.y });
+        players[1].rubble.push(createTowerRuin(tw));
         freeScore.towers++;
         players[1].turrets.splice(ti, 1);
         freeScatterPickups(dead.x, dead.y, dead);
@@ -9793,7 +10096,7 @@ function updateFreePellets(dt) {
         spawnParticles(tw.x, tw.y, towerDef(tw.towerType).color, 5);
         if (tw.hp <= 0) {
           const deadTw = { x: tw.x, y: tw.y, towerType: tw.towerType };
-          players[1].rubble.push({ x: tw.x, y: tw.y });
+          players[1].rubble.push(createTowerRuin(tw));
           freeScore.towers++;
           players[1].turrets = players[1].turrets.filter(t => t !== tw);
           freeScatterPickups(deadTw.x, deadTw.y, deadTw);
@@ -10290,6 +10593,7 @@ function drawFreePickups() {
 function updateFreeMode(dt) {
   if (!freePlayer) return;
   freeElapsed += dt;
+  updateRubble();
   updateFreePlayer(dt);
   updateFreeCamera(dt);
   updateFreePellets(dt);
@@ -10813,6 +11117,7 @@ function free2pCheckEnd() {
 function updateFree2pMode(dt) {
   if (!freePlayer || !freePlayer2) return;
   freeElapsed += dt;
+  updateRubble();
   free2pUpdatePlayers(dt);
   free2pUpdatePellets(dt);
   free2pUpdateEnemies(dt);
@@ -11137,7 +11442,8 @@ function towerPlaceFailReason(pid, towerType, x, y, excludeId) {
   if (p.coins < cost) return `Need ${cost}🪙 (you have ${Math.floor(p.coins)}🪙).`;
   if (!inZone(x, pid)) return 'Place inside your territory.';
   if (!onLand(y)) return 'Place on the battlefield.';
-  if (overlapsRubble(x, y, p)) return 'Blocked by rubble.';
+  if (overlapsRubble(x, y, p)) return 'Blocked by ruins.';
+  if (overlapsBaseTowerSlot(x, y, 6, towerPlacingRadius(towerType))) return 'Reserved base cannon pad.';
   if (!canPlaceTurret(x, y, pid, excludeId, towerType)) return 'Too close to another building.';
   return null;
 }
@@ -11232,6 +11538,7 @@ function snapshotPlayer(pid) {
     baseMaxHp: p.baseMaxHp,
     turrets: p.turrets.map(t => ({ ...t, hp: t.hp, maxHp: t.maxHp })),
     rubble: p.rubble.map(r => ({ ...r })),
+    ruinScars: (p.ruinScars || []).map(s => ({ ...s })),
   };
 }
 
@@ -11472,10 +11779,90 @@ function spawnParticles(x, y, color, n = 6) {
   }
 }
 
+function rubbleNow() {
+  return (phase === 'free' || phase === 'free2p') ? freeElapsed : combatTime;
+}
+
+function createTowerRuin(towerOrX, yOrType, maybeType) {
+  let x, y, towerType, angle;
+  if (typeof towerOrX === 'object' && towerOrX !== null) {
+    x = towerOrX.x;
+    y = towerOrX.y;
+    towerType = towerOrX.towerType || 'turret';
+    angle = towerOrX.angle || 0;
+  } else {
+    x = towerOrX;
+    y = yOrType;
+    towerType = maybeType || 'turret';
+    angle = 0;
+  }
+  return {
+    x,
+    y,
+    towerType,
+    angle,
+    wreckTilt: ((x * 0.031 + y * 0.019) % 0.42) - 0.21,
+    bornAt: rubbleNow(),
+  };
+}
+
+function addTowerRuin(player, tower) {
+  player.rubble.push(createTowerRuin(tower));
+}
+
+function createRuinScar(ruin) {
+  const seed = ((ruin.x * 7.31 + ruin.y * 11.17) % 1000) / 1000;
+  return {
+    x: ruin.x,
+    y: ruin.y,
+    towerType: ruin.towerType || 'turret',
+    seed,
+    wreckTilt: ruin.wreckTilt ?? 0,
+  };
+}
+
+function addRuinScar(player, ruin) {
+  if (!player.ruinScars) player.ruinScars = [];
+  player.ruinScars.push(createRuinScar(ruin));
+}
+
+function updateRubble() {
+  const now = rubbleNow();
+  for (const p of players) {
+    const kept = [];
+    for (const r of p.rubble) {
+      if (now - (r.bornAt ?? 0) < RUBBLE_LIFETIME) kept.push(r);
+      else addRuinScar(p, r);
+    }
+    p.rubble = kept;
+  }
+}
+
+function rubbleAge(r) {
+  return rubbleNow() - (r.bornAt ?? 0);
+}
+
+function rubbleFadeAlpha(r) {
+  const remain = RUBBLE_LIFETIME - rubbleAge(r);
+  if (remain <= 0) return 0;
+  if (remain < 4) return remain / 4;
+  return 1;
+}
+
 // ─── Collision / Placement ───────────────────────────────────────────────────
 function overlapsRubble(x, y, player, margin = 0) {
   for (const r of player.rubble) {
     if (dist({ x, y }, r) < RUBBLE_RADIUS + margin) return true;
+  }
+  return false;
+}
+
+function overlapsBaseTowerSlot(x, y, margin = 0, placingRadius = 0) {
+  if (!hasBaseTowerSlots()) return false;
+  for (let pid = 0; pid < 2; pid++) {
+    for (const slot of getBaseTowerSlots(pid)) {
+      if (dist({ x, y }, slot) < BASE_SLOT_RADIUS + margin + placingRadius) return true;
+    }
   }
   return false;
 }
@@ -11516,6 +11903,14 @@ function overlapsDeployment(x, y, playerId, margin = 0) {
   return false;
 }
 
+function pointInLiveFire(x, y, radius = 0) {
+  for (const f of fireFields) {
+    if (!f || f.life <= 0) continue;
+    if (dist({ x, y }, f) <= f.r + radius) return true;
+  }
+  return false;
+}
+
 function inZone(x, pid) {
   const z = playerZone(pid);
   return x >= z.x + 40 && x <= z.x2 - 20;
@@ -11537,6 +11932,7 @@ function canPlaceTurret(x, y, pid, excludeId, placingTool) {
       placingRadius = towerPlaceRadius(moving);
     }
   }
+  if (overlapsBaseTowerSlot(x, y, 6, placingRadius)) return false;
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && placingTool && !LIVE_ARMY.canPlaceStructure(players[pid], placingTool)) {
     return false;
   }
@@ -11547,6 +11943,7 @@ function canPlaceTurret(x, y, pid, excludeId, placingTool) {
 
 function canPlaceUnit(x, y, pid, unitType) {
   if (overlapsRubble(x, y, players[pid])) return false;
+  if (overlapsBaseTowerSlot(x, y, 4)) return false;
   if (overlapsTurret(x, y, null, 4)) return false;
   if (overlapsDeployment(x, y, pid, 4)) return false;
   const ut = unitType ? UNIT_TYPES[unitType] : null;
@@ -11554,6 +11951,7 @@ function canPlaceUnit(x, y, pid, unitType) {
     if (!inZone(x, pid)) return false;
     if (!onLand(y)) return false;
     const sz = ut?.size || 18;
+    if (pointInLiveFire(x, y, Math.max(8, sz * 0.65))) return false;
     for (const u of combatUnits) {
       if (u.owner !== pid || u.hp <= 0) continue;
       if (dist(u, { x, y }) < getUnitSize(u) + sz + 4) return false;
@@ -11776,37 +12174,319 @@ function drawBackground() {
   ctx.setLineDash([]);
 }
 
-function drawRubble(r, pulse = 0) {
-  const s = RUBBLE_RADIUS + pulse;
-  drawGroundShadow(r.x, r.y, s * 0.9, s * 0.35);
-  ctx.save();
-  ctx.fillStyle = '#4a4f54';
-  for (let i = 0; i < 7; i++) {
-    const a = i * 0.9 + r.x * 0.01;
-    const dx = Math.cos(a) * (s * 0.45);
-    const dy = Math.sin(a) * (s * 0.35);
-    const w = 10 + (i % 3) * 4;
-    const h = 7 + (i % 2) * 3;
-    ctx.save();
-    ctx.translate(r.x + dx, r.y + dy);
-    ctx.rotate(a);
-    const g = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
-    g.addColorStop(0, '#6b7280');
-    g.addColorStop(1, '#374151');
-    ctx.fillStyle = g;
-    roundRect(-w / 2, -h / 2, w, h, 2);
+function drawConcreteSlab(x, y, w, h, opts = {}) {
+  const { ruined = false, vacant = false } = opts;
+  const pad = ctx.createLinearGradient(x - w / 2, y, x + w / 2, y + h);
+  if (ruined) {
+    pad.addColorStop(0, '#5a5f66');
+    pad.addColorStop(1, '#2f3438');
+  } else if (vacant) {
+    pad.addColorStop(0, '#6d737b');
+    pad.addColorStop(1, '#3f454c');
+  } else {
+    pad.addColorStop(0, '#7a8088');
+    pad.addColorStop(1, '#454b52');
+  }
+  ctx.fillStyle = pad;
+  roundRect(x - w / 2, y - h / 2, w, h, 4);
+  ctx.fill();
+  ctx.strokeStyle = ruined ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.45)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  if (vacant) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.setLineDash([4, 5]);
+    roundRect(x - w / 2 + 4, y - h / 2 + 4, w - 8, h - 8, 3);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (ruined) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.25, y - h * 0.1);
+    ctx.lineTo(x + w * 0.15, y + h * 0.2);
+    ctx.moveTo(x + w * 0.1, y - h * 0.2);
+    ctx.lineTo(x - w * 0.2, y + h * 0.15);
+    ctx.stroke();
+  }
+}
+
+function drawBaseTowerSlots(pid) {
+  if (!hasBaseTowerSlots()) return;
+  const slots = getBaseTowerSlots(pid);
+  for (const slot of slots) {
+    const occupied = isBaseTowerSlotOccupied(pid, slot);
+    drawConcreteSlab(slot.x, slot.y, 46, 28, { vacant: !occupied });
+  }
+}
+
+function drawRuinedFarmField(x, y, sz, crumble, sink, seed = 0.5) {
+  const fieldW = sz * 1.85;
+  const fieldH = sz * 1.35;
+  const ox = x;
+  const oy = y + sink * 0.2;
+  const rnd = (n) => {
+    const v = Math.sin((ox + oy) * 0.031 + n * 17.13 + seed * 6.28) * 43758.5453;
+    return v - Math.floor(v);
+  };
+
+  const soil = ctx.createLinearGradient(ox - fieldW / 2, oy - fieldH / 2, ox + fieldW / 2, oy + fieldH / 2);
+  soil.addColorStop(0, '#4a3826');
+  soil.addColorStop(0.35, '#5e4832');
+  soil.addColorStop(0.68, '#3a2e1e');
+  soil.addColorStop(1, '#261e14');
+  ctx.fillStyle = soil;
+  roundRect(ox - fieldW / 2, oy - fieldH / 2, fieldW, fieldH, 6);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(18,12,6,0.38)';
+  ctx.lineWidth = 1;
+  for (let row = 0; row < 5; row++) {
+    const ry = oy - fieldH / 2 + 7 + row * (fieldH / 5.1);
+    ctx.beginPath();
+    ctx.moveTo(ox - fieldW / 2 + 5, ry + (rnd(row) - 0.5) * 3);
+    ctx.lineTo(ox + fieldW / 2 - 5, ry + (rnd(row + 9) - 0.5) * 4);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(16,10,6,0.5)';
+  for (let i = 0; i < 5; i++) {
+    const cx = ox - fieldW / 3 + rnd(i * 4) * fieldW * 0.62;
+    const cy = oy - fieldH / 4 + rnd(i * 6) * fieldH * 0.55;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 4 + rnd(i) * 5, 2.5 + rnd(i + 1) * 2.5, rnd(i * 2) * Math.PI, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
+  }
+
+  ctx.strokeStyle = '#6b5a38';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 14; i++) {
+    const sx = ox - fieldW / 2 + 8 + rnd(i * 11) * (fieldW - 16);
+    const sy = oy - fieldH / 2 + 6 + rnd(i * 13) * (fieldH - 14);
+    ctx.beginPath();
+    ctx.moveTo(sx, sy + 4 + rnd(i) * 2);
+    ctx.lineTo(sx + (rnd(i + 3) - 0.5) * 4, sy);
+    ctx.stroke();
+  }
+
+  const drawStake = (x1, y1, x2, y2, thick) => {
+    ctx.strokeStyle = '#4a3520';
+    ctx.lineWidth = thick;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.strokeStyle = '#2a1c10';
+    ctx.lineWidth = thick * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  };
+
+  const stakes = [
+    [-fieldW * 0.34, -fieldH * 0.12, -fieldW * 0.14, fieldH * 0.14],
+    [fieldW * 0.18, fieldH * 0.2, fieldW * 0.36, -fieldH * 0.06],
+    [-fieldW * 0.04, fieldH * 0.24, fieldW * 0.14, -fieldH * 0.18],
+    [fieldW * 0.06, -fieldH * 0.26, -fieldW * 0.18, fieldH * 0.04],
+    [-fieldW * 0.26, fieldH * 0.18, fieldW * 0.08, -fieldH * 0.08],
+  ];
+  for (let i = 0; i < stakes.length; i++) {
+    const s = stakes[i];
+    const broken = crumble > 0.35 && i % 2 === 0;
+    const scale = broken ? 0.5 + rnd(i) * 0.2 : 1;
+    drawStake(ox + s[0], oy + s[1], ox + s[2] * scale, oy + s[3] * scale, 2.6 - (i % 2) * 0.6);
+  }
+
+  ctx.strokeStyle = '#5c4228';
+  ctx.lineWidth = 2;
+  const clusters = [[-0.08, 0.02], [0.24, -0.1], [-0.22, 0.14], [0.05, 0.2]];
+  for (let ci = 0; ci < clusters.length; ci++) {
+    const [cxn, cyn] = clusters[ci];
+    const cx = ox + cxn * fieldW;
+    const cy = oy + cyn * fieldH;
+    const len = 10 + rnd(ci * 5) * 5;
+    for (let a = 0; a < 4; a++) {
+      const ang = a * Math.PI / 4 + 0.15;
+      const snap = crumble > 0.5 && a % 2 === 0 ? 0.55 : 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - Math.cos(ang) * len, cy - Math.sin(ang) * len * 0.55);
+      ctx.lineTo(cx + Math.cos(ang) * len * 0.3 * snap, cy + Math.sin(ang) * len * 0.2 * snap);
+      ctx.stroke();
+    }
+  }
+
+  ctx.fillStyle = '#3d2c18';
+  for (let i = 0; i < 7; i++) {
+    const px = ox - fieldW / 2 + 3 + i * (fieldW / 6.2);
+    const ph = 5 + rnd(i * 2) * 6;
+    roundRect(px, oy + fieldH / 2 - ph - 1, 2.5, ph, 1);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = 'rgba(90,70,45,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(ox - fieldW / 2, oy - fieldH / 2, fieldW, fieldH);
+}
+
+function drawRuinedTower(r) {
+  const towerType = r.towerType || 'turret';
+  const def = towerDef(towerType, 0);
+  const sz = def.size || 22;
+  const x = r.x;
+  const y = r.y;
+  const crumble = Math.min(1, rubbleAge(r) / RUBBLE_LIFETIME);
+  const sink = crumble * 5;
+  const tilt = r.wreckTilt || 0;
+  const style = def.style || 'cannon';
+  const isFarm = style === 'farm' || style === 'farm_live' || towerType === 'farm';
+
+  if (isFarm) {
+    drawRuinedFarmField(x, y, sz, crumble, sink, (r.x * 0.017 + r.y * 0.013) % 1);
+    return;
+  }
+
+  drawConcreteSlab(x, y + sink * 0.25, sz * 1.9, sz * 1.15, { ruined: true });
+
+  ctx.save();
+  ctx.translate(x, y - sz * 0.05 + sink);
+  ctx.rotate(tilt);
+  ctx.globalAlpha *= 1 - crumble * 0.3;
+
+  const wreckRect = (fill, wx, wy, ww, wh, rr = 2) => {
+    ctx.fillStyle = fill;
+    roundRect(wx, wy, ww, wh, rr);
+    ctx.fill();
+  };
+
+  if (style === 'cannon') {
+    wreckRect('#2d3238', -10, -2, 18, 11, 2);
+    wreckRect('#1a1e22', 0, -2, 12, 6, 2);
+  } else if (style === 'laser') {
+    wreckRect('#1f2630', -8, -4, 14, 10, 2);
+    wreckRect('#4a2038', -2, -2, 10, 4, 2);
+  } else if (style === 'spread') {
+    wreckRect('#3a3228', -10, -6, 18, 12, 2);
+    wreckRect('#1f1d18', -2, -2, 10, 5, 2);
+    wreckRect('#1f1d18', -4, 2, 8, 4, 2);
+  } else if (style === 'missile' || style === 'missile_live') {
+    wreckRect('#2a3036', -10, -4, 18, 14, 2);
+    wreckRect('#5c2020', -4, -10, 8, 6, 2);
+    wreckRect('#3d4348', -3, 2, 6, 8, 2);
+  } else if (style === 'mint' || style === 'mint_live') {
+    wreckRect('#2f3a2a', -10, -4, 18, 12, 2);
+    wreckRect('#6b5a20', -6, -1, 10, 6, 2);
+  } else if (style === 'barracks') {
+    wreckRect('#334155', -sz * 0.75, -sz * 0.2, sz * 1.5, sz * 0.55, 3);
+    wreckRect('#1e293b', -sz * 0.25, -sz * 0.05, sz * 0.45, sz * 0.35, 2);
+  } else if (style === 'engineers') {
+    wreckRect('#5c3a12', -sz * 0.75, -sz * 0.2, sz * 1.5, sz * 0.55, 3);
+    wreckRect('#8a5a14', -sz * 0.35, -sz * 0.02, sz * 0.55, sz * 0.22, 2);
+  } else if (style === 'railgun') {
+    wreckRect('#1a2028', -9, -6, 16, 12, 2);
+    wreckRect('#6b5208', -2, -2, 12, 5, 2);
+  } else {
+    wreckRect('#3a4048', -9, -5, 16, 12, 2);
+  }
+
+  ctx.restore();
+
+  ctx.fillStyle = '#3d4348';
+  for (let i = 0; i < 5; i++) {
+    const a = tilt + i * 1.25;
+    const chunk = 4 + (i % 2);
+    roundRect(x + Math.cos(a) * (14 + i), y + Math.sin(a) * 8 + sink, chunk, chunk - 1, 1);
+    ctx.fill();
+  }
+}
+
+function drawRuins(r) {
+  const alpha = rubbleFadeAlpha(r);
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  drawRuinedTower(r);
+  ctx.restore();
+}
+
+function ruinScarTint(towerType) {
+  const def = towerDef(towerType, 0);
+  return def?.accent || def?.color || '#4a4f54';
+}
+
+function drawFarmRuinScar(s) {
+  const x = s.x;
+  const y = s.y;
+  const seed = s.seed ?? 0.5;
+  const sz = 22;
+  const fieldW = sz * 1.35;
+  const fieldH = sz * 0.95;
+  ctx.save();
+  ctx.globalAlpha = 0.32 + seed * 0.12;
+  const soil = ctx.createRadialGradient(x, y, 0, x, y, fieldW * 0.55);
+  soil.addColorStop(0, 'rgba(74,56,38,0.55)');
+  soil.addColorStop(0.6, 'rgba(58,44,28,0.25)');
+  soil.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = soil;
+  ctx.beginPath();
+  ctx.ellipse(x, y, fieldW * 0.5, fieldH * 0.45, seed * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(74,52,32,0.45)';
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 2; i++) {
+    const ang = seed * 2 + i * 1.1;
+    const len = 5 + seed * 3;
+    ctx.beginPath();
+    ctx.moveTo(x - Math.cos(ang) * len, y - Math.sin(ang) * len * 0.5);
+    ctx.lineTo(x + Math.cos(ang) * len * 0.4, y + Math.sin(ang) * len * 0.2);
+    ctx.stroke();
   }
   ctx.restore();
-  ctx.strokeStyle = 'rgba(220, 60, 50, 0.75)';
-  ctx.lineWidth = 2;
+}
+
+function drawRuinScar(s) {
+  if (s.towerType === 'farm') {
+    drawFarmRuinScar(s);
+    return;
+  }
+  const x = s.x;
+  const y = s.y;
+  const seed = s.seed ?? 0.5;
+  const tilt = (s.wreckTilt || 0) * 0.35;
+  const tint = ruinScarTint(s.towerType);
+
+  ctx.save();
+  ctx.globalAlpha = 0.26 + seed * 0.14;
+  const smudge = ctx.createRadialGradient(x, y, 0, x, y + 2, 12 + seed * 5);
+  smudge.addColorStop(0, 'rgba(28,24,22,0.5)');
+  smudge.addColorStop(0.55, 'rgba(38,36,34,0.22)');
+  smudge.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = smudge;
   ctx.beginPath();
-  ctx.moveTo(r.x - 12, r.y - 12);
-  ctx.lineTo(r.x + 12, r.y + 12);
-  ctx.moveTo(r.x + 12, r.y - 12);
-  ctx.lineTo(r.x - 12, r.y + 12);
-  ctx.stroke();
+  ctx.ellipse(x, y + 2, 10 + seed * 3, 6 + seed * 2.5, tilt, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.38;
+  for (let i = 0; i < 3; i++) {
+    const a = seed * 6.28 + i * 2.15 + tilt;
+    const d = 4 + i * 2.5 + seed * 3;
+    ctx.fillStyle = i === 0 ? tint : '#3a4046';
+    roundRect(x + Math.cos(a) * d - 1.5, y + Math.sin(a) * d * 0.55 - 1, 2.5 + (i % 2), 2, 1);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRuinScars(player) {
+  if (!player?.ruinScars?.length) return;
+  for (const s of player.ruinScars) drawRuinScar(s);
+}
+
+// Legacy alias — free mode and snapshots still call drawRubble in a few paths.
+function drawRubble(r) {
+  drawRuins(r);
 }
 
 function drawBase(pid, shake = 0, hpState) {
@@ -11882,16 +12562,18 @@ function drawTower(t, ownerColor, alpha = 1) {
   ctx.globalAlpha = alpha;
   drawGroundShadow(t.x, t.y, sz * 1.1, sz * 0.35);
 
-  // concrete pad
-  const pad = ctx.createLinearGradient(t.x - sz, t.y, t.x + sz, t.y + sz);
-  pad.addColorStop(0, '#7a8088');
-  pad.addColorStop(1, '#454b52');
-  ctx.fillStyle = pad;
-  roundRect(t.x - sz * 0.95, t.y - sz * 0.55, sz * 1.9, sz * 1.15, 4);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  if (!t.isBaseDefense) {
+    // concrete pad (base-mounted towers use the fixed slab drawn underneath)
+    const pad = ctx.createLinearGradient(t.x - sz, t.y, t.x + sz, t.y + sz);
+    pad.addColorStop(0, '#7a8088');
+    pad.addColorStop(1, '#454b52');
+    ctx.fillStyle = pad;
+    roundRect(t.x - sz * 0.95, t.y - sz * 0.55, sz * 1.9, sz * 1.15, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
 
   const angle = t.angle || 0;
   ctx.translate(t.x, t.y - sz * 0.05);
@@ -13097,7 +13779,7 @@ function detonateMissile(m) {
       const falloff = 1 - (d / (r + 30)) * 0.5;
       applyHpLoss(tw, m.damage * 0.75 * Math.max(0.35, falloff));
       if (tw.hp <= 0) {
-        ep.rubble.push({ x: tw.x, y: tw.y });
+        ep.rubble.push(createTowerRuin(tw));
         onTowerDestroyed(tw, ownerId);
         ep.turrets = ep.turrets.filter(tt => tt !== tw);
       }
@@ -13778,7 +14460,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
     if (wasAlive && t.hp <= 0) {
       const owner = players.find(pl => pl.turrets.includes(t));
       if (owner) {
-        owner.rubble.push({ x: t.x, y: t.y });
+        owner.rubble.push(createTowerRuin(t));
         onTowerDestroyed(t, attacker.owner);
         addLog(`💥 ${players[attacker.owner].name}'s ${atkDef.name || UNIT_TYPES[attacker.type].name} destroyed a ${def.name}!`);
       owner.turrets = owner.turrets.filter(tt => tt !== t);
@@ -14290,7 +14972,7 @@ function updateFireFields(dt) {
           applyBurnDamage(t, tick, f.owner);
           if (pl.id !== f.owner) t.lastHitBy = f.owner;
           if (wasAlive && t.hp <= 0) {
-            pl.rubble.push({ x: t.x, y: t.y });
+            pl.rubble.push(createTowerRuin(t));
             onTowerDestroyed(t, f.owner);
             pl.turrets = pl.turrets.filter((tt) => tt !== t);
           }
@@ -14997,6 +15679,7 @@ function waterSplash(p) {
 
 function updateCombat(dt) {
   combatTime += dt;
+  updateRubble();
 
   for (const u of combatUnits) {
     if (UNIT_TYPES[u.type]?.dodges) updateSpeedDodge(u, dt);
@@ -16024,6 +16707,7 @@ function resetGame() {
     p.baseMaxHp = gameRules.baseHp;
     p.turrets = [];
     p.rubble = [];
+    p.ruinScars = [];
     p.deployments = [];
     p.baseDamageThisRound = 0;
     p.combatReward = 0;
@@ -16116,6 +16800,9 @@ function renderFrame(time) {
     drawFreeWorldBackground();
     drawFreeBlocks();
     drawFreeBaseDebris();
+    for (const s of (players[1].ruinScars || [])) {
+      if (freeInView(s.x, s.y)) drawRuinScar(s);
+    }
     for (const r of players[1].rubble) {
       if (freeInView(r.x, r.y)) drawRubble(r);
     }
@@ -16169,12 +16856,16 @@ function renderFrame(time) {
       ctx.save();
       ctx.globalAlpha = 0.22;
       const stale = lastKnown[pid] || live;
-      for (const r of stale.rubble) drawRubble(r);
+      if (hasBaseTowerSlots()) drawBaseTowerSlots(pid);
+      for (const s of (stale.ruinScars || [])) drawRuinScar(s);
+      for (const r of stale.rubble) drawRuins(r);
       for (const t of stale.turrets) if (t.hp > 0) drawTower(t, live.color);
       drawBase(pid, 0, stale);
       ctx.restore();
     } else {
-      for (const r of state.rubble) drawRubble(r);
+      if (hasBaseTowerSlots()) drawBaseTowerSlots(pid);
+      for (const s of (state.ruinScars || [])) drawRuinScar(s);
+      for (const r of state.rubble) drawRuins(r);
       for (const t of state.turrets) if (t.hp > 0) drawTower(t, live.color);
       if (phase === 'prep' && pid === activePlayer) {
         for (const d of live.deployments) drawDeployment(d, pid);
