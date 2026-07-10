@@ -2,7 +2,9 @@
 window.LIVE_ARMY = (function () {
   const FARM_SIZE = 44;
   const STRUCTURE_SIZE = 44;
+  const LABORATORY_SIZE = 36;
   const COMBAT_TOWER_SIZE = 22;
+  const TURRET_SIZE = 34;
   const MINT_SIZE = 16;
 
   const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'missile'];
@@ -12,7 +14,7 @@ window.LIVE_ARMY = (function () {
     tank: 'Elephant', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
-    tank: 145, speed: 115, striker: 155, sniper: 190, goblin: 170, peka: 550,
+    tank: 100, speed: 150, striker: 50, sniper: 250, goblin: 125, peka: 500,
   };
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 3;
@@ -35,13 +37,14 @@ window.LIVE_ARMY = (function () {
   const ENG_DAMAGE_PER_LVL = 0.30; // +90% damage at max
   const ENG_FIRERATE_PER_LVL = 0.12; // +36% fire rate at max (rides the damage branch)
   const ENG_RANGE_PER_LVL = 0.18; // +54% range at max
+  const ENG_RAIL_RANGE_PER_LVL = 0.55; // Rail Gun range climbs hard: +165% at max
   const ENG_HEALTH_PER_LVL = 0.30; // +90% hp at max
   // Spreader knockback ramps from near-nothing to a strong shove only when the
   // knockback branch is fully upgraded.
   const SPREAD_KB_WEAK = 0.5;
   const SPREAD_KB_STRONG = 4;
   const TOWER_LABELS = {
-    turret: 'Cannon', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile',
+    turret: 'Turret', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile',
   };
   const TOWER_UNLOCK_COST = {
     turret: 125, laser: 165, spread: 145, missile: 220,
@@ -127,6 +130,57 @@ window.LIVE_ARMY = (function () {
     return { built: false, towers };
   }
 
+  const SPELL_IDS = ['fireball', 'slime', 'heal'];
+  const SPELL_LABELS = {
+    fireball: 'Fireball',
+    slime: 'Green Slime',
+    heal: 'Healing Aura',
+  };
+  const SPELL_ICONS = {
+    fireball: '☄️',
+    slime: '🧪',
+    heal: '💚',
+  };
+  const SPELL_MAX_LEVEL = 3;
+  // Cost to unlock (level 0→1), then upgrade to 2 and 3.
+  const SPELL_UNLOCK_COST = { fireball: 180, slime: 220, heal: 160 };
+  const SPELL_UPGRADE_COSTS = [280, 520];
+  const SPELL_CAST_COST = { fireball: 45, slime: 55, heal: 40 };
+  const SPELL_COOLDOWN = { fireball: 8, slime: 12, heal: 10 };
+
+  function freshSpellRecord() {
+    return { level: 0 };
+  }
+
+  function freshLaboratory() {
+    const spells = {};
+    for (const id of SPELL_IDS) spells[id] = freshSpellRecord();
+    return {
+      built: false,
+      spells,
+      cds: { fireball: 0, slime: 0, heal: 0 },
+    };
+  }
+
+  function normalizeLaboratory(lab) {
+    if (!lab) return freshLaboratory();
+    lab.built = !!lab.built;
+    if (!lab.spells) lab.spells = {};
+    if (!lab.cds) lab.cds = { fireball: 0, slime: 0, heal: 0 };
+    for (const id of SPELL_IDS) {
+      if (!lab.spells[id]) lab.spells[id] = freshSpellRecord();
+      lab.spells[id].level = lab.spells[id].level || 0;
+      if (lab.cds[id] == null) lab.cds[id] = 0;
+    }
+    return lab;
+  }
+
+  function laboratoryRecord(p) {
+    ensureLiveArmy(p);
+    p.liveArmy.laboratory = normalizeLaboratory(p.liveArmy.laboratory);
+    return p.liveArmy.laboratory;
+  }
+
   function freshEconomy() {
     return {
       farm: { unlocked: false, speed: 0, yield: 0 },
@@ -169,8 +223,24 @@ window.LIVE_ARMY = (function () {
     return { rate: 1, damage: 1, radius: 1 };
   }
 
+  function ensureLiveArmy(p) {
+    if (!p.liveArmy) {
+      p.liveArmy = {
+        barracks: freshBarracks(),
+        engineers: freshEngineers(),
+        economy: freshEconomy(),
+        laboratory: freshLaboratory(),
+      };
+    }
+    if (!p.liveArmy.barracks) p.liveArmy.barracks = freshBarracks();
+    if (!p.liveArmy.engineers) p.liveArmy.engineers = freshEngineers();
+    if (!p.liveArmy.economy) p.liveArmy.economy = freshEconomy();
+    p.liveArmy.laboratory = normalizeLaboratory(p.liveArmy.laboratory);
+    return p.liveArmy;
+  }
+
   function engineersRecord(p) {
-    if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
+    ensureLiveArmy(p);
     p.liveArmy.engineers = normalizeEngineers(p.liveArmy.engineers);
     return p.liveArmy.engineers;
   }
@@ -182,16 +252,14 @@ window.LIVE_ARMY = (function () {
   }
 
   function unitRecord(p, type) {
-    if (!p.liveArmy?.barracks?.units?.[type]) {
-      if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
-      if (!p.liveArmy.barracks.units) p.liveArmy.barracks.units = {};
-      if (!p.liveArmy.barracks.units[type]) p.liveArmy.barracks.units[type] = freshUnitRecord();
-    }
+    ensureLiveArmy(p);
+    if (!p.liveArmy.barracks.units) p.liveArmy.barracks.units = {};
+    if (!p.liveArmy.barracks.units[type]) p.liveArmy.barracks.units[type] = freshUnitRecord();
     return p.liveArmy.barracks.units[type];
   }
 
   function economyRecord(p) {
-    if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
+    ensureLiveArmy(p);
     if (!p.liveArmy.economy) p.liveArmy.economy = freshEconomy();
     const eco = p.liveArmy.economy;
     eco.farm = normalizeEcoBuilding(eco.farm, 'farm');
@@ -213,14 +281,21 @@ window.LIVE_ARMY = (function () {
     gameRules.towers.farm = true;
     gameRules.towers.barracks = true;
     gameRules.towers.engineers = true;
+    gameRules.towers.laboratory = true;
     gameRules.units.goblin = true;
     for (const p of players) {
-      p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
+      p.liveArmy = {
+        barracks: freshBarracks(),
+        engineers: freshEngineers(),
+        economy: freshEconomy(),
+        laboratory: freshLaboratory(),
+      };
     }
     syncBuildToolbar();
     syncBarracksPanelCopy();
     syncEngineersPanelCopy();
     syncEconomyPanelCopy();
+    syncLaboratoryPanelCopy();
   }
 
   function onBattleEnd() {
@@ -248,6 +323,14 @@ window.LIVE_ARMY = (function () {
       : 'Unlock each tower at the top of its column, then climb damage, range, health, and knockback branches.';
   }
 
+  function syncLaboratoryPanelCopy() {
+    const el = document.getElementById('laboratory-upgrade-desc');
+    if (!el) return;
+    el.textContent = pvpMode
+      ? 'Unlock spells at the top, then climb each spell track. Cast from the bottom bar — levels are hidden from your opponent.'
+      : 'Unlock Fireball, Green Slime, and Healing Aura at the top, then upgrade each spell. Cast from the bottom bar like units.';
+  }
+
   function syncEconomyPanelCopy() {
     const el = document.getElementById('economy-upgrade-desc');
     if (!el) return;
@@ -257,10 +340,11 @@ window.LIVE_ARMY = (function () {
   }
 
   function initPlayer(p) {
-    if (!p.liveArmy) p.liveArmy = { barracks: freshBarracks(), engineers: freshEngineers(), economy: freshEconomy() };
+    ensureLiveArmy(p);
     if (!p.liveArmy.economy) p.liveArmy.economy = freshEconomy();
     if (!p.liveArmy.barracks) p.liveArmy.barracks = freshBarracks();
     p.liveArmy.engineers = normalizeEngineers(p.liveArmy.engineers);
+    p.liveArmy.laboratory = normalizeLaboratory(p.liveArmy.laboratory);
     economyRecord(p);
     for (const ut of UNIT_ORDER) unitRecord(p, ut);
     for (const tt of COMBAT_TOWERS) towerRecord(p, tt);
@@ -270,18 +354,22 @@ window.LIVE_ARMY = (function () {
 
   function getTowerFootprint(t) {
     const type = t.towerType || t;
+    if (type === 'laboratory') return LABORATORY_SIZE;
     if (type === 'farm' || type === 'barracks' || type === 'engineers' || type === 'missile') return STRUCTURE_SIZE;
     if (type === 'mint') return MINT_SIZE;
-    if (type === 'turret' || type === 'laser' || type === 'spread') return COMBAT_TOWER_SIZE;
+    if (type === 'turret') return TURRET_SIZE;
+    if (type === 'laser' || type === 'spread') return COMBAT_TOWER_SIZE;
     return t.size || COMBAT_TOWER_SIZE;
   }
 
   function getPlacementCollisionRadius(towerType) {
     const type = towerType?.towerType || towerType;
     if (type === 'farm') return Math.ceil(FARM_SIZE / 2) + 4;
+    if (type === 'laboratory') return 20;
     if (type === 'barracks' || type === 'engineers' || type === 'missile') return 26;
     if (type === 'mint') return 12;
-    if (type === 'turret' || type === 'laser' || type === 'spread') return 14;
+    if (type === 'turret') return 20;
+    if (type === 'laser' || type === 'spread') return 14;
     return 18;
   }
 
@@ -292,15 +380,16 @@ window.LIVE_ARMY = (function () {
     const d = { ...def };
     if (type === 'farm') { d.size = FARM_SIZE; d.name = 'Farm'; d.style = 'farm_live'; }
     else if (type === 'mint') { d.size = MINT_SIZE; d.name = 'Bank'; d.style = 'mint_live'; }
-    else if (type === 'barracks') { d.size = STRUCTURE_SIZE; d.name = 'Barracks'; d.style = 'barracks'; d.cost = 180; d.hp = 120; }
-    else if (type === 'engineers') { d.size = STRUCTURE_SIZE; d.name = 'Engineers'; d.style = 'engineers'; d.cost = 210; d.hp = 110; }
+    else if (type === 'barracks') { d.size = STRUCTURE_SIZE; d.name = 'Barracks'; d.style = 'barracks'; d.cost = 100; d.hp = 120; }
+    else if (type === 'engineers') { d.size = STRUCTURE_SIZE; d.name = 'Tower Depot'; d.style = 'engineers'; d.cost = 100; d.hp = 110; }
+    else if (type === 'laboratory') { d.size = LABORATORY_SIZE; d.name = 'Laboratory'; d.style = 'laboratory'; d.cost = 100; d.hp = 130; }
     else if (type === 'missile') {
       d.size = STRUCTURE_SIZE; d.name = 'Missile Base'; d.style = 'missile_live';
       d.fireInterval = 9; d.damage = 4; d.blastRadius = 72; d.missileSpeed = 260;
     }
-    else if (type === 'laser') { d.size = COMBAT_TOWER_SIZE; d.name = 'Rail Gun'; d.style = 'railgun'; d.color = '#EAB308'; d.accent = '#CA8A04'; d.range = 340; }
+    else if (type === 'laser') { d.size = COMBAT_TOWER_SIZE; d.name = 'Rail Gun'; d.style = 'railgun'; d.color = '#EAB308'; d.accent = '#CA8A04'; d.range = 680; }
     else if (type === 'spread') { d.size = COMBAT_TOWER_SIZE; d.knockback = SPREAD_KB_WEAK; d.name = 'Spreader'; }
-    else if (type === 'turret') { d.size = COMBAT_TOWER_SIZE; d.hp = 140; d.damage = 24; d.name = 'Cannon'; }
+    else if (type === 'turret') { d.size = TURRET_SIZE; d.hp = 140; d.damage = 24; d.name = 'Turret'; }
 
     // Base cannons run on their own dedicated skill tree, so callers can request
     // the live-adjusted base stats without the shared engineer-tower bonuses.
@@ -328,7 +417,8 @@ window.LIVE_ARMY = (function () {
           const dmgMult = 1 + dmgLvl * ENG_DAMAGE_PER_LVL;
           d.damage = (d.damage || d.pelletDamage || 0) * dmgMult;
           if (d.pelletDamage) d.pelletDamage *= dmgMult;
-          d.range = (d.range || 160) * (1 + rngLvl * ENG_RANGE_PER_LVL);
+          const rangePerLvl = type === 'laser' ? ENG_RAIL_RANGE_PER_LVL : ENG_RANGE_PER_LVL;
+          d.range = (d.range || 160) * (1 + rngLvl * rangePerLvl);
           d.hp = (d.hp || 80) * (1 + hpLvl * ENG_HEALTH_PER_LVL);
           d.maxHp = d.hp;
           d.fireRate = (d.fireRate || 1) * (1 + dmgLvl * ENG_FIRERATE_PER_LVL);
@@ -391,6 +481,108 @@ window.LIVE_ARMY = (function () {
 
   function hasEngineers(p) {
     return p.turrets.some(t => t.towerType === 'engineers' && t.hp > 0);
+  }
+
+  function hasLaboratory(p) {
+    return p.turrets.some(t => t.towerType === 'laboratory' && t.hp > 0);
+  }
+
+  function spellLevel(p, spellId) {
+    return laboratoryRecord(p).spells[spellId]?.level || 0;
+  }
+
+  function spellUnlocked(p, spellId) {
+    return spellLevel(p, spellId) > 0;
+  }
+
+  function spellUnlockOrUpgradeCost(p, spellId) {
+    const lvl = spellLevel(p, spellId);
+    if (lvl <= 0) return SPELL_UNLOCK_COST[spellId] ?? 180;
+    if (lvl >= SPELL_MAX_LEVEL) return null;
+    return SPELL_UPGRADE_COSTS[lvl - 1] ?? null;
+  }
+
+  function spellUnlockCost(spellId) {
+    return SPELL_UNLOCK_COST[spellId] ?? 180;
+  }
+
+  function spellUpgradeCostAtLevel(level) {
+    // Cost to go from `level` → level+1 (level is current owned level, 1 or 2).
+    if (level < 1 || level >= SPELL_MAX_LEVEL) return null;
+    return SPELL_UPGRADE_COSTS[level - 1] ?? null;
+  }
+
+  function spellCastCost(spellId, level) {
+    const base = SPELL_CAST_COST[spellId] ?? 40;
+    const lvl = Math.max(1, level || 1);
+    return Math.round(base * (1 - (lvl - 1) * 0.08));
+  }
+
+  function spellCooldown(spellId, level) {
+    const base = SPELL_COOLDOWN[spellId] ?? 10;
+    const lvl = Math.max(1, level || 1);
+    return Math.max(4, base - (lvl - 1) * 1.5);
+  }
+
+  function spellStats(spellId, level) {
+    const lvl = Math.max(1, Math.min(SPELL_MAX_LEVEL, level || 1));
+    if (spellId === 'fireball') {
+      return {
+        radius: 110 + (lvl - 1) * 16,
+        damage: 85 + (lvl - 1) * 30,
+        knockback: 160 + (lvl - 1) * 35,
+        dragonMult: 2.2 + (lvl - 1) * 0.4,
+      };
+    }
+    if (spellId === 'slime') {
+      return {
+        radius: 78 + (lvl - 1) * 10,
+        duration: 3 + (lvl - 1) * 0.5,
+      };
+    }
+    // heal: +30 HP/s base = +10 HP every 1/3s
+    return {
+      radius: 90 + (lvl - 1) * 12,
+      duration: 3 + (lvl - 1) * 0.5,
+      healPerTick: 10 + (lvl - 1) * 4,
+      tickInterval: 1 / 3,
+    };
+  }
+
+  function buySpellUpgrade(p, spellId) {
+    if (!SPELL_IDS.includes(spellId)) return false;
+    if (!hasLaboratory(p)) return false;
+    const lab = laboratoryRecord(p);
+    const cost = spellUnlockOrUpgradeCost(p, spellId);
+    if (cost == null || p.coins < cost) return false;
+    p.coins -= cost;
+    lab.spells[spellId].level = (lab.spells[spellId].level || 0) + 1;
+    return true;
+  }
+
+  function tickSpellCooldowns(p, dt) {
+    const lab = laboratoryRecord(p);
+    for (const id of SPELL_IDS) {
+      lab.cds[id] = Math.max(0, (lab.cds[id] || 0) - dt);
+    }
+  }
+
+  function canCastSpell(p, spellId) {
+    if (!hasLaboratory(p)) return false;
+    const lvl = spellLevel(p, spellId);
+    if (lvl <= 0) return false;
+    const lab = laboratoryRecord(p);
+    if ((lab.cds[spellId] || 0) > 0) return false;
+    return p.coins >= spellCastCost(spellId, lvl);
+  }
+
+  function beginSpellCast(p, spellId) {
+    if (!canCastSpell(p, spellId)) return false;
+    const lvl = spellLevel(p, spellId);
+    const lab = laboratoryRecord(p);
+    p.coins -= spellCastCost(spellId, lvl);
+    lab.cds[spellId] = spellCooldown(spellId, lvl);
+    return true;
   }
 
   function unitUnlocked(p, type) {
@@ -579,6 +771,9 @@ window.LIVE_ARMY = (function () {
     if (towerType === 'engineers') {
       return p.turrets.filter(t => t.towerType === 'engineers' && t.hp > 0).length < 1;
     }
+    if (towerType === 'laboratory') {
+      return p.turrets.filter(t => t.towerType === 'laboratory' && t.hp > 0).length < 1;
+    }
     if (COMBAT_TOWERS.includes(towerType)) {
       return canPlaceCombatTower(p, towerType);
     }
@@ -592,6 +787,8 @@ window.LIVE_ARMY = (function () {
     if (tool === 'mint') return mintUnlocked(p);
     if (tool === 'barracks') return canPlaceStructure(p, 'barracks');
     if (tool === 'engineers') return canPlaceStructure(p, 'engineers');
+    if (tool === 'laboratory') return canPlaceStructure(p, 'laboratory');
+    if (SPELL_IDS.includes(tool)) return hasLaboratory(p) && spellUnlocked(p, tool);
     if (COMBAT_TOWERS.includes(tool)) return canPlaceCombatTower(p, tool);
     if (UNIT_LABELS[tool]) return unitUnlocked(p, tool);
     return false;
@@ -634,6 +831,7 @@ window.LIVE_ARMY = (function () {
     if (t.towerType === 'missile' && !t.missileUpgrades) t.missileUpgrades = freshMissileUpgrades();
     if (t.towerType === 'barracks') playersRef[ownerId].liveArmy.barracks.built = true;
     if (t.towerType === 'engineers') playersRef[ownerId].liveArmy.engineers.built = true;
+    if (t.towerType === 'laboratory') laboratoryRecord(playersRef[ownerId]).built = true;
     return t;
   }
 
@@ -689,6 +887,18 @@ window.LIVE_ARMY = (function () {
         mintAcc: 0,
       };
     }
+    if (ep.liveArmy?.laboratory) {
+      const spells = {};
+      for (const id of SPELL_IDS) {
+        const rec = ep.liveArmy.laboratory.spells?.[id];
+        spells[id] = { level: rec?.level > 0 ? 1 : 0 };
+      }
+      ep.liveArmy.laboratory = {
+        built: !!ep.liveArmy.laboratory.built,
+        spells,
+        cds: { fireball: 0, slime: 0, heal: 0 },
+      };
+    }
     if (ep.turrets) {
       ep.turrets = ep.turrets.map((t) => {
         const c = { ...t };
@@ -729,7 +939,7 @@ window.LIVE_ARMY = (function () {
     syncBarracksPanelCopy,
     syncEngineersPanelCopy,
     syncEconomyPanelCopy,
-    syncEngineersPanelCopy,
+    syncLaboratoryPanelCopy,
     initPlayer,
     setPlayersRef,
     getTowerFootprint,
@@ -738,6 +948,24 @@ window.LIVE_ARMY = (function () {
     modifyUnitDef,
     hasBarracks,
     hasEngineers,
+    hasLaboratory,
+    laboratoryRecord,
+    spellLevel,
+    spellUnlocked,
+    spellUnlockOrUpgradeCost,
+    spellUnlockCost,
+    spellUpgradeCostAtLevel,
+    spellCastCost,
+    spellCooldown,
+    spellStats,
+    buySpellUpgrade,
+    tickSpellCooldowns,
+    canCastSpell,
+    beginSpellCast,
+    SPELL_IDS,
+    SPELL_LABELS,
+    SPELL_ICONS,
+    SPELL_MAX_LEVEL,
     towerUnlocked,
     canPlaceCombatTower,
     towerRecord,
@@ -787,6 +1015,7 @@ window.LIVE_ARMY = (function () {
     freshBarracks,
     freshEngineers,
     freshEconomy,
+    freshLaboratory,
     COMBAT_TOWERS,
     isCombatTowerType,
     engineerBranchesForTower,
@@ -814,6 +1043,8 @@ window.LIVE_ARMY = (function () {
     BASE_BRANCH_ICONS,
     BASE_BRANCH_MAX,
     STRUCTURE_SIZE,
+    LABORATORY_SIZE,
+    TURRET_SIZE,
     FARM_SIZE,
     FARM_SEPARATION_GAP,
   };

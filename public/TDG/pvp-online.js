@@ -221,7 +221,10 @@
   function subscribeToRoomChannel(roomId) {
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
-      // State snapshots are no longer used in lockstep PvP.
+      if (!window.__TDG?.isSurvivalPvp?.()) return;
+      // Host is the single source of truth — clients snap to this state.
+      if (session?.isHost || session?.playerId === 0) return;
+      window.__TDG.applyAuthoritativeState?.(payload.state);
     });
     roomChannel.bind('action', (payload) => {
       if (!window.__TDG?.isSurvivalPvp?.()) return;
@@ -353,6 +356,26 @@
     }
   }
 
+  async function sendState(state) {
+    if (!session?.roomId || !session?.sessionToken) return;
+    if (!(session.isHost || session.playerId === 0)) return;
+    const body = JSON.stringify({
+      roomId: session.roomId,
+      sessionToken: session.sessionToken,
+      state,
+    });
+    try {
+      await fetch('/api/tdg-pvp/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      });
+    } catch (err) {
+      console.warn('sync failed', err);
+    }
+  }
+
   async function notifyGameOver(outcome) {
     if (!session?.roomId || !session?.sessionToken || session.reportedGameOver) return;
     session.reportedGameOver = true;
@@ -449,6 +472,7 @@
 
   window.TDG_PVP = {
     sendAction,
+    sendState,
     notifyGameOver,
     cleanup,
     leaveQueue,
