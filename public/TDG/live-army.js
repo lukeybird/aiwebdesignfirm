@@ -829,6 +829,7 @@ window.LIVE_ARMY = (function () {
   function decorateTower(t, ownerId) {
     if (!active) return t;
     if (t.towerType === 'missile' && !t.missileUpgrades) t.missileUpgrades = freshMissileUpgrades();
+    if (t.towerType === 'spread' && t.spreadElement === undefined) t.spreadElement = null;
     if (t.towerType === 'barracks') playersRef[ownerId].liveArmy.barracks.built = true;
     if (t.towerType === 'engineers') playersRef[ownerId].liveArmy.engineers.built = true;
     if (t.towerType === 'laboratory') laboratoryRecord(playersRef[ownerId]).built = true;

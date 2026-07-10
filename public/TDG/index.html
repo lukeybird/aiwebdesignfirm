@@ -193,7 +193,7 @@
     .btn-sniper { background: #1f2937; color: #d1d5db; }
     .btn-turret { background: #a16207; color: #fef3c7; }
     .btn-laser { background: #F472B6; color: #fff; }
-    .btn-spread { background: #FBBF24; color: #1a1a2e; }
+    .btn-spread { background: #78716c; color: #fafaf9; }
     .btn-missile { background: #64748B; color: #fff; }
     .btn-mint { background: #FCD34D; color: #1a1a2e; }
     .btn-farm { background: #86EFAC; color: #14532d; }
@@ -2124,7 +2124,8 @@
 
     #menu-screen.hidden { display: none !important; }
 
-    #missile-upgrade-panel {
+    #missile-upgrade-panel,
+    #spread-upgrade-panel {
       position: absolute;
       inset: 0;
       background: rgba(10, 12, 28, 0.82);
@@ -2135,7 +2136,76 @@
       pointer-events: auto;
     }
 
-    #missile-upgrade-panel.hidden { display: none; }
+    #missile-upgrade-panel.hidden,
+    #spread-upgrade-panel.hidden { display: none; }
+
+    .spread-skill-tree {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0 8px;
+    }
+    .spread-skill-root {
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      padding: 6px 14px;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 8px;
+      background: rgba(30, 27, 22, 0.7);
+    }
+    .spread-skill-vline {
+      width: 2px;
+      height: 16px;
+      background: linear-gradient(to bottom, rgba(251,191,36,0.5), rgba(148,163,184,0.35));
+    }
+    .spread-skill-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .spread-skill-card {
+      width: 148px;
+      min-height: 148px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(160deg, rgba(40, 44, 58, 0.95), rgba(22, 24, 34, 0.98));
+      color: #e2e8f0;
+      cursor: pointer;
+      padding: 12px 10px;
+      text-align: center;
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      pointer-events: auto;
+    }
+    .spread-skill-card:hover:not(:disabled):not(.owned):not(.locked) {
+      transform: translateY(-2px);
+      border-color: #fbbf24;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    }
+    .spread-skill-card:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .spread-skill-card.owned {
+      border-color: #4ade80;
+      box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35);
+      cursor: default;
+    }
+    .spread-skill-card.locked {
+      opacity: 0.38;
+      cursor: not-allowed;
+      filter: grayscale(0.6);
+    }
+    .spread-skill-card .ssk-icon { font-size: 1.6rem; line-height: 1.2; margin-bottom: 4px; }
+    .spread-skill-card .ssk-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+    .spread-skill-card .ssk-desc { font-size: 0.68rem; opacity: 0.78; line-height: 1.35; margin-bottom: 8px; }
+    .spread-skill-card .ssk-cost { font-size: 0.78rem; color: #fbbf24; font-weight: 600; }
+    .spread-skill-card.theme-fire { border-color: rgba(249, 115, 22, 0.45); }
+    .spread-skill-card.theme-ice { border-color: rgba(56, 189, 248, 0.45); }
+    .spread-skill-card.theme-electric { border-color: rgba(167, 139, 250, 0.45); }
 
     /* Commander circular FABs (count, formation, commander face) */
     .cmd-fab {
@@ -2549,6 +2619,16 @@
           <div id="missile-upgrade-list"></div>
         </div>
       </div>
+      <div id="spread-upgrade-panel" class="hidden">
+        <div class="econ-panel-inner" style="max-width:520px">
+          <div class="econ-panel-header">
+            <h3>🏰 Castle Tower</h3>
+            <button id="spread-panel-close" type="button">✕</button>
+          </div>
+          <p style="font-size:0.72rem;opacity:0.75;margin:0 0 8px">Choose one elemental enchantment for this tower. You can only buy one.</p>
+          <div id="spread-upgrade-list"></div>
+        </div>
+      </div>
       <div id="econ-upgrade-panel" class="hidden">
         <div class="st-panel economy-st-panel">
           <div class="st-header">
@@ -2586,7 +2666,7 @@
         <button class="tool-btn btn-sniper" data-tool="sniper">🎯 Sniper<div class="cost">40</div></button>
         <button class="tool-btn btn-turret" data-tool="turret">🪵 Turret<div class="cost">78</div></button>
         <button class="tool-btn btn-laser" data-tool="laser">⚡ Laser<div class="cost">82</div></button>
-        <button class="tool-btn btn-spread" data-tool="spread">💥 Spread<div class="cost">76</div></button>
+        <button class="tool-btn btn-spread" data-tool="spread">🏰 Spreader<div class="cost">76</div></button>
         <button class="tool-btn btn-missile" data-tool="missile">🚀 Missile<div class="cost">1100</div></button>
         <button class="tool-btn btn-mint" data-tool="mint">🏦 Mint<div class="cost">200</div></button>
         <button class="tool-btn btn-farm" data-tool="farm">🌾 Farm<div class="cost">95</div></button>
@@ -2658,6 +2738,7 @@
           <button class="banner-btn" id="btn-online-pvp">🌐 Online PvP</button>
           <button class="banner-btn" id="btn-free">🎮 Free Mode</button>
           <button class="banner-btn" id="btn-free2p">⚔️ FREE 2P</button>
+          <button class="banner-btn" id="btn-simulator">🤖 Simulator</button>
           <button class="banner-btn secondary" id="btn-rulebook">📖 Rule Book</button>
           <button class="banner-btn secondary" id="btn-manual">📘 Instruction Manual</button>
         </div>
@@ -2832,9 +2913,9 @@ const TOWER_TYPES = {
     beamWidth: 15, pierce: true, fullBoard: true,
   },
   spread: {
-    name: 'Spread', hp: 92, range: 272, pelletDamage: 4, fireRate: 0.65, pelletSpeed: 400,
-    cost: 76, size: 24, color: '#FBBF24', accent: '#F59E0B', style: 'spread',
-    spreadAngle: 0.72, pelletCount: 11, knockback: 108,
+    name: 'Spreader', hp: 92, range: 272, pelletDamage: 4, fireRate: 0.65, pelletSpeed: 400,
+    cost: 76, size: 26, color: '#A8A29E', accent: '#78716C', style: 'spread',
+    spreadAngle: 0.72, pelletCount: 11, knockback: 108, pelletColor: '#E2E8F0',
   },
   missile: {
     name: 'Missile', hp: 75, damage: 7, fireInterval: 3,
@@ -3207,7 +3288,7 @@ const UNIT_MANUAL = {
 const TOWER_MANUAL = {
   turret: 'Wooden outpost with a mounted gun. Fires single pellets at the nearest enemy. Solid all-round defense — the only tower that can shoot flying Dragons.',
   laser: 'Fires a piercing beam straight across the battlefield. Hits every enemy in the line. Great against clustered units.',
-  spread: 'Shotgun tower — fires a wide volley of pellets. Long range, knockback on hit, and briefly paralyzes enemies. Weak vs Elephants (immune to shock).',
+  spread: 'Castle tower — fires a wide volley of wind blasts. Long range, knockback on hit, and briefly paralyzes enemies. Click to enchant with Fire, Ice, or Electricity. Weak vs Elephants (immune to base shock).',
   missile: 'Launches explosive missiles that deal area damage on impact. Expensive but devastating against groups and structures.',
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus coins every round. Protect them!',
   farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests coins on a timer. Upgrade harvest speed and yield in the Economy tree.',
@@ -3335,7 +3416,8 @@ const SURVIVAL_AI_BASE_INCOME_EDGE = 5;
 const SURVIVAL_AI_BASE_INCOME_EDGE_PER_UPGRADE = 5;
 
 function survivalAiBaseIncomeBonus(pid) {
-  if (pid !== 1 || gameMode !== 'survival') return 0;
+  const isCpu = gameMode === 'simulator' || (pid === 1 && gameMode === 'survival');
+  if (!isCpu) return 0;
   const eco = LIVE_ARMY?.isActive()
     ? LIVE_ARMY.economyRecord(players[pid])
     : null;
@@ -3348,6 +3430,19 @@ function survivalAiBaseIncomeBonus(pid) {
 // with a huge ambush after this many seconds (no long observe/prepare wait).
 const SURVIVAL_AI_IDLE_STRIKE_AFTER = 22;
 const SURVIVAL_AI_IDLE_AMBUSH_BONUS = 140;
+// Escalating surprise attacks — each one banks more than the last; patience grows.
+const SURVIVAL_AI_SURPRISE_MIN_BUDGET = 150;
+const SURVIVAL_AI_SURPRISE_BUDGET_GROWTH = 70;
+const SURVIVAL_AI_SURPRISE_WAIT_BASE = [18, 42];
+const SURVIVAL_AI_SURPRISE_WAIT_PATIENCE = [10, 22]; // added per prior surprise
+const SURVIVAL_AI_PROBE_UNITS = ['speed', 'striker', 'bloop', 'goblin', 'sniper', 'tank'];
+const SURVIVAL_AI_PROBE_WINDOW = [14, 72]; // seconds — random probe fires in this window
+// Opening doctrine — each CPU independently commits to defense, economy, or attack,
+// then randomly pivots later in the match.
+const SURVIVAL_AI_STRATEGY_PATHS = ['defense', 'farm', 'attack'];
+const SURVIVAL_AI_PATH_LABELS = { defense: 'Defense', farm: 'Economy', attack: 'Attack' };
+const SURVIVAL_AI_PATH_SWITCH_WINDOW = [48, 115]; // seconds between doctrine reconsideration
+const SURVIVAL_AI_PATH_SWITCH_CHANCE = [0.38, 0.58]; // random roll to actually pivot
 // Strategic planner phases — the CPU observes, banks in secret, then commits one
 // big strike before recovering. No constant wave spam.
 const SURVIVAL_AI_OBSERVE_TIME = { easy: 28, medium: 22, hard: 16 };
@@ -3407,6 +3502,13 @@ let survivalIncomeTimer = 0;
 let survivalFarmTimer = 0;
 let survivalAiTimer = 0;
 let survivalAiBrain = null;
+let survivalAiActivePid = 1;
+let simulatorAiBrains = null;
+const simulatorAiTimers = [0, 0];
+const SIMULATOR_TEAM_COLORS = [
+  { main: '#ef4444', light: '#fca5a5', dark: '#991b1b', hue: 'hue-rotate(-18deg) saturate(1.45) brightness(1.04)' },
+  { main: '#3b82f6', light: '#93c5fd', dark: '#1e40af', hue: 'hue-rotate(32deg) saturate(1.45) brightness(1.04)' },
+];
 let floatTexts = [];
 let pvpOnline = null;
 
@@ -3423,11 +3525,48 @@ let pvpLock = null; // { frame, acc, lastSyncAt, seenActionIds, recentAids, pend
 let pvpLocalActionSeq = 0;
 
 function isSurvivalLive() {
-  return gameMode === 'survival' || gameMode === 'survival-pvp';
+  return gameMode === 'survival' || gameMode === 'survival-pvp' || gameMode === 'simulator';
 }
 
 function isLocalSurvival() {
-  return gameMode === 'survival';
+  return gameMode === 'survival' || gameMode === 'simulator';
+}
+
+function isSimulatorMode() {
+  return gameMode === 'simulator';
+}
+
+function aiSelf() { return survivalAiActivePid; }
+function aiEnemy() { return survivalAiActivePid === 0 ? 1 : 0; }
+function activeAiBrain() {
+  if (isSimulatorMode()) return simulatorAiBrains?.[survivalAiActivePid] || null;
+  return survivalAiActivePid === 1 ? survivalAiBrain : null;
+}
+
+function survivalAiEnemyAdvancing(u) {
+  const mid = W / 2;
+  return aiSelf() === 0 ? u.x > mid : u.x < mid;
+}
+
+function survivalAiEnemyDepthWeight(u) {
+  const midX = W * 0.44;
+  const deepX = W * 0.62;
+  if (aiSelf() === 0) {
+    if (u.x >= deepX) return 1.25;
+    if (u.x >= midX) return 0.82;
+    return 0.32;
+  }
+  if (u.x <= W - deepX) return 1.25;
+  if (u.x <= W - midX) return 0.82;
+  return 0.32;
+}
+
+function withTeamHue(ownerId, drawFn) {
+  if (!isSimulatorMode()) return drawFn();
+  ctx.save();
+  ctx.filter = SIMULATOR_TEAM_COLORS[ownerId]?.hue || '';
+  drawFn();
+  ctx.restore();
 }
 
 function isSurvivalPvp() {
@@ -3440,6 +3579,7 @@ function getLocalPlayerId() {
 }
 
 function canPlayerBuildNow() {
+  if (isSimulatorMode()) return false;
   if (phase === 'prep') return true;
   if (isLocalSurvival() && phase === 'combat') return true;
   if (isSurvivalPvp() && phase === 'combat') return !!pvpOnline;
@@ -3794,7 +3934,7 @@ function engineersTowerUnlockMeta(tt) {
   const tips = {
     turret: `Unlock Turrets (${cost}🪙). Steady single-target shots from a wooden outpost. Base: ${TOWER_TYPES.turret.damage} dmg, range ${TOWER_TYPES.turret.range}, ${TOWER_TYPES.turret.fireRate}/s. Only tower that can shoot flying Dragons.`,
     laser: `Unlock Rail Guns (${cost}🪙). Piercing beam. Base range 680. Immune Goblins ignore the beam. Does not hit flying Dragons.`,
-    spread: `Unlock Spreaders (${cost}🪙). Wide pellet volley with knockback/paralyze. Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} pellets. Weak vs Elephants (immune to shock).`,
+    spread: `Unlock Spreaders (${cost}🪙). Castle tower with wind blasts, knockback/paralyze. Click a placed tower to pick Fire, Ice, or Electricity (100🪙, one only). Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} blasts. Weak vs Elephants (immune to base shock).`,
     missile: `Unlock Missile Bases (${cost}🪙). Slow long-range area blasts. Expensive structure with its own upgrade panel.`,
   };
   return {
@@ -4821,6 +4961,118 @@ function toggleEngineersPanel(show) {
 }
 
 let activeMissileTowerId = null;
+let activeSpreadTowerId = null;
+
+const SPREAD_ELEMENT_COST = 100;
+const SPREAD_ELEMENTS = {
+  fire: {
+    label: 'Fire',
+    icon: '🔥',
+    theme: 'fire',
+    desc: 'Laces wind blasts with fire. Enemies catch fire on hit.',
+  },
+  ice: {
+    label: 'Ice',
+    icon: '❄️',
+    theme: 'ice',
+    desc: 'Slows by 20% of base speed per stack (max 3). Lasts 1s.',
+  },
+  electric: {
+    label: 'Electricity',
+    icon: '⚡',
+    theme: 'electric',
+    desc: 'Shock: cannot move for 0.5s. Cannot re-shock for 1s total.',
+  },
+};
+
+function buySpreadElement(pid, towerId, element) {
+  if (!SPREAD_ELEMENTS[element]) return false;
+  const p = players[pid];
+  const tw = p.turrets.find((t) => t.id === towerId && t.towerType === 'spread' && t.hp > 0);
+  if (!tw) return false;
+  if (tw.spreadElement) return false;
+  if (p.coins < SPREAD_ELEMENT_COST) return false;
+  p.coins -= SPREAD_ELEMENT_COST;
+  tw.spreadElement = element;
+  addLog(`🏰 ${p.name}: Spreader enchanted with ${SPREAD_ELEMENTS[element].label}`);
+  updateSpreadUpgradeUI();
+  updateUI();
+  return true;
+}
+
+function updateSpreadUpgradeUI() {
+  const list = document.getElementById('spread-upgrade-list');
+  if (!list) return;
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const tw = activeSpreadTowerId
+    ? p.turrets.find((t) => t.id === activeSpreadTowerId && t.towerType === 'spread' && t.hp > 0)
+    : null;
+  if (!tw) {
+    list.innerHTML = '<p style="opacity:0.7;font-size:0.8rem;padding:8px">Select a Spreader tower on the map.</p>';
+    return;
+  }
+  const owned = tw.spreadElement || null;
+  const canAfford = p.coins >= SPREAD_ELEMENT_COST;
+  let html = '<div class="spread-skill-tree">';
+  html += '<div class="spread-skill-root">Elemental Enchantment</div>';
+  html += '<div class="spread-skill-vline"></div>';
+  html += '<div class="spread-skill-row">';
+  for (const key of ['fire', 'ice', 'electric']) {
+    const meta = SPREAD_ELEMENTS[key];
+    const isOwned = owned === key;
+    const isLocked = !!owned && !isOwned;
+    const disabled = isOwned || isLocked || !canAfford;
+    const cls = [
+      'spread-skill-card',
+      `theme-${meta.theme}`,
+      isOwned ? 'owned' : '',
+      isLocked ? 'locked' : '',
+    ].filter(Boolean).join(' ');
+    const costLabel = isOwned ? 'Active' : (isLocked ? 'Locked' : `${SPREAD_ELEMENT_COST}🪙`);
+    html += `<button type="button" class="${cls}" data-spread-element="${key}" ${disabled ? 'disabled' : ''}>
+      <div class="ssk-icon">${meta.icon}</div>
+      <div class="ssk-name">${meta.label}</div>
+      <div class="ssk-desc">${meta.desc}</div>
+      <div class="ssk-cost">${costLabel}</div>
+    </button>`;
+  }
+  html += '</div></div>';
+  list.innerHTML = html;
+}
+
+function toggleSpreadPanel(show) {
+  const panel = document.getElementById('spread-upgrade-panel');
+  if (!panel) return;
+  const open = show !== undefined ? show : panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !open);
+  if (open) updateSpreadUpgradeUI();
+}
+
+function findOwnSpreadTowerAt(pos, pid) {
+  const p = players[pid];
+  if (!p) return null;
+  const hitR = towerDef('spread').size + 10;
+  let best = null;
+  let bestD = Infinity;
+  for (const t of p.turrets) {
+    if (t.towerType !== 'spread' || t.hp <= 0) continue;
+    const d = dist(pos, t);
+    if (d < hitR && d < bestD) {
+      best = t;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+function tryOpenSpreadTowerPanel(pos, pid) {
+  const tw = findOwnSpreadTowerAt(pos, pid);
+  if (!tw) return false;
+  activeSpreadTowerId = tw.id;
+  toggleSpreadPanel(true);
+  return true;
+}
 
 function updateMissileUpgradeUI() {
   const list = document.getElementById('missile-upgrade-list');
@@ -5424,7 +5676,11 @@ function survivalSimDt(rawDt) {
 }
 
 function scoreTowerSpot(x, y, towerType, ai) {
-  const depth = (x - P2_ZONE.x) / (P2_ZONE.x2 - P2_ZONE.x);
+  const pid = ai.id;
+  const zone = playerZone(pid);
+  const depth = pid === 0
+    ? (zone.x2 - x) / (zone.x2 - zone.x)
+    : (x - zone.x) / (zone.x2 - zone.x);
   const laneCenter = 1 - Math.abs(y - MID_Y) / (H * 0.42);
   let score = laneCenter * 25;
   if (towerType === 'laser') score += depth * 55 + 15;
@@ -5438,7 +5694,8 @@ function scoreTowerSpot(x, y, towerType, ai) {
     if (d < 48) score -= 100;
     else if (d < 85) score -= 25;
   }
-  const choke = { x: P2_ZONE.x + 160, y: MID_Y };
+  const chokeX = pid === 0 ? zone.x2 - 160 : zone.x + 160;
+  const choke = { x: chokeX, y: MID_Y };
   score += Math.max(0, 130 - dist({ x, y }, choke)) * 0.2;
   return score;
 }
@@ -5513,11 +5770,130 @@ function freshSurvivalAiBrain() {
     idleStrikeDone: false,
     idleStrikePrimed: false,
     detectedBehaviors: [],
+    // Escalating surprise-attack tracker
+    surpriseCount: 0,
+    lastSurpriseBudget: 0,
+    surpriseBankTarget: 0,
+    surpriseReadyAt: 0,
+    surprisePlanId: null,
+    // Early-game random probe
+    earlyProbeAt: 14 + Math.random() * 58,
+    earlyProbeDone: false,
+    // Independent opening doctrine (defense / farm / attack)
+    strategyPath: survivalAiRollStrategyPath(),
+    pathSwitchAt: 12 + Math.random() * 38,
+    pathLogDone: false,
   };
+}
+
+function survivalAiLabel(ai) {
+  return ai?.name || players[aiSelf()]?.name || 'Enemy';
+}
+
+function survivalAiRollSurpriseBudget(brain) {
+  const n = brain.surpriseCount || 0;
+  const prev = brain.lastSurpriseBudget || 0;
+  const floor = prev > 0
+    ? prev * (1.14 + rand(0.06, 0.24))
+    : SURVIVAL_AI_SURPRISE_MIN_BUDGET + rand(0, 90);
+  const growth = n * SURVIVAL_AI_SURPRISE_BUDGET_GROWTH + rand(0, 110);
+  return Math.round(Math.max(SURVIVAL_AI_SURPRISE_MIN_BUDGET, floor + growth));
+}
+
+function survivalAiRollSurpriseWait(brain) {
+  const patience = (brain.surpriseCount || 0) * survivalAiRandRange(SURVIVAL_AI_SURPRISE_WAIT_PATIENCE);
+  return survivalAiRandRange(SURVIVAL_AI_SURPRISE_WAIT_BASE) + patience;
+}
+
+function survivalAiShuffledUnits(pool) {
+  const arr = pool.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand(0, i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 function survivalAiRandRange([lo, hi]) {
   return lo + Math.random() * (hi - lo);
+}
+
+function survivalAiRollStrategyPath(exclude) {
+  const pool = exclude
+    ? SURVIVAL_AI_STRATEGY_PATHS.filter((p) => p !== exclude)
+    : SURVIVAL_AI_STRATEGY_PATHS.slice();
+  return pool[Math.floor(rand(0, pool.length))];
+}
+
+function survivalAiSchedulePathSwitch(brain) {
+  brain.pathSwitchAt = combatTime + survivalAiRandRange(SURVIVAL_AI_PATH_SWITCH_WINDOW);
+}
+
+function survivalAiPathProfile(brain) {
+  const path = brain?.strategyPath || 'attack';
+  if (path === 'defense') {
+    return {
+      reserveMult: 1.32,
+      bankMult: 1.08,
+      prepMult: 1.18,
+      strikeSizeBonus: -1,
+      surpriseChanceMult: 0.62,
+      planBias: {
+        spread_breaker: 1.35, wall_siege: 1.4, knight_breaker: 1.25,
+        cannon_push: 1.15, goblin_raid: 0.75, rush_punish: 0.8,
+      },
+      maxCombatTowers: 6,
+      farmMintCap: 1,
+      probeChanceMult: 0.55,
+      ecoYieldPriority: 0.45,
+    };
+  }
+  if (path === 'farm') {
+    return {
+      reserveMult: 1.42,
+      bankMult: 1.38,
+      prepMult: 1.28,
+      strikeSizeBonus: 0,
+      surpriseChanceMult: 0.72,
+      planBias: {
+        goblin_raid: 1.45, mint_raid: 1.5, cannon_push: 1.1,
+        rush_punish: 0.7, finisher: 0.85,
+      },
+      maxCombatTowers: 2,
+      farmMintCap: 3,
+      probeChanceMult: 0.75,
+      ecoYieldPriority: 2.4,
+    };
+  }
+  return {
+    reserveMult: 0.76,
+    bankMult: 0.8,
+    prepMult: 0.7,
+    strikeSizeBonus: 2,
+    surpriseChanceMult: 1.5,
+    planBias: {
+      rush_punish: 1.5, wolf_pack: 1.35, swarm_breaker: 1.3,
+      finisher: 1.25, sniper_hunt: 1.2, wall_siege: 0.65,
+    },
+    maxCombatTowers: 2,
+    farmMintCap: 1,
+    probeChanceMult: 1.35,
+    ecoYieldPriority: 0.7,
+  };
+}
+
+function survivalAiTickStrategyPath(brain, ai, ctx) {
+  if (!brain.strategyPath) {
+    brain.strategyPath = survivalAiRollStrategyPath();
+    survivalAiSchedulePathSwitch(brain);
+  }
+  if (ctx.combatTime < brain.pathSwitchAt) return false;
+  survivalAiSchedulePathSwitch(brain);
+  if (rand() > survivalAiRandRange(SURVIVAL_AI_PATH_SWITCH_CHANCE)) return false;
+  const prev = brain.strategyPath;
+  brain.strategyPath = survivalAiRollStrategyPath(prev);
+  addLog(`${survivalAiLabel(ai)} shifts doctrine — now ${SURVIVAL_AI_PATH_LABELS[brain.strategyPath]}-heavy.`);
+  return true;
 }
 
 function survivalAiRollPrepTime() {
@@ -5539,9 +5915,9 @@ function survivalAiPlanLabel(planId) {
 }
 
 function survivalAiContext(ai) {
-  const player = players[0];
-  const playerUnits = combatUnits.filter((u) => u.owner === 0 && u.hp > 0);
-  const aiUnits = combatUnits.filter((u) => u.owner === 1 && u.hp > 0);
+  const player = players[aiEnemy()];
+  const playerUnits = combatUnits.filter((u) => u.owner === aiEnemy() && u.hp > 0);
+  const aiUnits = combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0);
   return {
     threat: survivalAiHasImmediateThreat(),
     playerPressure: playerUnits.length,
@@ -5554,13 +5930,13 @@ function survivalAiContext(ai) {
 }
 
 function survivalAiIntel(ai) {
-  const player = players[0];
+  const player = players[aiEnemy()];
   const field = {};
   for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.owner !== aiEnemy() || u.hp <= 0) continue;
     field[u.type] = (field[u.type] || 0) + 1;
   }
-  const hist = survivalAiBrain?.playerDeployed || {};
+  const hist = activeAiBrain()?.playerDeployed || {};
   const blend = (type) => (field[type] || 0) + Math.min(hist[type] || 0, 8) * 0.4;
 
   const towers = {};
@@ -5886,14 +6262,14 @@ function survivalAiClassifyComposition(composition) {
 
 function survivalAiEnemyWallHp() {
   let hp = 0;
-  for (const t of players[0].turrets) {
+  for (const t of players[aiEnemy()].turrets) {
     if (LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType)) hp += Math.max(0, t.hp);
   }
   return hp;
 }
 
 function survivalAiEnemyWallCount() {
-  return players[0].turrets.filter((t) => LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType) && t.hp > 0).length;
+  return players[aiEnemy()].turrets.filter((t) => LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType) && t.hp > 0).length;
 }
 
 // ─── Win-now strike calculus — attack the instant the math says base dies ─────
@@ -5919,15 +6295,11 @@ function survivalAiUnitStrikeThreat(type, pid, hpFrac = 1) {
 
 function survivalAiExistingStrikeThreat(ai) {
   let threat = 0;
-  const midX = W * 0.44;
-  const deepX = W * 0.62;
   for (const u of combatUnits) {
-    if (u.owner !== 1 || u.hp <= 0) continue;
-    const maxHp = u.maxHp || unitDef(u.type, 1).hp || 1;
+    if (u.owner !== aiEnemy() || u.hp <= 0) continue;
+    const maxHp = u.maxHp || unitDef(u.type, aiSelf()).hp || 1;
     const hpFrac = u.hp / maxHp;
-    let w = 0.32;
-    if (u.x >= deepX) w = 1.25;
-    else if (u.x >= midX) w = 0.82;
+    const w = survivalAiEnemyDepthWeight(u);
     threat += survivalAiUnitStrikeThreat(u.type, 1, hpFrac) * w;
   }
   return threat;
@@ -5935,7 +6307,7 @@ function survivalAiExistingStrikeThreat(ai) {
 
 function survivalAiGreedyAffordableThreat(ai, reserve = 70) {
   const room = SURVIVAL_AI_MAX_UNITS
-    - combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+    - combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
   if (room <= 0) return 0;
   let budget = Math.max(0, ai.coins - reserve);
   let threat = 0;
@@ -5948,13 +6320,13 @@ function survivalAiGreedyAffordableThreat(ai, reserve = 70) {
     let pick = null;
     let bestVal = 0;
     for (const t of pool) {
-      const c = unitDef(t, 1).cost;
+      const c = unitDef(t, aiSelf()).cost;
       if (c > budget) continue;
       const val = survivalAiUnitStrikeThreat(t, 1, 1) / c;
       if (val > bestVal) { bestVal = val; pick = t; }
     }
     if (!pick) break;
-    const c = unitDef(pick, 1).cost;
+    const c = unitDef(pick, aiSelf()).cost;
     threat += survivalAiUnitStrikeThreat(pick, 1, 1);
     budget -= c;
     bought += 1;
@@ -5963,12 +6335,12 @@ function survivalAiGreedyAffordableThreat(ai, reserve = 70) {
 }
 
 function survivalAiPlayerFortification(intel) {
-  const player = players[0];
+  const player = players[aiEnemy()];
   let fort = Math.max(0, player.baseHp);
   fort += survivalAiEnemyWallHp() * 0.78;
   const midX = W * 0.48;
   for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.owner !== aiEnemy() || u.hp <= 0) continue;
     if (u.x >= midX) fort += u.hp * 0.38;
   }
   fort += (intel.baseHealthUp || 0) * 90;
@@ -5979,7 +6351,7 @@ function survivalAiPlayerFortification(intel) {
 function survivalAiEstimateApproachLoss(intel) {
   const laneY = survivalAiPickAttackLane();
   let dps = 0;
-  for (const t of players[0].turrets) {
+  for (const t of players[aiEnemy()].turrets) {
     if (t.hp <= 0 || !LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType)) continue;
     const tw = towerDef(t.towerType, 0);
     const range = tw.range || 180;
@@ -6019,7 +6391,7 @@ function survivalAiTryWinNowStrike(ai, brain, intel, ctx) {
   const plan = brain.plan;
   if (!plan) return false;
 
-  const live = combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  const live = combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
   const room = SURVIVAL_AI_MAX_UNITS - live;
   plan.id = CPU_PLAN.FINISHER;
   plan.strikeSize = Math.min(
@@ -6041,7 +6413,7 @@ function survivalAiArmStrikeEval(brain, composition, intel) {
     key: survivalAiScenarioKey(intel),
     startWallHp: survivalAiEnemyWallHp(),
     startWallCount: survivalAiEnemyWallCount(),
-    startBaseHp: players[0].baseHp,
+    startBaseHp: players[aiEnemy()].baseHp,
     evalAt: combatTime + 12,
   };
 }
@@ -6053,7 +6425,7 @@ function survivalAiGradeStrike(brain) {
 
   const wallDmg = ev.startWallHp - survivalAiEnemyWallHp();
   const towersDown = ev.startWallCount - survivalAiEnemyWallCount();
-  const baseDmg = ev.startBaseHp - players[0].baseHp;
+  const baseDmg = ev.startBaseHp - players[aiEnemy()].baseHp;
   const impact = wallDmg + towersDown * 60 + baseDmg * 1.5;
   const success = towersDown >= 1 || baseDmg >= 15 || wallDmg >= 45;
 
@@ -6096,6 +6468,9 @@ function survivalAiScorePlan(planId, intel, ai, ctx, brain) {
 
   if (arch) score *= survivalAiArchetypeMultiplier(scenarioKey, arch);
 
+  const pathBias = survivalAiPathProfile(brain).planBias;
+  if (pathBias && pathBias[planId]) score *= pathBias[planId];
+
   if (!brain.lastStrikeSuccess && brain.plan?.id === planId && (brain.consecutiveFailures || 0) >= 1) {
     score *= 0.25;
   }
@@ -6106,7 +6481,7 @@ function survivalAiScorePlan(planId, intel, ai, ctx, brain) {
       if (ctx.combatTime < 90 || !LIVE_ARMY.hasBarracks(ai)) score *= 0.15;
       else score *= 0.5;
     }
-    if (ai.coins < unitDef('peka', 1).cost + 200) score *= 0.55;
+    if (ai.coins < unitDef('peka', aiSelf()).cost + 200) score *= 0.55;
   }
   if ((planId === CPU_PLAN.GOBLIN_RAID || planId === CPU_PLAN.MINT_RAID)
       && !isUnitEnabled('goblin')) score = 0;
@@ -6192,7 +6567,7 @@ function survivalAiComposeStrike(planId, intel, strikeSize, ai, brain) {
       break;
     case CPU_PLAN.WALL_SIEGE:
       fill('tank', Math.min(3, strikeSize - 2));
-      if (has('peka') && ai.coins >= unitDef('peka', 1).cost) order.push('peka');
+      if (has('peka') && ai.coins >= unitDef('peka', aiSelf()).cost) order.push('peka');
       fill('striker', strikeSize - order.length);
       break;
     case CPU_PLAN.RUSH_PUNISH:
@@ -6203,10 +6578,10 @@ function survivalAiComposeStrike(planId, intel, strikeSize, ai, brain) {
       if (intel.snipers >= 0.5) fill('speed', 2);
       fill('tank', 2);
       fill('striker', 2);
-      if (has('peka') && ai.coins >= unitDef('peka', 1).cost) order.push('peka');
+      if (has('peka') && ai.coins >= unitDef('peka', aiSelf()).cost) order.push('peka');
       break;
     case CPU_PLAN.FINISHER:
-      if (has('peka') && ai.coins >= unitDef('peka', 1).cost) order.push('peka');
+      if (has('peka') && ai.coins >= unitDef('peka', aiSelf()).cost) order.push('peka');
       fill('tank', 2);
       fill('striker', strikeSize - order.length);
       break;
@@ -6222,22 +6597,23 @@ function survivalAiComposeStrike(planId, intel, strikeSize, ai, brain) {
   return order.slice(0, strikeSize).reverse();
 }
 
-function survivalAiStrikeRevealLog(planId) {
+function survivalAiStrikeRevealLog(planId, isSurprise = false) {
+  const surprisePrefix = isSurprise ? 'SURPRISE ' : '';
   const logs = {
-    wolf_pack: '🤖 Enemy commits a Wolf Pack — hunting your back line!',
-    sniper_hunt: '🤖 Enemy unleashes Wolves to hunt your Snipers!',
-    knight_breaker: '🤖 Enemy launches a Knight Breaker — armored spearhead!',
-    spread_breaker: '🤖 Enemy sends Elephant shields through your spreaders!',
-    cannon_push: '🤖 Enemy masses Knights behind Elephant shields!',
-    goblin_raid: '🤖 Enemy raids your economy with Goblins!',
-    mint_raid: '🤖 Enemy sends Goblins to plunder your mints!',
-    swarm_breaker: '🤖 Enemy counters your swarm with Knights and Wolves!',
-    wall_siege: '🤖 Enemy begins a siege — Elephants and Dragon at your wall!',
-    rush_punish: '🤖 Enemy punishes your early rush!',
-    dragon_assault: '🤖 Enemy unveils a Dragon-led assault!',
-    finisher: '🤖 Enemy goes all-in for the kill!',
+    wolf_pack: `🤖 ${surprisePrefix}Enemy commits a Wolf Pack — hunting your back line!`,
+    sniper_hunt: `🤖 ${surprisePrefix}Enemy unleashes Wolves to hunt your Snipers!`,
+    knight_breaker: `🤖 ${surprisePrefix}Enemy launches a Knight Breaker — armored spearhead!`,
+    spread_breaker: `🤖 ${surprisePrefix}Enemy sends Elephant shields through your spreaders!`,
+    cannon_push: `🤖 ${surprisePrefix}Enemy masses Knights behind Elephant shields!`,
+    goblin_raid: `🤖 ${surprisePrefix}Enemy raids your economy with Goblins!`,
+    mint_raid: `🤖 ${surprisePrefix}Enemy sends Goblins to plunder your mints!`,
+    swarm_breaker: `🤖 ${surprisePrefix}Enemy counters your swarm with Knights and Wolves!`,
+    wall_siege: `🤖 ${surprisePrefix}Enemy begins a siege — Elephants and Dragon at your wall!`,
+    rush_punish: `🤖 ${surprisePrefix}Enemy punishes your opening!`,
+    dragon_assault: `🤖 ${surprisePrefix}Enemy unveils a Dragon-led assault!`,
+    finisher: `🤖 ${surprisePrefix}Enemy goes all-in for the kill!`,
   };
-  addLog(logs[planId] || '🤖 Enemy commits a major strike!');
+  addLog(logs[planId] || `🤖 ${surprisePrefix}Enemy commits a major strike!`);
 }
 
 function survivalAiUnitUnlockedOrCanUnlock(ai, type) {
@@ -6253,7 +6629,7 @@ function survivalAiPrepUnlocks(ai, planId, intel) {
   for (const ut of need) {
     if (LIVE_ARMY.unitUnlocked(ai, ut)) continue;
     if (ai.coins >= LIVE_ARMY.unitUnlockCost(ut)) {
-      if (buyBarracksUpgrade(1, 'unlock', ut)) return true;
+      if (buyBarracksUpgrade(aiSelf(), 'unlock', ut)) return true;
     }
   }
   return false;
@@ -6277,7 +6653,7 @@ function survivalAiPrepTowerUnlock(ai, intel, planId) {
     if (tt === 'missile' && (intel.wolves >= 1 || intel.dragons >= 0.5)) w += 25;
     if (w > best) { best = w; pick = tt; }
   }
-  return buyEngineersUpgrade(1, 'unlock', pick);
+  return buyEngineersUpgrade(aiSelf(), 'unlock', pick);
 }
 
 function survivalAiPickDefenseTower(ai, intel) {
@@ -6308,48 +6684,81 @@ function survivalAiPickDefenseTower(ai, intel) {
 }
 
 function survivalAiQuietEconomy(ai, ctx) {
+  const brain = activeAiBrain();
+  const path = brain?.strategyPath || 'attack';
+  const profile = survivalAiPathProfile(brain);
   const eco = LIVE_ARMY.economyRecord(ai);
   if (!eco.farm.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('farm')) {
-    return buyEconomyUpgrade(1, 'unlock', 'farm');
+    if (path !== 'defense' || ai.coins >= LIVE_ARMY.economyUnlockCost('farm') * 1.8) {
+      return buyEconomyUpgrade(aiSelf(), 'unlock', 'farm');
+    }
   }
   if (!eco.mint.unlocked && ai.coins >= LIVE_ARMY.economyUnlockCost('mint')) {
-    return buyEconomyUpgrade(1, 'unlock', 'mint');
+    if (path === 'farm' || (path === 'attack' && ai.coins >= LIVE_ARMY.economyUnlockCost('mint') * 2.2)) {
+      return buyEconomyUpgrade(aiSelf(), 'unlock', 'mint');
+    }
   }
   if (!LIVE_ARMY.hasBarracks(ai) && ai.coins >= towerCost(ai, 'barracks')) {
     return survivalAiTryPlaceTower(ai, 'barracks');
   }
   if (!LIVE_ARMY.hasEngineers(ai) && ai.coins >= towerCost(ai, 'engineers')) {
-    return survivalAiTryPlaceTower(ai, 'engineers');
+    if (path !== 'farm' || survivalAiEconStrength(ai) >= 2) {
+      return survivalAiTryPlaceTower(ai, 'engineers');
+    }
   }
-  if (LIVE_ARMY.farmUnlocked(ai) && !aiHasLivingTower(ai, 'farm') && ai.coins >= towerCost(ai, 'farm')) {
-    return survivalAiTryPlaceTower(ai, 'farm');
+  const mintCap = profile.farmMintCap || 2;
+  if (LIVE_ARMY.farmUnlocked(ai) && countAiTowers(ai, 'farm') < mintCap && ai.coins >= towerCost(ai, 'farm')) {
+    if (path === 'farm' || (path === 'attack' && countAiTowers(ai, 'farm') < 1)) {
+      return survivalAiTryPlaceTower(ai, 'farm');
+    }
   }
-  if (LIVE_ARMY.mintUnlocked(ai) && countAiTowers(ai, 'mint') < 2 && ai.coins >= towerCost(ai, 'mint')) {
-    return survivalAiTryPlaceTower(ai, 'mint');
+  if (LIVE_ARMY.mintUnlocked(ai) && countAiTowers(ai, 'mint') < mintCap && ai.coins >= towerCost(ai, 'mint')) {
+    if (path === 'farm' || (path === 'attack' && countAiTowers(ai, 'mint') < 1)) {
+      return survivalAiTryPlaceTower(ai, 'mint');
+    }
   }
-  if ((eco.base.income || 0) < LIVE_ARMY.baseBranchMax('income')) {
+  if (path === 'farm' && (eco.base.income || 0) < LIVE_ARMY.baseBranchMax('income')) {
     const cost = LIVE_ARMY.economyBaseCost(ai, 'income');
-    if (ai.coins >= cost) return buyEconomyUpgrade(1, 'base', 'income');
+    if (ai.coins >= cost) return buyEconomyUpgrade(aiSelf(), 'base', 'income');
+  }
+  if (path !== 'attack' && (eco.base.income || 0) < LIVE_ARMY.baseBranchMax('income')) {
+    const cost = LIVE_ARMY.economyBaseCost(ai, 'income');
+    if (ai.coins >= cost * (path === 'farm' ? 1 : 1.35)) return buyEconomyUpgrade(aiSelf(), 'base', 'income');
   }
   for (const type of ['farm', 'mint']) {
     const rec = type === 'farm' ? eco.farm : eco.mint;
     if (!rec.unlocked) continue;
     const yieldCost = LIVE_ARMY.economyYieldCost(ai, type);
     if (yieldCost != null && rec.yield < LIVE_ARMY.yieldMax() && ai.coins >= yieldCost) {
-      return buyEconomyUpgrade(1, 'yield', type);
+      if (path === 'farm' && rand() < 0.74) {
+        return buyEconomyUpgrade(aiSelf(), 'yield', type);
+      }
+      if (path !== 'farm' && ai.coins >= yieldCost * 2.5) {
+        return buyEconomyUpgrade(aiSelf(), 'yield', type);
+      }
     }
   }
   if (ctx.aiHpPct < 0.65 && (eco.base.health || 0) < LIVE_ARMY.baseBranchMax('health')) {
     const cost = LIVE_ARMY.economyBaseCost(ai, 'health');
-    if (ai.coins >= cost) return buyEconomyUpgrade(1, 'base', 'health');
+    const healthGate = path === 'defense' ? 1 : 1.4;
+    if (ai.coins >= cost * healthGate) return buyEconomyUpgrade(aiSelf(), 'base', 'health');
   }
   return false;
 }
 
 function survivalAiQuietDefense(ai, intel, ctx) {
+  const brain = activeAiBrain();
+  const profile = survivalAiPathProfile(brain);
+  const combatOwned = ai.turrets.filter(
+    (t) => t.hp > 0 && LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType),
+  ).length;
+  if (combatOwned >= (profile.maxCombatTowers || 4)) return false;
   const defTower = survivalAiPickDefenseTower(ai, intel);
   if (defTower && ai.coins >= towerCost(ai, defTower)) {
-    return survivalAiTryPlaceTower(ai, defTower);
+    const spendGate = brain?.strategyPath === 'attack' ? 1.55 : brain?.strategyPath === 'farm' ? 1.25 : 1;
+    if (ai.coins >= towerCost(ai, defTower) * spendGate) {
+      return survivalAiTryPlaceTower(ai, defTower);
+    }
   }
   // Quiet phases are strictly passive: build defensive towers only. Reactive
   // troops are handled by the threat-proportional defense in
@@ -6365,10 +6774,12 @@ function survivalAiQuietDefense(ai, intel, ctx) {
 // upgraded defensive towers. Everything below spends only the war-chest SURPLUS
 // so investing never delays a strike the CPU is banking for.
 function survivalAiInvestReserve(brain, ctx) {
-  // While actively banking for a strike, treat the whole bank target as reserve
-  // (only true excess gets invested). Otherwise keep a small safety cushion.
+  const profile = survivalAiPathProfile(brain);
+  let base = ctx.combatTime < 30 ? 130 : 90;
+  base *= profile.reserveMult || 1;
   if (brain.phase === 'prepare' && brain.plan) return brain.plan.bankTarget;
-  return ctx.combatTime < 30 ? 130 : 90;
+  if (brain.phase === 'surprise_bank' && brain.surpriseBankTarget) return brain.surpriseBankTarget;
+  return base;
 }
 
 function survivalAiBuyBaseCannon(ai, budget) {
@@ -6380,7 +6791,7 @@ function survivalAiBuyBaseCannon(ai, budget) {
   for (const branch of branches) {
     const cost = baseCannonSkillCost(branch, skills[branch] || 0);
     if (cost != null && budget >= cost && ai.coins >= cost) {
-      return buyBaseCannonUpgrade(1, branch);
+      return buyBaseCannonUpgrade(aiSelf(), branch);
     }
   }
   return false;
@@ -6401,7 +6812,7 @@ function survivalAiBuyCommander(ai, budget) {
     const gate = [0, 4, 6][c.tier] ?? 6;
     if (survivalAiEconStrength(ai) < gate) return false;
   }
-  return buyCommanderUpgrade(1, nextTier);
+  return buyCommanderUpgrade(aiSelf(), nextTier);
 }
 
 // Upgrade priority per unit — matched to the role each plays in CPU doctrine.
@@ -6424,7 +6835,7 @@ function survivalAiBuyUnitMastery(ai, intel, budget) {
     peka: LIVE_ARMY.unitUnlocked(ai, 'peka') ? 2 : 0,
   };
   // Boost whatever counters the player's detected behaviors right now.
-  for (const b of (survivalAiBrain?.detectedBehaviors || [])) {
+  for (const b of (activeAiBrain()?.detectedBehaviors || [])) {
     const prep = SURVIVAL_AI_PLAN_PREP[b.plan];
     if (!prep) continue;
     for (const u of prep.units) relevance[u] = (relevance[u] || 1) + b.score * 0.08;
@@ -6440,7 +6851,7 @@ function survivalAiBuyUnitMastery(ai, intel, budget) {
         if ((rec[stat] || 0) >= targetLvl || (rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) continue;
         const cost = LIVE_ARMY.statUpgradeCost(ai, type, stat);
         if (cost != null && budget >= cost && ai.coins >= cost) {
-          return buyBarracksUpgrade(1, 'stat', type, stat);
+          return buyBarracksUpgrade(aiSelf(), 'stat', type, stat);
         }
       }
     }
@@ -6467,7 +6878,7 @@ function survivalAiBuyTowerMastery(ai, budget) {
         if (lvl >= targetLvl || lvl >= LIVE_ARMY.ENGINEER_STAT_MAX) continue;
         const cost = LIVE_ARMY.engineersUpgradeCost(ai, tt, branch);
         if (cost != null && budget >= cost && ai.coins >= cost) {
-          return buyEngineersUpgrade(1, 'stat', tt, branch);
+          return buyEngineersUpgrade(aiSelf(), 'stat', tt, branch);
         }
       }
     }
@@ -6478,12 +6889,27 @@ function survivalAiBuyTowerMastery(ai, budget) {
 function survivalAiInvestSurplus(ai, brain, intel, ctx) {
   const budget = ai.coins - survivalAiInvestReserve(brain, ctx);
   if (budget <= 0) return false;
-  // Commander FIRST (so the CPU can place more troops at once ASAP) → base
-  // cannons (cheap, always-on) → troop mastery → tower mastery.
-  if (survivalAiBuyCommander(ai, budget)) return true;
-  if (survivalAiBuyBaseCannon(ai, budget)) return true;
-  if (survivalAiBuyUnitMastery(ai, intel, budget)) return true;
-  if (survivalAiBuyTowerMastery(ai, budget)) return true;
+  const path = brain?.strategyPath || 'attack';
+  const tryCommander = () => survivalAiBuyCommander(ai, budget);
+  const tryCannon = () => survivalAiBuyBaseCannon(ai, budget);
+  const tryUnits = () => survivalAiBuyUnitMastery(ai, intel, budget);
+  const tryTowers = () => survivalAiBuyTowerMastery(ai, budget);
+  if (path === 'farm') {
+    if (tryCommander()) return true;
+    if (tryCannon()) return true;
+    if (tryUnits()) return true;
+    if (tryTowers()) return true;
+  } else if (path === 'defense') {
+    if (tryCannon()) return true;
+    if (tryTowers()) return true;
+    if (tryCommander()) return true;
+    if (tryUnits()) return true;
+  } else {
+    if (tryCommander()) return true;
+    if (tryUnits()) return true;
+    if (tryCannon()) return true;
+    if (tryTowers()) return true;
+  }
   return false;
 }
 
@@ -6509,7 +6935,7 @@ function survivalAiLivePlayerUnits() {
   const counts = {};
   let total = 0;
   for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.owner !== aiEnemy() || u.hp <= 0) continue;
     counts[u.type] = (counts[u.type] || 0) + 1;
     total += 1;
   }
@@ -6518,10 +6944,10 @@ function survivalAiLivePlayerUnits() {
 
 // Is a specific player unit within firing range of any of the CPU's combat towers?
 function survivalAiUnitNearAiTowers(u, mult = 1.05) {
-  const ai = players[1];
+  const ai = players[aiSelf()];
   for (const t of ai.turrets) {
     if (t.hp <= 0 || !LIVE_ARMY.COMBAT_TOWERS.includes(t.towerType)) continue;
-    const def = towerDef(t.towerType, 1);
+    const def = towerDef(t.towerType, aiSelf());
     const range = def.range || 220;
     if (dist(t, u) <= range * mult) return true;
   }
@@ -6530,37 +6956,30 @@ function survivalAiUnitNearAiTowers(u, mult = 1.05) {
 
 function survivalAiUnitInTowerRange(type, mult = 1.05) {
   return combatUnits.some((u) =>
-    u.owner === 0 && u.hp > 0 && u.type === type && survivalAiUnitNearAiTowers(u, mult));
+    u.owner === aiEnemy() && u.hp > 0 && u.type === type && survivalAiUnitNearAiTowers(u, mult));
 }
 
 // A player unit is "advancing" once it crosses midfield toward the CPU base or
 // enters the CPU's tower range — the moment to commit a reactive counter.
 function survivalAiThreatAdvancing() {
-  const mid = W / 2;
   return combatUnits.some((u) =>
-    u.owner === 0 && u.hp > 0 && (u.x > mid || survivalAiUnitNearAiTowers(u)));
+    u.owner === aiEnemy() && u.hp > 0 && (survivalAiEnemyAdvancing(u) || survivalAiUnitNearAiTowers(u)));
 }
 
-// Count the player units actively pressing into the CPU's half (or under its
-// tower fire) — the force it must answer right now. Used to size the defensive
-// response so the CPU spawns just enough counters to break the attack instead
-// of endlessly pumping troops.
 function survivalAiAdvancingThreatCount() {
-  const mid = W / 2;
   let n = 0;
   for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
-    if (u.x > mid || survivalAiUnitNearAiTowers(u)) n += 1;
+    if (u.owner !== aiEnemy() || u.hp <= 0) continue;
+    if (survivalAiEnemyAdvancing(u) || survivalAiUnitNearAiTowers(u)) n += 1;
   }
   return n;
 }
 
 function survivalAiAdvancingThreatsByType() {
-  const mid = W / 2;
   const counts = {};
   for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
-    if (u.x > mid || survivalAiUnitNearAiTowers(u)) {
+    if (u.owner !== aiEnemy() || u.hp <= 0) continue;
+    if (survivalAiEnemyAdvancing(u) || survivalAiUnitNearAiTowers(u)) {
       counts[u.type] = (counts[u.type] || 0) + 1;
     }
   }
@@ -6568,10 +6987,10 @@ function survivalAiAdvancingThreatsByType() {
 }
 
 function survivalAiNearBaseThreatsByType() {
-  const bp = basePos(1);
+  const bp = basePos(aiSelf());
   const counts = {};
   for (const u of combatUnits) {
-    if (u.owner !== 0 || u.hp <= 0) continue;
+    if (u.owner !== aiEnemy() || u.hp <= 0) continue;
     if (dist(u, bp) <= AI_BASE_DEFENSE_RANGE) {
       counts[u.type] = (counts[u.type] || 0) + 1;
     }
@@ -6582,17 +7001,17 @@ function survivalAiNearBaseThreatsByType() {
 function survivalAiLiveAiUnitsByType() {
   const counts = {};
   for (const u of combatUnits) {
-    if (u.owner !== 1 || u.hp <= 0) continue;
+    if (u.owner !== aiSelf() || u.hp <= 0) continue;
     counts[u.type] = (counts[u.type] || 0) + 1;
   }
   return counts;
 }
 
 function survivalAiCountersNearBase(counterType) {
-  const bp = basePos(1);
+  const bp = basePos(aiSelf());
   let n = 0;
   for (const u of combatUnits) {
-    if (u.owner !== 1 || u.hp <= 0 || u.type !== counterType) continue;
+    if (u.owner !== aiSelf() || u.hp <= 0 || u.type !== counterType) continue;
     if (dist(u, bp) <= AI_BASE_DEFENSE_RANGE) n += 1;
   }
   return n;
@@ -6600,10 +7019,10 @@ function survivalAiCountersNearBase(counterType) {
 
 function survivalAiEffectiveCounterCount(entry) {
   if (entry.counter === 'sniper') {
-    return combatUnits.filter((u) => u.owner === 1 && u.hp > 0 && u.type === 'sniper').length;
+    return combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0 && u.type === 'sniper').length;
   }
   if (entry.threat === 'sniper' && entry.counter === 'speed') {
-    const snipers = combatUnits.filter((u) => u.owner === 0 && u.hp > 0 && u.type === 'sniper');
+    const snipers = combatUnits.filter((u) => u.owner === aiEnemy() && u.hp > 0 && u.type === 'sniper');
     if (!snipers.length) return survivalAiLiveAiUnitsByType().speed || 0;
     let n = 0;
     for (const w of combatUnits) {
@@ -6680,7 +7099,7 @@ function survivalAiCounterNeeds() {
 // Spend on every under-covered counter at once — one spawn per deficit line per
 // pass, cycling until maxSpawns or no affordable gaps remain.
 function survivalAiDeployCounterGaps(ai, maxSpawns = 3) {
-  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
+  if (combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
   const needs = survivalAiCounterNeeds();
   if (!needs.length) return false;
 
@@ -6720,10 +7139,10 @@ function survivalAiCounterSlotFn(entry) {
 // Returns 'ready' (spend next), 'unlocking' (acted this tick), or 'no'.
 function survivalAiReadyCounterUnit(ai, type) {
   if (LIVE_ARMY.unitUnlocked(ai, type)) {
-    return ai.coins >= unitDef(type, 1).cost ? 'ready' : 'no';
+    return ai.coins >= unitDef(type, aiSelf()).cost ? 'ready' : 'no';
   }
   if (LIVE_ARMY.hasBarracks(ai) && ai.coins >= LIVE_ARMY.unitUnlockCost(type)) {
-    return buyBarracksUpgrade(1, 'unlock', type) ? 'unlocking' : 'no';
+    return buyBarracksUpgrade(aiSelf(), 'unlock', type) ? 'unlocking' : 'no';
   }
   return 'no';
 }
@@ -6732,7 +7151,7 @@ function survivalAiReadyCounterUnit(ai, type) {
 function survivalAiCounterVolumeWithDragon(ai) {
   const field = survivalAiLivePlayerUnits();
   if (field.total < SURVIVAL_AI_VOLUME_THRESHOLD) return false;
-  const liveDragons = combatUnits.filter((u) => u.owner === 1 && u.type === 'peka' && u.hp > 0).length;
+  const liveDragons = combatUnits.filter((u) => u.owner === aiSelf() && u.type === 'peka' && u.hp > 0).length;
   if (liveDragons >= 1) return false;
   const state = survivalAiReadyCounterUnit(ai, 'peka');
   if (state === 'unlocking') {
@@ -6752,13 +7171,13 @@ function survivalAiCounterVolumeWithDragon(ai) {
 // Returns how many were actually placed.
 function survivalAiCommanderBatchAtBase(ai, type, wantCount) {
   const cap = Math.max(1, commanderCap(ai));
-  const bp = basePos(1);
+  const bp = basePos(aiSelf());
   // Right on the doorstep of the base so the wall forms between the base and the
   // incoming attackers.
   const pos = { x: bp.x - 52, y: MID_Y };
   for (let count = Math.min(wantCount, cap); count >= 2; count--) {
-    const positions = commanderDeployPositions(pos, 1, type, count, 'front');
-    if (commanderValidateBatch(1, type, positions) && commanderPlaceBatch(1, type, positions)) {
+    const positions = commanderDeployPositions(pos, aiSelf(), type, count, 'front');
+    if (commanderValidateBatch(aiSelf(), type, positions) && commanderPlaceBatch(aiSelf(), type, positions)) {
       return count;
     }
   }
@@ -6774,7 +7193,7 @@ const AI_BASE_DEFENSE_RANGE = 320;
 // already near the base (units off attacking elsewhere don't count). This is
 // what stops a Wolf pack that has reached the base.
 function survivalAiDefendBase(ai) {
-  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
+  if (combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
   const nearBase = survivalAiNearBaseThreatsByType();
   const threatN = Object.values(nearBase).reduce((sum, n) => sum + n, 0);
   if (threatN === 0) return false;
@@ -6783,7 +7202,7 @@ function survivalAiDefendBase(ai) {
   if (!needs.length) return false;
 
   const nearDefenders = combatUnits.filter(
-    (u) => u.owner === 1 && u.hp > 0 && dist(u, basePos(1)) <= AI_BASE_DEFENSE_RANGE,
+    (u) => u.owner === aiSelf() && u.hp > 0 && dist(u, basePos(aiSelf())) <= AI_BASE_DEFENSE_RANGE,
   ).length;
   const totalDeficit = needs.reduce((sum, n) => sum + n.deficit, 0);
   if (nearDefenders >= threatN + 1) return false;
@@ -6807,7 +7226,7 @@ function survivalAiDefendBase(ai) {
 // this is how the CPU answers a big Wolf/Knight push fast instead of trickling
 // one unit per second.
 function survivalAiReactiveCommanderCounter(ai, intel, ctx) {
-  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
+  if (combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) return false;
 
   const advTotal = survivalAiAdvancingThreatCount();
   if (advTotal < 3) return false;
@@ -6819,15 +7238,15 @@ function survivalAiReactiveCommanderCounter(ai, intel, ctx) {
 
   if (!LIVE_ARMY.unitUnlocked(ai, counter)) {
     if (LIVE_ARMY.hasBarracks(ai) && ai.coins >= LIVE_ARMY.unitUnlockCost(counter)) {
-      return buyBarracksUpgrade(1, 'unlock', counter);
+      return buyBarracksUpgrade(aiSelf(), 'unlock', counter);
     }
     return false;
   }
 
   if (!commanderUnlocked(ai)) {
     const cost = commanderTierCost(1);
-    if (cost != null && ai.coins >= cost + unitDef(counter, 1).cost * 2) {
-      return buyCommanderUpgrade(1, 1);
+    if (cost != null && ai.coins >= cost + unitDef(counter, aiSelf()).cost * 2) {
+      return buyCommanderUpgrade(aiSelf(), 1);
     }
     return false;
   }
@@ -6846,11 +7265,11 @@ function survivalAiSpawnDefender(ai, intel) {
 }
 
 function survivalAiTrySpawnUnitOfType(ai, type, logDeploy = true, slotFn = null) {
-  const liveUnits = combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  const liveUnits = combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
   if (liveUnits >= SURVIVAL_AI_MAX_UNITS) return false;
   if (!isUnitEnabled(type) || !LIVE_ARMY.unitUnlocked(ai, type)) return false;
-  if (ai.coins < unitDef(type, 1).cost) return false;
-  const idx = combatUnits.filter((u) => u.owner === 1 && u.type === type).length;
+  if (ai.coins < unitDef(type, aiSelf()).cost) return false;
+  const idx = combatUnits.filter((u) => u.owner === aiSelf() && u.type === type).length;
   if (survivalTryLiveSpawnUnit(type, idx, slotFn)) {
     if (logDeploy) addLog(`🤖 Enemy deployed ${UNIT_TYPES[type].name}`);
     return true;
@@ -6885,7 +7304,7 @@ function getSniperFlankSlot(index, pid) {
 // on top of them fast.
 function getWolfSniperHuntSlot(index, pid) {
   const db = getDeployBounds(pid);
-  const snipers = combatUnits.filter((u) => u.owner === 0 && u.hp > 0 && u.type === 'sniper');
+  const snipers = combatUnits.filter((u) => u.owner === enemyId(pid) && u.hp > 0 && u.type === 'sniper');
   const forwardEdge = pid === 0 ? db.xMax : db.xMin;
   const towardEnemy = pid === 0 ? 1 : -1;
 
@@ -6979,7 +7398,7 @@ function survivalAiStrikeSlotFn(planId, type, index, pid) {
 }
 
 function survivalAiPlayerDragonThreat(intel) {
-  const live = combatUnits.filter((u) => u.owner === 0 && u.hp > 0 && u.type === 'peka').length;
+  const live = combatUnits.filter((u) => u.owner === enemyId(pid) && u.hp > 0 && u.type === 'peka').length;
   if (live > 0) return { live, urgency: 2 + live };
   if (intel.dragons >= 0.5) return { live: 0, urgency: 1 };
   return null;
@@ -6990,14 +7409,14 @@ function survivalAiRushSnipersAgainstDragon(ai, intel) {
   if (!threat) return false;
   if (!LIVE_ARMY.unitUnlocked(ai, 'sniper')) {
     if (LIVE_ARMY.hasBarracks(ai) && ai.coins >= LIVE_ARMY.unitUnlockCost('sniper')) {
-      return buyBarracksUpgrade(1, 'unlock', 'sniper');
+      return buyBarracksUpgrade(aiSelf(), 'unlock', 'sniper');
     }
     return false;
   }
-  const liveSnipers = combatUnits.filter((u) => u.owner === 1 && u.type === 'sniper' && u.hp > 0).length;
+  const liveSnipers = combatUnits.filter((u) => u.owner === aiSelf() && u.type === 'sniper' && u.hp > 0).length;
   const want = threat.live > 0 ? Math.min(4, 1 + threat.live * 2) : 2;
   if (liveSnipers >= want) return false;
-  if (ai.coins < unitDef('sniper', 1).cost) return false;
+  if (ai.coins < unitDef('sniper', aiSelf()).cost) return false;
   const slotFn = (idx, pid) => getSniperFlankSlot(idx, pid);
   if (!survivalAiTrySpawnUnitOfType(ai, 'sniper', true, slotFn)) return false;
   if (threat.live > 0) {
@@ -7011,14 +7430,14 @@ function survivalAiTryWolfKnightBait(ai, intel) {
   // towers chip the Knight while the Wolf pack finishes it. Wolves sent early in
   // the open just feed the Knight.
   const knightsInRange = combatUnits.filter((u) =>
-    u.owner === 0 && u.hp > 0 && u.type === 'striker' && survivalAiUnitNearAiTowers(u)).length;
+    u.owner === aiEnemy() && u.hp > 0 && u.type === 'striker' && survivalAiUnitNearAiTowers(u)).length;
   if (knightsInRange <= 0) return false;
 
   const state = survivalAiReadyCounterUnit(ai, 'speed');
   if (state === 'unlocking') return true;
   if (state !== 'ready') return false;
 
-  const liveWolves = combatUnits.filter((u) => u.owner === 1 && u.type === 'speed' && u.hp > 0).length;
+  const liveWolves = combatUnits.filter((u) => u.owner === aiSelf() && u.type === 'speed' && u.hp > 0).length;
   const want = Math.min(6, knightsInRange * 3);
   if (liveWolves >= want) return false;
 
@@ -7031,19 +7450,186 @@ function survivalAiTryWolfKnightBait(ai, intel) {
 }
 
 function survivalAiBeginPrepare(brain, intel, ai, ctx) {
+  const profile = survivalAiPathProfile(brain);
   let planId = survivalAiPickPlan(intel, ai, ctx, brain);
   if (ctx.playerHpPct < 0.55) planId = CPU_PLAN.FINISHER;
-  const strikeSize = survivalAiRollStrikeSize() + Math.min(brain.consecutiveFailures || 0, 2);
+  const strikeSize = survivalAiRollStrikeSize() + Math.min(brain.consecutiveFailures || 0, 2)
+    + Math.floor(rand(0, 2.99)) + (profile.strikeSizeBonus || 0);
+  const bankJitter = (0.82 + rand(0, 0.38)) * (profile.bankMult || 1);
+  const prepJitter = (0.75 + rand(0, 0.55)) * (profile.prepMult || 1);
   brain.plan = {
     id: planId,
     strikeSize,
-    bankTarget: survivalAiBankTarget(planId, strikeSize),
-    readyAt: combatTime + survivalAiRollPrepTime(),
+    bankTarget: Math.round(survivalAiBankTarget(planId, strikeSize) * bankJitter),
+    readyAt: combatTime + survivalAiRollPrepTime() * prepJitter,
     intelSnapshot: { ...intel },
   };
   brain.phase = 'prepare';
   brain.phaseUntil = brain.plan.readyAt;
   // Hidden intention — no log until the strike commits.
+}
+
+function survivalAiBeginSurpriseBank(brain, ai, intel, ctx, opts = {}) {
+  const planId = opts.planId || survivalAiPickPlan(intel, ai, ctx, brain);
+  brain.surprisePlanId = planId;
+  brain.surpriseBankTarget = survivalAiRollSurpriseBudget(brain);
+  if (opts.budgetBonus) brain.surpriseBankTarget += opts.budgetBonus;
+  brain.surpriseReadyAt = combatTime + survivalAiRollSurpriseWait(brain) * (opts.rushWait ? 0.55 : 1);
+  brain.phase = 'surprise_bank';
+  brain.phaseUntil = brain.surpriseReadyAt + rand(8, 28);
+  brain.plan = null;
+  brain.strikeQueue = [];
+  const hints = [
+    `${survivalAiLabel(ai)} is gathering strength in secret...`,
+    `${survivalAiLabel(ai)} has gone quiet — something is brewing.`,
+    `${survivalAiLabel(ai)} is holding back... for now.`,
+  ];
+  addLog(hints[Math.floor(rand(0, hints.length))]);
+}
+
+function survivalAiShouldStartSurpriseBank(brain, intel, ctx) {
+  if (ctx.combatTime < 18) return false;
+  if (survivalAiAdvancingThreatCount() >= 3) return false;
+  const profile = survivalAiPathProfile(brain);
+  if (survivalAiPlayerDeservesAmbush(intel, ctx)) return rand() < 0.68 * (profile.surpriseChanceMult || 1);
+  const n = brain.surpriseCount || 0;
+  const chance = (0.18 + n * 0.05 + rand(0, 0.14)) * (profile.surpriseChanceMult || 1);
+  return rand() < chance;
+}
+
+function survivalAiSurpriseReadyToCommit(ai, brain) {
+  if (!brain.surpriseBankTarget) return false;
+  const banked = ai.coins >= brain.surpriseBankTarget;
+  const waited = combatTime >= brain.surpriseReadyAt;
+  if (!banked || !waited) return false;
+  if (ai.coins >= brain.surpriseBankTarget * (1.45 + rand(0, 0.25))) return true;
+  const hesitate = Math.min(0.5, 0.1 + (brain.surpriseCount || 0) * 0.05);
+  return rand() >= hesitate;
+}
+
+function survivalAiBuildSurpriseComposition(ai, brain, intel) {
+  const minSpend = brain.surpriseBankTarget || SURVIVAL_AI_SURPRISE_MIN_BUDGET;
+  const liveRoom = SURVIVAL_AI_MAX_UNITS
+    - combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
+  if (liveRoom < 3) return null;
+
+  const planId = brain.surprisePlanId || CPU_PLAN.RUSH_PUNISH;
+  const planUnits = (SURVIVAL_AI_PLAN_PREP[planId]?.units || ['striker', 'speed']).slice();
+  const filler = survivalAiShuffledUnits(SURVIVAL_AI_PROBE_UNITS.filter((t) => isUnitEnabled(t)));
+  const pool = survivalAiShuffledUnits([...planUnits, ...planUnits, ...filler]);
+
+  const composition = [];
+  let spent = 0;
+  let guard = 0;
+  const maxUnits = Math.min(liveRoom, 22);
+
+  while (guard < 80 && composition.length < maxUnits) {
+    guard += 1;
+    let added = false;
+    for (const t of pool) {
+      if (!LIVE_ARMY.unitUnlocked(ai, t)) continue;
+      const c = unitDef(t, aiSelf()).cost;
+      if (ai.coins < c + 25) continue;
+      if (spent + c > minSpend * 1.65 && spent >= minSpend && composition.length >= 4) continue;
+      composition.push(t);
+      spent += c;
+      added = true;
+      break;
+    }
+    if (!added) break;
+    if (spent >= minSpend && composition.length >= 4 && rand() < 0.35) break;
+  }
+
+  if (composition.length < 3 || spent < minSpend * 0.72) return null;
+  return { composition, spent };
+}
+
+function survivalAiCommitSurpriseStrike(ai, brain, intel, ctx) {
+  const built = survivalAiBuildSurpriseComposition(ai, brain, intel);
+  if (!built) return false;
+
+  const { composition, spent } = built;
+  const prev = brain.lastSurpriseBudget || 0;
+  if (prev > 0 && spent <= prev) {
+    brain.surpriseBankTarget = Math.round(prev * 1.18 + 40);
+    return false;
+  }
+
+  survivalResetBattleSpeedOnEnemyAttack();
+  survivalAiStrikeRevealLog(brain.surprisePlanId || CPU_PLAN.RUSH_PUNISH, true);
+
+  let spawned = 0;
+  if (commanderUnlocked(ai) && composition.length >= 3) {
+    if (survivalAiCommanderStrike(ai, composition)) spawned = composition.length;
+  }
+  if (spawned < 3) {
+    const db = getDeployBounds(aiSelf());
+    const targetY = survivalAiPickAttackLane();
+    for (let i = 0; i < composition.length; i++) {
+      const type = composition[i];
+      const slotFn = () => ({
+        x: clamp(db.xMin + 12 + (i % 5) * 16 + rand(-6, 6), db.xMin + 8, db.xMax - 8),
+        y: clamp(targetY + (Math.floor(i / 5) % 3 - 1) * 44 + rand(-10, 10), DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
+      });
+      if (survivalAiTrySpawnUnitOfType(ai, type, false, slotFn)) spawned += 1;
+    }
+  }
+
+  if (spawned < 3) return false;
+
+  brain.lastSurpriseBudget = spent;
+  brain.surpriseCount = (brain.surpriseCount || 0) + 1;
+  brain.surpriseBankTarget = 0;
+  brain.surpriseReadyAt = 0;
+  brain.surprisePlanId = null;
+  brain.plan = null;
+  brain.strikeQueue = [];
+  brain.phase = 'recover';
+  brain.phaseUntil = combatTime + survivalAiRollRecoverTime() * (0.85 + rand(0, 0.35));
+  survivalAiArmStrikeEval(brain, composition, intel);
+  return true;
+}
+
+function survivalAiEarlyProbe(ai, brain, intel, ctx) {
+  if (brain.earlyProbeDone) return false;
+  if (ctx.combatTime < brain.earlyProbeAt) return false;
+  if (survivalAiAdvancingThreatCount() >= 2) {
+    brain.earlyProbeDone = true;
+    return false;
+  }
+  // Random chance — not every game probes at the same moment.
+  const probeMult = survivalAiPathProfile(brain).probeChanceMult || 1;
+  if (rand() > 0.52 / probeMult) {
+    if (ctx.combatTime > brain.earlyProbeAt + 25) brain.earlyProbeDone = true;
+    return false;
+  }
+
+  const liveRoom = SURVIVAL_AI_MAX_UNITS
+    - combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
+  if (liveRoom < 1) return false;
+
+  const unlocked = SURVIVAL_AI_PROBE_UNITS.filter(
+    (t) => isUnitEnabled(t) && LIVE_ARMY.unitUnlocked(ai, t) && ai.coins >= unitDef(t, aiSelf()).cost,
+  );
+  if (!unlocked.length) {
+    if (ctx.combatTime > brain.earlyProbeAt + 35) brain.earlyProbeDone = true;
+    return false;
+  }
+
+  const count = Math.min(liveRoom, Math.floor(rand(1, 3.99)));
+  const picks = survivalAiShuffledUnits(unlocked).slice(0, count);
+  let spawned = 0;
+  for (const type of picks) {
+    if (survivalAiTrySpawnUnitOfType(ai, type, false)) spawned += 1;
+  }
+
+  brain.earlyProbeDone = true;
+  if (spawned > 0) {
+    const names = picks.slice(0, spawned).map((t) => UNIT_TYPES[t]?.name || t).join(', ');
+    addLog(`${survivalAiLabel(ai)} sends a probing ${spawned > 1 ? 'party' : 'scout'} (${names}) — testing your response.`);
+    return true;
+  }
+  return false;
 }
 
 // Mass-drop a whole strike composition as combined-arms formations in one
@@ -7054,7 +7640,7 @@ function survivalAiBeginPrepare(brain, intel, ai, ctx) {
 // weakest-defended lane and hurl the entire strike at that one decisive point,
 // concentrated in a single overwhelming column at the forward edge.
 function survivalAiPickAttackLane() {
-  const player = players[0];
+  const player = players[aiEnemy()];
   const lanes = [MID_Y - 165, MID_Y, MID_Y + 165];
   let bestY = MID_Y, bestScore = Infinity;
   for (const y of lanes) {
@@ -7076,10 +7662,10 @@ function survivalAiPickAttackLane() {
 // the cheapest hard-pressing troops we can still afford (keeping a small
 // defensive reserve) — so the column hits as heavy as the economy allows.
 function survivalAiForrestReinforce(ai, composition) {
-  const room = SURVIVAL_AI_MAX_UNITS - combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  const room = SURVIVAL_AI_MAX_UNITS - combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
   if (composition.length >= room) return composition.slice(0, room);
   let budget = ai.coins - 150; // keep a little back for defense
-  for (const t of composition) budget -= unitDef(t, 1).cost;
+  for (const t of composition) budget -= unitDef(t, aiSelf()).cost;
   const pool = ['striker', 'speed', 'tank', 'sniper', 'goblin'].filter((t) => LIVE_ARMY.unitUnlocked(ai, t));
   if (!pool.length) return composition;
   const extra = [];
@@ -7088,7 +7674,7 @@ function survivalAiForrestReinforce(ai, composition) {
     guard += 1;
     let added = false;
     for (const t of pool) {
-      const c = unitDef(t, 1).cost;
+      const c = unitDef(t, aiSelf()).cost;
       if (budget >= c) { extra.push(t); budget -= c; added = true; break; }
     }
     if (!added) break;
@@ -7105,10 +7691,10 @@ function survivalAiCommanderStrike(ai, composition) {
     tank: 'front', sniper: 'front', peka: 'front',
     speed: 'group', striker: 'group', bloop: 'group', goblin: 'train',
   };
-  const liveCount = () => combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
+  const liveCount = () => combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
   // One decisive lane, forward edge — concentrate the whole punch there.
   const targetY = survivalAiPickAttackLane();
-  const db = getDeployBounds(1);
+  const db = getDeployBounds(aiSelf());
   const frontX = clamp(db.xMin + 26, db.xMin + 8, db.xMax - 8);
   // Deploy the biggest blocks first so the combined-arms column lands together.
   const ordered = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
@@ -7128,9 +7714,9 @@ function survivalAiCommanderStrike(ai, composition) {
     const form = formationByType[type] || 'front';
     let placed = false;
     for (let count = Math.min(counts[type], cap); count >= 2; count--) {
-      const positions = commanderDeployPositions(pos, 1, type, count, form);
-      if (commanderValidateBatch(1, type, positions)) {
-        if (commanderPlaceBatch(1, type, positions)) { anyPlaced = true; placed = true; }
+      const positions = commanderDeployPositions(pos, aiSelf(), type, count, form);
+      if (commanderValidateBatch(aiSelf(), type, positions)) {
+        if (commanderPlaceBatch(aiSelf(), type, positions)) { anyPlaced = true; placed = true; }
         break;
       }
     }
@@ -7173,14 +7759,14 @@ function survivalAiBeginStrike(brain, ai, intel) {
 }
 
 function survivalAiDrainStrikeQueue(ai, dt) {
-  const brain = survivalAiBrain;
+  const brain = activeAiBrain();
   if (!brain?.strikeQueue?.length) return false;
 
   brain.strikeStagger -= dt;
   if (brain.strikeStagger > 0) return true;
   brain.strikeStagger = survivalAiRandRange(SURVIVAL_AI_SPAWN_STAGGER);
 
-  if (combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) {
+  if (combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) {
     brain.strikeQueue = [];
     brain.strikeComposition = null;
     brain.strikeIntel = null;
@@ -7195,9 +7781,9 @@ function survivalAiDrainStrikeQueue(ai, dt) {
   const planId = brain.lastPlanId || CPU_PLAN.CANNON_PUSH;
 
   let type = planned;
-  if (!type || !LIVE_ARMY.unitUnlocked(ai, type) || ai.coins < unitDef(type, 1).cost) {
+  if (!type || !LIVE_ARMY.unitUnlocked(ai, type) || ai.coins < unitDef(type, aiSelf()).cost) {
     const fallback = ['striker', 'tank', 'speed', 'sniper', 'goblin', 'peka'];
-    type = fallback.find((t) => LIVE_ARMY.unitUnlocked(ai, t) && ai.coins >= unitDef(t, 1).cost) || null;
+    type = fallback.find((t) => LIVE_ARMY.unitUnlocked(ai, t) && ai.coins >= unitDef(t, aiSelf()).cost) || null;
   }
 
   if (type) {
@@ -7226,7 +7812,7 @@ function survivalAiDrainStrikeQueue(ai, dt) {
 // cannon), the raid goblins come pre-toughened: +1 Health and +1 Loot (damage)
 // each, once, so they can punch through the cannon fire and still plunder farms.
 function survivalAiUpgradeRaidGoblins(ai) {
-  const player = players[0];
+  const player = players[aiEnemy()];
   const sk = getBaseCannonSkills(player);
   const cannonSkilled = (sk.firerate || 0) + (sk.damage || 0) + (sk.range || 0) > 0;
   const turretCount = player.turrets.filter((t) => t.towerType === 'turret').length;
@@ -7243,14 +7829,14 @@ function survivalAiUpgradeRaidGoblins(ai) {
 // one-tick Commander mass-drop, else spawns a burst aimed at the farm lane.
 function survivalAiLaunchGoblinRaid(ai, intel) {
   survivalAiUpgradeRaidGoblins(ai);
-  const eco = players[0].turrets.filter(
+  const eco = players[aiEnemy()].turrets.filter(
     (t) => (t.towerType === 'farm' || t.towerType === 'mint') && t.hp > 0,
   );
   const targetY = eco.length ? eco[Math.floor(Math.random() * eco.length)].y : MID_Y;
   // Overwhelming pack: 6 minimum, up to 9 as the player commits more economy.
   const econCommit = intel.farms + intel.mints;
   const want = Math.min(9, 6 + Math.max(0, Math.floor(econCommit) - 1));
-  const db = getDeployBounds(1);
+  const db = getDeployBounds(aiSelf());
   const laneFn = (idx, pid) => {
     const lanes = [targetY, targetY - 42, targetY + 42, targetY - 84, targetY + 84];
     return {
@@ -7270,8 +7856,8 @@ function survivalAiLaunchGoblinRaid(ai, intel) {
       const batch = Math.min(remaining, commanderCap(ai));
       let placed = 0;
       for (let count = batch; count >= 2; count--) {
-        const positions = commanderDeployPositions(pos, 1, 'goblin', count, 'train');
-        if (commanderValidateBatch(1, 'goblin', positions) && commanderPlaceBatch(1, 'goblin', positions)) {
+        const positions = commanderDeployPositions(pos, aiSelf(), 'goblin', count, 'train');
+        if (commanderValidateBatch(aiSelf(), 'goblin', positions) && commanderPlaceBatch(aiSelf(), 'goblin', positions)) {
           placed = count;
           break;
         }
@@ -7285,7 +7871,7 @@ function survivalAiLaunchGoblinRaid(ai, intel) {
     let guard = 0;
     while (spawned < want && guard < want + 6) {
       guard += 1;
-      if (ai.coins < unitDef('goblin', 1).cost) break;
+      if (ai.coins < unitDef('goblin', aiSelf()).cost) break;
       if (!survivalAiTrySpawnUnitOfType(ai, 'goblin', false, laneFn)) break;
       spawned += 1;
     }
@@ -7333,7 +7919,7 @@ function survivalAiPlayerPassiveForAmbush(intel, ctx) {
   if (baseUpgrades > 0) return true;
   if ((intel.baseCannonUp || 0) > 0) return true;
   if ((intel.commanderTier || 0) > 0) return true;
-  if (survivalAiPlayerBarracksInvestment(players[0]) > 0) return true;
+  if (survivalAiPlayerBarracksInvestment(players[aiEnemy()]) > 0) return true;
 
   return false;
 }
@@ -7342,102 +7928,61 @@ function survivalAiPlayerDeservesAmbush(intel, ctx) {
   return survivalAiPlayerIsIdle(intel, ctx) || survivalAiPlayerPassiveForAmbush(intel, ctx);
 }
 
-// Dump every coin into a concentrated knight/wolf ambush at the weakest lane.
-function survivalAiLaunchSurpriseStrike(ai, intel) {
-  if (!LIVE_ARMY.unitUnlocked(ai, 'striker')) return false;
-  const liveRoom = SURVIVAL_AI_MAX_UNITS
-    - combatUnits.filter((u) => u.owner === 1 && u.hp > 0).length;
-  const composition = [];
-  let budget = ai.coins;
-  let guard = 0;
-  while (composition.length < Math.min(18, liveRoom) && guard < 50) {
-    guard += 1;
-    let added = false;
-    for (const t of ['striker', 'striker', 'striker', 'speed']) {
-      if (!LIVE_ARMY.unitUnlocked(ai, t)) continue;
-      const c = unitDef(t, 1).cost;
-      if (budget < c) continue;
-      composition.push(t);
-      budget -= c;
-      added = true;
-      break;
-    }
-    if (!added) break;
-  }
-  if (composition.length < 5) return false;
-
-  survivalResetBattleSpeedOnEnemyAttack();
-  if (commanderUnlocked(ai)) {
-    survivalAiCommanderStrike(ai, composition);
-    return true;
-  }
-
-  const db = getDeployBounds(1);
-  const targetY = survivalAiPickAttackLane();
-  let spawned = 0;
-  for (let i = 0; i < composition.length; i++) {
-    const type = composition[i];
-    const slotFn = (idx, pid) => ({
-      x: clamp(db.xMin + 12 + (i % 5) * 16, db.xMin + 8, db.xMax - 8),
-      y: clamp(targetY + (Math.floor(i / 5) % 3 - 1) * 44, DEPLOY_Y_MIN + 8, DEPLOY_Y_MAX - 8),
-    });
-    if (survivalAiTrySpawnUnitOfType(ai, type, false, slotFn)) spawned += 1;
-  }
-  return spawned >= 5;
-}
-
-// Opening punish: turtle on barracks/upgrades without fighting and the CPU
-// techs an ambush, then drops a huge surprise strike.
+// Opening punish: turtle without fighting → fast-track into an escalating surprise bank.
 function survivalAiIdleSurpriseStrike(ai, brain, intel, ctx) {
   if (brain.idleStrikeDone) return false;
   if (ctx.combatTime < SURVIVAL_AI_IDLE_STRIKE_AFTER) return false;
 
   if (!survivalAiPlayerDeservesAmbush(intel, ctx)) {
-    if (ctx.combatTime > 50) brain.idleStrikeDone = true;
+    if (ctx.combatTime > 55) brain.idleStrikeDone = true;
     return false;
   }
 
   const passiveBarracks = survivalAiPlayerPassiveForAmbush(intel, ctx) && !survivalAiPlayerIsIdle(intel, ctx);
 
-  // One-time war chest so the ambush is genuinely huge even on a short timer.
   if (!brain.idleStrikePrimed) {
     brain.idleStrikePrimed = true;
     ai.coins += SURVIVAL_AI_IDLE_AMBUSH_BONUS + (passiveBarracks ? 60 : 0);
     addLog(passiveBarracks
-      ? '🤖 Enemy sees your Barracks but no army in the field...'
-      : '🤖 Enemy is preparing something...');
+      ? `${survivalAiLabel(ai)} sees your Barracks but no army in the field...`
+      : `${survivalAiLabel(ai)} is preparing something...`);
   }
 
-  // Rush tech — block all other spending until the ambush is ready.
+  // If already banking a surprise, let that phase handle the commit.
+  if (brain.phase === 'surprise_bank') {
+    if (survivalAiSurpriseReadyToCommit(ai, brain) && survivalAiCommitSurpriseStrike(ai, brain, intel, ctx)) {
+      brain.idleStrikeDone = true;
+      addLog(passiveBarracks
+        ? `🤖 SURPRISE AMBUSH — you built an army but never used it!`
+        : `🤖 SURPRISE AMBUSH — ${survivalAiLabel(ai)} strikes while you waited!`);
+      return true;
+    }
+    if (survivalAiQuietDefense(ai, intel, ctx)) return true;
+    return true;
+  }
+
+  // Rush minimal tech, then open a surprise bank (shorter wait, bigger bonus).
   if (!LIVE_ARMY.hasBarracks(ai)) {
     if (ai.coins >= towerCost(ai, 'barracks')) return survivalAiTryPlaceTower(ai, 'barracks');
     return true;
   }
   if (!LIVE_ARMY.unitUnlocked(ai, 'striker')) {
-    if (ai.coins >= LIVE_ARMY.unitUnlockCost('striker')) return buyBarracksUpgrade(1, 'unlock', 'striker');
+    if (ai.coins >= LIVE_ARMY.unitUnlockCost('striker')) return buyBarracksUpgrade(aiSelf(), 'unlock', 'striker');
     return true;
   }
   if (!LIVE_ARMY.unitUnlocked(ai, 'speed') && ai.coins >= LIVE_ARMY.unitUnlockCost('speed')) {
-    return buyBarracksUpgrade(1, 'unlock', 'speed');
-  }
-  if (!commanderUnlocked(ai) && ai.coins >= commanderTierCost(1) + unitDef('striker', 1).cost * 4) {
-    return buyCommanderUpgrade(1, 1);
+    return buyBarracksUpgrade(aiSelf(), 'unlock', 'speed');
   }
 
-  if (ai.coins < unitDef('striker', 1).cost * 5) return true;
+  if (ai.coins < unitDef('striker', aiSelf()).cost * 3) return true;
 
-  if (survivalAiLaunchSurpriseStrike(ai, intel)) {
-    brain.idleStrikeDone = true;
-    brain.plan = null;
-    brain.strikeQueue = [];
-    brain.phase = 'recover';
-    brain.phaseUntil = ctx.combatTime + 18;
-    addLog(passiveBarracks
-      ? '🤖 SURPRISE AMBUSH — you built an army but never used it!'
-      : '🤖 SURPRISE AMBUSH — the enemy strikes while you waited!');
-    return true;
-  }
-  return false;
+  survivalAiBeginSurpriseBank(brain, ai, intel, ctx, {
+    planId: CPU_PLAN.RUSH_PUNISH,
+    budgetBonus: SURVIVAL_AI_IDLE_AMBUSH_BONUS * 0.5,
+    rushWait: true,
+  });
+  brain.idleStrikeDone = true;
+  return true;
 }
 
 // Opening punish: if the player opens by building Farms while light on defense,
@@ -7464,12 +8009,12 @@ function survivalAiOpeningGoblinRaid(ai, brain, intel, ctx) {
     return true; // save up — don't let quiet economy spend the coins
   }
   if (!LIVE_ARMY.unitUnlocked(ai, 'goblin')) {
-    if (ai.coins >= LIVE_ARMY.unitUnlockCost('goblin')) return buyBarracksUpgrade(1, 'unlock', 'goblin');
+    if (ai.coins >= LIVE_ARMY.unitUnlockCost('goblin')) return buyBarracksUpgrade(aiSelf(), 'unlock', 'goblin');
     return true; // save up
   }
   const econCommit = intel.farms + intel.mints;
   const raidSize = Math.min(9, 6 + Math.max(0, Math.floor(econCommit) - 1));
-  const packCost = unitDef('goblin', 1).cost * raidSize;
+  const packCost = unitDef('goblin', aiSelf()).cost * raidSize;
   if (ai.coins < packCost) return true; // save up for the full overwhelming pack
   if (survivalAiLaunchGoblinRaid(ai, intel)) {
     brain.goblinRaidDone = true;
@@ -7486,7 +8031,7 @@ function survivalAiMidGameEcoRaid(ai, brain, intel) {
   if (intel.farms < 3 && intel.mints < 2) return false;
   if (intel.playerUnitsOnField >= 5) return false;
   const raidSize = Math.min(9, 6 + Math.max(0, intel.farms + intel.mints - 3));
-  if (ai.coins < unitDef('goblin', 1).cost * raidSize) return false;
+  if (ai.coins < unitDef('goblin', aiSelf()).cost * raidSize) return false;
   if (survivalAiLaunchGoblinRaid(ai, intel)) {
     brain.midEcoRaidDone = true;
     addLog('🤖 Enemy sends another Goblin raid — your economy is too exposed!');
@@ -7497,7 +8042,7 @@ function survivalAiMidGameEcoRaid(ai, brain, intel) {
 
 function survivalAiEmergencyReact(ai, brain, intel, ctx) {
   // Dragon on the field → snipers are the hard counter; interrupt any plan.
-  const liveDragon = combatUnits.some((u) => u.owner === 0 && u.hp > 0 && u.type === 'peka');
+  const liveDragon = combatUnits.some((u) => u.owner === aiEnemy() && u.hp > 0 && u.type === 'peka');
   if (liveDragon) {
     if (brain.phase === 'prepare' || brain.phase === 'strike') {
       brain.plan = null;
@@ -7540,9 +8085,19 @@ function survivalAiTickPlanner(ai, brain) {
   const ctx = survivalAiContext(ai);
   const intel = survivalAiIntel(ai);
 
+  survivalAiTickStrategyPath(brain, ai, ctx);
+
+  if (!brain.pathLogDone && ctx.combatTime > 5) {
+    addLog(`${survivalAiLabel(ai)} opens with a ${SURVIVAL_AI_PATH_LABELS[brain.strategyPath] || 'mixed'}-heavy plan.`);
+    brain.pathLogDone = true;
+  }
+
   if (survivalAiEmergencyReact(ai, brain, intel, ctx)) return true;
 
-  // Idle opening punish — huge surprise ambush if the player does nothing.
+  // Random early probe — a few units sent to provoke a response.
+  if (survivalAiEarlyProbe(ai, brain, intel, ctx)) return true;
+
+  // Idle/passive opening → fast surprise bank.
   if (survivalAiIdleSurpriseStrike(ai, brain, intel, ctx)) return true;
 
   // Opening economy raid — punish an early farm build with a fast Goblin pack.
@@ -7551,16 +8106,31 @@ function survivalAiTickPlanner(ai, brain) {
   // Mid-game follow-up raid if the player keeps greed-stacking economy.
   if (survivalAiMidGameEcoRaid(ai, brain, intel)) return true;
 
+  if (brain.phase === 'surprise_bank') {
+    if (survivalAiSurpriseReadyToCommit(ai, brain) && survivalAiCommitSurpriseStrike(ai, brain, intel, ctx)) {
+      return true;
+    }
+    // Bank in secret — only essentials, no normal strikes.
+    if (survivalAiPrepUnlocks(ai, brain.surprisePlanId, intel)) return true;
+    if (survivalAiQuietDefense(ai, intel, ctx)) return true;
+    if (ai.coins < brain.surpriseBankTarget * 0.55 && survivalAiQuietEconomy(ai, ctx)) return true;
+    return false;
+  }
+
   if (brain.phase === 'observe') {
     if (!brain.observeLogDone && combatTime > 8) {
-      addLog('🤖 Enemy is watching your build...');
+      addLog(`${survivalAiLabel(ai)} is watching your build...`);
       brain.observeLogDone = true;
     }
     if (survivalAiQuietEconomy(ai, ctx)) return true;
     if (survivalAiQuietDefense(ai, intel, ctx)) return true;
     if (survivalAiInvestSurplus(ai, brain, intel, ctx)) return true;
     if (combatTime >= brain.phaseUntil) {
-      survivalAiBeginPrepare(brain, intel, ai, ctx);
+      if (survivalAiShouldStartSurpriseBank(brain, intel, ctx)) {
+        survivalAiBeginSurpriseBank(brain, ai, intel, ctx);
+      } else {
+        survivalAiBeginPrepare(brain, intel, ai, ctx);
+      }
     }
     return false;
   }
@@ -7582,12 +8152,10 @@ function survivalAiTickPlanner(ai, brain) {
     const banked = ai.coins >= plan.bankTarget;
     const timedOut = combatTime >= plan.readyAt;
     const finisherNow = plan.id === CPU_PLAN.FINISHER && ctx.playerHpPct < 0.55;
-    // Forrest: if the war chest is overflowing (economy has outrun the plan),
-    // don't sit on it — hit now with the extra mass.
-    const overflowing = ai.coins >= plan.bankTarget * 1.5;
+    const overflowing = ai.coins >= plan.bankTarget * (1.35 + rand(0, 0.35));
+    const impatient = timedOut && ai.coins >= plan.bankTarget * (0.65 + rand(0, 0.12));
 
-    if ((banked && timedOut) || overflowing || finisherNow
-        || (timedOut && ai.coins >= plan.bankTarget * 0.72)) {
+    if ((banked && timedOut) || overflowing || finisherNow || impatient) {
       brain.lastPlanId = plan.id;
       return survivalAiBeginStrike(brain, ai, intel);
     }
@@ -7597,7 +8165,16 @@ function survivalAiTickPlanner(ai, brain) {
   if (brain.phase === 'recover') {
     // Chain-strike only after a successful push while the player is still hurt.
     if (brain.lastStrikeSuccess && ctx.playerHpPct < 0.7) {
-      survivalAiBeginPrepare(brain, intel, ai, ctx);
+      const followSurprise = brain.strategyPath === 'attack'
+        ? rand() < 0.72
+        : brain.strategyPath === 'farm'
+          ? rand() < 0.38
+          : rand() < 0.55;
+      if (followSurprise) {
+        survivalAiBeginSurpriseBank(brain, ai, intel, ctx);
+      } else {
+        survivalAiBeginPrepare(brain, intel, ai, ctx);
+      }
       return true;
     }
     if (survivalAiQuietEconomy(ai, ctx)) return true;
@@ -7605,7 +8182,7 @@ function survivalAiTickPlanner(ai, brain) {
     if (survivalAiInvestSurplus(ai, brain, intel, ctx)) return true;
     if (combatTime >= brain.phaseUntil) {
       brain.phase = 'observe';
-      brain.phaseUntil = combatTime + (SURVIVAL_AI_OBSERVE_TIME[survivalDifficulty] || 12) * 0.5;
+      brain.phaseUntil = combatTime + (SURVIVAL_AI_OBSERVE_TIME[survivalDifficulty] || 12) * (0.35 + rand(0, 0.35));
     }
     return false;
   }
@@ -7614,7 +8191,7 @@ function survivalAiTickPlanner(ai, brain) {
 }
 
 function survivalAiHasImmediateThreat() {
-  return combatUnits.some((u) => u.owner === 0 && u.hp > 0);
+  return combatUnits.some((u) => u.owner === aiEnemy() && u.hp > 0);
 }
 
 function isEconomyTower(type) {
@@ -7629,19 +8206,38 @@ function aiHasLivingTower(ai, type) {
   return ai.turrets.some(t => t.towerType === type && t.hp > 0);
 }
 
-function survivalRecordPlayerDeploy(type) {
-  if (!survivalAiBrain || !type) return;
+function survivalRecordPlayerDeploy(type, fromPid) {
+  if (!type) return;
+  if (isSimulatorMode()) {
+    const enemy = enemyId(fromPid ?? 0);
+    const brain = simulatorAiBrains?.[enemy];
+    if (!brain) return;
+    brain.playerDeployed[type] = (brain.playerDeployed[type] || 0) + 1;
+    return;
+  }
+  if (!survivalAiBrain) return;
   survivalAiBrain.playerDeployed[type] = (survivalAiBrain.playerDeployed[type] || 0) + 1;
 }
 
-function survivalRecordPlayerTower(type) {
-  if (!survivalAiBrain || !type) return;
+function survivalRecordPlayerTower(type, fromPid) {
+  if (!type) return;
+  if (isSimulatorMode()) {
+    const enemy = enemyId(fromPid ?? 0);
+    const brain = simulatorAiBrains?.[enemy];
+    if (!brain) return;
+    brain.playerTowers[type] = (brain.playerTowers[type] || 0) + 1;
+    return;
+  }
+  if (!survivalAiBrain) return;
   survivalAiBrain.playerTowers[type] = (survivalAiBrain.playerTowers[type] || 0) + 1;
 }
 
 function survivalRecordPlayerUnitLoss(u) {
-  if (!isSurvivalLive() || !survivalAiBrain || u.owner !== 0) return;
-  const ai = players[1];
+  if (!isSurvivalLive() || u.owner === undefined) return;
+  const defender = enemyId(u.owner);
+  const brain = isSimulatorMode() ? simulatorAiBrains?.[defender] : (defender === 1 ? survivalAiBrain : null);
+  if (!brain) return;
+  const ai = players[defender];
   let best = null, bestD = 130;
   for (const t of ai.turrets) {
     if (t.hp <= 0 || isEconomyTower(t.towerType)) continue;
@@ -7649,7 +8245,7 @@ function survivalRecordPlayerUnitLoss(u) {
     if (d < bestD) { bestD = d; best = t; }
   }
   if (best) {
-    survivalAiBrain.towerLearn[best.towerType] = (survivalAiBrain.towerLearn[best.towerType] || 0) + 1;
+    brain.towerLearn[best.towerType] = (brain.towerLearn[best.towerType] || 0) + 1;
   }
 }
 
@@ -7658,17 +8254,19 @@ function countAiTowers(ai, type) {
 }
 
 function findBestAiSpreadSpot(ai, slotIndex) {
+  const pid = ai.id;
+  const zone = playerZone(pid);
   const existing = ai.turrets.filter(t => t.towerType === 'spread' && t.hp > 0);
   const slot = slotIndex !== undefined ? slotIndex : existing.length;
   const laneOffset = slot === 0 ? -78 : 78;
   const targetY = MID_Y + laneOffset;
-  const targetX = P2_ZONE.x + 108;
+  const targetX = pid === 0 ? zone.x2 - 108 : zone.x + 108;
 
   let best = null, bestScore = -Infinity;
   for (let i = 0; i < 88; i++) {
     const x = targetX + rand(-42, 42);
     const y = targetY + rand(-28, 28);
-    if (!canPlaceTurret(x, y, 1, null, towerType)) continue;
+    if (!canPlaceTurret(x, y, pid, null, 'spread')) continue;
     let score = 320 - Math.abs(y - targetY) * 3.2 - Math.abs(x - targetX) * 0.75;
     score += Math.min(Math.abs(y - MID_Y), 95) * 1.4;
     for (const t of ai.turrets) {
@@ -7676,7 +8274,7 @@ function findBestAiSpreadSpot(ai, slotIndex) {
       if (d < 54) score -= 160;
       else if (d < 90) score -= 30;
     }
-    const choke = { x: P2_ZONE.x + 155, y: MID_Y };
+    const choke = { x: pid === 0 ? zone.x2 - 155 : zone.x + 155, y: MID_Y };
     score += Math.max(0, 100 - dist({ x, y }, choke)) * 0.15;
     if (score > bestScore) { bestScore = score; best = { x, y }; }
   }
@@ -7684,12 +8282,14 @@ function findBestAiSpreadSpot(ai, slotIndex) {
 }
 
 function findBestAiForwardDefenseSpot(ai, towerType) {
-  const forwardX = P2_ZONE.x + 58;
+  const pid = ai.id;
+  const zone = playerZone(pid);
+  const forwardX = pid === 0 ? zone.x2 - 58 : zone.x + 58;
   let best = null, bestScore = -Infinity;
   for (let i = 0; i < 72; i++) {
     const x = forwardX + rand(-32, 52);
     const y = MID_Y + rand(-150, 150);
-    if (!canPlaceTurret(x, y, 1, null, towerType)) continue;
+    if (!canPlaceTurret(x, y, pid, null, towerType)) continue;
     let score = 240 - Math.abs(x - forwardX) * 1.25;
     score += (1 - Math.abs(y - MID_Y) / (H * 0.36)) * 35;
     score += scoreTowerSpot(x, y, towerType, ai) * 0.45;
@@ -7705,6 +8305,8 @@ function findBestAiForwardDefenseSpot(ai, towerType) {
 }
 
 function findBestAiTowerSpot(ai, towerType, attempts = 56) {
+  const pid = ai.id;
+  const zone = playerZone(pid);
   if (towerType === 'spread') {
     return findBestAiSpreadSpot(ai, countAiTowers(ai, 'spread'));
   }
@@ -7714,11 +8316,13 @@ function findBestAiTowerSpot(ai, towerType, attempts = 56) {
   const depthBias = isEconomyTower(towerType) ? 1 : -1;
   let best = null, bestScore = -Infinity;
   for (let i = 0; i < attempts; i++) {
-    const x = rand(P2_ZONE.x + 70, P2_ZONE.x2 - 45);
+    const x = rand(zone.x + 70, zone.x2 - 45);
     const y = rand(LAND_TOP + 50, LAND_BOTTOM - 50);
-    if (!canPlaceTurret(x, y, 1, null, towerType)) continue;
+    if (!canPlaceTurret(x, y, pid, null, towerType)) continue;
     let score = scoreTowerSpot(x, y, towerType, ai);
-    const depth = (x - P2_ZONE.x) / (P2_ZONE.x2 - P2_ZONE.x);
+    const depth = pid === 0
+      ? (zone.x2 - x) / (zone.x2 - zone.x)
+      : (x - zone.x) / (zone.x2 - zone.x);
     if (depthBias > 0) score += depth * 35;
     else score += (1 - depth) * 38 + (1 - Math.abs(y - MID_Y) / (H * 0.38)) * 18;
     if (score > bestScore) { bestScore = score; best = { x, y }; }
@@ -7738,7 +8342,7 @@ function survivalAiTryPlaceTower(ai, towerType, spreadSlot) {
     spot = findBestAiTowerSpot(ai, towerType, isEconomyTower(towerType) ? 52 : 64);
   }
   if (!spot) return false;
-  if (!survivalLivePlaceTower(1, towerType, spot.x, spot.y)) return false;
+  if (!survivalLivePlaceTower(ai.id, towerType, spot.x, spot.y)) return false;
   addLog(`🤖 Enemy placed ${towerDef(towerType).name}`);
   return true;
 }
@@ -7827,6 +8431,75 @@ function setupSurvivalLive() {
   if (survivalAiBrain) {
     addLog('🤖 Enemy is scouting your army — expect a planned strike, not constant waves.');
   }
+  updateUI();
+}
+
+function setupSimulator() {
+  combatUnits = [];
+  pellets = [];
+  beams = [];
+  missiles = [];
+  spreadTracks = [];
+  blasts = [];
+  fireFields = [];
+  meteors = [];
+  slimeBursts = [];
+  healFields = [];
+  survivalIncomeTimer = 0;
+  survivalFarmTimer = 0;
+  survivalAiTimer = SURVIVAL_AI_THINK_INTERVAL * 0.6;
+  simulatorAiTimers[0] = SURVIVAL_AI_THINK_INTERVAL * 0.35;
+  simulatorAiTimers[1] = SURVIVAL_AI_THINK_INTERVAL * 0.55;
+  survivalAiBrain = null;
+  simulatorAiBrains = [freshSurvivalAiBrain(), freshSurvivalAiBrain()];
+  floatTexts = [];
+  liveMenuPaused = true;
+
+  for (let i = 0; i < 2; i++) {
+    const p = players[i];
+    p.deployments = [];
+    p.baseDamageThisRound = 0;
+    p.baseShake = 0;
+    p.combatReward = 0;
+    p.bloopBounty = 0;
+    p.coins = SURVIVAL_START_COINS;
+    p.baseHp = gameRules.baseHp;
+    p.baseMaxHp = gameRules.baseHp;
+    p.rubble = [];
+    p.ruinScars = [];
+    p.turrets = defaultStartingTowers(i);
+    p.incomeUpgrades = defaultIncomeUpgrades();
+    p.baseCannonSkills = freshBaseCannonSkills();
+    p.commander = freshCommander();
+    p.isAI = true;
+    p.name = i === 0 ? 'Red CPU' : 'Blue CPU';
+    p.color = SIMULATOR_TEAM_COLORS[i];
+  }
+  commanderCount = 1;
+  commanderFormation = 'front';
+  activePlayer = 0;
+  phase = 'combat';
+  combatTime = 0;
+  gameRules.units.goblin = true;
+  if (typeof LIVE_ARMY !== 'undefined') {
+    LIVE_ARMY.onBattleStart(players, gameRules, { pvp: false });
+    LIVE_ARMY.setPlayersRef(players);
+    for (let i = 0; i < 2; i++) {
+      syncEconomyBaseHealth(i);
+      syncBaseDefenseTurrets(i);
+    }
+  }
+  commitPublicSnapshots();
+  resetCombatTracking();
+  document.getElementById('bottom-panel').classList.add('hidden');
+  toggleBarracksPanel(false);
+  toggleEngineersPanel(false);
+  toggleLaboratoryPanel(false);
+  toggleMissilePanel(false);
+  toggleSpreadPanel(false);
+  toggleCommanderPanel(false);
+  addLog('🤖 Simulator — Red CPU vs Blue CPU');
+  addLog('Watch both sides build, tech, and strike. Use speed controls to fast-forward.');
   updateUI();
 }
 
@@ -7942,6 +8615,7 @@ function serializeTower(t) {
     cooldown: t.cooldown,
     laserTarget: t.laserTarget,
     missileUpgrades: t.missileUpgrades ? { ...t.missileUpgrades } : undefined,
+    spreadElement: t.spreadElement || null,
     isBaseDefense: !!t.isBaseDefense,
     baseCannon: !!t.baseCannon,
   };
@@ -7969,6 +8643,9 @@ function serializeUnit(u) {
     ignite: u.ignite ? { ...u.ignite } : undefined,
     _burnAccum: u._burnAccum,
     paralyze: u.paralyze,
+    iceSlow: u.iceSlow ? { ...u.iceSlow } : undefined,
+    spreadShock: u.spreadShock,
+    spreadShockCd: u.spreadShockCd,
     dodgeCd: u.dodgeCd,
     dodgeBurst: u.dodgeBurst,
     dodgeVx: u.dodgeVx,
@@ -8280,6 +8957,9 @@ function applyPvpAction(fromPlayerId, action) {
   if (type === 'missile_upgrade') {
     return buyMissileUpgrade(fromPlayerId, action.towerId, action.branch);
   }
+  if (type === 'spread_element') {
+    return buySpreadElement(fromPlayerId, action.towerId, action.element);
+  }
   if (type === 'cannon_upgrade') {
     return buyBaseCannonUpgrade(fromPlayerId, action.branch);
   }
@@ -8414,8 +9094,9 @@ function survivalLiveSpawnUnit(pid, type, x, y) {
   }
   p.coins -= cost;
   combatUnits.push(makeCombatUnit({ type, x, y }, pid));
-  if (pid === 0) survivalRecordPlayerDeploy(type);
-  if (pid === 1) survivalResetBattleSpeedOnEnemyAttack();
+  if (isSimulatorMode()) survivalRecordPlayerDeploy(type, pid);
+  else if (pid === 0) survivalRecordPlayerDeploy(type);
+  if (pid === 1 && !isSimulatorMode()) survivalResetBattleSpeedOnEnemyAttack();
   return true;
 }
 
@@ -8433,43 +9114,59 @@ function survivalLivePlaceTower(pid, towerType, x, y) {
 }
 
 function survivalTryLiveSpawnUnit(type, slotIndex, slotFn = null) {
+  const aiPid = aiSelf();
   const pickSlot = slotFn || ((idx, pid) => getUnitFormationSlot(type, idx, pid));
   for (let attempt = 0; attempt < 20; attempt++) {
-    const slot = pickSlot(slotIndex + attempt, 1);
-    if (survivalLiveSpawnUnit(1, type, slot.x, slot.y)) return true;
+    const slot = pickSlot(slotIndex + attempt, aiPid);
+    if (survivalLiveSpawnUnit(aiPid, type, slot.x, slot.y)) return true;
   }
   for (let attempt = 0; attempt < 32; attempt++) {
-    const x = rand(P2_ZONE.x + 60, P2_ZONE.x2 - 40);
+    const zone = playerZone(aiPid);
+    const x = rand(zone.x + 60, zone.x2 - 40);
     const y = rand(LAND_TOP + 45, LAND_BOTTOM - 45);
-    if (survivalLiveSpawnUnit(1, type, x, y)) return true;
+    if (survivalLiveSpawnUnit(aiPid, type, x, y)) return true;
   }
   return false;
 }
 
-function updateSurvivalLiveAI(dt) {
-  const ai = players[1];
-  if (!survivalAiBrain || ai.baseHp <= 0) return;
+function tickSurvivalAiForPlayer(dt, aiPid) {
+  survivalAiActivePid = aiPid;
+  const brain = activeAiBrain();
+  const ai = players[aiPid];
+  if (!brain || ai.baseHp <= 0) return;
 
-  survivalAiGradeStrike(survivalAiBrain);
+  survivalAiGradeStrike(brain);
 
-  // During a committed strike, drain troops with staggered timing.
-  if (survivalAiBrain.phase === 'strike' && survivalAiDrainStrikeQueue(ai, dt)) {
+  if (brain.phase === 'strike' && survivalAiDrainStrikeQueue(ai, dt)) {
     updateUI();
     return;
   }
 
-  survivalAiTimer -= dt;
-  if (survivalAiTimer > 0) return;
-  survivalAiTimer = SURVIVAL_AI_THINK_INTERVAL;
+  const timerRef = isSimulatorMode() ? simulatorAiTimers : null;
+  if (timerRef) timerRef[aiPid] -= dt;
+  else survivalAiTimer -= dt;
+  const timer = timerRef ? timerRef[aiPid] : survivalAiTimer;
+  if (timer > 0) return;
+  if (timerRef) timerRef[aiPid] = SURVIVAL_AI_THINK_INTERVAL;
+  else survivalAiTimer = SURVIVAL_AI_THINK_INTERVAL;
 
-  if (survivalAiTickPlanner(ai, survivalAiBrain)) updateUI();
+  if (survivalAiTickPlanner(ai, brain)) updateUI();
 
-  // While the base is under direct threat, re-evaluate a little faster so the
-  // CPU can answer — but not so fast that it trickle-spams units.
-  const bp = basePos(1);
-  if (combatUnits.some((u) => u.owner === 0 && u.hp > 0 && dist(u, bp) <= AI_BASE_DEFENSE_RANGE)) {
-    survivalAiTimer = Math.min(survivalAiTimer, 0.45);
+  const bp = basePos(aiPid);
+  const threatNear = combatUnits.some((u) => u.owner === enemyId(aiPid) && u.hp > 0 && dist(u, bp) <= AI_BASE_DEFENSE_RANGE);
+  if (threatNear) {
+    if (timerRef) timerRef[aiPid] = Math.min(timerRef[aiPid], 0.45);
+    else survivalAiTimer = Math.min(survivalAiTimer, 0.45);
   }
+}
+
+function updateSurvivalLiveAI(dt) {
+  if (isSimulatorMode()) {
+    tickSurvivalAiForPlayer(dt, 0);
+    tickSurvivalAiForPlayer(dt, 1);
+    return;
+  }
+  tickSurvivalAiForPlayer(dt, 1);
 }
 
 function updateSurvivalLive(dt) {
@@ -8526,6 +9223,25 @@ function endSurvivalLive() {
   liveMenuPaused = false;
   document.getElementById('bottom-panel').classList.add('hidden');
   let title, text, btnText;
+  if (isSimulatorMode()) {
+    if (players[0].baseHp <= 0 && players[1].baseHp <= 0) {
+      title = '🤝 Draw!';
+      text = 'Both CPU bases fell at the same time.';
+    } else if (players[0].baseHp <= 0) {
+      title = '🔵 Blue CPU Wins!';
+      text = 'Red CPU\'s base was destroyed.';
+    } else if (players[1].baseHp <= 0) {
+      title = '🔴 Red CPU Wins!';
+      text = 'Blue CPU\'s base was destroyed.';
+    } else {
+      title = 'Battle Over';
+      text = 'The simulator battle has ended.';
+    }
+    btnText = 'Back to Menu';
+    phase = 'gameover';
+    showBanner(title, text, btnText);
+    return;
+  }
   const myId = getLocalPlayerId();
   const enemy = enemyId(myId);
   if (players[0].baseHp <= 0 && players[1].baseHp <= 0) {
@@ -8702,7 +9418,7 @@ const P1_COLOR = { main: '#4ECDC4', light: '#7EDDD6', dark: '#2A9D8F' };
 const P2_COLOR = { main: '#FF8E53', light: '#FFB088', dark: '#E76F51' };
 
 // ─── Game State ──────────────────────────────────────────────────────────────
-let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'free' | 'free2p'
+let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'simulator' | 'free' | 'free2p'
 let phase = 'menu'; // menu | prep | combat | summary | gameover | free | free2p
 let round = 1;
 let activePlayer = 0; // 0 = P1, 1 = P2/AI
@@ -12396,7 +13112,7 @@ function onUnitKilled(u) {
     if (st.speedKills >= 4) triggerAchievement(killer, 'speed_ace');
   }
   grantBloopBounty(u);
-  if (u.owner === 0) survivalRecordPlayerUnitLoss(u);
+  if (isSimulatorMode() || u.owner === 0) survivalRecordPlayerUnitLoss(u);
 }
 
 function onTowerDestroyed(tower, killerId) {
@@ -13232,6 +13948,9 @@ function drawBase(pid, shake = 0, hpState) {
   const s = BASE_SIZE;
   const face = pid === 0 ? 1 : -1; // drawbridge faces the battlefield
 
+  ctx.save();
+  if (isSimulatorMode()) ctx.filter = SIMULATOR_TEAM_COLORS[pid]?.hue || '';
+
   drawGroundShadow(sx, sy, s * 0.95, s * 0.3);
 
   // Moat / ground under the castle
@@ -13367,6 +14086,7 @@ function drawBase(pid, shake = 0, hpState) {
   ctx.fillStyle = hpPct > 0.5 ? '#3d9a50' : hpPct > 0.25 ? '#c9a227' : '#c43c3c';
   roundRect(sx - barW / 2, sy + s / 2 + 14, barW * hpPct, 8, 3);
   ctx.fill();
+  ctx.restore();
 }
 
 function drawTower(t, ownerColor, alpha = 1) {
@@ -13378,11 +14098,14 @@ function drawTower(t, ownerColor, alpha = 1) {
   const sz = def.size;
   ctx.save();
   ctx.globalAlpha = alpha;
-  if (def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon') {
+  if (isSimulatorMode() && ownerId !== null) {
+    ctx.filter = SIMULATOR_TEAM_COLORS[ownerId]?.hue || '';
+  }
+  if (def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon' && def.style !== 'spread') {
     drawGroundShadow(t.x, t.y, sz * 1.1, sz * 0.35);
   }
 
-  if (!t.isBaseDefense && def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon') {
+  if (!t.isBaseDefense && def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon' && def.style !== 'spread') {
     // concrete pad (base-mounted towers use the fixed slab drawn underneath)
     const pad = ctx.createLinearGradient(t.x - sz, t.y, t.x + sz, t.y + sz);
     pad.addColorStop(0, '#7a8088');
@@ -13397,9 +14120,9 @@ function drawTower(t, ownerColor, alpha = 1) {
 
   const angle = t.angle || 0;
   ctx.translate(t.x, t.y - sz * 0.05);
-  // Only combat turrets aim; buildings (tent, lab, farm, etc.) stay upright for both sides.
+  // Only combat turrets aim; buildings (tent, lab, farm, castle spreader, etc.) stay upright for both sides.
   // Wooden turret outpost stays upright — only its gun rotates (drawn separately).
-  const aimsWithAngle = def.style === 'laser' || def.style === 'spread'
+  const aimsWithAngle = def.style === 'laser'
     || def.style === 'missile' || def.style === 'railgun';
   if (aimsWithAngle) ctx.rotate(angle);
   const pulse = Math.sin(animFrame * 0.05 + t.x) * 1.5;
@@ -13543,16 +14266,85 @@ function drawTower(t, ownerColor, alpha = 1) {
     roundRect(4, -1.5, 16, 3, 1);
     ctx.fill();
   } else if (def.style === 'spread') {
-    ctx.fillStyle = '#4a4035';
-    roundRect(-11, -10, 22, 20, 3);
+    // Little castle tower — stone keep with battlements and a tiny flag.
+    const tw = sz * 0.78;
+    const th = sz * 1.2;
+    // Soft dirt mound
+    ctx.fillStyle = 'rgba(90, 78, 58, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(0, th * 0.42, tw * 0.72, th * 0.14, 0, 0, Math.PI * 2);
     ctx.fill();
-    for (let i = -1; i <= 1; i++) {
-      ctx.save();
-      ctx.rotate(i * 0.2);
-      ctx.fillStyle = '#2a2824';
-      roundRect(0, -3, 18 + pulse, 6, 2);
+    // Stone body
+    const stone = ctx.createLinearGradient(-tw / 2, -th * 0.4, tw / 2, th * 0.45);
+    stone.addColorStop(0, '#d6d3d1');
+    stone.addColorStop(0.45, '#a8a29e');
+    stone.addColorStop(1, '#57534e');
+    ctx.fillStyle = stone;
+    roundRect(-tw / 2, -th * 0.32, tw, th * 0.82, 3);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(28, 25, 23, 0.45)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // Masonry courses
+    ctx.strokeStyle = 'rgba(41, 37, 36, 0.28)';
+    ctx.lineWidth = 1;
+    for (let row = 0; row < 3; row++) {
+      const y = -th * 0.18 + row * (th * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(-tw / 2 + 2, y);
+      ctx.lineTo(tw / 2 - 2, y);
+      ctx.stroke();
+    }
+    // Battlements
+    ctx.fillStyle = '#44403c';
+    for (let i = -2; i <= 2; i++) {
+      roundRect(i * (tw / 5) - 3, -th * 0.46, 6, 9, 1);
       ctx.fill();
-      ctx.restore();
+    }
+    // Window slits
+    ctx.fillStyle = '#1c1917';
+    roundRect(-2.8, -th * 0.08, 5.6, 9, 1);
+    ctx.fill();
+    roundRect(-2.8, th * 0.14, 5.6, 9, 1);
+    ctx.fill();
+    // Door
+    roundRect(-4.5, th * 0.28, 9, 14, 2);
+    ctx.fill();
+    // Flag pole + pennant (faces aim direction slightly)
+    const flagX = tw * 0.18;
+    ctx.strokeStyle = '#292524';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(flagX, -th * 0.46);
+    ctx.lineTo(flagX, -th * 0.72 - pulse * 0.15);
+    ctx.stroke();
+    ctx.fillStyle = ownerColor || '#fbbf24';
+    const wave = Math.sin(animFrame * 0.12 + t.x) * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(flagX, -th * 0.72);
+    ctx.lineTo(flagX + 11 + wave, -th * 0.66);
+    ctx.lineTo(flagX, -th * 0.60);
+    ctx.closePath();
+    ctx.fill();
+    // Element enchantment glow
+    if (t.spreadElement === 'fire') {
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, sz * 0.85 + pulse * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (t.spreadElement === 'ice') {
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, sz * 0.85 + pulse * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (t.spreadElement === 'electric') {
+      ctx.strokeStyle = 'rgba(167, 139, 250, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, sz * 0.85 + pulse * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
     }
   } else if (def.style === 'missile') {
     ctx.fillStyle = '#3a4248';
@@ -15069,13 +15861,15 @@ function drawUnit(u) {
   const sz = getUnitSize(u);
   const bob = Math.sin(animFrame * 0.15 + u.id.charCodeAt(0)) * 1.5;
   const inFree = phase === 'free' || gameMode === 'free';
-  if (inFree && u.type === 'tank') {
-    drawFreeEnemyTank(u);
-  } else {
-    drawUnitSprite(u.type, u.x, u.y, u.facing, sz, {
-      bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id, ownerId: u.owner, joustReady: u.joustReady,
-    });
-  }
+  withTeamHue(u.owner, () => {
+    if (inFree && u.type === 'tank') {
+      drawFreeEnemyTank(u);
+    } else {
+      drawUnitSprite(u.type, u.x, u.y, u.facing, sz, {
+        bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id, ownerId: u.owner, joustReady: u.joustReady,
+      });
+    }
+  });
 
   if (u.type === 'speed' && (u._dodgeFlash || 0) > 0) {
     ctx.strokeStyle = `rgba(214, 226, 245, ${u._dodgeFlash / 0.15})`;
@@ -15660,7 +16454,18 @@ function applyDamageToTarget(attacker, target, rawDamage) {
 function steerUnit(unit, dt) {
   const ut = unitDef(unit.type, unit.owner);
   if ((unit.dodgeBurst || 0) > 0) return;
+  // Electricity shock: completely unable to move.
+  if ((unit.spreadShock || 0) > 0) {
+    unit.vx *= 0.15;
+    unit.vy *= 0.15;
+    unit.x = clamp(unit.x + unit.vx * dt, 30, W - 30);
+    unit.y = clamp(unit.y + unit.vy * dt, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
+    return;
+  }
   const paralyzed = (unit.paralyze || 0) > 0;
+  const iceSlowMult = (unit.iceSlow && unit.iceSlow.life > 0 && unit.iceSlow.stacks > 0)
+    ? (1 - 0.2 * unit.iceSlow.stacks)
+    : 1;
   const usz = getUnitSize(unit);
   const enemy = enemyId(unit.owner);
   const behavior = ut.behavior || 'default';
@@ -15674,7 +16479,7 @@ function steerUnit(unit, dt) {
     const aim = Math.atan2(tp.y - unit.y, tp.x - unit.x);
     unit.facing = aim;
     let moveDir = aim;
-    let spd = ut.speed * (paralyzed ? 0.4 : 1);
+    let spd = ut.speed * (paralyzed ? 0.4 : 1) * iceSlowMult;
     const preyDist = prey ? prey.dist : Infinity;
     if (preyDist < DRAGON_STANDOFF * 0.9) {
       moveDir = aim + Math.PI;
@@ -15697,6 +16502,7 @@ function steerUnit(unit, dt) {
   if (behavior === 'goblin') maxSpd = ut.speed * (paralyzed ? 0.1 : 1.08);
   // Wolves sprint in terror when a dragon is near.
   if (behavior === 'flank' && !paralyzed && nearestEnemyDragon(unit)) maxSpd = ut.speed * 1.5;
+  maxSpd *= iceSlowMult;
 
   let fx = Math.cos(dir) * maxSpd;
   let fy = Math.sin(dir) * maxSpd;
@@ -15843,6 +16649,8 @@ function spawnTowerPellet(tower, ownerId, angle, towerType, opts = {}) {
   const def = opts.def || towerDef(towerType, ownerId);
   const speed = def.pelletSpeed || 380;
   const muzzle = def.size + 6;
+  const element = towerType === 'spread' ? (opts.spreadElement || tower.spreadElement || null) : null;
+  const windStyle = towerType === 'spread' ? spreadWindStyle(element) : null;
   pellets.push({
     id: uid(),
     x: tower.x + Math.cos(angle) * muzzle,
@@ -15853,15 +16661,24 @@ function spawnTowerPellet(tower, ownerId, angle, towerType, opts = {}) {
     towerType,
     damageMult: opts.damageMult || 1,
     baseDamage: opts.baseDamage != null ? opts.baseDamage : null,
-    color: opts.pelletColor || def.pelletColor || def.color,
-    size: towerType === 'spread' ? 3 : 4.5,
+    color: opts.pelletColor || windStyle?.color || def.pelletColor || def.color,
+    size: towerType === 'spread' ? 3.5 : 4.5,
     life: 2.4,
     maxRange: def.range || 200,
     traveled: 0,
     spawnX: tower.x,
     spawnY: tower.y,
     spreadTrack: opts.spreadTrack || null,
+    spreadElement: element,
+    windCore: windStyle?.core || null,
   });
+}
+
+function spreadWindStyle(element) {
+  if (element === 'fire') return { color: '#fb923c', core: '#fef08a' };
+  if (element === 'ice') return { color: '#7dd3fc', core: '#e0f2fe' };
+  if (element === 'electric') return { color: '#c4b5fd', core: '#fde047' };
+  return { color: '#cbd5e1', core: '#f8fafc' };
 }
 
 function applySpreadParalysis(unit) {
@@ -15869,6 +16686,32 @@ function applySpreadParalysis(unit) {
   const shotPeriod = 1 / UNIT_TYPES[unit.type].attackRate;
   const para = shotPeriod / 3;
   unit.paralyze = Math.min(shotPeriod, (unit.paralyze || 0) + para);
+}
+
+function applySpreadIce(unit) {
+  if (!unit || unit.hp <= 0) return;
+  if (!unit.iceSlow) unit.iceSlow = { stacks: 0, life: 0 };
+  unit.iceSlow.stacks = Math.min(3, (unit.iceSlow.stacks || 0) + 1);
+  unit.iceSlow.life = 1;
+}
+
+function applySpreadElectric(unit) {
+  if (!unit || unit.hp <= 0) return;
+  if ((unit.spreadShockCd || 0) > 0) return;
+  unit.spreadShock = 0.5;
+  unit.spreadShockCd = 1;
+}
+
+function applySpreadElementHit(pellet, unit) {
+  const el = pellet.spreadElement;
+  if (!el) return;
+  if (el === 'fire') {
+    igniteUnit(unit, pellet.ownerId, 0.9, 1, { fire: '#f97316', core: '#fde047' });
+  } else if (el === 'ice') {
+    applySpreadIce(unit);
+  } else if (el === 'electric') {
+    applySpreadElectric(unit);
+  }
 }
 
 function applyPelletHit(pellet, unit) {
@@ -15913,8 +16756,9 @@ function applyPelletHit(pellet, unit) {
     unit.y += ny * shove;
     unit.x = clamp(unit.x, 30, W - 30);
     unit.y = clamp(unit.y, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
-    spawnParticles(unit.x - nx * 8, unit.y - ny * 8, '#FBBF24', 2);
+    spawnParticles(unit.x - nx * 8, unit.y - ny * 8, pellet.color || '#E2E8F0', 2);
     applySpreadParalysis(unit);
+    applySpreadElementHit(pellet, unit);
   }
 }
 
@@ -16319,8 +17163,68 @@ function updatePellets(dt) {
   }
 }
 
+function drawWindBlast(p) {
+  const ang = Math.atan2(p.vy, p.vx);
+  const lifeFade = Math.min(1, Math.max(0.25, p.life / 1.2));
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(ang);
+  ctx.globalAlpha = 0.28 + 0.45 * lifeFade;
+  // Soft elongated gust
+  const grad = ctx.createLinearGradient(-16, 0, 10, 0);
+  grad.addColorStop(0, 'rgba(255,255,255,0)');
+  grad.addColorStop(0.35, p.color);
+  grad.addColorStop(1, p.windCore || 'rgba(255,255,255,0.85)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 13, 3.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Swirl ribbons
+  ctx.strokeStyle = p.color;
+  ctx.lineWidth = 1.15;
+  ctx.globalAlpha = 0.5 * lifeFade;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-12, i * 2.8);
+    ctx.quadraticCurveTo(-1, i * 5.2, 8, i * 1.2);
+    ctx.stroke();
+  }
+  // Element accents
+  if (p.spreadElement === 'fire') {
+    ctx.fillStyle = 'rgba(251, 146, 60, 0.7)';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(-4 + i * 4, (i - 1) * 2.2, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (p.spreadElement === 'ice') {
+    ctx.strokeStyle = 'rgba(186, 230, 253, 0.85)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-2, -4);
+    ctx.lineTo(2, 4);
+    ctx.moveTo(-4, 1);
+    ctx.lineTo(4, -1);
+    ctx.stroke();
+  } else if (p.spreadElement === 'electric') {
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.9)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-6, -3);
+    ctx.lineTo(-1, 1);
+    ctx.lineTo(-4, 1);
+    ctx.lineTo(5, 4);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawPellets() {
   for (const p of pellets) {
+    if (p.towerType === 'spread') {
+      drawWindBlast(p);
+      continue;
+    }
     ctx.save();
     ctx.fillStyle = p.color;
     ctx.shadowColor = p.color;
@@ -16594,7 +17498,10 @@ function updateTowers(dt) {
             const tNorm = pelletsN === 1 ? 0 : i / (pelletsN - 1);
             const offset = (tNorm - 0.5) * def.spreadAngle;
             const angle = t.angle + offset;
-            spawnTowerPellet(t, p.id, angle, 'spread', { spreadTrack });
+            spawnTowerPellet(t, p.id, angle, 'spread', {
+              spreadTrack,
+              spreadElement: t.spreadElement || null,
+            });
           }
         }
       } else if (def.style === 'missile' || def.style === 'missile_live') {
@@ -16876,6 +17783,14 @@ function updateCombat(dt) {
   for (const u of combatUnits) {
     if (UNIT_TYPES[u.type]?.dodges) updateSpeedDodge(u, dt);
     if (u.paralyze > 0) u.paralyze = Math.max(0, u.paralyze - dt);
+    if ((u.spreadShock || 0) > 0) u.spreadShock = Math.max(0, u.spreadShock - dt);
+    if ((u.spreadShockCd || 0) > 0) u.spreadShockCd = Math.max(0, u.spreadShockCd - dt);
+    if (u.iceSlow) {
+      if (u.iceSlow.life > 0) {
+        u.iceSlow.life = Math.max(0, u.iceSlow.life - dt);
+        if (u.iceSlow.life <= 0) u.iceSlow.stacks = 0;
+      }
+    }
     u.attackCooldown -= dt;
 
     // Elephants sprinkle water as they move and spray water jets at range,
@@ -17114,6 +18029,7 @@ function createTower(x, y, towerType, ownerId) {
     hp: def.hp, maxHp: def.maxHp || def.hp,
     angle: ownerId === 0 ? 0 : Math.PI,
     cooldown: 0, laserTarget: null,
+    spreadElement: towerType === 'spread' ? null : undefined,
   };
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
     LIVE_ARMY.decorateTower(tw, ownerId);
@@ -17205,6 +18121,11 @@ function handleClick(pos) {
     } else {
       setPendingSpellCast(spellId);
     }
+    return;
+  }
+
+  // Click own Spreader to open its elemental skill tree (before placing units).
+  if (!isTowerTool(selectedTool) && tryOpenSpreadTowerPanel(pos, pid)) {
     return;
   }
 
@@ -17348,30 +18269,28 @@ function updateUI() {
   const inFree = phase === 'free' || phase === 'free2p'
     || (phase === 'gameover' && (gameMode === 'free' || gameMode === 'free2p'));
   if (!inFree) {
-    document.getElementById('coins-display').textContent = Math.floor(p.coins);
-  }
-  const speedPill = document.getElementById('survival-speed-pill');
-  if (speedPill) {
-    const showSpeed = isSurvivalLive() && phase === 'combat';
-    speedPill.classList.toggle('hidden', !showSpeed);
-    speedPill.querySelectorAll('.surv-speed-btn').forEach((btn) => {
-      btn.disabled = isSurvivalPvp();
-      btn.title = isSurvivalPvp() ? 'Speed is fixed in online PvP lockstep.' : '';
-    });
+    if (isSimulatorMode()) {
+      document.getElementById('coins-display').textContent = `🔴 ${Math.floor(players[0].coins)} | 🔵 ${Math.floor(players[1].coins)}`;
+      document.getElementById('base-hp-display').textContent = Math.floor(players[0].baseHp);
+      document.getElementById('enemy-hp-display').textContent = Math.floor(players[1].baseHp);
+    } else {
+      document.getElementById('coins-display').textContent = Math.floor(p.coins);
+      const enemy = enemyId(pid);
+      document.getElementById('base-hp-display').textContent = Math.floor(players[pid].baseHp);
+      document.getElementById('enemy-hp-display').textContent = Math.floor(players[enemy].baseHp);
+    }
   }
   const roundLabel = document.getElementById('round-label');
   const roundEl = document.getElementById('round-display');
   if (gameMode === 'survival' || gameMode === 'survival-pvp') {
     roundLabel.textContent = 'Income';
     roundEl.textContent = `+${survivalIncomeAmount(pid, 'base')}/3s base`;
+  } else if (isSimulatorMode()) {
+    roundLabel.textContent = 'Teams';
+    roundEl.textContent = 'Red vs Blue';
   } else {
     roundLabel.textContent = 'Round';
     roundEl.textContent = round;
-  }
-  if (!inFree) {
-    const enemy = enemyId(pid);
-    document.getElementById('base-hp-display').textContent = Math.floor(players[pid].baseHp);
-    document.getElementById('enemy-hp-display').textContent = Math.floor(players[enemy].baseHp);
   }
 
   const phaseNames = {
@@ -17388,10 +18307,27 @@ function updateUI() {
     ? `⚔️ Live Battle (${survivalDifficultyLabel()})`
     : gameMode === 'survival-pvp'
       ? '⚔️ Online PvP'
+      : isSimulatorMode()
+        ? '🤖 Simulator'
     : (phaseNames[phase] || phase);
 
+  const speedPill = document.getElementById('survival-speed-pill');
+  if (speedPill) {
+    const showSpeed = isSurvivalLive() && phase === 'combat';
+    speedPill.classList.toggle('hidden', !showSpeed);
+    speedPill.querySelectorAll('.surv-speed-btn').forEach((btn) => {
+      btn.disabled = isSurvivalPvp();
+      btn.title = isSurvivalPvp() ? 'Speed is fixed in online PvP lockstep.' : '';
+    });
+  }
+
+  const bottomPanel = document.getElementById('bottom-panel');
+  if (bottomPanel && isSimulatorMode()) {
+    bottomPanel.classList.add('hidden');
+  }
+
   const canUseTools = canPlayerBuildNow();
-  const alwaysSelectableTools = isSurvivalLive() && phase === 'combat';
+  const alwaysSelectableTools = isSurvivalLive() && phase === 'combat' && !isSimulatorMode();
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
     LIVE_ARMY.syncBuildToolbar();
     syncLiveArmyStructures();
@@ -17467,7 +18403,7 @@ function updateUI() {
     toggleEconPanel(false);
   }
 
-  const liveCombat = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && phase === 'combat';
+  const liveCombat = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && phase === 'combat' && !isSimulatorMode();
   const barracksBtn = document.getElementById('barracks-upgrade-btn');
   const engineersBtn = document.getElementById('engineers-upgrade-btn');
   const laboratoryBtn = document.getElementById('laboratory-upgrade-btn');
@@ -17513,6 +18449,9 @@ function updateUI() {
     if (document.getElementById('commander-panel') && !document.getElementById('commander-panel').classList.contains('hidden')) {
       updateCommanderPanelUI();
     }
+  }
+  if (document.getElementById('spread-upgrade-panel') && !document.getElementById('spread-upgrade-panel').classList.contains('hidden')) {
+    updateSpreadUpgradeUI();
   }
 
   const medalBtn = document.getElementById('ach-medal-btn');
@@ -17738,6 +18677,23 @@ document.getElementById('missile-upgrade-list').addEventListener('click', (e) =>
   buyMissileUpgrade(pid, activeMissileTowerId, branch);
 });
 
+document.getElementById('spread-panel-close').addEventListener('click', () => toggleSpreadPanel(false));
+document.getElementById('spread-upgrade-panel').addEventListener('click', (e) => {
+  if (e.target.id === 'spread-upgrade-panel') toggleSpreadPanel(false);
+});
+document.getElementById('spread-upgrade-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-spread-element]');
+  if (!btn || btn.disabled) return;
+  const element = btn.dataset.spreadElement;
+  const pid = getLocalPlayerId();
+  if (!activeSpreadTowerId) return;
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction({ type: 'spread_element', towerId: activeSpreadTowerId, element });
+    return;
+  }
+  buySpreadElement(pid, activeSpreadTowerId, element);
+});
+
 document.getElementById('commander-fab').addEventListener('click', () => toggleCommanderPanel());
 document.getElementById('commander-close').addEventListener('click', () => toggleCommanderPanel(false));
 document.getElementById('commander-panel').addEventListener('click', (e) => {
@@ -17862,6 +18818,33 @@ document.querySelectorAll('.surv-speed-btn').forEach(btn => {
   });
 });
 
+function startSimulator() {
+  try {
+    if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
+    pvpOnline = null;
+    survivalDifficulty = 'medium';
+    gameMode = 'simulator';
+    survivalSpeed = 1;
+    setSurvivalSpeed(1);
+    round = 1;
+    resetGame();
+    setupSimulator();
+    document.getElementById('menu-screen').classList.add('hidden');
+    showBanner(
+      '🤖 Simulator',
+      'Red CPU vs Blue CPU — both sides use the Live Battle AI.\nUse 1× / 2× / 4× speed controls to fast-forward.',
+      'Watch!'
+    );
+    bannerAction = () => { liveMenuPaused = false; };
+  } catch (err) {
+    console.error('Failed to start Simulator', err);
+    document.getElementById('menu-screen').classList.remove('hidden');
+    addLog('Could not start Simulator — try refreshing the page.');
+  }
+}
+
+document.getElementById('btn-simulator').addEventListener('click', startSimulator);
+
 document.getElementById('btn-free').addEventListener('click', () => {
   gameMode = 'free';
   players[1].isAI = true;
@@ -17949,6 +18932,9 @@ function resetGame() {
   survivalFarmTimer = 0;
   survivalAiTimer = 0;
   survivalAiBrain = null;
+  simulatorAiBrains = null;
+  simulatorAiTimers[0] = 0;
+  simulatorAiTimers[1] = 0;
   survivalSpeed = 1;
   survivalDifficulty = 'easy';
   floatTexts = [];
@@ -17983,6 +18969,9 @@ function resetGame() {
     p.combatReward = 0;
     p.bloopBounty = 0;
     p.incomeUpgrades = defaultIncomeUpgrades();
+    p.name = i === 0 ? 'Player 1' : 'Player 2';
+    p.isAI = false;
+    p.color = i === 0 ? P1_COLOR : P2_COLOR;
   }
 
   // starter towers
