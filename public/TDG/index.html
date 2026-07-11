@@ -101,12 +101,13 @@
     #top-bar {
       position: absolute;
       top: 0; left: 0; right: 0;
-      padding: 10px 16px;
+      padding: 10px 52px 10px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%);
       pointer-events: none;
+      z-index: 40;
     }
 
     .stat-pill {
@@ -119,6 +120,14 @@
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+
+    #coins-pill {
+      background: rgba(22, 101, 52, 0.55);
+      border: 1px solid rgba(134, 239, 172, 0.35);
+      color: #ecfdf5;
+      font-variant-numeric: tabular-nums;
+      min-width: 4.5rem;
     }
 
     .stat-pill .icon { font-size: 1.1rem; }
@@ -146,6 +155,53 @@
     .surv-speed-btn.active {
       background: #c9a227;
       color: #1a1a2e;
+    }
+
+    #fullscreen-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      z-index: 41;
+      pointer-events: auto;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(8px);
+      color: #e8ebe0;
+      font-size: 1.05rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.12s, transform 0.12s;
+    }
+    #fullscreen-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      transform: scale(1.06);
+    }
+    #fullscreen-btn.is-fullscreen {
+      border-color: rgba(252, 211, 77, 0.55);
+      color: #fcd34d;
+    }
+
+    #game-stage:fullscreen,
+    #game-stage:-webkit-full-screen {
+      width: 100vw !important;
+      height: 100vh !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0a0e14;
+      border-radius: 0;
+    }
+    #game-stage:fullscreen #game-wrapper,
+    #game-stage:-webkit-full-screen #game-wrapper {
+      border-radius: 0;
+      box-shadow: none;
     }
 
   #bottom-panel {
@@ -179,10 +235,21 @@
       pointer-events: auto;
     }
 
-    .tool-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
-    .tool-btn:active { transform: translateY(0); }
+    .tool-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+    .tool-btn:active:not(:disabled) { transform: translateY(0); }
     .tool-btn.active { outline: 3px solid #fff; outline-offset: 2px; }
-    .tool-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .tool-btn:disabled,
+    .tool-btn.unaffordable {
+      opacity: 0.38;
+      cursor: not-allowed;
+      transform: none;
+      filter: grayscale(0.85) brightness(0.72);
+      box-shadow: none;
+    }
+    .tool-btn.unaffordable:hover {
+      transform: none;
+      box-shadow: none;
+    }
     .tool-btn .cost { font-size: 0.7rem; opacity: 0.8; }
 
     .btn-tank { background: #4ECDC4; }
@@ -201,8 +268,8 @@
     .btn-engineers { background: #facc15; color: #422006; }
     .btn-laboratory { background: #7c3aed; color: #f5f3ff; }
     .btn-fireball { background: #fb923c; color: #431407; }
-    .btn-slime { background: #4ade80; color: #14532d; }
-    .btn-heal { background: #86efac; color: #064e3b; }
+    .btn-slime { background: #65a30d; color: #ecfccb; }
+    .btn-heal { background: #facc15; color: #422006; }
     .btn-goblin { background: #4ade80; color: #14532d; }
     .btn-move { background: #94A3B8; color: #fff; }
     .btn-ready {
@@ -1004,8 +1071,18 @@
     }
 
     .skill-node.afford-wait .skill-gem {
-      border-color: #f87171;
-      opacity: 0.88;
+      border-color: #94a3b8;
+      opacity: 0.55;
+      filter: grayscale(0.9) brightness(0.65);
+      box-shadow: none;
+      animation: none;
+    }
+    .skill-node.afford-wait {
+      opacity: 0.72;
+      filter: grayscale(0.55);
+    }
+    .skill-node.afford-wait .skill-node-cost {
+      color: #94a3b8;
     }
 
     .skill-node.future .skill-gem,
@@ -1390,7 +1467,17 @@
 
     .st-card.available .st-card-body { animation: st-glow 1.8s ease-in-out infinite; }
 
-    .st-card.afford-wait .st-card-body { border-color: #f87171; }
+    .st-card.afford-wait .st-card-body {
+      border-color: #64748b;
+      filter: grayscale(0.85) brightness(0.62);
+      box-shadow: none;
+      animation: none;
+    }
+    .st-card.afford-wait {
+      opacity: 0.7;
+      filter: grayscale(0.45);
+    }
+    .st-card.afford-wait .st-card-meta { color: #94a3b8; }
 
     .st-card.owned .st-card-body {
       box-shadow: inset 0 0 12px color-mix(in srgb, var(--st-accent) 28%, transparent);
@@ -1437,8 +1524,8 @@
     .st-theme-spd { --st-accent: #eab308; --st-deep: #713f12; }
     .st-theme-hp { --st-accent: #ec4899; --st-deep: #831843; }
     .st-theme-fireball { --st-accent: #fb923c; --st-deep: #7c2d12; }
-    .st-theme-slime { --st-accent: #4ade80; --st-deep: #14532d; }
-    .st-theme-heal { --st-accent: #86efac; --st-deep: #064e3b; }
+    .st-theme-slime { --st-accent: #84cc16; --st-deep: #365314; }
+    .st-theme-heal { --st-accent: #facc15; --st-deep: #713f12; }
     .st-theme-spell-pwr { --st-accent: #c4b5fd; --st-deep: #4c1d95; }
 
     .st-hline.st-theme-farm { background: linear-gradient(90deg, #14532d, #4ade80, #14532d); }
@@ -1695,9 +1782,17 @@
     }
 
     .brk-mini-afford-wait .brk-mini-gem {
-      border-color: #f87171;
-      opacity: 0.88;
+      border-color: #64748b;
+      opacity: 0.5;
+      filter: grayscale(0.9) brightness(0.65);
+      animation: none;
+      box-shadow: none;
     }
+    .brk-mini-afford-wait {
+      opacity: 0.7;
+      filter: grayscale(0.5);
+    }
+    .brk-mini-afford-wait .brk-mini-cost { color: #94a3b8; }
 
     .brk-mini-future {
       opacity: 0.35;
@@ -2001,9 +2096,17 @@
     }
 
     .st-node.afford-wait .st-frame {
-      border-color: #f87171;
-      opacity: 0.9;
+      border-color: #64748b;
+      opacity: 0.55;
+      filter: grayscale(0.9) brightness(0.65);
+      animation: none;
+      box-shadow: none;
     }
+    .st-node.afford-wait {
+      opacity: 0.72;
+      filter: grayscale(0.45);
+    }
+    .st-node.afford-wait .st-cost { color: #94a3b8; }
 
     .st-node.future .st-frame {
       border-color: #4a4030;
@@ -2186,8 +2289,9 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.35);
     }
     .spread-skill-card:disabled {
-      opacity: 0.45;
+      opacity: 0.38;
       cursor: not-allowed;
+      filter: grayscale(0.9) brightness(0.7);
     }
     .spread-skill-card.owned {
       border-color: #4ade80;
@@ -2260,6 +2364,16 @@
       user-select: none;
     }
 
+    #cmd-stance-fab-icon {
+      font-size: 1.55rem;
+      line-height: 1;
+      user-select: none;
+      display: block;
+    }
+    #cmd-stance-fab.stance-attack { border-color: #86efac; }
+    #cmd-stance-fab.stance-retreat { border-color: #f87171; }
+    #cmd-stance-fab.stance-hold { border-color: #fbbf24; }
+
     #commander-panel {
       position: absolute;
       inset: 0;
@@ -2323,7 +2437,11 @@
       background: linear-gradient(135deg, #fcd34d, #f59e0b); color: #1a1a2e;
       font-weight: 700; font-size: 0.8rem; text-align: left;
     }
-    .cmd-skill-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cmd-skill-btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      filter: grayscale(0.9) brightness(0.7);
+    }
     .cmd-skill-btn.owned { background: rgba(134,239,172,0.25); color: #bbf7d0; cursor: default; }
 
     .econ-panel-inner {
@@ -2395,8 +2513,9 @@
     }
 
     .econ-upgrade-buy:disabled {
-      opacity: 0.4;
+      opacity: 0.38;
       cursor: not-allowed;
+      filter: grayscale(0.9) brightness(0.7);
     }
 
     #achievement-panel {
@@ -2538,7 +2657,7 @@
     <canvas id="game" width="1280" height="720"></canvas>
     <div id="ui-overlay">
       <div id="top-bar">
-        <div class="stat-pill" id="coins-pill"><span class="icon">🪙</span> <span id="coins-display">0</span></div>
+        <div class="stat-pill" id="coins-pill"><span class="icon">💵</span> <span id="coins-display">0</span></div>
         <div class="stat-pill" id="round-pill"><span class="icon">🔄</span> <span id="round-label">Round</span> <span id="round-display">1</span></div>
         <div class="stat-pill" id="phase-display">Menu</div>
         <div class="stat-pill" id="hp-pill"><span class="icon">❤️</span> <span id="base-hp-display">600</span> / <span id="enemy-hp-display">600</span></div>
@@ -2548,6 +2667,7 @@
           <button type="button" class="surv-speed-btn" data-speed="4">4×</button>
         </div>
       </div>
+      <button id="fullscreen-btn" type="button" title="Fullscreen" aria-label="Toggle fullscreen">⛶</button>
       <div id="log-feed"></div>
       <div id="achievement-feed-p0"></div>
       <div id="achievement-feed-p1"></div>
@@ -2674,8 +2794,8 @@
         <button class="tool-btn btn-engineers hidden" id="btn-engineers-live" data-tool="engineers">🏗️ Tower Depot<div class="cost">100</div></button>
         <button class="tool-btn btn-laboratory hidden" id="btn-laboratory-live" data-tool="laboratory">🧙 Laboratory<div class="cost">100</div></button>
         <button class="tool-btn btn-fireball hidden" id="btn-spell-fireball" data-tool="fireball">☄️ Fireball<div class="cost">45</div></button>
-        <button class="tool-btn btn-slime hidden" id="btn-spell-slime" data-tool="slime">🧪 Slime<div class="cost">55</div></button>
-        <button class="tool-btn btn-heal hidden" id="btn-spell-heal" data-tool="heal">💚 Heal<div class="cost">40</div></button>
+        <button class="tool-btn btn-slime hidden" id="btn-spell-slime" data-tool="slime">🧟 Zombie Slime<div class="cost">55</div></button>
+        <button class="tool-btn btn-heal hidden" id="btn-spell-heal" data-tool="heal">🧴 Yellow Potion<div class="cost">40</div></button>
         <button class="tool-btn btn-goblin hidden" id="btn-goblin-live" data-tool="goblin">👺 Goblin<div class="cost">22</div></button>
         <button class="tool-btn btn-move" data-tool="move">✋ Move</button>
         <button class="tool-btn btn-ready" id="ready-btn">Ready! ▶</button>
@@ -2693,6 +2813,9 @@
         </svg>
       </button>
       <div id="commander-quickbar" class="hidden">
+        <button id="cmd-stance-fab" class="cmd-fab hidden" type="button" title="Special Commands — tap to cycle">
+          <span id="cmd-stance-fab-icon">➡️</span>
+        </button>
         <button id="cmd-count-fab" class="cmd-fab" type="button" title="Units per drop — tap to cycle">
           <span id="cmd-count-fab-num">1</span>
         </button>
@@ -3003,22 +3126,40 @@ function isImmovableTower(towerType) {
 // 900 → up to 9. tier: 0 locked · 1 = cap 3 · 2 = cap 6 · 3 = cap 9.
 const COMMANDER_CAP_BY_TIER = [0, 3, 6, 9];
 const COMMANDER_TIER_COST = [300, 600, 900]; // cost to reach tier index+1
+const COMMANDER_SPECIAL_COST = 200;
 const COMMANDER_FORMATIONS = ['front', 'train', 'group'];
 const COMMANDER_FORMATION_LABEL = { front: 'Front Line', train: 'Train', group: 'Group' };
+const COMMANDER_STANCES = ['attack', 'retreat', 'hold'];
+const COMMANDER_STANCE_LABEL = {
+  attack: 'Attack',
+  retreat: 'Retreat',
+  hold: 'Hold',
+};
 
 function freshCommander() {
-  return { tier: 0 };
+  return { tier: 0, specialCommands: false, stance: 'attack' };
 }
 function getCommander(p) {
   if (!p) return freshCommander();
   if (!p.commander) p.commander = freshCommander();
-  return p.commander;
+  const c = p.commander;
+  if (c.specialCommands == null) c.specialCommands = false;
+  if (!c.stance) c.stance = 'attack';
+  return c;
 }
 function commanderCap(p) {
   return COMMANDER_CAP_BY_TIER[getCommander(p).tier] || 0;
 }
 function commanderUnlocked(p) {
   return getCommander(p).tier >= 1;
+}
+function commanderHasSpecialCommands(p) {
+  return commanderUnlocked(p) && !!getCommander(p).specialCommands;
+}
+function getCommanderStance(p) {
+  if (!commanderHasSpecialCommands(p)) return 'attack';
+  const s = getCommander(p).stance;
+  return COMMANDER_STANCES.includes(s) ? s : 'attack';
 }
 function commanderTierCost(tier) {
   return COMMANDER_TIER_COST[tier - 1] ?? null;
@@ -3057,6 +3198,49 @@ function buyCommanderUpgrade(pid, tier) {
   updateIncomeUpgradeUI(true);
   updateUI();
   return true;
+}
+
+function buyCommanderSpecialCommands(pid) {
+  if (!isSurvivalLive()) return false;
+  const p = players[pid];
+  if (!p || p.baseHp <= 0) return false;
+  const c = getCommander(p);
+  if (!commanderUnlocked(p) || c.specialCommands) return false;
+  if (p.coins < COMMANDER_SPECIAL_COST) return false;
+  p.coins -= COMMANDER_SPECIAL_COST;
+  c.specialCommands = true;
+  c.stance = c.stance || 'attack';
+  addLog(`🎖️ ${p.name}: unlocked Special Commands — Attack / Retreat / Hold`);
+  if (pid === getLocalPlayerId()) updateCommanderPanelUI();
+  updateUI();
+  return true;
+}
+
+function setCommanderStance(pid, stance) {
+  if (!COMMANDER_STANCES.includes(stance)) return false;
+  const p = players[pid];
+  if (!commanderHasSpecialCommands(p)) return false;
+  getCommander(p).stance = stance;
+  if (pid === getLocalPlayerId()) {
+    syncCommanderControlsUI();
+    addLog(`🎖️ Orders: ${COMMANDER_STANCE_LABEL[stance]}`);
+  }
+  return true;
+}
+
+function commanderCycleStance() {
+  const pid = getLocalPlayerId();
+  if (!commanderHasSpecialCommands(players[pid])) return;
+  const cur = getCommanderStance(players[pid]);
+  const idx = COMMANDER_STANCES.indexOf(cur);
+  const next = COMMANDER_STANCES[(idx + 1) % COMMANDER_STANCES.length];
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction({ type: 'commander_stance', stance: next });
+    // Optimistic local apply
+    setCommanderStance(pid, next);
+    return;
+  }
+  setCommanderStance(pid, next);
 }
 
 // Formation offsets relative to the click point, in a frame where +x points at
@@ -3314,7 +3498,7 @@ function buildManualUI() {
       <li><strong>Round income</strong> — Both players earn coins every round. Income grows as the war goes on.</li>
       <li><strong>Backup coins</strong> — Every point of damage your base takes earns you backup coins at round end. Hitting the enemy hard funds their comeback!</li>
       <li><strong>Mint towers</strong> — Each surviving Mint pays bonus income every round.</li>
-      <li><strong>Bloop bounty</strong> — Destroying enemy Bloops pays coin bounties (full Bloop = 15🪙, mini = 9🪙).</li>
+      <li><strong>Bloop bounty</strong> — Destroying enemy Bloops pays coin bounties (full Bloop = 15💵, mini = 9💵).</li>
       <li><strong>Achievements</strong> — Combat feats earn bonus coins (toggle in Rule Book).</li>
       <li><strong>Tower scaling</strong> — Each additional tower of the same type costs more than the last.</li>
     </ul>
@@ -3332,7 +3516,7 @@ function buildManualUI() {
 
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
-    <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200🪙, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
+    <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200💵, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
     <div class="manual-card"><h4>🎮 Free Mode</h4><p>Control a super-tank on a huge open battlefield! Arrow keys move and rotate, Space shoots. The camera follows you. Enemies only chase you when you get within detection range. Clear all hostiles to win.</p></div>
   </div>`;
 
@@ -3348,7 +3532,7 @@ function buildManualUI() {
     if (ut.dodges) extras.push('Dodges shots');
     if (ut.splits) extras.push('Splits on death');
     html += `<div class="manual-card"><h4>${ut.name}</h4>
-      <div class="manual-stats">${ut.cost}🪙 · ${ut.hp} HP · ${ut.damage} dmg · range ${ut.range}</div>
+      <div class="manual-stats">${ut.cost}💵 · ${ut.hp} HP · ${ut.damage} dmg · range ${ut.range}</div>
       <p>${desc}${extras.length ? ` <em>(${extras.join(', ')})</em>` : ''}</p></div>`;
   }
   html += `</div>`;
@@ -3356,11 +3540,11 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>Towers</h3>`;
   for (const [id, tw] of Object.entries(TOWER_TYPES)) {
     const desc = TOWER_MANUAL[id] || '';
-    let stats = `${tw.cost}🪙 · ${tw.hp} HP`;
+    let stats = `${tw.cost}💵 · ${tw.hp} HP`;
     if (tw.range) stats += ` · range ${tw.range}`;
     if (tw.damage) stats += ` · ${tw.damage} dmg`;
     if (tw.pelletDamage) stats += ` · ${tw.pelletDamage} dmg/pellet × ${tw.pelletCount || 1}`;
-    if (tw.incomePerRound) stats += ` · +${tw.incomePerRound}🪙/round`;
+    if (tw.incomePerRound) stats += ` · +${tw.incomePerRound}💵/round`;
     if (tw.fireInterval) stats += ` · ${tw.fireInterval}s reload`;
     html += `<div class="manual-card"><h4>${tw.name}</h4>
       <div class="manual-stats">${stats}</div>
@@ -3688,7 +3872,7 @@ function econHarvestSpeedMeta(type, tier) {
   const costs = [300, 900, 3200];
   return {
     title: `${label} ${tier}`,
-    tooltip: `Exact effect: each ${label.split(' ')[0]} harvests every ${interval}s instead of ${prev}s. Cost ${costs[tier - 1]}🪙.`,
+    tooltip: `Exact effect: each ${label.split(' ')[0]} harvests every ${interval}s instead of ${prev}s. Cost ${costs[tier - 1]}💵.`,
   };
 }
 
@@ -3700,7 +3884,7 @@ function econHarvestYieldMeta(type, tier) {
   const label = type === 'farm' ? 'Farm Yield' : 'Mint Yield';
   return {
     title: `${label} ${tier}`,
-    tooltip: `Exact effect: each ${label.split(' ')[0]} pays ${amount}🪙 per harvest (was ${from}🪙). Cost ${costs[tier - 1]}🪙.`,
+    tooltip: `Exact effect: each ${label.split(' ')[0]} pays ${amount}💵 per harvest (was ${from}💵). Cost ${costs[tier - 1]}💵.`,
   };
 }
 
@@ -3712,7 +3896,7 @@ function harvestIntervalLabel(pid, type) {
 function econBaseSkillMeta(branch, tier) {
   const names = { income: 'HQ Income', health: 'Base Health', defense: 'Base Turrets' };
   const tips = {
-    income: `Exact effect: HQ passive income becomes ${survivalIncomeAmountAtLevel('base', 1 + tier)}🪙 every 3s (was ${survivalIncomeAmountAtLevel('base', tier)}🪙).`,
+    income: `Exact effect: HQ passive income becomes ${survivalIncomeAmountAtLevel('base', 1 + tier)}💵 every 3s (was ${survivalIncomeAmountAtLevel('base', tier)}💵).`,
     health: `Exact effect: +150 max HQ HP (total bonus HP at this level: ${tier * 150}). Current HP also gains +150 when purchased.`,
     defense: `Exact effect: places ${tier} auto-firing base turret${tier === 1 ? '' : 's'} on the pads in front of your HQ (max 3).`,
   };
@@ -3743,16 +3927,16 @@ function barracksUnlockMeta(ut) {
   const cost = LIVE_ARMY.unitUnlockCost(ut);
   const base = UNIT_TYPES[ut] || {};
   const tips = {
-    tank: `Unlock Elephants (${cost}🪙). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Spreader knockback/shock; douses fire; weak vs Wolf packs.`,
-    speed: `Unlock Wolves (${cost}🪙). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Packs shred Elephants; hard-counter Snipers; dodge attacks.`,
-    goblin: `Unlock Goblins (${cost}🪙). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Rail Gun beams; steals coins from Farms/Mints; Dragons prioritize them.`,
-    striker: `Unlock Knights (${cost}🪙). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Strong vs Wolves/towers; first strike deals double damage; weak vs Elephant+Sniper and Dragons.`,
-    sniper: `Unlock Snipers (${cost}🪙). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Long-range; prioritizes Dragons; extremely weak vs Wolves.`,
-    peka: `Unlock Dragons (${cost}🪙). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire; chases Goblins first; weak to Turrets & Snipers.`,
+    tank: `Unlock Elephants (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Spreader knockback/shock; douses fire; weak vs Wolf packs.`,
+    speed: `Unlock Wolves (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Packs shred Elephants; hard-counter Snipers; dodge attacks.`,
+    goblin: `Unlock Goblins (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Rail Gun beams; steals coins from Farms/Mints; Dragons prioritize them.`,
+    striker: `Unlock Knights (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Strong vs Wolves/towers; first strike deals double damage; weak vs Elephant+Sniper and Dragons.`,
+    sniper: `Unlock Snipers (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Long-range; prioritizes Dragons; extremely weak vs Wolves.`,
+    peka: `Unlock Dragons (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire; chases Goblins first; weak to Turrets & Snipers.`,
   };
   return {
     title: `Unlock ${label}`,
-    tooltip: tips[ut] || `Unlock ${label} for ${cost}🪙.`,
+    tooltip: tips[ut] || `Unlock ${label} for ${cost}💵.`,
     theme: UNIT_THEME_MAP[ut] || 'tank',
   };
 }
@@ -3764,7 +3948,7 @@ function barracksStatBranchLabel(unitType, stat) {
 }
 
 function barracksStatBranchIcon(unitType, stat) {
-  if (unitType === 'goblin' && stat === 'damage') return '🪙';
+  if (unitType === 'goblin' && stat === 'damage') return '💵';
   if (unitType === 'sniper' && stat === 'speed') return '🎯';
   return STAT_SKILL_ICONS[stat];
 }
@@ -3792,7 +3976,7 @@ function barracksStatMeta(unitLabel, stat, tier, unitType) {
     const dmg = Math.round((base.damage || 11) * mult);
     return {
       title: `${unitLabel} Loot ${tier}`,
-      tooltip: `Exact effect: Goblins steal ${farm}🪙 from Farms and ${mint}🪙 from Mints per hit (was ${prevFarm}/${prevMint}), and deal ${dmg} damage (${multLabel}, was ${formatMult(prev)}).`,
+      tooltip: `Exact effect: Goblins steal ${farm}💵 from Farms and ${mint}💵 from Mints per hit (was ${prevFarm}/${prevMint}), and deal ${dmg} damage (${multLabel}, was ${formatMult(prev)}).`,
       theme: 'loot',
       nodeLabel: multLabel,
     };
@@ -3932,14 +4116,14 @@ function engineersTowerUnlockMeta(tt) {
   const label = LIVE_ARMY.TOWER_LABELS[tt] || tt;
   const cost = LIVE_ARMY.towerUnlockCost(tt);
   const tips = {
-    turret: `Unlock Turrets (${cost}🪙). Steady single-target shots from a wooden outpost. Base: ${TOWER_TYPES.turret.damage} dmg, range ${TOWER_TYPES.turret.range}, ${TOWER_TYPES.turret.fireRate}/s. Only tower that can shoot flying Dragons.`,
-    laser: `Unlock Rail Guns (${cost}🪙). Piercing beam. Base range 680. Immune Goblins ignore the beam. Does not hit flying Dragons.`,
-    spread: `Unlock Spreaders (${cost}🪙). Castle tower with wind blasts, knockback/paralyze. Click a placed tower to pick Fire, Ice, or Electricity (100🪙, one only). Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} blasts. Weak vs Elephants (immune to base shock).`,
-    missile: `Unlock Missile Bases (${cost}🪙). Slow long-range area blasts. Expensive structure with its own upgrade panel.`,
+    turret: `Unlock Turrets (${cost}💵). Steady single-target shots from a wooden outpost. Base: ${TOWER_TYPES.turret.damage} dmg, range ${TOWER_TYPES.turret.range}, ${TOWER_TYPES.turret.fireRate}/s. Only tower that can shoot flying Dragons.`,
+    laser: `Unlock Rail Guns (${cost}💵). Piercing beam. Base range 680. Immune Goblins ignore the beam. Does not hit flying Dragons.`,
+    spread: `Unlock Spreaders (${cost}💵). Castle tower with wind blasts, knockback/paralyze. Click a placed tower to pick Fire, Ice, or Electricity (250💵, one only). Each element builds a charge bar for mixed elemental blasts. Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} blasts. Weak vs Elephants (immune to base shock).`,
+    missile: `Unlock Missile Bases (${cost}💵). Slow long-range area blasts. Expensive structure with its own upgrade panel.`,
   };
   return {
     title: `Unlock ${label}`,
-    tooltip: tips[tt] || `Unlock ${label} for ${cost}🪙.`,
+    tooltip: tips[tt] || `Unlock ${label} for ${cost}💵.`,
     theme: TOWER_THEME_MAP[tt] || 'eng',
   };
 }
@@ -3998,7 +4182,7 @@ function skillCardHtml({
   html += `</${tag}>`;
 
   if (state === 'available' || state === 'afford-wait') {
-    html += `<div class="st-card-meta">${cost}🪙</div>`;
+    html += `<div class="st-card-meta">${cost}💵</div>`;
   } else {
     html += '<div class="st-card-meta"></div>';
   }
@@ -4040,7 +4224,7 @@ function barracksMainUnitCardHtml({ theme, icon, label, tooltip, unlocked, affor
   html += `<div class="st-card-foot">${escapeHtml(unlocked ? label : 'Unlock')}</div>`;
   html += `</${tag}>`;
   if (!unlocked && (state === 'available' || state === 'afford-wait')) {
-    html += `<div class="brk-main-cost">${cost}🪙</div>`;
+    html += `<div class="brk-main-cost">${cost}💵</div>`;
   }
   html += '</div>';
   return html;
@@ -4110,7 +4294,7 @@ function skillTreeTierHtml({ tier, maxTier, ownedTier, unlocked, cost, afford, i
   html += `<${tag} class="skill-node ${state}"${attrs}>`;
   html += `<span class="skill-gem tier-${gemTier}">${icon}</span>`;
   if (state === 'available' || state === 'afford-wait') {
-    html += `<span class="skill-node-cost">${cost}🪙</span>`;
+    html += `<span class="skill-node-cost">${cost}💵</span>`;
   } else {
     html += `<span class="skill-node-tier">T${tier}</span>`;
   }
@@ -4538,12 +4722,12 @@ function toggleBarracksPanel(show) {
 
 const SPELL_BLURBS = {
   fireball: 'Call a meteor from the heavens. Heavy damage and knockback in an area — especially devastating to Dragons.',
-  slime: 'Smash a green slime bottle. Enemy units in the splash fight for you for a few seconds, then revert.',
-  heal: 'Bathe your troops in healing light. Allies in the aura gain +10 HP every 1/3 second for several seconds.',
+  slime: 'Smash a Zombie Slime bottle. Enemies shake for 1s while turning, then attack the nearest foe for 3s, then take 1s to wear off.',
+  heal: 'Smash a yellow potion. Allies and towers in the aura gain +10 HP every 1/3 second for several seconds.',
 };
 
 const SPELL_THEME_MAP = { fireball: 'fireball', slime: 'slime', heal: 'heal' };
-const SPELL_SKILL_ICONS = { fireball: '☄️', slime: '🧪', heal: '💚' };
+const SPELL_SKILL_ICONS = { fireball: '☄️', slime: '🧟', heal: '🧴' };
 
 function spellUnlockMeta(spellId) {
   const label = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
@@ -4551,7 +4735,7 @@ function spellUnlockMeta(spellId) {
   const tip = SPELL_BLURBS[spellId] || '';
   return {
     title: `Unlock ${label}`,
-    tooltip: `Unlock ${label} (${cost}🪙). ${tip} Appears on the bottom bar to cast.`,
+    tooltip: `Unlock ${label} (${cost}💵). ${tip} Appears on the bottom bar to cast.`,
   };
 }
 
@@ -4564,13 +4748,13 @@ function spellPowerMeta(spellId, tier) {
   if (spellId === 'fireball') {
     effect = `${stats.damage} dmg (${stats.dragonMult.toFixed(1)}× vs Dragons), knockback ${Math.round(stats.knockback)}, radius ${Math.round(stats.radius)}`;
   } else if (spellId === 'slime') {
-    effect = `convert enemies in radius ${Math.round(stats.radius)} for ${stats.duration.toFixed(1)}s`;
+    effect = `1s transform shake → ${stats.duration.toFixed(1)}s zombie (nearest enemy) → 1s wear-off, radius ${Math.round(stats.radius)}`;
   } else {
-    effect = `heal allies +${stats.healPerTick} HP / ${stats.tickInterval.toFixed(2)}s for ${stats.duration.toFixed(1)}s, radius ${Math.round(stats.radius)}`;
+    effect = `heal allies & towers +${stats.healPerTick} HP / ${stats.tickInterval.toFixed(2)}s for ${stats.duration.toFixed(1)}s, radius ${Math.round(stats.radius)}`;
   }
   return {
     title: `${label} Lv${tier}`,
-    tooltip: `Exact effect: ${effect}. Cast ${cast}🪙 · CD ${cd.toFixed(1)}s.`,
+    tooltip: `Exact effect: ${effect}. Cast ${cast}💵 · CD ${cd.toFixed(1)}s.`,
     nodeLabel: `Lv${tier}`,
   };
 }
@@ -4698,6 +4882,91 @@ function setPendingSpellCast(spellId) {
   banner.classList.remove('hidden');
 }
 
+const SPELL_PREVIEW_STYLE = {
+  fireball: {
+    fill: 'rgba(249, 115, 22, 0.18)',
+    stroke: 'rgba(251, 146, 60, 0.95)',
+    ring: 'rgba(254, 243, 199, 0.7)',
+    label: '#fdba74',
+  },
+  slime: {
+    fill: 'rgba(132, 204, 22, 0.18)',
+    stroke: 'rgba(163, 230, 53, 0.95)',
+    ring: 'rgba(236, 252, 203, 0.7)',
+    label: '#bef264',
+  },
+  heal: {
+    fill: 'rgba(250, 204, 21, 0.18)',
+    stroke: 'rgba(253, 224, 71, 0.95)',
+    ring: 'rgba(254, 249, 195, 0.75)',
+    label: '#fde047',
+  },
+};
+
+function drawSpellRadiusPreview(spellId, x, y, pid) {
+  if (!LIVE_ARMY?.isActive() || !isSpellTool(spellId)) return;
+  const p = players[pid];
+  const lvl = LIVE_ARMY.spellLevel(p, spellId);
+  if (lvl <= 0) return;
+  const stats = LIVE_ARMY.spellStats(spellId, lvl);
+  const r = stats.radius || 80;
+  const canCast = LIVE_ARMY.canCastSpell(p, spellId);
+  const cd = p.liveArmy?.laboratory?.cds?.[spellId] || 0;
+  const style = SPELL_PREVIEW_STYLE[spellId] || SPELL_PREVIEW_STYLE.fireball;
+  const pulse = 0.85 + Math.sin(animFrame * 0.12) * 0.08;
+
+  ctx.save();
+  // Soft filled blast area
+  ctx.globalAlpha = canCast ? 0.9 : 0.55;
+  ctx.fillStyle = canCast ? style.fill : 'rgba(239, 68, 68, 0.14)';
+  ctx.beginPath();
+  ctx.arc(x, y, r * pulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer radius ring (exact blast size)
+  ctx.setLineDash(canCast ? [8, 6] : [4, 4]);
+  ctx.strokeStyle = canCast ? style.stroke : 'rgba(248, 113, 113, 0.9)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Inner guide ring
+  ctx.setLineDash([]);
+  ctx.strokeStyle = canCast ? style.ring : 'rgba(252, 165, 165, 0.55)';
+  ctx.lineWidth = 1.25;
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(12, r * 0.22), 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Crosshair at cast point
+  ctx.strokeStyle = canCast ? style.stroke : '#f87171';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 10, y);
+  ctx.lineTo(x + 10, y);
+  ctx.moveTo(x, y - 10);
+  ctx.lineTo(x, y + 10);
+  ctx.stroke();
+
+  // Radius label
+  const icon = LIVE_ARMY.SPELL_ICONS[spellId] || SPELL_SKILL_ICONS[spellId] || '✨';
+  const name = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
+  let status = `r ${Math.round(r)}`;
+  if (cd > 0) status = `${cd.toFixed(1)}s CD`;
+  else if (!canCast) status = 'Need 💵';
+
+  ctx.font = '800 14px Rajdhani, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillStyle = canCast ? style.label : '#fca5a5';
+  const label = `${icon} ${name} · ${status}`;
+  ctx.strokeText(label, x, y - r - 12);
+  ctx.fillText(label, x, y - r - 12);
+  ctx.restore();
+}
+
 function buyLaboratorySpell(pid, spellId) {
   if (!LIVE_ARMY?.isActive()) return false;
   const p = players[pid];
@@ -4784,20 +5053,29 @@ function detonateFireball(m) {
 
 function castSlimeSpell(ownerId, x, y, stats) {
   const enemy = enemyId(ownerId);
+  const transformTime = stats.transformTime ?? 1;
+  const activeTime = stats.duration ?? 3;
+  const wearoffTime = stats.wearoffTime ?? 1;
   slimeBursts.push({
     x, y, r: stats.radius, life: 0.55, maxLife: 0.55, ownerId,
   });
   for (const u of combatUnits) {
     if (u.owner !== enemy || u.hp <= 0) continue;
     if (Math.hypot(u.x - x, u.y - y) > stats.radius + getUnitSize(u)) continue;
-    if (u._charmUntil && u._charmUntil > combatTime) continue;
+    if (u._zombiePhase) continue;
     u._charmOriginalOwner = u.owner;
     u.owner = ownerId;
-    u._charmUntil = combatTime + stats.duration;
+    u._zombiePhase = 'transform';
+    u._zombiePhaseUntil = combatTime + transformTime;
+    u._zombieActiveEnd = combatTime + transformTime + activeTime;
+    u._zombieWearoffEnd = combatTime + transformTime + activeTime + wearoffTime;
+    u._zombieShakeAng = rand(0, Math.PI * 2);
     u._slimeTint = 1;
-    spawnParticles(u.x, u.y, '#86efac', 6);
+    u.vx = 0;
+    u.vy = 0;
+    spawnParticles(u.x, u.y, '#a3e635', 8);
   }
-  blasts.push({ x, y, maxR: stats.radius, life: 0.4, maxLife: 0.4, color: '#4ade80' });
+  blasts.push({ x, y, maxR: stats.radius, life: 0.4, maxLife: 0.4, color: '#84cc16' });
 }
 
 function castHealSpell(ownerId, x, y, stats) {
@@ -4811,8 +5089,68 @@ function castHealSpell(ownerId, x, y, stats) {
     tickInterval: stats.tickInterval,
     tickAcc: 0,
   });
-  blasts.push({ x, y, maxR: stats.radius, life: 0.35, maxLife: 0.35, color: '#86efac' });
-  spawnParticles(x, y, '#bbf7d0', 12);
+  blasts.push({ x, y, maxR: stats.radius, life: 0.35, maxLife: 0.35, color: '#facc15' });
+  spawnParticles(x, y, '#fde68a', 14);
+}
+
+function isZombieUnit(u) {
+  return !!(u && u._zombiePhase);
+}
+
+function isZombieTransforming(u) {
+  return u?._zombiePhase === 'transform';
+}
+
+function isZombieActive(u) {
+  return u?._zombiePhase === 'active';
+}
+
+function isZombieWearoff(u) {
+  return u?._zombiePhase === 'wearoff';
+}
+
+function clearZombieState(u) {
+  if (u._charmOriginalOwner != null) u.owner = u._charmOriginalOwner;
+  delete u._charmOriginalOwner;
+  delete u._charmUntil;
+  delete u._zombiePhase;
+  delete u._zombiePhaseUntil;
+  delete u._zombieActiveEnd;
+  delete u._zombieWearoffEnd;
+  delete u._zombieShakeAng;
+  delete u._zombieShakeX;
+  delete u._zombieShakeY;
+  delete u._slimeTint;
+}
+
+/** Nearest enemy unit, tower, or base — no role preferences. */
+function findZombieNearestThreat(unit) {
+  const enemy = enemyId(unit.owner);
+  let best = null;
+  let bestD = Infinity;
+
+  for (const u of combatUnits) {
+    if (u === unit || u.owner !== enemy || u.hp <= 0) continue;
+    const d = dist(unit, u);
+    if (d < bestD) {
+      bestD = d;
+      best = { type: 'unit', obj: u, dist: d, x: u.x, y: u.y };
+    }
+  }
+  for (const t of players[enemy].turrets) {
+    if (t.hp <= 0) continue;
+    const d = dist(unit, t);
+    if (d < bestD) {
+      bestD = d;
+      best = { type: 'turret', obj: t, dist: d, x: t.x, y: t.y };
+    }
+  }
+  const bp = basePos(enemy);
+  const bd = dist(unit, bp);
+  if (bd < bestD) {
+    best = { type: 'base', obj: players[enemy], dist: bd, x: bp.x, y: bp.y };
+  }
+  return best;
 }
 
 function fireballBezier(m, t) {
@@ -4851,11 +5189,36 @@ function updateSpellEffects(dt) {
   }
 
   for (const u of combatUnits) {
-    if (u._charmUntil != null && combatTime >= u._charmUntil) {
-      if (u._charmOriginalOwner != null) u.owner = u._charmOriginalOwner;
-      delete u._charmUntil;
-      delete u._charmOriginalOwner;
-      delete u._slimeTint;
+    if (!u._zombiePhase) continue;
+    // Violent multi-direction shake while transforming / wearing off.
+    if (u._zombiePhase === 'transform' || u._zombiePhase === 'wearoff') {
+      u._zombieShakeAng = (u._zombieShakeAng || 0) + dt * (14 + rand(0, 10));
+      const amp = u._zombiePhase === 'transform' ? 5.5 : 3.2;
+      u._zombieShakeX = Math.cos(u._zombieShakeAng * 1.7) * amp
+        + Math.sin(u._zombieShakeAng * 3.1 + 1.2) * amp * 0.65;
+      u._zombieShakeY = Math.sin(u._zombieShakeAng * 2.3) * amp
+        + Math.cos(u._zombieShakeAng * 2.9 + 0.7) * amp * 0.65;
+      u.vx *= 0.2;
+      u.vy *= 0.2;
+    } else {
+      u._zombieShakeX = 0;
+      u._zombieShakeY = 0;
+    }
+
+    if (combatTime >= (u._zombiePhaseUntil || 0)) {
+      if (u._zombiePhase === 'transform') {
+        u._zombiePhase = 'active';
+        u._zombiePhaseUntil = u._zombieActiveEnd;
+        u._zombieShakeX = 0;
+        u._zombieShakeY = 0;
+        spawnParticles(u.x, u.y, '#65a30d', 5);
+      } else if (u._zombiePhase === 'active') {
+        u._zombiePhase = 'wearoff';
+        u._zombiePhaseUntil = u._zombieWearoffEnd;
+        u._zombieShakeAng = rand(0, Math.PI * 2);
+      } else {
+        clearZombieState(u);
+      }
     }
   }
 
@@ -4870,7 +5233,21 @@ function updateSpellEffects(dt) {
         if (Math.hypot(u.x - f.x, u.y - f.y) > f.r + getUnitSize(u)) continue;
         const maxHp = u.maxHp || u.hp;
         u.hp = Math.min(maxHp, u.hp + f.healPerTick);
-        spawnFloatText(u.x, u.y - 18, `+${f.healPerTick}`, '#86efac');
+        spawnFloatText(u.x, u.y - 18, `+${f.healPerTick}`, '#facc15');
+      }
+      const ally = players[f.owner];
+      if (ally) {
+        for (const t of ally.turrets) {
+          if (t.hp <= 0) continue;
+          const twSize = towerDef(t.towerType, f.owner)?.size || 20;
+          if (Math.hypot(t.x - f.x, t.y - f.y) > f.r + twSize) continue;
+          const maxHp = t.maxHp || towerDef(t.towerType, f.owner).hp || t.hp;
+          const before = t.hp;
+          t.hp = Math.min(maxHp, t.hp + f.healPerTick);
+          if (t.hp > before) {
+            spawnFloatText(t.x, t.y - 18, `+${Math.round(t.hp - before)}`, '#fde047');
+          }
+        }
       }
     }
     if (f.life <= 0) healFields.splice(i, 1);
@@ -4926,7 +5303,7 @@ function drawSpellEffects() {
     const a = Math.max(0, s.life / s.maxLife);
     ctx.save();
     ctx.globalAlpha = 0.35 * a;
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = '#84cc16';
     ctx.beginPath();
     ctx.arc(s.x, s.y, s.r * (1.15 - a * 0.15), 0, Math.PI * 2);
     ctx.fill();
@@ -4936,13 +5313,24 @@ function drawSpellEffects() {
     const a = Math.max(0.15, f.life / f.maxLife);
     ctx.save();
     ctx.globalAlpha = 0.22 * a;
-    ctx.fillStyle = '#86efac';
+    ctx.fillStyle = '#facc15';
     ctx.beginPath();
     ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(187, 247, 208, 0.7)';
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.75)';
     ctx.lineWidth = 2;
     ctx.stroke();
+    // Potion bottle silhouette in the aura center
+    ctx.globalAlpha = 0.55 * a;
+    ctx.fillStyle = '#fde047';
+    ctx.beginPath();
+    ctx.moveTo(f.x - 6, f.y - 10);
+    ctx.lineTo(f.x + 6, f.y - 10);
+    ctx.lineTo(f.x + 8, f.y + 10);
+    ctx.lineTo(f.x - 8, f.y + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(f.x - 3, f.y - 16, 6, 6);
     ctx.restore();
   }
 }
@@ -4963,27 +5351,110 @@ function toggleEngineersPanel(show) {
 let activeMissileTowerId = null;
 let activeSpreadTowerId = null;
 
-const SPREAD_ELEMENT_COST = 100;
+const SPREAD_ELEMENT_COST = 250;
+/** Spreader elements: +1 charge every half-second. Full bar = one elemental pellet per blast. */
+const SPREAD_CHARGE_INTERVAL = 0.5;
 const SPREAD_ELEMENTS = {
   fire: {
     label: 'Fire',
     icon: '🔥',
     theme: 'fire',
-    desc: 'Laces wind blasts with fire. Enemies catch fire on hit.',
+    desc: 'Builds a charge bar (+1 / 0.5s). Shots spend whole charges as random fire pellets; leftover fraction stays.',
   },
   ice: {
     label: 'Ice',
     icon: '❄️',
     theme: 'ice',
-    desc: 'Slows by 20% of base speed per stack (max 3). Lasts 1s.',
+    desc: 'Charge bar like Fire. Ice pellets freeze solid for 1s, then half-speed for 3s. Does not stack.',
   },
   electric: {
     label: 'Electricity',
     icon: '⚡',
     theme: 'electric',
-    desc: 'Shock: cannot move for 0.5s. Cannot re-shock for 1s total.',
+    desc: 'Charge bar like Fire. Each electric pellet fully paralyzes for 1s (stacks duration per hit).',
   },
 };
+
+const SPREAD_CHARGE_BAR_COLORS = {
+  fire: { low: '#7f1d1d', mid: '#ef4444', high: '#fbbf24', glow: 'rgba(249, 115, 22, 0.55)' },
+  ice: { low: '#0369a1', mid: '#38bdf8', high: '#e0f2fe', glow: 'rgba(56, 189, 248, 0.55)' },
+  electric: { low: '#ca8a04', mid: '#facc15', high: '#fef08a', glow: 'rgba(250, 204, 21, 0.55)' },
+};
+
+function spreadElementChargeMax(tower, ownerId) {
+  return (towerDef('spread', ownerId)?.pelletCount) || TOWER_TYPES.spread.pelletCount || 11;
+}
+
+function ensureSpreadElementCharge(t, ownerId) {
+  if (!t || !t.spreadElement || !SPREAD_ELEMENTS[t.spreadElement]) return;
+  // Migrate older fire-only field names.
+  if (t.spreadCharge == null && t.fireCharge != null) t.spreadCharge = t.fireCharge;
+  if (t.spreadChargeMax == null && t.fireChargeMax != null) t.spreadChargeMax = t.fireChargeMax;
+  const max = spreadElementChargeMax(t, ownerId);
+  t.spreadChargeMax = max;
+  t.fireChargeMax = max;
+  if (t.spreadCharge == null || Number.isNaN(t.spreadCharge)) t.spreadCharge = 0;
+  t.spreadCharge = Math.max(0, Math.min(max, t.spreadCharge));
+  t.fireCharge = t.spreadCharge;
+}
+
+function tickSpreadElementCharge(t, dt, ownerId) {
+  if (!t || t.hp <= 0 || !t.spreadElement || !SPREAD_ELEMENTS[t.spreadElement]) return;
+  ensureSpreadElementCharge(t, ownerId);
+  t.spreadCharge = Math.min(t.spreadChargeMax, (t.spreadCharge || 0) + dt / SPREAD_CHARGE_INTERVAL);
+  t.fireCharge = t.spreadCharge;
+}
+
+/** Spend whole charges; leave fractional remainder. Returns per-pellet element (or null). */
+function consumeSpreadElementPelletElements(t, pelletsN, ownerId) {
+  const el = t.spreadElement;
+  if (!el || !SPREAD_ELEMENTS[el]) {
+    return Array.from({ length: pelletsN }, () => null);
+  }
+  ensureSpreadElementCharge(t, ownerId);
+  const spend = Math.min(pelletsN, Math.floor(t.spreadCharge || 0));
+  t.spreadCharge = (t.spreadCharge || 0) - spend;
+  t.fireCharge = t.spreadCharge;
+  const slots = Array.from({ length: pelletsN }, () => null);
+  if (spend <= 0) return slots;
+  const idxs = Array.from({ length: pelletsN }, (_, i) => i);
+  for (let i = idxs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
+  }
+  for (let i = 0; i < spend; i++) slots[idxs[i]] = el;
+  return slots;
+}
+
+function drawSpreadElementChargeBar(t, ownerId, tw, th) {
+  const el = t.spreadElement;
+  if (!el || !SPREAD_CHARGE_BAR_COLORS[el]) return;
+  ensureSpreadElementCharge(t, ownerId);
+  const colors = SPREAD_CHARGE_BAR_COLORS[el];
+  const max = t.spreadChargeMax || spreadElementChargeMax(t, ownerId);
+  const fill = Math.max(0, Math.min(1, (t.spreadCharge || 0) / max));
+  const barH = th * 0.88;
+  const barW = 6;
+  const bx = -tw / 2 - 12;
+  const by = -barH * 0.35;
+  ctx.fillStyle = '#0a0a0a';
+  roundRect(bx, by, barW, barH, 2);
+  ctx.fill();
+  const fh = barH * fill;
+  if (fh > 0.5) {
+    const grad = ctx.createLinearGradient(bx, by + barH, bx, by + barH - fh);
+    grad.addColorStop(0, colors.low);
+    grad.addColorStop(0.55, colors.mid);
+    grad.addColorStop(1, colors.high);
+    ctx.fillStyle = grad;
+    roundRect(bx, by + barH - fh, barW, fh, 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 1;
+  roundRect(bx, by, barW, barH, 2);
+  ctx.stroke();
+}
 
 function buySpreadElement(pid, towerId, element) {
   if (!SPREAD_ELEMENTS[element]) return false;
@@ -4994,6 +5465,10 @@ function buySpreadElement(pid, towerId, element) {
   if (p.coins < SPREAD_ELEMENT_COST) return false;
   p.coins -= SPREAD_ELEMENT_COST;
   tw.spreadElement = element;
+  tw.spreadCharge = 0;
+  tw.spreadChargeMax = spreadElementChargeMax(tw, pid);
+  tw.fireCharge = 0;
+  tw.fireChargeMax = tw.spreadChargeMax;
   addLog(`🏰 ${p.name}: Spreader enchanted with ${SPREAD_ELEMENTS[element].label}`);
   updateSpreadUpgradeUI();
   updateUI();
@@ -5029,7 +5504,7 @@ function updateSpreadUpgradeUI() {
       isOwned ? 'owned' : '',
       isLocked ? 'locked' : '',
     ].filter(Boolean).join(' ');
-    const costLabel = isOwned ? 'Active' : (isLocked ? 'Locked' : `${SPREAD_ELEMENT_COST}🪙`);
+    const costLabel = isOwned ? 'Active' : (isLocked ? 'Locked' : `${SPREAD_ELEMENT_COST}💵`);
     html += `<button type="button" class="${cls}" data-spread-element="${key}" ${disabled ? 'disabled' : ''}>
       <div class="ssk-icon">${meta.icon}</div>
       <div class="ssk-name">${meta.label}</div>
@@ -5094,7 +5569,7 @@ function updateMissileUpgradeUI() {
   list.innerHTML = ['rate', 'damage', 'radius'].map((branch) => {
     const lvl = up[branch] || 1;
     const cost = 140 + lvl * 100;
-    return `<button type="button" class="econ-upgrade-buy" data-missile-branch="${branch}" ${p.coins < cost || lvl >= 6 ? 'disabled' : ''}>${labels[branch]} Lv${lvl + 1} — ${cost}🪙</button>`;
+    return `<button type="button" class="econ-upgrade-buy" data-missile-branch="${branch}" ${p.coins < cost || lvl >= 6 ? 'disabled' : ''}>${labels[branch]} Lv${lvl + 1} — ${cost}💵</button>`;
   }).join('');
 }
 
@@ -5163,6 +5638,35 @@ function updateCommanderFormFabIcon() {
   if (btn) btn.title = titles[commanderFormation] || 'Formation — tap to cycle';
 }
 
+function commanderStanceIcon(stance, pid) {
+  // Arrow faces the enemy for attack, opposite for retreat (depends on side).
+  const towardEnemy = (pid == null ? getLocalPlayerId() : pid) === 0;
+  if (stance === 'hold') return '🐕';
+  if (stance === 'retreat') return towardEnemy ? '⬅️' : '➡️';
+  return towardEnemy ? '➡️' : '⬅️';
+}
+
+function updateCommanderStanceFab() {
+  const fab = document.getElementById('cmd-stance-fab');
+  const icon = document.getElementById('cmd-stance-fab-icon');
+  if (!fab || !icon) return;
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  const unlocked = commanderHasSpecialCommands(p);
+  fab.classList.toggle('hidden', !unlocked);
+  if (!unlocked) return;
+  const stance = getCommanderStance(p);
+  icon.textContent = commanderStanceIcon(stance, pid);
+  fab.classList.remove('stance-attack', 'stance-retreat', 'stance-hold');
+  fab.classList.add(`stance-${stance}`);
+  const tips = {
+    attack: 'Attack — troops behave normally (tap to cycle)',
+    retreat: 'Retreat — troops fall back to base (tap to cycle)',
+    hold: 'Hold — troops stay put; ranged can still shoot (tap to cycle)',
+  };
+  fab.title = tips[stance] || 'Special Commands';
+}
+
 function syncCommanderControlsUI() {
   const pid = getLocalPlayerId();
   const p = players[pid];
@@ -5185,6 +5689,7 @@ function syncCommanderControlsUI() {
     btn.classList.toggle('active', btn.dataset.formation === commanderFormation);
   });
   updateCommanderFormFabIcon();
+  updateCommanderStanceFab();
 }
 
 function commanderCycleCount() {
@@ -5208,24 +5713,35 @@ function updateCommanderPanelUI() {
   const pid = getLocalPlayerId();
   const p = players[pid];
   const tier = getCommander(p).tier;
+  const hasSpecial = !!getCommander(p).specialCommands;
 
   const tree = document.getElementById('cmd-skilltree');
   const rows = [
     { tier: 2, cap: 6 },
     { tier: 3, cap: 9 },
   ];
-  tree.innerHTML = rows.map(({ tier: t, cap: c }) => {
+  let html = rows.map(({ tier: t, cap: c }) => {
     const cost = commanderTierCost(t);
-    const tip = `Exact effect: raise Commander deploy cap to ${c} units per click for ${cost}🪙. Bulk cost scales by 1 + count/10 (e.g. ${c} units = ${(1 + c / 10).toFixed(1)}× unit price).`;
+    const tip = `Exact effect: raise Commander deploy cap to ${c} units per click for ${cost}💵. Bulk cost scales by 1 + count/10 (e.g. ${c} units = ${(1 + c / 10).toFixed(1)}× unit price).`;
     if (tier >= t) {
       return `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn owned" disabled>✓ Up to ${c} units — owned</button>${skillInfoHtml(tip)}</div>`;
     }
     const buyable = tier === t - 1;
     const disabled = !buyable || p.coins < cost ? 'disabled' : '';
     const lockNote = buyable ? '' : ' (unlock previous first)';
-    return `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn" data-commander-tier="${t}" ${disabled}>Up to ${c} units — ${cost}🪙${lockNote}</button>${skillInfoHtml(tip)}</div>`;
+    return `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn" data-commander-tier="${t}" ${disabled}>Up to ${c} units — ${cost}💵${lockNote}</button>${skillInfoHtml(tip)}</div>`;
   }).join('');
 
+  const specialTip = `Exact effect: unlock Special Commands for ${COMMANDER_SPECIAL_COST}💵. Adds an on-screen order button to cycle Attack (normal), Retreat (fall back), and Hold (stay put — ranged units can still shoot).`;
+  if (hasSpecial) {
+    html += `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn owned" disabled>✓ Special Commands — owned</button>${skillInfoHtml(specialTip)}</div>`;
+  } else {
+    const canBuy = commanderUnlocked(p) && p.coins >= COMMANDER_SPECIAL_COST;
+    const lockNote = commanderUnlocked(p) ? '' : ' (unlock Commander first)';
+    html += `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn" data-commander-special="1" ${canBuy ? '' : 'disabled'}>Special Commands — ${COMMANDER_SPECIAL_COST}💵${lockNote}</button>${skillInfoHtml(specialTip)}</div>`;
+  }
+
+  tree.innerHTML = html;
   drawCommanderPreview();
 }
 
@@ -5324,7 +5840,7 @@ const skillScrollHoldTimers = new WeakMap();
 
 function updateSkillPanelFooter(footerId, coins) {
   const el = document.getElementById(footerId);
-  if (el) el.innerHTML = `<span class="st-coins">${Math.floor(coins)} 🪙 AVAILABLE</span>`;
+  if (el) el.innerHTML = `<span class="st-coins">${Math.floor(coins)} 💵 AVAILABLE</span>`;
 }
 
 function updateSkillScrollButtons(listId) {
@@ -5470,7 +5986,7 @@ function updateIncomeUpgradeUI(force) {
           ${atMax ? '<span class="econ-max">MAX LEVEL</span>' : `<span class="econ-next">Next: +${nextAmt}/${def.intervalLabel}</span>`}
       </div>
       <button type="button" class="econ-upgrade-buy" data-upgrade="${type}" ${!canBuy ? 'disabled' : ''}>
-        ${atMax ? 'MAX' : `${cost}🪙`}
+        ${atMax ? 'MAX' : `${cost}💵`}
       </button>
     </div>`;
     }).join(''));
@@ -5480,7 +5996,7 @@ function updateIncomeUpgradeUI(force) {
   const eco = LIVE_ARMY.economyRecord(p);
   const baseBranches = LIVE_ARMY.BASE_BRANCHES || ['income', 'health', 'defense'];
   const baseLabels = LIVE_ARMY.BASE_BRANCH_LABELS || { income: 'Income', health: 'Health', defense: 'Guns' };
-  const baseIcons = LIVE_ARMY.BASE_BRANCH_ICONS || { income: '🪙', health: '❤️', defense: '🔫' };
+  const baseIcons = LIVE_ARMY.BASE_BRANCH_ICONS || { income: '💵', health: '❤️', defense: '🔫' };
 
   let html = '<div class="st-grid-scroll"><div class="st-canvas">';
 
@@ -5559,7 +6075,7 @@ function updateIncomeUpgradeUI(force) {
       theme: 'loot',
       icon: '🎖️',
       title: 'Commander',
-      tooltip: 'Exact effect: unlock Commander for 300🪙. Lets you deploy up to 3 units per click in Front Line / Train / Group formation. Commander menu upgrades raise the cap to 6 (600🪙) then 9 (900🪙). Bulk deploy costs scale by 1 + count/10.',
+      tooltip: 'Exact effect: unlock Commander for 300💵. Lets you deploy up to 3 units per click in Front Line / Train / Group formation. Commander menu upgrades raise the cap to 6 (600💵) then 9 (900💵), and Special Commands (200💵) unlock Attack / Retreat / Hold orders. Bulk deploy costs scale by 1 + count/10.',
       isUnlock: true, unlocked, afford: p.coins >= cost, cost,
       tier: 0, maxTier: 0, ownedTier: unlocked ? 1 : 0,
       dataAttrs: unlocked ? '' : ' data-commander-unlock="1"',
@@ -5586,8 +6102,8 @@ function updateIncomeUpgradeUI(force) {
     const theme = type === 'farm' ? 'farm' : 'mint';
     const unlockTitle = type === 'farm' ? 'Unlock Farm' : 'Unlock Mint';
     const unlockTip = type === 'farm'
-      ? `Exact effect: unlock Farm buildings for ${unlockCost}🪙. Each Farm starts at 5🪙 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 5→10→15→25🪙.`
-      : `Exact effect: unlock Mint buildings for ${unlockCost}🪙. Each Mint starts at 10🪙 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 10→15→20→25🪙.`;
+      ? `Exact effect: unlock Farm buildings for ${unlockCost}💵. Each Farm starts at 5💵 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 5→10→15→25💵.`
+      : `Exact effect: unlock Mint buildings for ${unlockCost}💵. Each Mint starts at 10💵 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 10→15→20→25💵.`;
 
     let side = '<div class="st-section st-half st-econ-side">';
     side += `<div class="st-section-title">${title}</div>`;
@@ -5631,7 +6147,7 @@ function updateIncomeUpgradeUI(force) {
         title: meta.title,
         tooltip: meta.tooltip,
         tier, maxTier, ownedTier: unlocked ? LIVE_ARMY.harvestYieldTier(rec, type) : 0, unlocked,
-        cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '🌾' : '🪙',
+        cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '🌾' : '💵',
         dataAttrs: ` data-econ-yield="${type}"`,
       }));
     }
@@ -5642,7 +6158,7 @@ function updateIncomeUpgradeUI(force) {
 
     const cur = unlocked ? LIVE_ARMY.harvestAmount(p, type) : 0;
     const interval = unlocked ? LIVE_ARMY.harvestInterval(p, type) : 4;
-    side += `<p class="st-footnote">${unlocked ? `${cur}🪙 every ${interval}s per building` : 'Unlock to build on the map'}</p>`;
+    side += `<p class="st-footnote">${unlocked ? `${cur}💵 every ${interval}s per building` : 'Unlock to build on the map'}</p>`;
     side += '</div>';
     return side;
   }
@@ -6916,20 +7432,39 @@ function survivalAiInvestSurplus(ai, brain, intel, ctx) {
 // ─── Counter doctrine (reactive defense) ──────────────────────────────────────
 // Player unit  →  the CPU unit that hard-counters it.
 //   Dragon    → Snipers
-//   Elephant  → Knights
+//   Elephant  → Wolves (packs), or Snipers if Wolves aren't unlocked yet
 //   Knight    → Wolves (only once the Knight is under the CPU's defense towers)
 //   Sniper    → Wolves (spawned as close to the sniper as possible)
 //   Wolf      → Knights
 //   Goblin    → Knights
 const SURVIVAL_AI_COUNTER_DOCTRINE = [
   { threat: 'peka', counter: 'sniper', slot: 'sniperFlank' },
-  { threat: 'tank', counter: 'striker' },
+  { threat: 'tank', counter: 'speed', altCounter: 'sniper', perThreat: 3, slot: 'baseDefense' },
   { threat: 'striker', counter: 'speed', requireInTowerRange: true, slot: 'wolfBait' },
   { threat: 'sniper', counter: 'speed', slot: 'wolfHunt' },
   { threat: 'speed', counter: 'striker', slot: 'baseDefense' },
   { threat: 'goblin', counter: 'striker', slot: 'baseDefense' },
   { threat: 'bloop', counter: 'speed', slot: 'baseDefense' },
 ];
+
+/** Prefer Wolves vs Elephants; fall back to Snipers if Wolves aren't unlocked. */
+function survivalAiElephantCounterType(ai) {
+  const wolfUnlocked = LIVE_ARMY.unitUnlocked(ai, 'speed');
+  const sniperUnlocked = LIVE_ARMY.unitUnlocked(ai, 'sniper');
+  if (wolfUnlocked) return 'speed';
+  if (sniperUnlocked) return 'sniper';
+  // Neither unlocked — rush Wolves first (cheaper hard-counter).
+  return 'speed';
+}
+
+function survivalAiResolveCounterType(ai, entry) {
+  if (entry.threat === 'tank') return survivalAiElephantCounterType(ai);
+  if (entry.altCounter && !LIVE_ARMY.unitUnlocked(ai, entry.counter)
+      && LIVE_ARMY.unitUnlocked(ai, entry.altCounter)) {
+    return entry.altCounter;
+  }
+  return entry.counter;
+}
 
 function survivalAiLivePlayerUnits() {
   const counts = {};
@@ -7026,7 +7561,7 @@ function survivalAiEffectiveCounterCount(entry) {
     if (!snipers.length) return survivalAiLiveAiUnitsByType().speed || 0;
     let n = 0;
     for (const w of combatUnits) {
-      if (w.owner !== 1 || w.hp <= 0 || w.type !== 'speed') continue;
+      if (w.owner !== aiSelf() || w.hp <= 0 || w.type !== 'speed') continue;
       let nearest = Infinity;
       for (const s of snipers) nearest = Math.min(nearest, dist(w, s));
       if (nearest < 240) n += 1;
@@ -7041,6 +7576,7 @@ function survivalAiEffectiveCounterCount(entry) {
 
 // Size every active threat and how many hard-counters the CPU still owes.
 function survivalAiCounterNeeds() {
+  const ai = players[aiSelf()];
   const advancing = survivalAiAdvancingThreatsByType();
   const nearBase = survivalAiNearBaseThreatsByType();
   const needs = [];
@@ -7056,19 +7592,23 @@ function survivalAiCounterNeeds() {
     const nearN = nearBase[entry.threat] || 0;
     if (threatN <= 0 && nearN <= 0) continue;
 
-    const want = threatN + (nearN > 0 ? 1 : 0);
-    const counterN = survivalAiEffectiveCounterCount({ ...entry, nearN });
+    const per = entry.perThreat || 1;
+    const want = Math.max(1, Math.ceil(threatN * per) + (nearN > 0 ? 1 : 0));
+    const counter = survivalAiResolveCounterType(ai, entry);
+    const resolved = { ...entry, counter };
+    const counterN = survivalAiEffectiveCounterCount({ ...resolved, nearN });
     const deficit = want - counterN;
     if (deficit <= 0) continue;
 
     let priority = threatN * 12 + nearN * 24;
     if (entry.threat === 'peka') priority += 120;
+    if (entry.threat === 'tank') priority += 80 + threatN * 20;
     if (entry.threat === 'sniper') priority += 40;
     if (entry.threat === 'speed' && nearN > 0) priority += 30;
     if (entry.threat === 'striker' && nearN > 0) priority += 18;
 
     needs.push({
-      ...entry,
+      ...resolved,
       threatN,
       nearN,
       counterN,
@@ -7423,6 +7963,101 @@ function survivalAiRushSnipersAgainstDragon(ai, intel) {
     addLog('🤖 Enemy rushes Snipers to the outer flanks — dragon counter!');
   }
   return true;
+}
+
+// Pivot hard into Wolves (or Snipers if Wolves aren't unlocked) when Elephants
+// push. Interrupts banking/prepare so the CPU dumps a pack instead of dying
+// while saving for an unrelated strike.
+function survivalAiMassCounterElephants(ai, brain) {
+  const elephants = combatUnits.filter((u) =>
+    u.owner === aiEnemy() && u.hp > 0 && u.type === 'tank'
+    && (survivalAiEnemyAdvancing(u) || survivalAiUnitNearAiTowers(u)
+      || dist(u, basePos(aiSelf())) <= AI_BASE_DEFENSE_RANGE));
+  if (!elephants.length) return false;
+  if (combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length >= SURVIVAL_AI_MAX_UNITS) {
+    return false;
+  }
+
+  let counter = survivalAiElephantCounterType(ai);
+  let state = survivalAiReadyCounterUnit(ai, counter);
+  // If Wolves aren't ready yet but Snipers are unlocked and affordable, pivot to Snipers.
+  if (state !== 'ready' && state !== 'unlocking' && counter === 'speed'
+      && LIVE_ARMY.unitUnlocked(ai, 'sniper')
+      && ai.coins >= unitDef('sniper', aiSelf()).cost) {
+    counter = 'sniper';
+    state = 'ready';
+  }
+  if (state === 'unlocking') {
+    addLog(`${survivalAiLabel(ai)} unlocks ${UNIT_TYPES[counter].name}s to stop your Elephants!`);
+    return true;
+  }
+  if (state !== 'ready') {
+    // Can't afford the preferred counter — try the alternate if unlocked.
+    if (counter === 'speed' && LIVE_ARMY.unitUnlocked(ai, 'sniper')) {
+      counter = 'sniper';
+      state = survivalAiReadyCounterUnit(ai, 'sniper');
+      if (state === 'unlocking') return true;
+      if (state !== 'ready') return false;
+    } else if (counter === 'sniper' && LIVE_ARMY.unitUnlocked(ai, 'speed')) {
+      counter = 'speed';
+      state = survivalAiReadyCounterUnit(ai, 'speed');
+      if (state === 'unlocking') return true;
+      if (state !== 'ready') return false;
+    } else {
+      return false;
+    }
+  }
+
+  const liveCounters = combatUnits.filter(
+    (u) => u.owner === aiSelf() && u.hp > 0 && u.type === counter,
+  ).length;
+  const perElephant = counter === 'speed' ? 3 : 2;
+  const want = Math.min(14, elephants.length * perElephant + 1);
+  if (liveCounters >= want) return false;
+
+  // Drop the current plan — Elephants at the door outrank a secret bank.
+  if (brain.phase === 'prepare' || brain.phase === 'surprise_bank'
+      || (brain.phase === 'strike' && (brain.strikeQueue?.length || 0) > 0)) {
+    brain.plan = null;
+    brain.strikeQueue = [];
+    brain.strikeComposition = null;
+    brain.surpriseBankTarget = 0;
+    brain.surpriseReadyAt = 0;
+    brain.phase = 'recover';
+    brain.phaseUntil = combatTime + 6 + rand(0, 4);
+  }
+
+  const deficit = want - liveCounters;
+  const slotFn = counter === 'sniper'
+    ? (idx, pid) => getSniperFlankSlot(idx, pid)
+    : (idx, pid) => getBaseDefenseSlot(idx, pid);
+
+  // Commander wall when the pack is big enough.
+  if (commanderUnlocked(ai) && deficit >= 3) {
+    const placed = survivalAiCommanderBatchAtBase(
+      ai, counter, Math.min(deficit, commanderCap(ai)),
+    );
+    if (placed >= 2) {
+      addLog(`${survivalAiLabel(ai)} floods ${placed}× ${UNIT_TYPES[counter].name} to shred your Elephants!`);
+      return true;
+    }
+  }
+
+  // Otherwise dump as many as we can this think-tick.
+  const maxSpawns = Math.min(deficit, elephants.length >= 3 ? 5 : elephants.length >= 2 ? 4 : 3);
+  let spawned = 0;
+  for (let i = 0; i < maxSpawns; i++) {
+    if (ai.coins < unitDef(counter, aiSelf()).cost) break;
+    if (survivalAiTrySpawnUnitOfType(ai, counter, spawned === 0, slotFn)) spawned += 1;
+    else break;
+  }
+  if (spawned > 0) {
+    if (spawned >= 2) {
+      addLog(`${survivalAiLabel(ai)} pivots into ${UNIT_TYPES[counter].name}s (${spawned}) — Elephant answer!`);
+    }
+    return true;
+  }
+  return false;
 }
 
 function survivalAiTryWolfKnightBait(ai, intel) {
@@ -8054,6 +8689,9 @@ function survivalAiEmergencyReact(ai, brain, intel, ctx) {
     if (survivalAiRushSnipersAgainstDragon(ai, intel)) return true;
   }
 
+  // Elephants pushing → mass Wolves (or Snipers if Wolves aren't unlocked).
+  if (survivalAiMassCounterElephants(ai, brain)) return true;
+
   // TOP PRIORITY: enemy units at our base → wall it with counters hugging the
   // base until we outnumber the attackers right there. Losing the base loses the
   // game, so this outranks everything else.
@@ -8376,6 +9014,7 @@ function setupSurvivalLive() {
   spreadTracks = [];
   blasts = [];
   fireFields = [];
+  groundIceChunks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -8442,6 +9081,7 @@ function setupSimulator() {
   spreadTracks = [];
   blasts = [];
   fireFields = [];
+  groundIceChunks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -8546,6 +9186,7 @@ function setupSurvivalLivePvp(opts) {
   spreadTracks = [];
   blasts = [];
   fireFields = [];
+  groundIceChunks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -8616,6 +9257,10 @@ function serializeTower(t) {
     laserTarget: t.laserTarget,
     missileUpgrades: t.missileUpgrades ? { ...t.missileUpgrades } : undefined,
     spreadElement: t.spreadElement || null,
+    spreadCharge: t.spreadCharge,
+    spreadChargeMax: t.spreadChargeMax,
+    fireCharge: t.fireCharge,
+    fireChargeMax: t.fireChargeMax,
     isBaseDefense: !!t.isBaseDefense,
     baseCannon: !!t.baseCannon,
   };
@@ -8644,6 +9289,8 @@ function serializeUnit(u) {
     _burnAccum: u._burnAccum,
     paralyze: u.paralyze,
     iceSlow: u.iceSlow ? { ...u.iceSlow } : undefined,
+    iceChill: u.iceChill ? { ...u.iceChill } : undefined,
+    iceShards: u.iceShards ? u.iceShards.map((s) => ({ ...s })) : undefined,
     spreadShock: u.spreadShock,
     spreadShockCd: u.spreadShockCd,
     dodgeCd: u.dodgeCd,
@@ -8654,6 +9301,11 @@ function serializeUnit(u) {
     _charmUntil: u._charmUntil,
     _charmOriginalOwner: u._charmOriginalOwner,
     _slimeTint: u._slimeTint,
+    _zombiePhase: u._zombiePhase,
+    _zombiePhaseUntil: u._zombiePhaseUntil,
+    _zombieActiveEnd: u._zombieActiveEnd,
+    _zombieWearoffEnd: u._zombieWearoffEnd,
+    _zombieShakeAng: u._zombieShakeAng,
   };
 }
 
@@ -8687,6 +9339,7 @@ function getPvpSnapshot() {
     spreadTracks: spreadTracks.map((s) => ({ ...s })),
     blasts: blasts.map((b) => ({ ...b })),
     fireFields: fireFields.map((f) => ({ ...f })),
+    groundIceChunks: groundIceChunks.map((c) => ({ ...c })),
     meteors: meteors.map((m) => ({ ...m })),
     slimeBursts: slimeBursts.map((s) => ({ ...s })),
     healFields: healFields.map((f) => ({ ...f })),
@@ -8724,6 +9377,7 @@ function getPvpNetworkState() {
     })),
     combatUnits: combatUnits.map(serializeUnit),
     fireFields: fireFields.map((f) => ({ ...f })),
+    groundIceChunks: groundIceChunks.map((c) => ({ ...c })),
     meteors: meteors.map((m) => ({ ...m })),
     slimeBursts: slimeBursts.map((s) => ({ ...s })),
     healFields: healFields.map((f) => ({ ...f })),
@@ -8804,6 +9458,9 @@ function applyPvpSnapshot(state) {
     blasts = (state.blasts || []).map((b) => ({ ...b }));
   }
   fireFields = (state.fireFields || []).map((f) => ({ ...f }));
+  if (Object.prototype.hasOwnProperty.call(state, 'groundIceChunks')) {
+    groundIceChunks = (state.groundIceChunks || []).map((c) => ({ ...c }));
+  }
   if (Object.prototype.hasOwnProperty.call(state, 'meteors')) {
     meteors = (state.meteors || []).map((m) => ({ ...m }));
   }
@@ -8965,6 +9622,12 @@ function applyPvpAction(fromPlayerId, action) {
   }
   if (type === 'commander_upgrade') {
     return buyCommanderUpgrade(fromPlayerId, action.tier);
+  }
+  if (type === 'commander_special') {
+    return buyCommanderSpecialCommands(fromPlayerId);
+  }
+  if (type === 'commander_stance') {
+    return setCommanderStance(fromPlayerId, action.stance);
   }
   if (type === 'lab_spell_upgrade') {
     return buyLaboratorySpell(fromPlayerId, action.spellId);
@@ -9375,7 +10038,7 @@ const ACHIEVEMENTS = {
   fortress:         { title: '🏰 Fortress',          desc: 'Take zero base damage this round',           reward: 80,  tier: 'gold' },
   iron_fortress:    { title: '🏯 Iron Fortress',     desc: 'End round with base above 90% HP',           reward: 55,  tier: 'silver' },
   last_block:       { title: '👊 Last Block',        desc: 'Only one unit left when round ends',         reward: 105, tier: 'legend' },
-  comeback:         { title: '🪙 War Economy',       desc: 'Earn 80+ backup coins this round',           reward: 65,  tier: 'silver' },
+  comeback:         { title: '💵 War Economy',       desc: 'Earn 80+ backup coins this round',           reward: 65,  tier: 'silver' },
   war_fund:         { title: '💰 War Fund',          desc: 'Earn 150+ backup coins this round',          reward: 110, tier: 'gold' },
   mint_survivor:    { title: '🏦 Mint Condition',    desc: '2+ Mints survived the round',                reward: 60,  tier: 'silver' },
   mint_empire:      { title: '🏦 Mint Empire',       desc: '3+ Mints survived the round',              reward: 100, tier: 'gold' },
@@ -9432,6 +10095,7 @@ let pellets = [];
 let spreadTracks = [];
 let blasts = [];
 let fireFields = [];
+let groundIceChunks = [];
 let meteors = [];
 let slimeBursts = [];
 let healFields = [];
@@ -10325,6 +10989,7 @@ function setupFree2pMode() {
   missiles = [];
   blasts = [];
   fireFields = [];
+  groundIceChunks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -10748,6 +11413,7 @@ function setupFreeMode() {
   missiles = [];
   blasts = [];
   fireFields = [];
+  groundIceChunks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -11487,7 +12153,8 @@ function updateFreePellets(dt) {
 }
 
 function setFreeModeChrome(show) {
-  document.getElementById('coins-pill').classList.toggle('hidden', show);
+  // Keep cash visible for the whole game — only hide round/HP chrome in free mode.
+  document.getElementById('coins-pill').classList.remove('hidden');
   document.getElementById('round-pill').classList.toggle('hidden', show);
   document.getElementById('hp-pill').classList.toggle('hidden', show);
   document.getElementById('phase-display').classList.toggle('hidden', show);
@@ -12741,6 +13408,7 @@ function resolveDeadUnits() {
   const dead = combatUnits.filter(u => u.hp <= 0 && !u._deathProcessed);
   for (const u of dead) {
     u._deathProcessed = true;
+    dropUnitIceShardsToGround(u);
     onUnitKilled(u);
     trySplitBloop(u);
   }
@@ -12819,7 +13487,7 @@ function towerPlaceFailReason(pid, towerType, x, y, excludeId) {
     return 'Cannot place that structure.';
   }
   const cost = towerCost(p, towerType);
-  if (p.coins < cost) return `Need ${cost}🪙 (you have ${Math.floor(p.coins)}🪙).`;
+  if (p.coins < cost) return `Need ${cost}💵 (you have ${Math.floor(p.coins)}💵).`;
   if (!inZone(x, pid)) return 'Place inside your territory.';
   if (!onLand(y)) return 'Place on the battlefield.';
   if (overlapsRubble(x, y, p)) return 'Blocked by ruins.';
@@ -12835,7 +13503,7 @@ function unitPlaceFailReason(pid, type, x, y) {
     return 'Unlock this unit in Barracks first.';
   }
   const ut = unitDef(type, pid);
-  if (p.coins < ut.cost) return `Need ${ut.cost}🪙 (you have ${Math.floor(p.coins)}🪙).`;
+  if (p.coins < ut.cost) return `Need ${ut.cost}💵 (you have ${Math.floor(p.coins)}💵).`;
   if (!canPlaceUnit(x, y, pid, type)) {
     if (isSurvivalLive() && phase === 'combat') {
       if (!inZone(x, pid)) return 'Deploy inside your territory.';
@@ -13004,7 +13672,7 @@ function triggerAchievement(playerId, achId, opts = {}) {
   const a = ACHIEVEMENTS[achId];
   players[playerId].combatReward = (players[playerId].combatReward || 0) + a.reward;
   showAchievementToast(playerId, achId);
-  addLog(`🏅 ${players[playerId].name}: ${a.title} (+${a.reward}🪙)`);
+  addLog(`🏅 ${players[playerId].name}: ${a.title} (+${a.reward}💵)`);
 }
 
 function showAchievementToast(playerId, achId) {
@@ -13019,7 +13687,7 @@ function showAchievementToast(playerId, achId) {
     ${tierLabel ? `<div class="ach-tier-badge">${tierLabel}</div>` : ''}
     <div class="ach-title">${a.title}</div>
     <div class="ach-desc">${a.desc}</div>
-    <div class="ach-reward">+${a.reward} 🪙</div>
+    <div class="ach-reward">+${a.reward} 💵</div>
   `;
   feed.insertBefore(card, feed.firstChild);
   while (feed.children.length > 10) feed.lastElementChild.remove();
@@ -13051,7 +13719,7 @@ function renderAchievementPanel() {
       <div class="ach-info">
         <div class="ach-info-title">${ach.title}</div>
         <div class="ach-info-desc">${ach.desc}</div>
-        <div class="ach-info-reward">+${ach.reward} 🪙</div>
+        <div class="ach-info-reward">+${ach.reward} 💵</div>
       </div>
     </div>`;
   }).join('');
@@ -13286,9 +13954,15 @@ function overlapsDeployment(x, y, playerId, margin = 0) {
 function pointInLiveFire(x, y, radius = 0) {
   for (const f of fireFields) {
     if (!f || f.life <= 0) continue;
+    // Trail embers don't block placement — only dragon/spreader ground fire does.
+    if (f.source === 'trail') continue;
     if (dist({ x, y }, f) <= f.r + radius) return true;
   }
   return false;
+}
+
+function isHazardFireField(f) {
+  return !!(f && f.source !== 'trail');
 }
 
 function inZone(x, pid) {
@@ -13768,6 +14442,114 @@ function drawRuinedFarmField(x, y, sz, crumble, sink, seed = 0.5) {
   ctx.strokeRect(ox - fieldW / 2, oy - fieldH / 2, fieldW, fieldH);
 }
 
+/** Broken lawn-sprinkler wreck for destroyed Spreaders. Drawn in local tower space. */
+function drawRuinedSprinklerHead(ox, oy, sz, crumble, tilt) {
+  const s = sz * 0.95;
+  const brass = '#b08d57';
+  const brassDark = '#7a5c32';
+  const brassLite = '#d4b483';
+  const steel = '#5a6168';
+  const steelDark = '#2f353a';
+  const rust = '#6b3f2a';
+
+  // Circular mounting flange (bolted plate)
+  ctx.fillStyle = steelDark;
+  ctx.beginPath();
+  ctx.ellipse(ox, oy + s * 0.28, s * 0.42, s * 0.16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = steel;
+  ctx.beginPath();
+  ctx.ellipse(ox, oy + s * 0.24, s * 0.34, s * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Bolt heads around the flange
+  ctx.fillStyle = '#8a9096';
+  for (let i = 0; i < 6; i++) {
+    const a = i * (Math.PI / 3) + 0.2;
+    ctx.beginPath();
+    ctx.arc(ox + Math.cos(a) * s * 0.28, oy + s * 0.24 + Math.sin(a) * s * 0.1, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Bent riser pipe (leans with wreck tilt already applied by caller)
+  const pipeLean = 0.35 + crumble * 0.25;
+  ctx.save();
+  ctx.translate(ox, oy + s * 0.18);
+  ctx.rotate(pipeLean * 0.55);
+  ctx.fillStyle = brassDark;
+  roundRect(-s * 0.07, -s * 0.55, s * 0.14, s * 0.58, 2);
+  ctx.fill();
+  ctx.fillStyle = brass;
+  roundRect(-s * 0.05, -s * 0.52, s * 0.07, s * 0.52, 1.5);
+  ctx.fill();
+  // Cracked collar / coupling
+  ctx.fillStyle = steel;
+  roundRect(-s * 0.1, -s * 0.18, s * 0.2, s * 0.1, 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Pop-up head body (dented dome), offset as if snapped sideways
+  const hx = ox + s * 0.22;
+  const hy = oy - s * 0.22;
+  ctx.fillStyle = brassDark;
+  ctx.beginPath();
+  ctx.ellipse(hx, hy, s * 0.2, s * 0.14, tilt * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = brassLite;
+  ctx.beginPath();
+  ctx.ellipse(hx - 1, hy - 2, s * 0.12, s * 0.08, tilt * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  // Center nozzle orifice
+  ctx.fillStyle = '#1c1917';
+  ctx.beginPath();
+  ctx.arc(hx, hy, s * 0.045, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Snapped spray arms / nozzles
+  ctx.strokeStyle = brass;
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  const arms = [
+    { a: -0.4, len: s * 0.38, snap: 1 },
+    { a: 1.1, len: s * 0.32, snap: 0.55 },
+    { a: 2.4, len: s * 0.28, snap: 0.7 },
+  ];
+  for (const arm of arms) {
+    const ex = hx + Math.cos(arm.a) * arm.len * arm.snap;
+    const ey = hy + Math.sin(arm.a) * arm.len * 0.55 * arm.snap;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    // Tiny nozzle tip
+    ctx.fillStyle = rust;
+    ctx.beginPath();
+    ctx.arc(ex, ey, 2.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Detached arm fragment on the ground
+  ctx.strokeStyle = brassDark;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(ox - s * 0.32, oy + s * 0.18);
+  ctx.quadraticCurveTo(ox - s * 0.18, oy + s * 0.08, ox - s * 0.05, oy + s * 0.2);
+  ctx.stroke();
+  ctx.fillStyle = rust;
+  ctx.beginPath();
+  ctx.arc(ox - s * 0.32, oy + s * 0.18, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Small brass shards
+  ctx.fillStyle = brassDark;
+  roundRect(ox + s * 0.3, oy + s * 0.12, 4, 3, 1);
+  ctx.fill();
+  roundRect(ox - s * 0.08, oy + s * 0.32, 5, 2.5, 1);
+  ctx.fill();
+  ctx.fillStyle = steel;
+  roundRect(ox + s * 0.12, oy + s * 0.34, 3.5, 2.5, 1);
+  ctx.fill();
+}
+
 function drawRuinedTower(r) {
   const towerType = r.towerType || 'turret';
   const def = towerDef(towerType, 0);
@@ -13782,6 +14564,17 @@ function drawRuinedTower(r) {
 
   if (isFarm) {
     drawRuinedFarmField(x, y, sz, crumble, sink, (r.x * 0.017 + r.y * 0.013) % 1);
+    return;
+  }
+
+  // Spreader wrecks are a broken sprinkler — skip the generic slab/chunks.
+  if (style === 'spread') {
+    ctx.save();
+    ctx.translate(x, y - sz * 0.05 + sink);
+    ctx.rotate(tilt);
+    ctx.globalAlpha *= 1 - crumble * 0.3;
+    drawRuinedSprinklerHead(0, 0, sz, crumble, tilt);
+    ctx.restore();
     return;
   }
 
@@ -13810,10 +14603,6 @@ function drawRuinedTower(r) {
   } else if (style === 'laser') {
     wreckRect('#1f2630', -8, -4, 14, 10, 2);
     wreckRect('#4a2038', -2, -2, 10, 4, 2);
-  } else if (style === 'spread') {
-    wreckRect('#3a3228', -10, -6, 18, 12, 2);
-    wreckRect('#1f1d18', -2, -2, 10, 5, 2);
-    wreckRect('#1f1d18', -4, 2, 8, 4, 2);
   } else if (style === 'missile' || style === 'missile_live') {
     wreckRect('#2a3036', -10, -4, 18, 14, 2);
     wreckRect('#5c2020', -4, -10, 8, 6, 2);
@@ -13898,6 +14687,10 @@ function drawRuinScar(s) {
     drawFarmRuinScar(s);
     return;
   }
+  if (s.towerType === 'spread') {
+    drawSprinklerRuinScar(s);
+    return;
+  }
   const x = s.x;
   const y = s.y;
   const seed = s.seed ?? 0.5;
@@ -13923,6 +14716,34 @@ function drawRuinScar(s) {
     roundRect(x + Math.cos(a) * d - 1.5, y + Math.sin(a) * d * 0.55 - 1, 2.5 + (i % 2), 2, 1);
     ctx.fill();
   }
+  ctx.restore();
+}
+
+function drawSprinklerRuinScar(s) {
+  const x = s.x;
+  const y = s.y;
+  const seed = s.seed ?? 0.5;
+  const tilt = (s.wreckTilt || 0) * 0.3;
+  ctx.save();
+  ctx.globalAlpha = 0.28 + seed * 0.12;
+  // Faint flange ring left in the dirt
+  ctx.strokeStyle = 'rgba(90, 96, 102, 0.55)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.ellipse(x, y + 1, 7 + seed * 2, 3.5 + seed, tilt, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#7a5c32';
+  ctx.beginPath();
+  ctx.arc(x + 1, y, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+  // Tiny bent pipe stub
+  ctx.strokeStyle = '#8a6a3c';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + 4 + seed * 2, y - 3);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -14326,25 +15147,15 @@ function drawTower(t, ownerColor, alpha = 1) {
     ctx.lineTo(flagX, -th * 0.60);
     ctx.closePath();
     ctx.fill();
-    // Element enchantment glow
-    if (t.spreadElement === 'fire') {
-      ctx.strokeStyle = 'rgba(249, 115, 22, 0.55)';
+    // Element enchantment glow + charge bar (fire / ice / electric)
+    if (t.spreadElement && SPREAD_CHARGE_BAR_COLORS[t.spreadElement]) {
+      const colors = SPREAD_CHARGE_BAR_COLORS[t.spreadElement];
+      ctx.strokeStyle = colors.glow;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(0, 0, sz * 0.85 + pulse * 0.2, 0, Math.PI * 2);
       ctx.stroke();
-    } else if (t.spreadElement === 'ice') {
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, sz * 0.85 + pulse * 0.2, 0, Math.PI * 2);
-      ctx.stroke();
-    } else if (t.spreadElement === 'electric') {
-      ctx.strokeStyle = 'rgba(167, 139, 250, 0.55)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, sz * 0.85 + pulse * 0.2, 0, Math.PI * 2);
-      ctx.stroke();
+      drawSpreadElementChargeBar(t, ownerId, tw, th);
     }
   } else if (def.style === 'missile') {
     ctx.fillStyle = '#3a4248';
@@ -15860,12 +16671,16 @@ function drawUnit(u) {
   const col = players[u.owner].color;
   const sz = getUnitSize(u);
   const bob = Math.sin(animFrame * 0.15 + u.id.charCodeAt(0)) * 1.5;
+  const shakeX = u._zombieShakeX || 0;
+  const shakeY = u._zombieShakeY || 0;
+  const drawX = u.x + shakeX;
+  const drawY = u.y + bob + shakeY;
   const inFree = phase === 'free' || gameMode === 'free';
   withTeamHue(u.owner, () => {
     if (inFree && u.type === 'tank') {
       drawFreeEnemyTank(u);
     } else {
-      drawUnitSprite(u.type, u.x, u.y, u.facing, sz, {
+      drawUnitSprite(u.type, drawX, u.y + shakeY, u.facing, sz, {
         bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id, ownerId: u.owner, joustReady: u.joustReady,
       });
     }
@@ -15875,7 +16690,7 @@ function drawUnit(u) {
     ctx.strokeStyle = `rgba(214, 226, 245, ${u._dodgeFlash / 0.15})`;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(u.x, u.y + bob, sz + 8, 0, Math.PI * 2);
+    ctx.arc(drawX, drawY, sz + 8, 0, Math.PI * 2);
     ctx.stroke();
   }
 
@@ -15885,36 +16700,57 @@ function drawUnit(u) {
     ctx.lineWidth = 2;
     ctx.setLineDash([3, 4]);
     ctx.beginPath();
-    ctx.arc(u.x, u.y + bob, sz + 5, 0, Math.PI * 2);
+    ctx.arc(drawX, drawY, sz + 5, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
   }
 
   if (u.ignite) {
-    drawUnitIgniteFlames(u.x, u.y + bob, sz, u.ignite);
+    drawUnitIgniteFlames(drawX, drawY, sz, u.ignite);
   }
 
-  if (u._slimeTint) {
+  if (u.iceShards?.length) {
+    drawUnitIceShards(u, drawX, drawY, sz);
+  }
+
+  if ((u.spreadShock || 0) > 0) {
+    drawUnitElectricArc(drawX, drawY, sz, u.spreadShock);
+  }
+
+  if (u._slimeTint || isZombieUnit(u)) {
     const pulse = 0.35 + Math.sin(animFrame * 0.25) * 0.15;
-    ctx.fillStyle = `rgba(74, 222, 128, ${pulse})`;
+    const transforming = isZombieTransforming(u);
+    const wearing = isZombieWearoff(u);
+    ctx.fillStyle = transforming
+      ? `rgba(163, 230, 53, ${0.45 + pulse})`
+      : wearing
+        ? `rgba(190, 242, 100, ${0.25 + pulse * 0.5})`
+        : `rgba(101, 163, 13, ${pulse})`;
     ctx.beginPath();
-    ctx.arc(u.x, u.y + bob, sz + 4, 0, Math.PI * 2);
+    ctx.arc(drawX, drawY, sz + 4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = `rgba(34, 197, 94, ${0.55 + pulse * 0.3})`;
+    ctx.strokeStyle = `rgba(63, 98, 18, ${0.55 + pulse * 0.3})`;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(u.x, u.y + bob, sz + 6, 0, Math.PI * 2);
+    ctx.arc(drawX, drawY, sz + 6, 0, Math.PI * 2);
     ctx.stroke();
+    if (transforming || wearing) {
+      ctx.fillStyle = `rgba(236, 252, 203, ${0.5 + pulse})`;
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(transforming ? '🧟' : '…', drawX, drawY - sz - 8);
+      ctx.textAlign = 'left';
+    }
   }
 
   const hpPct = u.hp / u.maxHp;
   if (hpPct < 1) {
     const barW = u.isMini ? 22 : (u.type === 'peka' ? 40 : 30);
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    roundRect(u.x - barW / 2, u.y - sz - 12, barW, 5, 2);
+    roundRect(drawX - barW / 2, drawY - sz - 12, barW, 5, 2);
     ctx.fill();
     ctx.fillStyle = col.light;
-    roundRect(u.x - barW / 2, u.y - sz - 12, barW * hpPct, 5, 2);
+    roundRect(drawX - barW / 2, drawY - sz - 12, barW * hpPct, 5, 2);
     ctx.fill();
   }
 }
@@ -16041,6 +16877,7 @@ function startCombat() {
   spreadTracks = [];
   blasts = [];
   fireFields = [];
+  groundIceChunks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -16151,6 +16988,18 @@ function getMovementGoal(unit) {
   const ut = unitDef(unit.type, unit.owner);
   const enemy = enemyId(unit.owner);
   const behavior = ut.behavior || 'default';
+
+  // Zombie Slime: ignore role AI — chase whatever enemy is closest.
+  if (isZombieActive(unit)) {
+    const threat = findZombieNearestThreat(unit);
+    if (threat) return { x: threat.x, y: threat.y };
+    return basePos(enemy);
+  }
+
+  // Special Commands: Hold stays put; Retreat falls back to own base.
+  const stance = getCommanderStance(players[unit.owner]);
+  if (stance === 'hold') return { x: unit.x, y: unit.y };
+  if (stance === 'retreat') return basePos(unit.owner);
 
   if (behavior === 'goblin') {
     let best = null, bestD = Infinity;
@@ -16267,6 +17116,16 @@ function findTarget(unit) {
   const canBase = ut.targetsBase !== false;
   const prefersUnits = ut.prefersUnits === true;
 
+  // Zombie: attack the single nearest enemy object in range (no preferences).
+  if (isZombieActive(unit)) {
+    const threat = findZombieNearestThreat(unit);
+    if (!threat) return null;
+    if (threat.dist <= ut.range + (threat.type === 'base' ? BASE_SIZE / 2 : 0)) {
+      return { type: threat.type, obj: threat.obj, dist: threat.dist };
+    }
+    return null;
+  }
+
   // Wolves hunt enemy Snipers and Elephants first — ignore other targets while any live.
   if (behavior === 'flank') {
     // Too scared to fight while a dragon is on the field.
@@ -16371,10 +17230,13 @@ function applyDamageToTarget(attacker, target, rawDamage) {
   const isUnit = isUnitDefender(target.defenderType);
   const isTower = target.defenderType === 'turret' || !!TOWER_TYPES[target.defenderType];
   const isBase = target.defenderType === 'base';
+  const zombie = isZombieActive(attacker);
 
-  if (isUnit && atkDef.targetsUnits === false) return 0;
-  if (isTower && atkDef.targetsTowers === false) return 0;
-  if (isBase && atkDef.targetsBase === false) return 0;
+  if (!zombie) {
+    if (isUnit && atkDef.targetsUnits === false) return 0;
+    if (isTower && atkDef.targetsTowers === false) return 0;
+    if (isBase && atkDef.targetsBase === false) return 0;
+  }
 
   const counter = getCounter(attacker.type, target.defenderType);
   const dmg = rawDamage * counter;
@@ -16454,18 +17316,40 @@ function applyDamageToTarget(attacker, target, rawDamage) {
 function steerUnit(unit, dt) {
   const ut = unitDef(unit.type, unit.owner);
   if ((unit.dodgeBurst || 0) > 0) return;
-  // Electricity shock: completely unable to move.
-  if ((unit.spreadShock || 0) > 0) {
+  // Transform / wear-off: locked in place while shaking (shake drawn as offset).
+  if (isZombieTransforming(unit) || isZombieWearoff(unit)) {
     unit.vx *= 0.15;
     unit.vy *= 0.15;
     unit.x = clamp(unit.x + unit.vx * dt, 30, W - 30);
     unit.y = clamp(unit.y + unit.vy * dt, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
     return;
   }
+  // Electricity shock or ice freeze: completely unable to move.
+  if ((unit.spreadShock || 0) > 0 || isUnitIceFrozen(unit)) {
+    unit.vx *= 0.15;
+    unit.vy *= 0.15;
+    unit.x = clamp(unit.x + unit.vx * dt, 30, W - 30);
+    unit.y = clamp(unit.y + unit.vy * dt, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
+    return;
+  }
+
+  const stance = isZombieUnit(unit) ? 'attack' : getCommanderStance(players[unit.owner]);
+  // Hold: stay still, but still face a target so ranged attacks keep working.
+  if (stance === 'hold') {
+    const tgt = findTarget(unit);
+    if (tgt) {
+      const tp = tgt.type === 'base' ? basePos(tgt.obj.id) : { x: tgt.obj.x, y: tgt.obj.y };
+      unit.facing = Math.atan2(tp.y - unit.y, tp.x - unit.x);
+    }
+    unit.vx *= 0.12;
+    unit.vy *= 0.12;
+    unit.x = clamp(unit.x + unit.vx * dt, 30, W - 30);
+    unit.y = clamp(unit.y + unit.vy * dt, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
+    return;
+  }
+
   const paralyzed = (unit.paralyze || 0) > 0;
-  const iceSlowMult = (unit.iceSlow && unit.iceSlow.life > 0 && unit.iceSlow.stacks > 0)
-    ? (1 - 0.2 * unit.iceSlow.stacks)
-    : 1;
+  const iceSlowMult = unitIceSpeedMult(unit);
   const usz = getUnitSize(unit);
   const enemy = enemyId(unit.owner);
   const behavior = ut.behavior || 'default';
@@ -16473,7 +17357,20 @@ function steerUnit(unit, dt) {
   const dir = Math.atan2(goal.y - unit.y, goal.x - unit.x);
 
   // Dragons fly toward the closest enemy and face their prey while breathing.
-  if (behavior === 'dragon') {
+  // Zombified dragons drop the flight AI and chase the nearest foe on foot.
+  // Retreat stance: fly home instead of hunting.
+  if (behavior === 'dragon' && !isZombieActive(unit)) {
+    if (stance === 'retreat') {
+      const bp = basePos(unit.owner);
+      const aim = Math.atan2(bp.y - unit.y, bp.x - unit.x);
+      unit.facing = aim;
+      const spd = ut.speed * (paralyzed ? 0.4 : 1.15) * iceSlowMult;
+      unit.vx = lerp(unit.vx, Math.cos(aim) * spd, 0.14);
+      unit.vy = lerp(unit.vy, Math.sin(aim) * spd, 0.14);
+      unit.x = clamp(unit.x + unit.vx * dt, 30, W - 30);
+      unit.y = clamp(unit.y + unit.vy * dt, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
+      return;
+    }
     const prey = findDragonClosestTarget(unit);
     const tp = dragonTargetPos(prey, enemy);
     const aim = Math.atan2(tp.y - unit.y, tp.x - unit.x);
@@ -16520,11 +17417,11 @@ function steerUnit(unit, dt) {
     }
   }
 
-  // Avoid dragon fire on the ground — Elephants walk through it (and douse it),
-  // Dragons fly over it. Everyone else steers clear.
+  // Avoid hazardous ground fire (dragon / breath patches). Trail embers from
+  // burning units are walked through — they only deal light contact damage.
   if (unit.type !== 'tank' && !unitIsFlying(unit) && fireFields.length) {
     for (const f of fireFields) {
-      if ((f.life || 0) <= 0 || (f.r || 0) < 3) continue;
+      if (!isHazardFireField(f) || (f.life || 0) <= 0 || (f.r || 0) < 3) continue;
       const d = Math.hypot(unit.x - f.x, unit.y - f.y) || 0.001;
       const avoidR = (f.r || 8) + usz + 48;
       if (d >= avoidR) continue;
@@ -16546,7 +17443,7 @@ function steerUnit(unit, dt) {
   }
 
   // Wolves path around blockers but rush straight at Snipers and Elephants.
-  if (behavior === 'flank') {
+  if (behavior === 'flank' && !isZombieActive(unit)) {
     // Panic: sprint directly away from any nearby dragon.
     const dragon = nearestEnemyDragon(unit);
     if (dragon) {
@@ -16649,7 +17546,11 @@ function spawnTowerPellet(tower, ownerId, angle, towerType, opts = {}) {
   const def = opts.def || towerDef(towerType, ownerId);
   const speed = def.pelletSpeed || 380;
   const muzzle = def.size + 6;
-  const element = towerType === 'spread' ? (opts.spreadElement || tower.spreadElement || null) : null;
+  const element = towerType === 'spread'
+    ? (Object.prototype.hasOwnProperty.call(opts, 'spreadElement')
+      ? opts.spreadElement
+      : (tower.spreadElement || null))
+    : null;
   const windStyle = towerType === 'spread' ? spreadWindStyle(element) : null;
   pellets.push({
     id: uid(),
@@ -16688,18 +17589,203 @@ function applySpreadParalysis(unit) {
   unit.paralyze = Math.min(shotPeriod, (unit.paralyze || 0) + para);
 }
 
+/** Ice: freeze solid 1s, then half-speed 3s. No stacking — refresh replaces. */
 function applySpreadIce(unit) {
   if (!unit || unit.hp <= 0) return;
-  if (!unit.iceSlow) unit.iceSlow = { stacks: 0, life: 0 };
-  unit.iceSlow.stacks = Math.min(3, (unit.iceSlow.stacks || 0) + 1);
-  unit.iceSlow.life = 1;
+  unit.iceChill = { freezeLeft: 1, slowLeft: 3 };
+  if (unit.iceSlow) delete unit.iceSlow;
+  addIceShardsToUnit(unit);
+  spawnParticles(unit.x, unit.y - 4, '#7dd3fc', 5);
 }
 
+/** Electricity: +1s full paralysis per pellet hit (duration stacks). */
 function applySpreadElectric(unit) {
   if (!unit || unit.hp <= 0) return;
-  if ((unit.spreadShockCd || 0) > 0) return;
-  unit.spreadShock = 0.5;
-  unit.spreadShockCd = 1;
+  unit.spreadShock = (unit.spreadShock || 0) + 1;
+  delete unit.spreadShockCd;
+  spawnParticles(unit.x, unit.y - 4, '#fde047', 4);
+}
+
+const ICE_SHARD_LIFE = 20;
+const ICE_SHARD_MAX = 14;
+const GROUND_ICE_LIFE = 10;
+
+function addIceShardsToUnit(unit) {
+  if (!unit) return;
+  if (!unit.iceShards) unit.iceShards = [];
+  const n = 2 + Math.floor(Math.random() * 3); // 2–4 per hit
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 0.25 + Math.random() * 0.7;
+    unit.iceShards.push({
+      ox: Math.cos(ang) * dist,
+      oy: Math.sin(ang) * dist * 0.7,
+      rot: Math.random() * Math.PI * 2,
+      size: 2.2 + Math.random() * 3.2,
+      life: ICE_SHARD_LIFE,
+      maxLife: ICE_SHARD_LIFE,
+      seed: Math.random() * 100,
+    });
+  }
+  if (unit.iceShards.length > ICE_SHARD_MAX) {
+    unit.iceShards.splice(0, unit.iceShards.length - ICE_SHARD_MAX);
+  }
+}
+
+function tickUnitIceShards(unit, dt) {
+  if (!unit.iceShards || !unit.iceShards.length) return;
+  for (let i = unit.iceShards.length - 1; i >= 0; i--) {
+    const s = unit.iceShards[i];
+    s.life -= dt;
+    if (s.life <= 0) unit.iceShards.splice(i, 1);
+  }
+  if (!unit.iceShards.length) delete unit.iceShards;
+}
+
+function dropUnitIceShardsToGround(unit) {
+  if (!unit?.iceShards?.length) return;
+  const sz = getUnitSize(unit);
+  for (const s of unit.iceShards) {
+    groundIceChunks.push({
+      x: unit.x + s.ox * sz + rand(-3, 3),
+      y: unit.y + s.oy * sz + rand(-2, 2),
+      rot: s.rot,
+      size: s.size * (0.85 + Math.random() * 0.3),
+      life: GROUND_ICE_LIFE * (0.7 + Math.random() * 0.4),
+      maxLife: GROUND_ICE_LIFE,
+      seed: s.seed,
+    });
+  }
+  delete unit.iceShards;
+}
+
+function updateGroundIceChunks(dt) {
+  for (let i = groundIceChunks.length - 1; i >= 0; i--) {
+    const c = groundIceChunks[i];
+    c.life -= dt;
+    if (c.life <= 0) groundIceChunks.splice(i, 1);
+  }
+}
+
+function drawIceCrystal(x, y, size, rot, alpha) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.globalAlpha *= alpha;
+  ctx.fillStyle = '#e0f2fe';
+  ctx.strokeStyle = 'rgba(125, 211, 252, 0.9)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(0, -size);
+  ctx.lineTo(size * 0.55, 0);
+  ctx.lineTo(0, size * 0.7);
+  ctx.lineTo(-size * 0.55, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.beginPath();
+  ctx.moveTo(0, -size * 0.55);
+  ctx.lineTo(size * 0.22, -size * 0.1);
+  ctx.lineTo(0, size * 0.15);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawUnitIceShards(u, drawX, drawY, sz) {
+  if (!u.iceShards?.length) return;
+  for (const s of u.iceShards) {
+    const t = Math.max(0, s.life / (s.maxLife || ICE_SHARD_LIFE));
+    // Fade only in the last ~4 seconds
+    const fade = t > 0.2 ? 1 : t / 0.2;
+    const alpha = 0.55 + 0.4 * fade;
+    drawIceCrystal(
+      drawX + s.ox * sz,
+      drawY + s.oy * sz,
+      s.size,
+      s.rot + Math.sin(animFrame * 0.04 + s.seed) * 0.08,
+      alpha,
+    );
+  }
+}
+
+function drawGroundIceChunks() {
+  for (const c of groundIceChunks) {
+    const t = Math.max(0, c.life / (c.maxLife || GROUND_ICE_LIFE));
+    const fade = t > 0.25 ? 1 : t / 0.25;
+    drawIceCrystal(c.x, c.y, c.size, c.rot, 0.35 + 0.45 * fade);
+  }
+}
+
+/** Yellow electricity crawling through a shocked unit's body. */
+function drawUnitElectricArc(drawX, drawY, sz, shockLeft) {
+  const intensity = Math.min(1, 0.45 + shockLeft * 0.2);
+  const flick = 0.55 + Math.abs(Math.sin(animFrame * 0.7)) * 0.45;
+  ctx.save();
+  ctx.globalAlpha = intensity * flick;
+  ctx.strokeStyle = '#fde047';
+  ctx.lineWidth = 1.35;
+  ctx.lineCap = 'round';
+  ctx.shadowColor = '#facc15';
+  ctx.shadowBlur = 6;
+  const branches = 3 + Math.min(3, Math.floor(shockLeft));
+  for (let b = 0; b < branches; b++) {
+    const baseA = animFrame * 0.18 + b * 2.1 + drawX * 0.01;
+    let px = drawX + Math.cos(baseA) * sz * 0.15;
+    let py = drawY + Math.sin(baseA * 1.3) * sz * 0.2;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    const segs = 5;
+    for (let i = 1; i <= segs; i++) {
+      const t = i / segs;
+      const ang = baseA + t * (1.2 + b * 0.4) + Math.sin(animFrame * 0.9 + b + i) * 0.7;
+      const r = sz * (0.25 + t * 0.55);
+      const jx = (Math.sin(animFrame * 1.4 + i * 3 + b) * sz * 0.12);
+      const jy = (Math.cos(animFrame * 1.1 + i * 2.5 + b) * sz * 0.1);
+      px = drawX + Math.cos(ang) * r * 0.7 + jx;
+      py = drawY + Math.sin(ang) * r * 0.55 + jy;
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  // Hot core sparks
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff7ae';
+  ctx.globalAlpha = 0.5 * flick;
+  for (let i = 0; i < 4; i++) {
+    const a = animFrame * 0.35 + i * 1.7;
+    ctx.beginPath();
+    ctx.arc(
+      drawX + Math.cos(a) * sz * 0.35,
+      drawY + Math.sin(a * 1.4) * sz * 0.28,
+      1.2,
+      0, Math.PI * 2,
+    );
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function unitIceSpeedMult(unit) {
+  if (unit.iceChill) {
+    if ((unit.iceChill.freezeLeft || 0) > 0) return 0;
+    if ((unit.iceChill.slowLeft || 0) > 0) return 0.5;
+  }
+  if (unit.iceSlow && unit.iceSlow.life > 0 && unit.iceSlow.stacks > 0) {
+    return 1 - 0.2 * unit.iceSlow.stacks;
+  }
+  return 1;
+}
+
+function isUnitIceFrozen(unit) {
+  return !!(unit.iceChill && (unit.iceChill.freezeLeft || 0) > 0);
+}
+
+function isUnitFullyParalyzed(unit) {
+  return (unit.paralyze || 0) > 0
+    || (unit.spreadShock || 0) > 0
+    || isUnitIceFrozen(unit);
 }
 
 function applySpreadElementHit(pellet, unit) {
@@ -16768,6 +17854,9 @@ const DRAGON_BREATH_RANGE = 165;
 const DRAGON_FIRE_LIFE = 18;
 const DRAGON_FIRE_DPS = 2.4;
 const DRAGON_FIRE_PATCHES = 6;
+/** Trail fire left by burning units: contact DPS only, no ignite, no path avoidance. */
+const TRAIL_FIRE_DPS = 1.0;
+const TRAIL_FIRE_LIFE = DRAGON_FIRE_LIFE * 0.55;
 const DRAGON_IGNITE_BURST = 1.65;
 const DRAGON_IGNITE_DPS = 1.8;
 const DRAGON_IGNITE_LIFE = 3;
@@ -16869,21 +17958,23 @@ function updateUnitIgnites(dt) {
     u.ignite.trailCd = (u.ignite.trailCd || 0) - dt;
     if (u.ignite.trailCd <= 0) {
       u.ignite.trailCd = 0.22;
+      // Embers trailing a burning unit: contact damage only — no chain ignite.
       fireFields.push({
         x: u.x + rand(-6, 6),
         y: u.y + rand(-4, 4),
         vx: (u.vx || 0) * 0.15 + rand(-8, 8),
         vy: (u.vy || 0) * 0.15 + rand(-8, 8),
-        r: 7 + Math.min(u.ignite.stacks, 6),
+        r: 6 + Math.min(u.ignite.stacks, 4) * 0.5,
         owner: u.ignite.owner,
-        life: DRAGON_FIRE_LIFE * 0.85,
-        maxLife: DRAGON_FIRE_LIFE * 0.85,
-        dps: DRAGON_FIRE_DPS * (1 + u.ignite.stacks * 0.15),
+        life: TRAIL_FIRE_LIFE,
+        maxLife: TRAIL_FIRE_LIFE,
+        dps: TRAIL_FIRE_DPS * (1 + Math.min(u.ignite.stacks, 6) * 0.08),
         color: u.ignite.color,
         core: u.ignite.core,
         lightning: false,
         phase: rand(0, Math.PI * 2),
         seed: rand(0, 100),
+        source: 'trail',
       });
     }
   }
@@ -16942,6 +18033,7 @@ function dragonBreathe(u) {
       color: v.fire, core: v.fireCore, lightning: !!v.lightning,
       phase: rand(0, Math.PI * 2),
       seed: rand(0, 100),
+      source: 'dragon',
     });
   }
 
@@ -16972,21 +18064,23 @@ function updateFireFields(dt) {
     f.x += wobble * dt;
     f.y -= dt * 6;
 
-    // Dragon fire is indiscriminate — it burns every unit and building it
-    // touches, friend or foe. Overlapping patches each tick independently, so
-    // damage stacks with the amount of fire piled onto the same spot.
     const tick = f.dps * dt;
+    const isTrail = f.source === 'trail';
 
+    // Trail embers: light contact damage on units only — no ignite chain.
+    // Dragon / hazardous patches: burn + ignite units, and damage buildings.
     for (const u of combatUnits) {
       if (u.hp <= 0 || isDragonUnit(u)) continue; // dragons are fireproof
       if (dist(f, u) <= f.r + getUnitSize(u) * 0.5) {
         applyBurnDamage(u, tick, f.owner);
-        if ((u._igniteFieldCd || 0) <= combatTime) {
+        if (!isTrail && (u._igniteFieldCd || 0) <= combatTime) {
           u._igniteFieldCd = combatTime + 0.45;
           igniteUnit(u, f.owner, 1, 1, { fire: f.color, core: f.core });
         }
       }
     }
+
+    if (isTrail) continue;
 
     for (const pl of players) {
       for (const t of pl.turrets) {
@@ -17483,6 +18577,7 @@ function updateTowers(dt) {
           }
         }
       } else if (def.style === 'spread') {
+        if (t.spreadElement) tickSpreadElementCharge(t, dt, p.id);
         const inRange = enemiesInRange(t, p.id);
         if (!inRange.length) continue;
         const primary = inRange[0].unit;
@@ -17492,7 +18587,7 @@ function updateTowers(dt) {
           const spreadTrack = { ownerId: p.id, hits: new Set(), expire: combatTime + 0.45 };
           spreadTracks.push(spreadTrack);
           const pelletsN = def.pelletCount;
-          const half = def.spreadAngle / 2;
+          const pelletElements = consumeSpreadElementPelletElements(t, pelletsN, p.id);
 
           for (let i = 0; i < pelletsN; i++) {
             const tNorm = pelletsN === 1 ? 0 : i / (pelletsN - 1);
@@ -17500,7 +18595,7 @@ function updateTowers(dt) {
             const angle = t.angle + offset;
             spawnTowerPellet(t, p.id, angle, 'spread', {
               spreadTrack,
-              spreadElement: t.spreadElement || null,
+              spreadElement: pelletElements[i],
             });
           }
         }
@@ -17785,6 +18880,17 @@ function updateCombat(dt) {
     if (u.paralyze > 0) u.paralyze = Math.max(0, u.paralyze - dt);
     if ((u.spreadShock || 0) > 0) u.spreadShock = Math.max(0, u.spreadShock - dt);
     if ((u.spreadShockCd || 0) > 0) u.spreadShockCd = Math.max(0, u.spreadShockCd - dt);
+    if (u.iceChill) {
+      if ((u.iceChill.freezeLeft || 0) > 0) {
+        u.iceChill.freezeLeft = Math.max(0, u.iceChill.freezeLeft - dt);
+      } else if ((u.iceChill.slowLeft || 0) > 0) {
+        u.iceChill.slowLeft = Math.max(0, u.iceChill.slowLeft - dt);
+      }
+      if ((u.iceChill.freezeLeft || 0) <= 0 && (u.iceChill.slowLeft || 0) <= 0) {
+        delete u.iceChill;
+      }
+    }
+    tickUnitIceShards(u, dt);
     if (u.iceSlow) {
       if (u.iceSlow.life > 0) {
         u.iceSlow.life = Math.max(0, u.iceSlow.life - dt);
@@ -17798,9 +18904,9 @@ function updateCombat(dt) {
     if (u.type === 'tank') { tankDouseFire(u, dt); tankWaterUpdate(u, dt); }
 
     // Dragons breathe fire at the closest enemy.
-    if (unitDef(u.type, u.owner).behavior === 'dragon') {
+    if (unitDef(u.type, u.owner).behavior === 'dragon' && !isZombieUnit(u)) {
       u.breathCd = (u.breathCd == null ? DRAGON_BREATH_INTERVAL : u.breathCd) - dt;
-      if (u.breathCd <= 0 && (u.paralyze || 0) <= 0) {
+      if (u.breathCd <= 0 && !isUnitFullyParalyzed(u)) {
         u.breathCd = DRAGON_BREATH_INTERVAL;
         dragonBreathe(u);
       }
@@ -17808,8 +18914,14 @@ function updateCombat(dt) {
       continue;
     }
 
+    // Zombie transform / wear-off: shake only, no attacks.
+    if (isZombieTransforming(u) || isZombieWearoff(u)) {
+      steerUnit(u, dt);
+      continue;
+    }
+
     const tgt = findTarget(u);
-    const paralyzed = (u.paralyze || 0) > 0;
+    const paralyzed = isUnitFullyParalyzed(u);
     if (tgt && u.attackCooldown <= 0 && !paralyzed) {
       const ut = unitDef(u.type, u.owner);
       if (ut.behavior === 'knight') {
@@ -17834,6 +18946,7 @@ function updateCombat(dt) {
   updatePellets(dt);
   updateUnitIgnites(dt);
   updateFireFields(dt);
+  updateGroundIceChunks(dt);
   updateSpellEffects(dt);
   updateTowers(dt);
   updateMissiles(dt);
@@ -18268,13 +19381,18 @@ function updateUI() {
   const p = players[pid] || players[0];
   const inFree = phase === 'free' || phase === 'free2p'
     || (phase === 'gameover' && (gameMode === 'free' || gameMode === 'free2p'));
+  // Cash stays visible every phase — including free mode and open skill panels.
+  document.getElementById('coins-pill').classList.remove('hidden');
+  if (isSimulatorMode()) {
+    document.getElementById('coins-display').textContent = `🔴 ${Math.floor(players[0].coins)} | 🔵 ${Math.floor(players[1].coins)}`;
+  } else {
+    document.getElementById('coins-display').textContent = Math.floor(p.coins);
+  }
   if (!inFree) {
     if (isSimulatorMode()) {
-      document.getElementById('coins-display').textContent = `🔴 ${Math.floor(players[0].coins)} | 🔵 ${Math.floor(players[1].coins)}`;
       document.getElementById('base-hp-display').textContent = Math.floor(players[0].baseHp);
       document.getElementById('enemy-hp-display').textContent = Math.floor(players[1].baseHp);
     } else {
-      document.getElementById('coins-display').textContent = Math.floor(p.coins);
       const enemy = enemyId(pid);
       document.getElementById('base-hp-display').textContent = Math.floor(players[pid].baseHp);
       document.getElementById('enemy-hp-display').textContent = Math.floor(players[enemy].baseHp);
@@ -18348,37 +19466,47 @@ function updateUI() {
     const costEl = btn.querySelector('.cost');
     if (UNIT_TYPES[tool]) {
       const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, pid) : UNIT_TYPES[tool];
-      if (costEl) costEl.textContent = ut.cost;
+      if (costEl) costEl.textContent = `💵 ${ut.cost}`;
+      const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
+      const canAfford = p.coins >= ut.cost;
       if (alwaysSelectableTools) {
-        btn.disabled = false;
-        btn.title = '';
+        // Keep selectable so you can queue a buy while saving — gray if unaffordable.
+        btn.disabled = !unlocked;
+        btn.classList.toggle('unaffordable', !!unlocked && !canAfford);
+        btn.title = !unlocked ? 'Requires Barracks unlock' : (!canAfford ? `Need ${ut.cost}💵` : '');
       } else {
-        const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
-        btn.disabled = !isUnitEnabled(tool) || !canUseTools || p.coins < ut.cost || !unlocked;
-        btn.title = unlocked ? '' : 'Requires Barracks unlock';
+        btn.disabled = !isUnitEnabled(tool) || !canUseTools || !canAfford || !unlocked;
+        btn.classList.toggle('unaffordable', !!unlocked && canUseTools && !canAfford);
+        btn.title = unlocked ? (!canAfford ? `Need ${ut.cost}💵` : '') : 'Requires Barracks unlock';
       }
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
-      if (costEl) costEl.textContent = price;
+      if (costEl) costEl.textContent = `💵 ${price}`;
+      const canAfford = p.coins >= price;
       if (alwaysSelectableTools) {
         btn.disabled = false;
-        btn.title = '';
+        btn.classList.toggle('unaffordable', !canAfford);
+        btn.title = canAfford ? '' : `Need ${price}💵`;
       } else {
-      btn.disabled = !isTowerEnabled(tool) || !canUseTools || p.coins < price;
-        btn.title = '';
+        btn.disabled = !isTowerEnabled(tool) || !canUseTools || !canAfford;
+        btn.classList.toggle('unaffordable', canUseTools && !canAfford);
+        btn.title = canAfford ? '' : `Need ${price}💵`;
       }
     } else if (isSpellTool(tool)) {
       const lvl = LIVE_ARMY?.spellLevel(p, tool) || 0;
       const castCost = lvl > 0 ? LIVE_ARMY.spellCastCost(tool, lvl) : 0;
       const cd = p.liveArmy?.laboratory?.cds?.[tool] || 0;
-      if (costEl) costEl.textContent = cd > 0 ? `${cd.toFixed(1)}s` : castCost;
+      if (costEl) costEl.textContent = cd > 0 ? `${cd.toFixed(1)}s` : `💵 ${castCost}`;
       const canCast = alwaysSelectableTools && LIVE_ARMY.canCastSpell(p, tool);
+      const canAfford = lvl > 0 && p.coins >= castCost;
       btn.disabled = !canCast;
+      btn.classList.toggle('unaffordable', cd <= 0 && lvl > 0 && !canAfford);
       btn.title = cd > 0
         ? `Cooldown ${cd.toFixed(1)}s`
-        : (lvl > 0 ? spellExactTip(tool, lvl) : 'Unlock in Laboratory');
+        : (lvl > 0 ? (!canAfford ? `Need ${castCost}💵` : spellExactTip(tool, lvl)) : 'Unlock in Laboratory');
     } else if (tool === 'move') {
       btn.disabled = alwaysSelectableTools ? false : !canUseTools;
+      btn.classList.remove('unaffordable');
       btn.title = '';
     }
   });
@@ -18709,6 +19837,7 @@ document.getElementById('cmd-minus').addEventListener('click', () => commanderAd
 document.getElementById('cmd-plus').addEventListener('click', () => commanderAdjustCount(1));
 document.getElementById('cmd-count-fab').addEventListener('click', () => commanderCycleCount());
 document.getElementById('cmd-form-fab').addEventListener('click', () => commanderCycleFormation());
+document.getElementById('cmd-stance-fab').addEventListener('click', () => commanderCycleStance());
 function commanderPickFormation(formation) {
   if (!formation || !COMMANDER_FORMATIONS.includes(formation)) return;
   commanderFormation = formation;
@@ -18721,6 +19850,16 @@ document.getElementById('cmd-formations').addEventListener('click', (e) => {
   commanderPickFormation(btn.dataset.formation);
 });
 document.getElementById('cmd-skilltree').addEventListener('click', (e) => {
+  const specialBtn = e.target.closest('[data-commander-special]');
+  if (specialBtn && !specialBtn.disabled) {
+    const pid = getLocalPlayerId();
+    if (isSurvivalPvp()) {
+      pvpSendLocalAction({ type: 'commander_special' });
+      return;
+    }
+    buyCommanderSpecialCommands(pid);
+    return;
+  }
   const btn = e.target.closest('[data-commander-tier]');
   if (!btn || btn.disabled) return;
   const tier = Number(btn.dataset.commanderTier);
@@ -18947,6 +20086,7 @@ function resetGame() {
   spreadTracks = [];
   blasts = [];
   fireFields = [];
+  groundIceChunks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -19141,6 +20281,7 @@ function renderFrame(time) {
 
   if (phase === 'combat') {
     drawFireFields();
+    drawGroundIceChunks();
     drawSpellEffects();
     for (const u of combatUnits) drawUnit(u);
 
@@ -19190,7 +20331,11 @@ function renderFrame(time) {
   if (canPlayerBuildNow() && mousePos && getLocalPlayerId() !== null) {
     const buildPid = getLocalPlayerId();
     const p = players[buildPid];
-    if (isTowerTool(selectedTool)) {
+    const spellPreviewId = pendingSpellCast?.spellId
+      || (isSpellTool(selectedTool) ? selectedTool : null);
+    if (spellPreviewId && isSurvivalLive() && phase === 'combat') {
+      drawSpellRadiusPreview(spellPreviewId, mousePos.x, mousePos.y, buildPid);
+    } else if (isTowerTool(selectedTool)) {
       const ok = !towerPlaceFailReason(buildPid, selectedTool, mousePos.x, mousePos.y, dragging?.turret?.id);
       const def = towerDef(selectedTool);
       ctx.globalAlpha = ok ? 0.55 : 0.4;
@@ -19246,7 +20391,7 @@ function renderFrame(time) {
         ctx.lineWidth = 3.5;
         ctx.strokeStyle = 'rgba(0,0,0,0.75)';
         ctx.fillStyle = okAll ? '#fcd34d' : '#ef4444';
-        const label = `${total} 🪙`;
+        const label = `${total} 💵`;
         ctx.strokeText(label, cx, ly);
         ctx.fillText(label, cx, ly);
         ctx.restore();
@@ -19390,11 +20535,12 @@ function resize() {
   document.body.classList.toggle('portrait-mobile', mobile && portrait);
   document.body.classList.toggle('landscape-mobile', mobile && !portrait);
 
-  const padX = mobile ? 4 : 40;
-  const padY = mobile ? 4 : 120;
+  const fs = isGameFullscreen();
+  const padX = fs ? 0 : (mobile ? 4 : 40);
+  const padY = fs ? 0 : (mobile ? 4 : 120);
   const availW = Math.max(1, vpW - padX);
   const availH = Math.max(1, vpH - padY);
-  const scale = Math.min(availW / W, availH / H, mobile ? Infinity : 1);
+  const scale = Math.min(availW / W, availH / H, (mobile || fs) ? Infinity : 1);
 
   stage.style.width = `${W * scale}px`;
   stage.style.height = `${H * scale}px`;
@@ -19405,7 +20551,56 @@ function resize() {
   canvas.style.height = `${H}px`;
 
   updateOrientationHint();
+  syncFullscreenButton();
 }
+
+function isGameFullscreen() {
+  const stage = document.getElementById('game-stage');
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  return !!(fsEl && (fsEl === stage || stage?.contains(fsEl)));
+}
+
+function syncFullscreenButton() {
+  const btn = document.getElementById('fullscreen-btn');
+  if (!btn) return;
+  const on = isGameFullscreen();
+  btn.textContent = on ? '🗗' : '⛶';
+  btn.title = on ? 'Exit fullscreen' : 'Fullscreen';
+  btn.setAttribute('aria-label', on ? 'Exit fullscreen' : 'Enter fullscreen');
+  btn.classList.toggle('is-fullscreen', on);
+}
+
+async function toggleGameFullscreen() {
+  const stage = document.getElementById('game-stage');
+  if (!stage) return;
+  try {
+    if (isGameFullscreen()) {
+      if (document.exitFullscreen) await document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else if (stage.requestFullscreen) {
+      await stage.requestFullscreen();
+    } else if (stage.webkitRequestFullscreen) {
+      stage.webkitRequestFullscreen();
+    }
+  } catch (e) {
+    /* user denied or unsupported */
+  }
+  syncFullscreenButton();
+  resize();
+}
+
+document.getElementById('fullscreen-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleGameFullscreen();
+});
+document.addEventListener('fullscreenchange', () => {
+  syncFullscreenButton();
+  resize();
+});
+document.addEventListener('webkitfullscreenchange', () => {
+  syncFullscreenButton();
+  resize();
+});
 
 window.addEventListener('resize', resize);
 setupViewportHandling();

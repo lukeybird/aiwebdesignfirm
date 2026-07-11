@@ -133,13 +133,13 @@ window.LIVE_ARMY = (function () {
   const SPELL_IDS = ['fireball', 'slime', 'heal'];
   const SPELL_LABELS = {
     fireball: 'Fireball',
-    slime: 'Green Slime',
-    heal: 'Healing Aura',
+    slime: 'Zombie Slime',
+    heal: 'Yellow Potion',
   };
   const SPELL_ICONS = {
     fireball: '☄️',
-    slime: '🧪',
-    heal: '💚',
+    slime: '🧟',
+    heal: '🧴',
   };
   const SPELL_MAX_LEVEL = 3;
   // Cost to unlock (level 0→1), then upgrade to 2 and 3.
@@ -217,7 +217,7 @@ window.LIVE_ARMY = (function () {
   const BASE_INCOME_UPGRADE_COSTS = [150, 300, 450];
   const BASE_BRANCHES = ['income', 'health', 'defense'];
   const BASE_BRANCH_LABELS = { income: 'Income', health: 'Health', defense: 'Guns' };
-  const BASE_BRANCH_ICONS = { income: '🪙', health: '❤️', defense: '🔫' };
+  const BASE_BRANCH_ICONS = { income: '💵', health: '❤️', defense: '🔫' };
 
   function freshMissileUpgrades() {
     return { rate: 1, damage: 1, radius: 1 };
@@ -328,7 +328,7 @@ window.LIVE_ARMY = (function () {
     if (!el) return;
     el.textContent = pvpMode
       ? 'Unlock spells at the top, then climb each spell track. Cast from the bottom bar — levels are hidden from your opponent.'
-      : 'Unlock Fireball, Green Slime, and Healing Aura at the top, then upgrade each spell. Cast from the bottom bar like units.';
+      : 'Unlock Fireball, Zombie Slime, and Yellow Potion at the top, then upgrade each spell. Cast from the bottom bar like units.';
   }
 
   function syncEconomyPanelCopy() {
@@ -537,10 +537,12 @@ window.LIVE_ARMY = (function () {
     if (spellId === 'slime') {
       return {
         radius: 78 + (lvl - 1) * 10,
-        duration: 3 + (lvl - 1) * 0.5,
+        duration: 3, // active zombie attack window
+        transformTime: 1,
+        wearoffTime: 1,
       };
     }
-    // heal: +30 HP/s base = +10 HP every 1/3s
+    // heal: yellow potion — +30 HP/s base = +10 HP every 1/3s (units + towers)
     return {
       radius: 90 + (lvl - 1) * 12,
       duration: 3 + (lvl - 1) * 0.5,
@@ -930,6 +932,10 @@ window.LIVE_ARMY = (function () {
     }
     if (bloopBtn) bloopBtn.style.display = active ? 'none' : '';
     if (laserBtn && active) laserBtn.childNodes[0].textContent = '⚡ Rail Gun';
+    const slimeBtn = document.querySelector('.btn-slime');
+    if (slimeBtn && active) slimeBtn.childNodes[0].textContent = '🧟 Zombie Slime';
+    const healBtn = document.querySelector('.btn-heal');
+    if (healBtn && active) healBtn.childNodes[0].textContent = '🧴 Yellow Potion';
   }
 
   return {
