@@ -4,11 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Block Fortress — Tower Defense War</title>
+  <title>Bloody Skulls — Spooky Tower War</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@600;700&display=swap');
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bs-blood: #b91c1c;
+      --bs-blood-mid: #991b1b;
+      --bs-blood-deep: #7f1d1d;
+      --bs-blood-dark: #450a0a;
+      --bs-rose: #fecaca;
+      --bs-bone: #f3e8e8;
+      --bs-parchment: #e7c9a5;
+      --bs-brass: #c9a227;
+      --bs-brass-lite: #fcd34d;
+      --bs-panel: #1a0c10;
+      --bs-panel-2: #12080c;
+      --bs-ink: #080608;
+      --bs-ghost: #7dd3fc;
+      --bs-pumpkin: #ff8e53;
+      --bs-font-display: 'Creepster', cursive;
+      --bs-font-story: 'Special Elite', cursive;
+      --bs-font-ui: 'Rajdhani', sans-serif;
+    }
 
     html {
       overflow: hidden;
@@ -18,8 +38,8 @@
 
     body {
       background:
-        radial-gradient(ellipse at 50% 0%, #2a3a2a 0%, #141a14 45%, #0a0e0a 100%),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23facc15' stroke-width='3' opacity='0.13'%3E%3Ccircle cx='60' cy='60' r='20'/%3E%3Ccircle cx='53' cy='55' r='2.2' fill='%23facc15'/%3E%3Ccircle cx='67' cy='55' r='2.2' fill='%23facc15'/%3E%3Cpath d='M50 65c3.5 5 16.5 5 20 0' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+        radial-gradient(ellipse at 50% 15%, #3a1518 0%, #1a0c10 42%, #080608 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%239f1239' stroke-width='2.5' opacity='0.12'%3E%3Ccircle cx='60' cy='60' r='20'/%3E%3Ccircle cx='53' cy='55' r='2.2' fill='%239f1239'/%3E%3Ccircle cx='67' cy='55' r='2.2' fill='%239f1239'/%3E%3Cpath d='M50 65c3.5 5 16.5 5 20 0' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
       background-size: auto, 120px 120px;
       min-height: 100vh;
       min-height: 100dvh;
@@ -29,7 +49,7 @@
       align-items: center;
       justify-content: center;
       font-family: 'Rajdhani', sans-serif;
-      color: #e8ebe0;
+      color: #f3e8e8;
       overflow: hidden;
       overscroll-behavior: none;
       touch-action: manipulation;
@@ -52,15 +72,22 @@
     }
 
     h1 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.85rem;
+      font-family: 'Creepster', cursive;
+      font-size: 2.4rem;
       margin: 12px 0 4px;
-      color: #c9d4b8;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.6), 0 0 24px rgba(120, 140, 90, 0.25);
-      letter-spacing: 2px;
+      color: #fecaca;
+      text-shadow: 0 3px 0 #7f1d1d, 0 6px 18px rgba(0,0,0,0.7), 0 0 28px rgba(185, 28, 28, 0.35);
+      letter-spacing: 3px;
     }
 
-    .subtitle { font-size: 0.9rem; opacity: 0.65; margin-bottom: 8px; color: #9aa892; }
+    .subtitle {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.95rem;
+      opacity: 0.8;
+      margin-bottom: 8px;
+      color: #e7c9a5;
+      letter-spacing: 0.5px;
+    }
 
     #game-stage {
       position: relative;
@@ -79,7 +106,10 @@
       transform-origin: top left;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 4px rgba(255,255,255,0.1);
+      box-shadow:
+        0 20px 60px rgba(0,0,0,0.65),
+        0 0 0 3px rgba(127, 29, 29, 0.55),
+        0 0 40px rgba(185, 28, 28, 0.18);
     }
 
     canvas {
@@ -105,27 +135,31 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(40, 8, 12, 0.78) 0%, rgba(8, 4, 6, 0.15) 70%, transparent 100%);
       pointer-events: none;
       z-index: 40;
     }
 
     .stat-pill {
-      background: rgba(255,255,255,0.15);
+      background: rgba(40, 12, 16, 0.72);
       backdrop-filter: blur(8px);
       padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.9rem;
+      border-radius: 12px;
+      border: 1px solid rgba(254, 202, 202, 0.22);
+      font-family: var(--bs-font-story);
+      font-size: 0.88rem;
       font-weight: 600;
+      color: var(--bs-bone);
       display: flex;
       align-items: center;
       gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
     }
 
     #coins-pill {
-      background: rgba(22, 101, 52, 0.55);
-      border: 1px solid rgba(134, 239, 172, 0.35);
-      color: #ecfdf5;
+      background: rgba(127, 29, 29, 0.62);
+      border: 1px solid rgba(252, 211, 77, 0.4);
+      color: #fef3c7;
       font-variant-numeric: tabular-nums;
       min-width: 4.5rem;
     }
@@ -140,21 +174,21 @@
 
     .surv-speed-btn {
       border: none;
-      background: rgba(255, 255, 255, 0.12);
-      color: #e8ebe0;
-      font-family: inherit;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--bs-parchment);
+      font-family: var(--bs-font-ui);
       font-size: 0.78rem;
       font-weight: 700;
       padding: 4px 10px;
-      border-radius: 14px;
+      border-radius: 10px;
       cursor: pointer;
       transition: background 0.12s, color 0.12s;
     }
 
-    .surv-speed-btn:hover { background: rgba(255, 255, 255, 0.22); }
+    .surv-speed-btn:hover { background: rgba(185, 28, 28, 0.35); }
     .surv-speed-btn.active {
-      background: #c9a227;
-      color: #1a1a2e;
+      background: var(--bs-brass);
+      color: var(--bs-blood-dark);
     }
 
     #fullscreen-btn {
@@ -166,10 +200,10 @@
       width: 36px;
       height: 36px;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(254, 202, 202, 0.3);
+      background: rgba(40, 8, 12, 0.7);
       backdrop-filter: blur(8px);
-      color: #e8ebe0;
+      color: var(--bs-rose);
       font-size: 1.05rem;
       line-height: 1;
       cursor: pointer;
@@ -180,7 +214,7 @@
       transition: background 0.12s, transform 0.12s;
     }
     #fullscreen-btn:hover {
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(185, 28, 28, 0.45);
       transform: scale(1.06);
     }
     #fullscreen-btn.is-fullscreen {
@@ -195,7 +229,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0a0e14;
+      background: var(--bs-ink);
       border-radius: 0;
     }
     #game-stage:fullscreen #game-wrapper,
@@ -208,7 +242,7 @@
       position: absolute;
       bottom: 0; left: 0; right: 0;
       padding: 10px 12px;
-      background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, transparent 100%);
+      background: linear-gradient(0deg, rgba(40, 8, 12, 0.88) 0%, rgba(8, 4, 6, 0.2) 55%, transparent 100%);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -218,9 +252,9 @@
     }
 
     .tool-btn {
-      font-family: 'Rajdhani', sans-serif;
-      border: none;
-      border-radius: 12px;
+      font-family: var(--bs-font-ui);
+      border: 1.5px solid rgba(254, 202, 202, 0.18);
+      border-radius: 10px;
       padding: 8px 12px;
       font-size: 0.78rem;
       font-weight: 600;
@@ -233,11 +267,12 @@
       gap: 2px;
       min-width: 80px;
       pointer-events: auto;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.35);
     }
 
-    .tool-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+    .tool-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(80,0,0,0.35); }
     .tool-btn:active:not(:disabled) { transform: translateY(0); }
-    .tool-btn.active { outline: 3px solid #fff; outline-offset: 2px; }
+    .tool-btn.active { outline: 3px solid var(--bs-brass-lite); outline-offset: 2px; }
     .tool-btn:disabled,
     .tool-btn.unaffordable {
       opacity: 0.38;
@@ -273,35 +308,53 @@
     .btn-goblin { background: #4ade80; color: #14532d; }
     .btn-move { background: #94A3B8; color: #fff; }
     .btn-ready {
-      background: linear-gradient(135deg, #22c55e, #16a34a);
+      background: linear-gradient(135deg, #dc2626, #7f1d1d);
       color: #fff;
+      font-family: var(--bs-font-story);
       font-size: 1rem;
       padding: 12px 28px;
       min-width: 120px;
+      border: 1.5px solid rgba(254, 202, 202, 0.35);
+      letter-spacing: 0.5px;
     }
 
     #phase-banner {
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.85);
+      background: linear-gradient(165deg, rgba(40, 10, 14, 0.96), rgba(8, 4, 6, 0.97));
       padding: 30px 50px;
-      border-radius: 20px;
+      border-radius: 16px;
       text-align: center;
       pointer-events: auto;
       z-index: 10;
-      border: 3px solid rgba(255,255,255,0.2);
+      border: 3px solid rgba(185, 28, 28, 0.55);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.65), 0 0 40px rgba(185, 28, 28, 0.15);
       max-width: 90%;
     }
 
-    #phase-banner h2 { font-size: 1.8rem; margin-bottom: 8px; }
-    #phase-banner p { opacity: 0.8; margin-bottom: 16px; line-height: 1.5; }
+    #phase-banner h2 {
+      font-family: var(--bs-font-display);
+      font-size: 2.1rem;
+      margin-bottom: 8px;
+      color: var(--bs-rose);
+      letter-spacing: 2px;
+      text-shadow: 0 3px 0 #7f1d1d, 0 0 20px rgba(185,28,28,0.35);
+    }
+    #phase-banner p {
+      font-family: var(--bs-font-story);
+      opacity: 0.85;
+      margin-bottom: 16px;
+      line-height: 1.5;
+      color: var(--bs-parchment);
+    }
 
     .banner-btn {
-      font-family: 'Rajdhani', sans-serif;
-      background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-      border: none;
+      font-family: var(--bs-font-story);
+      background: linear-gradient(180deg, #dc2626, #7f1d1d);
+      border: 2px solid rgba(254, 202, 202, 0.3);
       color: #fff;
+      box-shadow: 0 5px 0 #450a0a;
       padding: 12px 32px;
       border-radius: 12px;
       font-size: 1rem;
@@ -315,17 +368,141 @@
     #menu-screen {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 20, 40, 0.95);
+      background:
+        radial-gradient(ellipse at 50% 35%, rgba(90, 20, 28, 0.55) 0%, rgba(12, 8, 10, 0.94) 55%, rgba(6, 4, 6, 0.98) 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 20;
       pointer-events: auto;
+      overflow: hidden;
     }
 
-    #menu-screen h2 { font-size: 2.5rem; margin-bottom: 8px; }
-    #menu-screen p { opacity: 0.7; margin-bottom: 30px; text-align: center; max-width: 400px; line-height: 1.6; }
+    .menu-brand {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+      min-height: 210px;
+      width: min(640px, 92%);
+    }
+
+    .menu-blood-splat {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      width: 520px;
+      height: 320px;
+      transform: translate(-50%, -50%) rotate(-6deg);
+      pointer-events: none;
+      z-index: 0;
+      filter: drop-shadow(0 10px 24px rgba(80, 0, 0, 0.55));
+      animation: bloodPulse 4.5s ease-in-out infinite;
+    }
+
+    @keyframes bloodPulse {
+      0%, 100% { transform: translate(-50%, -50%) rotate(-6deg) scale(1); opacity: 0.92; }
+      50% { transform: translate(-50%, -50%) rotate(-5deg) scale(1.03); opacity: 1; }
+    }
+
+    .menu-brand-title {
+      position: relative;
+      z-index: 1;
+      font-family: 'Creepster', cursive;
+      font-size: clamp(3.2rem, 7vw, 5.2rem);
+      line-height: 0.95;
+      color: #fff5f5;
+      text-align: center;
+      letter-spacing: 4px;
+      text-shadow:
+        0 3px 0 #7f1d1d,
+        0 6px 0 #450a0a,
+        0 10px 28px rgba(0, 0, 0, 0.75),
+        0 0 40px rgba(220, 38, 38, 0.45);
+      margin: 0;
+      animation: titleWobble 5s ease-in-out infinite;
+    }
+
+    @keyframes titleWobble {
+      0%, 100% { transform: rotate(-1.5deg); }
+      50% { transform: rotate(1.2deg); }
+    }
+
+    .menu-brand-tag {
+      position: relative;
+      z-index: 1;
+      font-family: 'Special Elite', cursive;
+      font-size: 1.05rem;
+      color: #f5d0a9;
+      text-align: center;
+      max-width: 420px;
+      line-height: 1.55;
+      margin: 14px 0 0;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    }
+
+    #menu-screen .menu-btn-row {
+      position: relative;
+      z-index: 1;
+      margin-top: 18px;
+    }
+
+    #menu-screen .banner-btn {
+      background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%);
+      border: 2px solid rgba(254, 202, 202, 0.35);
+      box-shadow: 0 6px 0 #450a0a, 0 10px 24px rgba(0,0,0,0.45);
+      font-family: 'Special Elite', cursive;
+      letter-spacing: 1px;
+      min-width: 240px;
+    }
+
+    #menu-screen .banner-btn:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+    }
+
+    .menu-corner-icons {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 2;
+      pointer-events: auto;
+    }
+
+    .menu-icon-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(254, 202, 202, 0.35);
+      background: rgba(28, 10, 14, 0.82);
+      color: #fecaca;
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+      transition: transform 0.15s ease, background 0.15s ease, filter 0.15s ease;
+      text-decoration: none;
+      line-height: 1;
+    }
+
+    .menu-icon-btn:hover {
+      transform: translateY(-2px) scale(1.05);
+      background: rgba(80, 20, 28, 0.95);
+      filter: brightness(1.1);
+    }
+
+    .menu-icon-btn:focus-visible {
+      outline: 2px solid #fca5a5;
+      outline-offset: 2px;
+    }
 
   #rulebook-screen {
       position: absolute;
@@ -340,29 +517,37 @@
     }
 
     .rulebook-panel {
-      background: linear-gradient(160deg, rgba(35, 45, 38, 0.95), rgba(20, 28, 22, 0.98));
-      border: 2px solid rgba(201, 212, 184, 0.25);
+      background: linear-gradient(160deg, rgba(42, 14, 18, 0.97), rgba(12, 6, 8, 0.98));
+      border: 2px solid rgba(185, 28, 28, 0.45);
       border-radius: 16px;
       width: min(720px, 100%);
       max-height: 92%;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.65), 0 0 30px rgba(127, 29, 29, 0.2);
     }
 
     .rulebook-header {
       padding: 20px 24px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(254, 202, 202, 0.12);
     }
 
     .rulebook-header h2 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.5rem;
-      color: #c9d4b8;
+      font-family: var(--bs-font-display);
+      font-size: 1.7rem;
+      color: var(--bs-rose);
       margin-bottom: 6px;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 0 #7f1d1d;
     }
 
-    .rulebook-header p { opacity: 0.7; font-size: 0.9rem; line-height: 1.45; }
+    .rulebook-header p {
+      font-family: var(--bs-font-story);
+      opacity: 0.8;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: var(--bs-parchment);
+    }
 
     .rulebook-scroll {
       overflow-y: auto;
@@ -373,10 +558,10 @@
     .rules-section { margin-bottom: 22px; }
 
     .rules-section h3 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.85rem;
+      font-family: var(--bs-font-story);
+      font-size: 0.9rem;
       letter-spacing: 1px;
-      color: #9aa892;
+      color: var(--bs-brass-lite);
       margin-bottom: 10px;
       text-transform: uppercase;
     }
@@ -412,7 +597,7 @@
     .rule-toggle {
       width: 44px;
       height: 24px;
-      accent-color: #22c55e;
+      accent-color: #dc2626;
       cursor: pointer;
     }
 
@@ -435,7 +620,7 @@
       user-select: none;
     }
 
-    .rule-chip input { accent-color: #22c55e; cursor: pointer; }
+    .rule-chip input { accent-color: #dc2626; cursor: pointer; }
 
     .rulebook-actions {
       padding: 14px 24px 18px;
@@ -447,7 +632,9 @@
     }
 
     .banner-btn.secondary {
-      background: linear-gradient(135deg, #475569, #334155);
+      background: linear-gradient(180deg, #57534e, #292524);
+      border-color: rgba(231, 201, 165, 0.25);
+      box-shadow: 0 5px 0 #1c1917;
     }
 
     .menu-btn-row { display: flex; flex-direction: column; gap: 10px; align-items: center; }
@@ -457,7 +644,7 @@
     #manual-screen {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(10, 14, 12, 0.97);
+      background: rgba(8, 4, 6, 0.97);
       z-index: 25;
       pointer-events: auto;
       display: flex;
@@ -469,7 +656,7 @@
     #survival-difficulty-screen {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(10, 14, 12, 0.97);
+      background: rgba(8, 4, 6, 0.97);
       z-index: 35;
       pointer-events: auto;
       display: flex;
@@ -511,7 +698,7 @@
     #online-match-screen {
       position: absolute;
       inset: 0;
-      background: rgba(10, 14, 10, 0.92);
+      background: rgba(8, 4, 6, 0.94);
       z-index: 22;
       display: flex;
       align-items: center;
@@ -524,33 +711,46 @@
     #online-match-screen.hidden { display: none; }
 
     .online-panel {
-      background: linear-gradient(160deg, #1a2a1a, #101810);
-      border: 3px solid #7cb87c;
+      background: linear-gradient(160deg, #2a1014, #12080c);
+      border: 3px solid #b91c1c;
       border-radius: 16px;
       width: min(420px, 92%);
       padding: 22px 20px 18px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 28px rgba(185, 28, 28, 0.2);
       text-align: center;
     }
 
-    .online-panel h2 { margin-bottom: 8px; font-size: 1.6rem; }
-    .online-panel p { opacity: 0.75; margin-bottom: 16px; line-height: 1.5; font-size: 0.92rem; }
+    .online-panel h2 {
+      margin-bottom: 8px;
+      font-size: 1.7rem;
+      font-family: var(--bs-font-display);
+      color: var(--bs-rose);
+      letter-spacing: 2px;
+    }
+    .online-panel p {
+      font-family: var(--bs-font-story);
+      opacity: 0.8;
+      margin-bottom: 16px;
+      line-height: 1.5;
+      font-size: 0.92rem;
+      color: var(--bs-parchment);
+    }
 
     #online-name-input {
       width: 100%;
       padding: 12px 14px;
       border-radius: 10px;
-      border: 2px solid rgba(255,255,255,0.15);
-      background: rgba(0,0,0,0.35);
-      color: #e8ebe0;
-      font-family: inherit;
+      border: 2px solid rgba(185, 28, 28, 0.45);
+      background: rgba(0,0,0,0.4);
+      color: var(--bs-bone);
+      font-family: var(--bs-font-story);
       font-size: 1rem;
       margin-bottom: 14px;
     }
 
     #online-name-input:focus {
       outline: none;
-      border-color: #7cb87c;
+      border-color: #b91c1c;
     }
 
     .online-vs {
@@ -559,7 +759,7 @@
       justify-content: center;
       gap: 16px;
       margin: 20px 0 10px;
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
     }
 
     .online-vs .player-tag {
@@ -570,8 +770,8 @@
       min-width: 110px;
     }
 
-    .online-vs .player-tag.you { border: 2px solid #4ECDC4; color: #4ECDC4; }
-    .online-vs .player-tag.them { border: 2px solid #FF8E53; color: #FF8E53; }
+    .online-vs .player-tag.you { border: 2px solid #5ec8c8; color: #9ae4e0; }
+    .online-vs .player-tag.them { border: 2px solid #e85d4c; color: #f5a090; }
     .online-vs .vs { font-size: 1.4rem; opacity: 0.8; }
 
     #countdown-overlay {
@@ -588,10 +788,10 @@
     #countdown-overlay.hidden { display: none; }
 
     #countdown-number {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 6rem;
-      color: #c9d4b8;
-      text-shadow: 0 0 40px rgba(120, 180, 90, 0.5);
+      color: #fecaca;
+      text-shadow: 0 0 40px rgba(185, 28, 28, 0.55), 0 4px 0 #7f1d1d;
       animation: countdown-pop 0.45s ease-out;
     }
 
@@ -605,7 +805,7 @@
       width: 42px;
       height: 42px;
       border: 4px solid rgba(255,255,255,0.15);
-      border-top-color: #7cb87c;
+      border-top-color: #b91c1c;
       border-radius: 50%;
       animation: spin 0.9s linear infinite;
       margin: 0 auto 16px;
@@ -616,10 +816,10 @@
     .manual-section { margin-bottom: 24px; }
 
     .manual-section h3 {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 0.85rem;
       letter-spacing: 1px;
-      color: #c9d4b8;
+      color: #fecaca;
       margin-bottom: 10px;
       text-transform: uppercase;
       border-bottom: 1px solid rgba(201, 212, 184, 0.2);
@@ -684,13 +884,15 @@
       left: 12px;
       bottom: 80px;
       max-width: 280px;
-      font-size: 0.75rem;
-      opacity: 0.85;
+      font-family: var(--bs-font-story);
+      font-size: 0.74rem;
+      opacity: 0.88;
+      color: #e7c9a5;
       pointer-events: none;
       line-height: 1.4;
     }
 
-    .log-line { margin-bottom: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+    .log-line { margin-bottom: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.85); }
 
     #achievement-feed-p0,
     #achievement-feed-p1 {
@@ -714,17 +916,18 @@
     #achievement-feed-p1 { right: 8px; align-items: flex-end; }
 
     .achievement-toast {
-      background: linear-gradient(135deg, rgba(15, 15, 40, 0.94), rgba(35, 25, 65, 0.94));
-      border: 2px solid #FFE66D;
+      background: linear-gradient(135deg, rgba(40, 10, 14, 0.95), rgba(20, 6, 10, 0.96));
+      border: 2px solid #fcd34d;
       border-radius: 10px;
       padding: 6px 9px 5px;
       width: 100%;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 12px rgba(185,28,28,0.2);
       opacity: 0;
       transition: transform 0.45s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.35s ease;
       flex-shrink: 0;
       position: relative;
       overflow: hidden;
+      font-family: var(--bs-font-story);
     }
 
     #achievement-feed-p0 .achievement-toast {
@@ -902,11 +1105,12 @@
       transform: translateX(-50%);
       z-index: 17;
       pointer-events: none;
-      background: rgba(46, 16, 101, 0.92);
-      border: 1px solid rgba(196, 181, 253, 0.55);
-      color: #ede9fe;
+      background: rgba(80, 16, 28, 0.94);
+      border: 1px solid rgba(254, 202, 202, 0.45);
+      color: #fecaca;
       padding: 8px 14px;
-      border-radius: 999px;
+      border-radius: 12px;
+      font-family: var(--bs-font-story);
       font-size: 0.82rem;
       font-weight: 700;
       box-shadow: 0 8px 24px rgba(0,0,0,0.45);
@@ -915,15 +1119,15 @@
     .lab-casting-banner.hidden { display: none; }
 
     .barracks-panel-inner {
-      background: linear-gradient(165deg, #1a2438 0%, #121820 55%, #0f1410 100%);
-      border: 3px solid #94a3b8;
+      background: linear-gradient(165deg, #2a1218 0%, #160a0e 55%, #0c0608 100%);
+      border: 3px solid #b91c1c;
       border-radius: 18px;
       width: min(960px, 96%);
       max-height: 84%;
       display: flex;
       flex-direction: column;
       padding: 14px 18px 16px;
-      box-shadow: 0 20px 56px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06);
+      box-shadow: 0 20px 56px rgba(0,0,0,0.65), 0 0 28px rgba(185,28,28,0.18), inset 0 1px 0 rgba(254,202,202,0.06);
     }
 
     .barracks-panel-desc {
@@ -968,7 +1172,7 @@
     .barracks-tree-col.is-locked { opacity: 0.92; }
 
     .barracks-tree-title {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 0.68rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -1172,8 +1376,8 @@
     }
 
     .economy-panel-inner {
-      background: linear-gradient(165deg, #14281a 0%, #0f1a12 55%, #0a120c 100%);
-      border: 3px solid #4ade80;
+      background: linear-gradient(165deg, #2a1218 0%, #160a0e 55%, #0c0608 100%);
+      border: 3px solid #b91c1c;
       border-radius: 18px;
       width: min(980px, 96%);
       max-height: 86%;
@@ -1185,8 +1389,8 @@
 
     /* ── Dramatic skill-tree panel (Aethereus-style) ── */
     .st-panel {
-      background: linear-gradient(180deg, rgba(18, 14, 8, 0.97) 0%, rgba(8, 10, 14, 0.98) 100%);
-      border: 3px solid #c9a227;
+      background: linear-gradient(180deg, rgba(28, 10, 14, 0.97) 0%, rgba(8, 4, 6, 0.98) 100%);
+      border: 3px solid #b91c1c;
       border-radius: 4px;
       width: min(1040px, 98%);
       max-height: 90%;
@@ -1194,7 +1398,7 @@
       flex-direction: column;
       box-shadow:
         0 0 0 1px rgba(0,0,0,0.8),
-        0 0 40px rgba(201, 162, 39, 0.15),
+        0 0 40px rgba(185, 28, 28, 0.2),
         inset 0 0 80px rgba(0,0,0,0.5);
       overflow: hidden;
     }
@@ -1204,9 +1408,9 @@
       align-items: center;
       gap: 12px;
       padding: 10px 16px;
-      background: linear-gradient(180deg, #d4a82a 0%, #9a7018 45%, #6b4e0e 100%);
-      border-bottom: 2px solid #f0d060;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(0,0,0,0.4);
+      background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 45%, #450a0a 100%);
+      border-bottom: 2px solid #fca5a5;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 12px rgba(0,0,0,0.4);
     }
 
     .st-header-emblem {
@@ -1218,7 +1422,7 @@
     .st-header-title {
       flex: 1;
       margin: 0;
-      font-family: 'Orbitron', serif;
+      font-family: var(--bs-font-story);
       font-size: 1.15rem;
       font-weight: 700;
       letter-spacing: 0.12em;
@@ -1246,7 +1450,7 @@
       margin: 0;
       padding: 8px 18px 4px;
       line-height: 1.4;
-      color: #c9d4b8;
+      color: #fecaca;
     }
 
     .st-canvas {
@@ -1585,7 +1789,7 @@
     }
 
     .brk-section-label {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 0.62rem;
       font-weight: 700;
       letter-spacing: 0.18em;
@@ -1665,7 +1869,7 @@
     }
 
     .brk-lane-title {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 0.52rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -1908,7 +2112,7 @@
     }
 
     .st-unit-col-title {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 0.7rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
@@ -1937,7 +2141,7 @@
     }
 
     .st-section-title {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.18em;
@@ -2159,7 +2363,7 @@
     }
 
     .st-coins {
-      font-family: 'Orbitron', sans-serif;
+      font-family: var(--bs-font-display);
       font-size: 0.85rem;
       font-weight: 700;
       color: #f0d060;
@@ -2317,10 +2521,10 @@
       height: 58px;
       border-radius: 50%;
       border: 3px solid #fcd34d;
-      background: radial-gradient(circle at 35% 30%, #3b4763, #1b2236);
+      background: radial-gradient(circle at 35% 30%, #5a2030, #1a0a10);
       cursor: pointer;
       pointer-events: auto;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 0 12px rgba(185,28,28,0.25);
       transition: transform 0.15s;
       padding: 4px;
       display: flex;
@@ -2377,7 +2581,7 @@
     #commander-panel {
       position: absolute;
       inset: 0;
-      background: rgba(10, 12, 28, 0.82);
+      background: rgba(8, 4, 6, 0.86);
       z-index: 19;
       display: flex;
       align-items: center;
@@ -2387,17 +2591,23 @@
     #commander-panel.hidden { display: none; }
 
     .cmd-panel-inner {
-      background: linear-gradient(160deg, #1c2540, #10162a);
+      background: linear-gradient(160deg, #2a1218, #12080c);
       border: 3px solid #fcd34d;
       border-radius: 16px;
       width: min(380px, 94%);
       max-height: 86%;
       overflow-y: auto;
       padding: 14px 16px 16px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 24px rgba(185,28,28,0.15);
     }
     .cmd-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-    .cmd-header h3 { margin: 0; font-size: 1.1rem; }
+    .cmd-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-family: var(--bs-font-display);
+      color: var(--bs-rose);
+      letter-spacing: 1px;
+    }
     #commander-close {
       border: none; background: rgba(255,255,255,0.12); color: #fff;
       width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
@@ -2649,8 +2859,8 @@
       Landscape is recommended. Portrait still works — the game scales to fit your screen.
     </div>
   </div>
-  <h1>Block Fortress</h1>
-  <p class="subtitle">Plan your blocks. Watch the battle unfold.</p>
+  <h1>Bloody Skulls</h1>
+  <p class="subtitle">Zoinks… like, totally terrifying tower wars, man!</p>
 
   <div id="game-stage">
   <div id="game-wrapper">
@@ -2677,7 +2887,7 @@
       <button id="engineers-upgrade-btn" class="hidden" type="button" title="Tower Depot upgrades">Tower Depot</button>
       <button id="laboratory-upgrade-btn" class="hidden" type="button" title="Laboratory spells">Laboratory</button>
       <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
-      <div id="lab-casting-banner" class="lab-casting-banner hidden">Click the battlefield to cast</div>
+      <div id="lab-casting-banner" class="lab-casting-banner hidden">Click the battlefield to cast — like, carefully!</div>
       <div id="barracks-upgrade-panel" class="hidden">
         <div class="st-panel">
           <div class="st-header">
@@ -2853,24 +3063,46 @@
         <button class="banner-btn" id="banner-btn">Continue</button>
       </div>
       <div id="menu-screen">
-        <h2>🧱 Block Fortress</h2>
-        <p>Build block armies and towers each round. Plan in secret, watch the battle play out. Every point of damage your <strong>home base</strong> takes earns you backup coins — hit the enemy hard and you fund their comeback!</p>
+        <div class="menu-brand">
+          <svg class="menu-blood-splat" viewBox="0 0 520 320" aria-hidden="true">
+            <path fill="#7f1d1d" d="M260 28c42 6 78 34 98 68 28-8 62 10 70 42 18 8 34 30 28 54-4 18-20 30-38 34 6 26-8 54-34 62-18 6-38 2-52-10-16 24-48 38-78 34-26-4-48-22-56-46-22 10-50 6-66-14-18-22-14-54 8-70-12-22-6-52 16-66 14-10 34-10 48-2 12-28 44-48 78-46z"/>
+            <path fill="#991b1b" opacity="0.9" d="M248 62c36 4 66 28 80 56 22-4 48 12 52 34 14 6 24 24 18 40-14 8-32 8-44-2-10 20-36 32-58 28-20-4-36-18-40-36-18 8-42 4-54-12-14-18-8-44 12-54-6-18 2-40 22-48 8-4 18-4 28-2 4-22 26-38 44-34z"/>
+            <path fill="#b91c1c" d="M120 210c18-8 28-2 34 12 8-14 28-16 40-4 6 8 4 20-4 28-12 10-30 8-40-2-14 8-32 4-38-10-4-12 0-20 8-24z"/>
+            <path fill="#dc2626" d="M390 88c14-6 28 4 30 18 10-6 24-2 28 10 2 10-4 20-14 24-12 4-24-2-28-12-10 6-24 4-30-6-6-12 0-28 14-34z"/>
+            <circle fill="#450a0a" cx="188" cy="148" r="10"/>
+            <circle fill="#450a0a" cx="318" cy="132" r="8"/>
+            <circle fill="#7f1d1d" cx="420" cy="210" r="14"/>
+            <circle fill="#991b1b" cx="96" cy="120" r="11"/>
+            <path fill="#dc2626" d="M250 18c2 18 0 34-6 48-2-16-8-30-16-42 8-4 16-6 22-6z"/>
+            <path fill="#b91c1c" d="M340 250c8 16 6 34-2 50 10-12 14-30 10-46-2-2-4-4-8-4z"/>
+            <path fill="#991b1b" d="M160 70c-4 14-14 24-28 28 12-2 24-12 30-26-0.5-1-1-2-2-2z"/>
+            <ellipse fill="#fecaca" opacity="0.18" cx="255" cy="140" rx="70" ry="36"/>
+          </svg>
+          <h2 class="menu-brand-title">Bloody Skulls</h2>
+          <p class="menu-brand-tag">Jinkies! Build your haunted army, fortify the crypt, and — like — don’t get caught by the other team’s monsters!</p>
+        </div>
         <div class="menu-btn-row">
-          <button class="banner-btn" id="btn-2p">👥 Two Player</button>
-          <button class="banner-btn" id="btn-survival">⚔️ Live Battle</button>
+          <button class="banner-btn" id="btn-survival">💀 Local Game</button>
           <button class="banner-btn" id="btn-online-pvp">🌐 Online PvP</button>
-          <button class="banner-btn" id="btn-free">🎮 Free Mode</button>
-          <button class="banner-btn" id="btn-free2p">⚔️ FREE 2P</button>
-          <button class="banner-btn" id="btn-simulator">🤖 Simulator</button>
-          <button class="banner-btn secondary" id="btn-rulebook">📖 Rule Book</button>
-          <button class="banner-btn secondary" id="btn-manual">📘 Instruction Manual</button>
+        </div>
+        <div class="menu-corner-icons" aria-label="Extra menu options">
+          <button type="button" class="menu-icon-btn" id="btn-rulebook" title="Rule Book" aria-label="Rule Book">📜</button>
+          <button type="button" class="menu-icon-btn" id="btn-manual" title="Instruction Manual" aria-label="Instruction Manual">📘</button>
+          <a class="menu-icon-btn" id="btn-other-games" href="/" target="_blank" rel="noopener noreferrer" title="Other Games" aria-label="Other Games (opens in new tab)">🕹️</a>
+        </div>
+        <!-- Hidden legacy mode entry points (kept for scripts / deep links) -->
+        <div class="hidden" aria-hidden="true">
+          <button id="btn-2p" type="button">Two Player</button>
+          <button id="btn-free" type="button">Free Mode</button>
+          <button id="btn-free2p" type="button">FREE 2P</button>
+          <button id="btn-simulator" type="button">Simulator</button>
         </div>
       </div>
       <div id="survival-difficulty-screen" class="hidden">
         <div class="rulebook-panel survival-diff-panel">
           <div class="rulebook-header">
-            <h2>⚔️ Live Battle</h2>
-            <p>Choose a difficulty. Same strategic AI on every mode — harder enemies earn more income and strike sooner.</p>
+            <h2>💀 Local Game</h2>
+            <p>Pick a fright level. Same sneaky AI every time — harder foes earn more coins and strike sooner. Zoinks!</p>
           </div>
           <div class="survival-diff-options">
             <button class="banner-btn survival-diff-btn" type="button" data-survival-diff="easy">
@@ -2894,7 +3126,7 @@
       <div id="online-name-screen" class="hidden">
         <div class="online-panel">
           <h2>🌐 Online PvP</h2>
-          <p>Enter your name, join the queue, and battle a real opponent in Live Battle mode.</p>
+          <p>Enter your name, join the queue, and — like — battle a real rival in the haunted live war!</p>
           <input id="online-name-input" type="text" maxlength="32" placeholder="Your display name" autocomplete="nickname" />
           <div class="menu-btn-row">
             <button class="banner-btn" id="btn-online-find" type="button">Find Match</button>
@@ -2928,7 +3160,7 @@
         <div class="rulebook-panel">
           <div class="rulebook-header">
             <h2>📘 Instruction Manual</h2>
-            <p>How to play Block Fortress — rules, economy, and every unit &amp; tower explained.</p>
+            <p>How to play Bloody Skulls — rules, economy, and every unit &amp; tower explained. Like, for real!</p>
           </div>
           <div class="rulebook-scroll" id="manual-content"></div>
           <div class="rulebook-actions">
@@ -3483,7 +3715,7 @@ function buildManualUI() {
   let html = '';
 
   html += `<div class="manual-section"><h3>How to Play</h3>
-    <p>Block Fortress is a round-based strategy war game. Each round has two phases:</p>
+    <p>Bloody Skulls is a round-based spooky strategy war. Each round has two phases:</p>
     <ul>
       <li><strong>Prep phase</strong> — Spend coins to place troops in your deploy zone and build/move towers on your side. In two-player mode, players take turns in secret (the other player looks away).</li>
       <li><strong>Combat phase</strong> — Units march out and fight automatically. Towers fire at enemies. The round ends when a base is destroyed or the timer runs out.</li>
@@ -5822,7 +6054,7 @@ function drawFloatTexts() {
     const fadeOut = Math.min(1, f.life / 0.4);
     const a = Math.min(fadeIn, fadeOut);
     ctx.globalAlpha = a;
-    ctx.font = '700 17px Orbitron, Rajdhani, sans-serif';
+    ctx.font = '700 17px Creepster, Special Elite, Rajdhani, sans-serif';
     ctx.textAlign = 'center';
     ctx.strokeStyle = 'rgba(0,0,0,0.65)';
     ctx.lineWidth = 4;
@@ -10077,8 +10309,8 @@ const ACHIEVEMENT_TIERS = {
 
 const TIER_LABELS = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', legend: 'Legend', normal: '' };
 
-const P1_COLOR = { main: '#4ECDC4', light: '#7EDDD6', dark: '#2A9D8F' };
-const P2_COLOR = { main: '#FF8E53', light: '#FFB088', dark: '#E76F51' };
+const P1_COLOR = { main: '#5ec8c8', light: '#9ae4e0', dark: '#2a7a7a' };
+const P2_COLOR = { main: '#e85d4c', light: '#f5a090', dark: '#a83228' };
 
 // ─── Game State ──────────────────────────────────────────────────────────────
 let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'simulator' | 'free' | 'free2p'
@@ -12697,8 +12929,8 @@ function drawFreeHUD() {
   ctx.font = UI_FONT_BOLD;
   ctx.fillStyle = '#f0e8d8';
   ctx.fillText(`⚔ ${wLabel}  ${wAmmo}  (${wRate}s)`, W - 20, H - 58);
-  ctx.font = '700 20px Orbitron, Rajdhani, sans-serif';
-  ctx.fillStyle = '#c9d4b8';
+  ctx.font = '700 20px Creepster, Special Elite, Rajdhani, sans-serif';
+  ctx.fillStyle = '#fecaca';
   ctx.fillText('FREE MODE', W - 20, H - 38);
   ctx.font = UI_FONT;
   ctx.fillStyle = 'rgba(232,235,224,0.7)';
@@ -14071,7 +14303,7 @@ const CLOUD_LAYOUT = [
 ];
 
 function drawCloud(cx, cy, w, h, alpha) {
-  ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+  ctx.fillStyle = `rgba(60, 40, 48, ${alpha})`;
   const puffs = [
     [0, 0, w * 0.28, h * 0.55],
     [w * 0.18, -h * 0.12, w * 0.34, h * 0.62],
@@ -14087,18 +14319,29 @@ function drawCloud(cx, cy, w, h, alpha) {
 
 function drawSkyAndClouds() {
   const sky = ctx.createLinearGradient(0, 0, 0, LAND_TOP);
-  sky.addColorStop(0, '#5a7a9a');
-  sky.addColorStop(0.55, '#8ea8be');
-  sky.addColorStop(1, '#b4c4b0');
+  sky.addColorStop(0, '#1a0a12');
+  sky.addColorStop(0.45, '#3a1520');
+  sky.addColorStop(0.8, '#5a2030');
+  sky.addColorStop(1, '#6b3a2a');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, LAND_TOP);
+
+  // Pale haunted moon
+  ctx.fillStyle = 'rgba(254, 226, 226, 0.18)';
+  ctx.beginPath();
+  ctx.arc(W * 0.78, LAND_TOP * 0.38, 34, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(254, 202, 202, 0.55)';
+  ctx.beginPath();
+  ctx.arc(W * 0.78, LAND_TOP * 0.38, 22, 0, Math.PI * 2);
+  ctx.fill();
 
   const drift = Math.sin(animFrame * 0.004) * 18;
   for (let i = 0; i < CLOUD_LAYOUT.length; i++) {
     const c = CLOUD_LAYOUT[i];
     const cx = ((c.x * W) + drift * (0.4 + (i % 3) * 0.2) + W) % (W + c.w) - c.w * 0.3;
     const cy = LAND_TOP * (0.18 + c.y * 2.2);
-    drawCloud(cx, cy, c.w, c.h, 0.72 - (i % 3) * 0.08);
+    drawCloud(cx, cy, c.w, c.h, 0.45 - (i % 3) * 0.06);
   }
 }
 
@@ -14106,15 +14349,15 @@ function drawBattlefieldFog() {
   const wave = Math.sin(animFrame * 0.01) * 8;
   const fogTop = LAND_TOP + 30;
   const grad = ctx.createLinearGradient(0, fogTop, 0, LAND_BOTTOM);
-  grad.addColorStop(0, 'rgba(210, 220, 225, 0)');
-  grad.addColorStop(0.25, 'rgba(195, 205, 215, 0.1)');
-  grad.addColorStop(0.55, 'rgba(175, 185, 195, 0.18)');
-  grad.addColorStop(1, 'rgba(155, 165, 175, 0.28)');
+  grad.addColorStop(0, 'rgba(80, 30, 40, 0)');
+  grad.addColorStop(0.25, 'rgba(60, 20, 30, 0.12)');
+  grad.addColorStop(0.55, 'rgba(40, 12, 20, 0.2)');
+  grad.addColorStop(1, 'rgba(20, 6, 10, 0.32)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, fogTop, W, LAND_BOTTOM - fogTop);
 
-  ctx.globalAlpha = 0.07;
-  ctx.fillStyle = '#e8eef2';
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#fecaca';
   for (let i = 0; i < 5; i++) {
     const fx = (i * 280 + wave + animFrame * 0.3) % (W + 200) - 100;
     const fy = LAND_TOP + 80 + (i * 97) % (LAND_BOTTOM - LAND_TOP - 120);
@@ -14128,8 +14371,8 @@ function drawBattlefieldFog() {
 function drawBackground() {
   drawSkyAndClouds();
 
-  // distant hills on horizon
-  ctx.fillStyle = 'rgba(55, 72, 48, 0.55)';
+  // distant haunted hills on horizon
+  ctx.fillStyle = 'rgba(40, 18, 22, 0.75)';
   ctx.beginPath();
   ctx.moveTo(0, LAND_TOP + 8);
   for (let x = 0; x <= W; x += 40) {
@@ -14139,21 +14382,21 @@ function drawBackground() {
   ctx.lineTo(0, LAND_TOP + 40);
   ctx.fill();
 
-  // main field (land only)
+  // main field — murky graveyard ground
   const field = ctx.createLinearGradient(0, LAND_TOP, 0, LAND_BOTTOM);
-  field.addColorStop(0, '#7a9a5c');
-  field.addColorStop(0.35, '#5d7a42');
-  field.addColorStop(0.7, '#4a6335');
-  field.addColorStop(1, '#3d5230');
+  field.addColorStop(0, '#3a2a22');
+  field.addColorStop(0.35, '#2a1c18');
+  field.addColorStop(0.7, '#1e1412');
+  field.addColorStop(1, '#140e0c');
   ctx.fillStyle = field;
   ctx.fillRect(0, LAND_TOP, W, LAND_BOTTOM - LAND_TOP);
 
-  // grass texture patches
+  // dirt / ash texture patches
   const landH = LAND_BOTTOM - LAND_TOP;
   for (let i = 0; i < 140; i++) {
     const gx = (i * 97 + 31) % W;
     const gy = LAND_TOP + 20 + (i * 53) % (landH - 40);
-    const shade = i % 3 === 0 ? 'rgba(45,60,32,0.18)' : 'rgba(110,140,75,0.14)';
+    const shade = i % 3 === 0 ? 'rgba(80,30,35,0.2)' : 'rgba(90,70,50,0.12)';
     ctx.fillStyle = shade;
     ctx.beginPath();
     ctx.ellipse(gx, gy, 18 + (i % 5) * 6, 8 + (i % 4) * 3, i * 0.3, 0, Math.PI * 2);
@@ -14186,13 +14429,13 @@ function drawBackground() {
 
   // zone camp tint (land only)
   const p1g = ctx.createLinearGradient(P1_ZONE.x, 0, P1_ZONE.x2, 0);
-  p1g.addColorStop(0, 'rgba(60, 80, 55, 0.35)');
+  p1g.addColorStop(0, 'rgba(45, 120, 140, 0.28)');
   p1g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = p1g;
   ctx.fillRect(P1_ZONE.x, LAND_TOP, P1_ZONE.x2 - P1_ZONE.x, LAND_BOTTOM - LAND_TOP);
   const p2g = ctx.createLinearGradient(P2_ZONE.x, 0, P2_ZONE.x2, 0);
   p2g.addColorStop(0, 'rgba(0,0,0,0)');
-  p2g.addColorStop(1, 'rgba(80, 65, 50, 0.32)');
+  p2g.addColorStop(1, 'rgba(160, 50, 40, 0.28)');
   ctx.fillStyle = p2g;
   ctx.fillRect(P2_ZONE.x, LAND_TOP, P2_ZONE.x2 - P2_ZONE.x, LAND_BOTTOM - LAND_TOP);
 
@@ -14204,7 +14447,7 @@ function drawBackground() {
       const tx = baseX + (side === 0 ? 1 : -1) * (i % 3) * 20;
       const ty = LAND_TOP + 42 + i * ((landH - 84) / (treeRows - 1));
       const treeH = 32;
-      ctx.fillStyle = 'rgba(30, 45, 25, 0.75)';
+      ctx.fillStyle = 'rgba(20, 10, 14, 0.82)';
       ctx.beginPath();
       ctx.moveTo(tx, ty - treeH);
       ctx.lineTo(tx - 13, ty + 6);
@@ -16798,8 +17041,8 @@ function drawFogOverlay(hidePlayerId) {
   ctx.strokeRect(x + 12, LAND_TOP + 12, w - 24, LAND_BOTTOM - LAND_TOP - 24);
   ctx.setLineDash([]);
 
-  ctx.fillStyle = '#c9d4b8';
-  ctx.font = '700 28px Orbitron, Rajdhani, sans-serif';
+  ctx.fillStyle = '#fecaca';
+  ctx.font = '700 28px Creepster, Special Elite, Rajdhani, sans-serif';
   ctx.textAlign = 'center';
   ctx.globalAlpha = 0.9;
   ctx.fillText('CLASSIFIED', x + w / 2, LAND_TOP + (LAND_BOTTOM - LAND_TOP) / 2 - 24);
@@ -20177,8 +20420,8 @@ function renderFrame(time) {
     ctx.fillRect(0, 0, W, H);
     drawFree2pViewport(0, freePlayer, dt);
     drawFree2pViewport(1, freePlayer2, dt);
-    ctx.font = '700 18px Orbitron, Rajdhani, sans-serif';
-    ctx.fillStyle = '#c9d4b8';
+    ctx.font = '700 18px Creepster, Special Elite, Rajdhani, sans-serif';
+    ctx.fillStyle = '#fecaca';
     ctx.textAlign = 'center';
     ctx.fillText('FREE 2P', W / 2, 22);
     ctx.font = UI_FONT;
@@ -20431,7 +20674,7 @@ function renderFrame(time) {
   if (phase === 'combat') {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#e8ebe0';
-    ctx.font = '700 22px Orbitron, Rajdhani, sans-serif';
+    ctx.font = '700 22px Creepster, Special Elite, Rajdhani, sans-serif';
     ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur = 6;
     ctx.fillText(isSurvivalLive() ? 'LIVE BATTLE' : `ROUND ${round}`, W / 2, 50);
