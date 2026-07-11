@@ -217,7 +217,7 @@ window.LIVE_ARMY = (function () {
   const BASE_INCOME_UPGRADE_COSTS = [150, 300, 450];
   const BASE_BRANCHES = ['income', 'health', 'defense'];
   const BASE_BRANCH_LABELS = { income: 'Income', health: 'Health', defense: 'Guns' };
-  const BASE_BRANCH_ICONS = { income: '💵', health: '❤️', defense: '🔫' };
+  const BASE_BRANCH_ICONS = { income: '💀', health: '❤️', defense: '🔫' };
 
   function freshMissileUpgrades() {
     return { rate: 1, damage: 1, radius: 1 };
@@ -335,8 +335,8 @@ window.LIVE_ARMY = (function () {
     const el = document.getElementById('economy-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Unlock farms and mints, then upgrade harvest speed and yield on separate branches. Enemy levels are hidden.'
-      : 'Unlock farms and mints, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.';
+      ? 'Unlock graveyards and mints, then upgrade harvest speed and yield on separate branches. Enemy levels are hidden.'
+      : 'Unlock graveyards and mints, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.';
   }
 
   function initPlayer(p) {
@@ -378,7 +378,7 @@ window.LIVE_ARMY = (function () {
   function modifyTowerDef(type, def, ownerId, opts) {
     if (!active) return def;
     const d = { ...def };
-    if (type === 'farm') { d.size = FARM_SIZE; d.name = 'Farm'; d.style = 'farm_live'; }
+    if (type === 'farm') { d.size = FARM_SIZE; d.name = 'Graveyard'; d.style = 'farm_live'; }
     else if (type === 'mint') { d.size = MINT_SIZE; d.name = 'Bank'; d.style = 'mint_live'; }
     else if (type === 'barracks') { d.size = STRUCTURE_SIZE; d.name = 'Barracks'; d.style = 'barracks'; d.cost = 100; d.hp = 120; }
     else if (type === 'engineers') { d.size = STRUCTURE_SIZE; d.name = 'Tower Depot'; d.style = 'engineers'; d.cost = 100; d.hp = 110; }

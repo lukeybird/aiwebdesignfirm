@@ -298,7 +298,7 @@
     .btn-spread { background: #78716c; color: #fafaf9; }
     .btn-missile { background: #64748B; color: #fff; }
     .btn-mint { background: #FCD34D; color: #1a1a2e; }
-    .btn-farm { background: #86EFAC; color: #14532d; }
+    .btn-farm { background: #78716c; color: #fafaf9; }
     .btn-barracks { background: #ef4444; color: #fff; }
     .btn-engineers { background: #facc15; color: #422006; }
     .btn-laboratory { background: #7c3aed; color: #f5f3ff; }
@@ -1706,7 +1706,7 @@
 
     /* Theme colors */
     .st-theme-hq { --st-accent: #c9a227; --st-deep: #2a2010; }
-    .st-theme-farm { --st-accent: #4ade80; --st-deep: #14532d; }
+    .st-theme-farm { --st-accent: #a8a29e; --st-deep: #44403c; }
     .st-theme-mint { --st-accent: #fbbf24; --st-deep: #713f12; }
     .st-theme-income { --st-accent: #38bdf8; --st-deep: #0c4a6e; }
     .st-theme-health { --st-accent: #f472b6; --st-deep: #831843; }
@@ -1732,7 +1732,7 @@
     .st-theme-heal { --st-accent: #facc15; --st-deep: #713f12; }
     .st-theme-spell-pwr { --st-accent: #c4b5fd; --st-deep: #4c1d95; }
 
-    .st-hline.st-theme-farm { background: linear-gradient(90deg, #14532d, #4ade80, #14532d); }
+    .st-hline.st-theme-farm { background: linear-gradient(90deg, #44403c, #a8a29e, #44403c); }
     .st-hline.st-theme-mint { background: linear-gradient(90deg, #713f12, #fbbf24, #713f12); }
     .st-hline.st-theme-income { background: linear-gradient(90deg, #0c4a6e, #38bdf8, #0c4a6e); }
     .st-hline.st-theme-health { background: linear-gradient(90deg, #831843, #f472b6, #831843); }
@@ -2867,7 +2867,7 @@
     <canvas id="game" width="1280" height="720"></canvas>
     <div id="ui-overlay">
       <div id="top-bar">
-        <div class="stat-pill" id="coins-pill"><span class="icon">💵</span> <span id="coins-display">0</span></div>
+        <div class="stat-pill" id="coins-pill"><span class="icon">💀</span> <span id="coins-display">0</span></div>
         <div class="stat-pill" id="round-pill"><span class="icon">🔄</span> <span id="round-label">Round</span> <span id="round-display">1</span></div>
         <div class="stat-pill" id="phase-display">Menu</div>
         <div class="stat-pill" id="hp-pill"><span class="icon">❤️</span> <span id="base-hp-display">600</span> / <span id="enemy-hp-display">600</span></div>
@@ -2966,7 +2966,7 @@
             <h3 class="st-header-title">Base Skill Tree</h3>
             <button id="econ-panel-close" class="st-header-close" type="button">✕</button>
           </div>
-          <p id="economy-upgrade-desc" class="st-panel-desc">Unlock Farm or Mint at the top, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.</p>
+          <p id="economy-upgrade-desc" class="st-panel-desc">Unlock Graveyard or Mint at the top, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.</p>
           <div class="st-scroll-wrap">
             <div id="econ-upgrade-list" class="st-skill-scroll"></div>
             <div class="st-scroll-nav" aria-label="Scroll economy tree">
@@ -2999,7 +2999,7 @@
         <button class="tool-btn btn-spread" data-tool="spread">🏰 Spreader<div class="cost">76</div></button>
         <button class="tool-btn btn-missile" data-tool="missile">🚀 Missile<div class="cost">1100</div></button>
         <button class="tool-btn btn-mint" data-tool="mint">🏦 Mint<div class="cost">200</div></button>
-        <button class="tool-btn btn-farm" data-tool="farm">🌾 Farm<div class="cost">95</div></button>
+        <button class="tool-btn btn-farm" data-tool="farm">🪦 Graveyard<div class="cost">95</div></button>
         <button class="tool-btn btn-barracks hidden" id="btn-barracks-live" data-tool="barracks">🏕 Barracks<div class="cost">100</div></button>
         <button class="tool-btn btn-engineers hidden" id="btn-engineers-live" data-tool="engineers">🏗️ Tower Depot<div class="cost">100</div></button>
         <button class="tool-btn btn-laboratory hidden" id="btn-laboratory-live" data-tool="laboratory">🧙 Laboratory<div class="cost">100</div></button>
@@ -3102,7 +3102,7 @@
         <div class="rulebook-panel survival-diff-panel">
           <div class="rulebook-header">
             <h2>💀 Local Game</h2>
-            <p>Pick a fright level. Same sneaky AI every time — harder foes earn more coins and strike sooner. Zoinks!</p>
+            <p>Pick a fright level. Same sneaky AI every time — harder foes earn more skulls and strike sooner. Zoinks!</p>
           </div>
           <div class="survival-diff-options">
             <button class="banner-btn survival-diff-btn" type="button" data-survival-diff="easy">
@@ -3282,8 +3282,8 @@ const TOWER_TYPES = {
     size: 24, color: '#FCD34D', accent: '#D97706', style: 'mint',
   },
   farm: {
-    name: 'Farm', hp: 42, cost: 95, incomePerRound: 18,
-    size: 22, color: '#86EFAC', accent: '#22C55E', style: 'farm',
+    name: 'Graveyard', hp: 42, cost: 95, incomePerRound: 18,
+    size: 22, color: '#a8a29e', accent: '#57534e', style: 'farm',
   },
   barracks: {
     name: 'Barracks', hp: 120, cost: 100,
@@ -3596,10 +3596,10 @@ const RULEBOOK_SECTIONS = [
   {
     title: 'Economy',
     rules: [
-      { key: 'startCoins', label: 'Starting coins', type: 'number', min: 50, max: 2000, step: 10,
+      { key: 'startCoins', label: 'Starting skulls', type: 'number', min: 50, max: 2000, step: 10,
         desc: 'Coins each player begins with.' },
       { key: 'roundIncomeBase', label: 'Round income', type: 'number', min: 10, max: 200, step: 1,
-        desc: 'Base coins paid every round.' },
+        desc: 'Base skulls paid every round.' },
       { key: 'roundIncomeScale', label: 'Income growth / round', type: 'number', min: 0, max: 50, step: 1,
         desc: 'Extra income added each round.' },
       { key: 'roundIncome2pPower', label: '2P income boost', type: 'number', min: 0, max: 20, step: 1,
@@ -3607,11 +3607,11 @@ const RULEBOOK_SECTIONS = [
       { key: 'backupPerDamage', label: 'Backup per base damage', type: 'number', min: 0, max: 5, step: 0.5,
         desc: 'Coins earned per HP your base loses (comeback mechanic).' },
       { key: 'mintIncome', label: 'Mint income / round', type: 'number', min: 0, max: 120, step: 1,
-        desc: 'Coins per surviving Mint tower each round.' },
+        desc: 'Skulls per surviving Mint tower each round.' },
       { key: 'bloopBounty', label: 'Bloop kill bounty', type: 'toggle',
         desc: 'Killing enemy Bloops pays coin bounties at round end.' },
       { key: 'achievements', label: 'Achievement bonuses', type: 'toggle',
-        desc: 'Combat achievements grant bonus coins.' },
+        desc: 'Combat achievements grant bonus skulls.' },
       { key: 'towerScaling', label: 'Tower cost scaling', type: 'toggle',
         desc: 'Each additional tower of the same type costs more.' },
       { key: 'towerCostScale', label: 'Tower scale multiplier', type: 'number', min: 1, max: 2.5, step: 0.01,
@@ -3706,8 +3706,8 @@ const TOWER_MANUAL = {
   laser: 'Fires a piercing beam straight across the battlefield. Hits every enemy in the line. Great against clustered units.',
   spread: 'Castle tower — fires a wide volley of wind blasts. Long range, knockback on hit, and briefly paralyzes enemies. Click to enchant with Fire, Ice, or Electricity. Weak vs Elephants (immune to base shock).',
   missile: 'Launches explosive missiles that deal area damage on impact. Expensive but devastating against groups and structures.',
-  mint: 'Economy building — does not attack. Each surviving Mint pays bonus coins every round. Protect them!',
-  farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests coins on a timer. Upgrade harvest speed and yield in the Economy tree.',
+  mint: 'Economy building — does not attack. Each surviving Mint pays bonus skulls every round. Protect them!',
+  farm: 'Spooky economy plot — does not attack. In Local Game, each Graveyard harvests skulls on a timer. Upgrade harvest speed and yield in the Economy tree.',
 };
 
 function buildManualUI() {
@@ -3717,7 +3717,7 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>How to Play</h3>
     <p>Bloody Skulls is a round-based spooky strategy war. Each round has two phases:</p>
     <ul>
-      <li><strong>Prep phase</strong> — Spend coins to place troops in your deploy zone and build/move towers on your side. In two-player mode, players take turns in secret (the other player looks away).</li>
+      <li><strong>Prep phase</strong> — Spend skulls to place troops in your deploy zone and build/move towers on your side. In two-player mode, players take turns in secret (the other player looks away).</li>
       <li><strong>Combat phase</strong> — Units march out and fight automatically. Towers fire at enemies. The round ends when a base is destroyed or the timer runs out.</li>
     </ul>
     <p><strong>Goal:</strong> Destroy the enemy home base (the bunker with the flag). Protect yours!</p>
@@ -3726,12 +3726,12 @@ function buildManualUI() {
 
   html += `<div class="manual-section"><h3>Economy &amp; Coins</h3>
     <ul>
-      <li><strong>Starting coins</strong> — You begin each game with a set budget (customizable in Rule Book).</li>
-      <li><strong>Round income</strong> — Both players earn coins every round. Income grows as the war goes on.</li>
-      <li><strong>Backup coins</strong> — Every point of damage your base takes earns you backup coins at round end. Hitting the enemy hard funds their comeback!</li>
+      <li><strong>Starting skulls</strong> — You begin each game with a set budget (customizable in Rule Book).</li>
+      <li><strong>Round income</strong> — Both players earn skulls every round. Income grows as the war goes on.</li>
+      <li><strong>Backup skulls</strong> — Every point of damage your base takes earns you backup skulls at round end. Hitting the enemy hard funds their comeback!</li>
       <li><strong>Mint towers</strong> — Each surviving Mint pays bonus income every round.</li>
-      <li><strong>Bloop bounty</strong> — Destroying enemy Bloops pays coin bounties (full Bloop = 15💵, mini = 9💵).</li>
-      <li><strong>Achievements</strong> — Combat feats earn bonus coins (toggle in Rule Book).</li>
+      <li><strong>Bloop bounty</strong> — Destroying enemy Bloops pays coin bounties (full Bloop = 15💀, mini = 9💀).</li>
+      <li><strong>Achievements</strong> — Combat feats earn bonus skulls (toggle in Rule Book).</li>
       <li><strong>Tower scaling</strong> — Each additional tower of the same type costs more than the last.</li>
     </ul>
   </div>`;
@@ -3748,7 +3748,7 @@ function buildManualUI() {
 
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
-    <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200💵, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
+    <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200💀, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
     <div class="manual-card"><h4>🎮 Free Mode</h4><p>Control a super-tank on a huge open battlefield! Arrow keys move and rotate, Space shoots. The camera follows you. Enemies only chase you when you get within detection range. Clear all hostiles to win.</p></div>
   </div>`;
 
@@ -3764,7 +3764,7 @@ function buildManualUI() {
     if (ut.dodges) extras.push('Dodges shots');
     if (ut.splits) extras.push('Splits on death');
     html += `<div class="manual-card"><h4>${ut.name}</h4>
-      <div class="manual-stats">${ut.cost}💵 · ${ut.hp} HP · ${ut.damage} dmg · range ${ut.range}</div>
+      <div class="manual-stats">${ut.cost}💀 · ${ut.hp} HP · ${ut.damage} dmg · range ${ut.range}</div>
       <p>${desc}${extras.length ? ` <em>(${extras.join(', ')})</em>` : ''}</p></div>`;
   }
   html += `</div>`;
@@ -3772,11 +3772,11 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>Towers</h3>`;
   for (const [id, tw] of Object.entries(TOWER_TYPES)) {
     const desc = TOWER_MANUAL[id] || '';
-    let stats = `${tw.cost}💵 · ${tw.hp} HP`;
+    let stats = `${tw.cost}💀 · ${tw.hp} HP`;
     if (tw.range) stats += ` · range ${tw.range}`;
     if (tw.damage) stats += ` · ${tw.damage} dmg`;
     if (tw.pelletDamage) stats += ` · ${tw.pelletDamage} dmg/pellet × ${tw.pelletCount || 1}`;
-    if (tw.incomePerRound) stats += ` · +${tw.incomePerRound}💵/round`;
+    if (tw.incomePerRound) stats += ` · +${tw.incomePerRound}💀/round`;
     if (tw.fireInterval) stats += ` · ${tw.fireInterval}s reload`;
     html += `<div class="manual-card"><h4>${tw.name}</h4>
       <div class="manual-stats">${stats}</div>
@@ -3792,7 +3792,7 @@ function buildManualUI() {
       <li><strong>Laser</strong> punishes straight-line rushes — spread your units vertically.</li>
       <li><strong>Dragons</strong> fly over everything toward your base and rain lasting fire — only Turrets can shoot them down.</li>
       <li><strong>Bloops</strong> are cheap base pressure — a few can force the enemy to overcommit.</li>
-      <li>Damage to the enemy base gives them backup coins — finish them off when you can!</li>
+      <li>Damage to the enemy base gives them backup skulls — finish them off when you can!</li>
     </ul>
   </div>`;
 
@@ -3887,7 +3887,7 @@ const INCOME_UPGRADE_MAX = 8;
 const INCOME_UPGRADE_DEFS = {
   base: { name: 'Base Income', icon: '🏛', baseYield: SURVIVAL_BASE_INCOME, upgradeStep: 5, baseCost: 110, intervalLabel: '3s' },
   mint: { name: 'Mint Yield', icon: '💰', baseYield: SURVIVAL_MINT_INCOME, upgradeStep: 3, baseCost: 165, intervalLabel: '3s' },
-  farm: { name: 'Farm Yield', icon: '🌾', baseYield: SURVIVAL_FARM_INCOME, upgradeStep: 2, baseCost: 90, intervalLabel: '2s' },
+  farm: { name: 'Graveyard Yield', icon: '🪦', baseYield: SURVIVAL_FARM_INCOME, upgradeStep: 2, baseCost: 90, intervalLabel: '2s' },
 };
 
 // ─── Survival mode (live RTS) ──────────────────────────────────────────────────
@@ -4100,11 +4100,11 @@ function formatPctFromMult(mult) {
 function econHarvestSpeedMeta(type, tier) {
   const interval = Math.max(1, 4 - tier);
   const prev = interval + 1;
-  const label = type === 'farm' ? 'Farm Speed' : 'Mint Speed';
+  const label = type === 'farm' ? 'Graveyard Speed' : 'Mint Speed';
   const costs = [300, 900, 3200];
   return {
     title: `${label} ${tier}`,
-    tooltip: `Exact effect: each ${label.split(' ')[0]} harvests every ${interval}s instead of ${prev}s. Cost ${costs[tier - 1]}💵.`,
+    tooltip: `Exact effect: each ${label.split(' ')[0]} harvests every ${interval}s instead of ${prev}s. Cost ${costs[tier - 1]}💀.`,
   };
 }
 
@@ -4113,10 +4113,10 @@ function econHarvestYieldMeta(type, tier) {
   const amount = levels[tier];
   const from = levels[tier - 1];
   const costs = [300, 900, 3200];
-  const label = type === 'farm' ? 'Farm Yield' : 'Mint Yield';
+  const label = type === 'farm' ? 'Graveyard Yield' : 'Mint Yield';
   return {
     title: `${label} ${tier}`,
-    tooltip: `Exact effect: each ${label.split(' ')[0]} pays ${amount}💵 per harvest (was ${from}💵). Cost ${costs[tier - 1]}💵.`,
+    tooltip: `Exact effect: each ${label.split(' ')[0]} pays ${amount}💀 per harvest (was ${from}💀). Cost ${costs[tier - 1]}💀.`,
   };
 }
 
@@ -4128,7 +4128,7 @@ function harvestIntervalLabel(pid, type) {
 function econBaseSkillMeta(branch, tier) {
   const names = { income: 'HQ Income', health: 'Base Health', defense: 'Base Turrets' };
   const tips = {
-    income: `Exact effect: HQ passive income becomes ${survivalIncomeAmountAtLevel('base', 1 + tier)}💵 every 3s (was ${survivalIncomeAmountAtLevel('base', tier)}💵).`,
+    income: `Exact effect: HQ passive income becomes ${survivalIncomeAmountAtLevel('base', 1 + tier)}💀 every 3s (was ${survivalIncomeAmountAtLevel('base', tier)}💀).`,
     health: `Exact effect: +150 max HQ HP (total bonus HP at this level: ${tier * 150}). Current HP also gains +150 when purchased.`,
     defense: `Exact effect: places ${tier} auto-firing base turret${tier === 1 ? '' : 's'} on the pads in front of your HQ (max 3).`,
   };
@@ -4159,16 +4159,16 @@ function barracksUnlockMeta(ut) {
   const cost = LIVE_ARMY.unitUnlockCost(ut);
   const base = UNIT_TYPES[ut] || {};
   const tips = {
-    tank: `Unlock Elephants (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Spreader knockback/shock; douses fire; weak vs Wolf packs.`,
-    speed: `Unlock Wolves (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Packs shred Elephants; hard-counter Snipers; dodge attacks.`,
-    goblin: `Unlock Goblins (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Rail Gun beams; steals coins from Farms/Mints; Dragons prioritize them.`,
-    striker: `Unlock Knights (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Strong vs Wolves/towers; first strike deals double damage; weak vs Elephant+Sniper and Dragons.`,
-    sniper: `Unlock Snipers (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Long-range; prioritizes Dragons; extremely weak vs Wolves.`,
-    peka: `Unlock Dragons (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire; chases Goblins first; weak to Turrets & Snipers.`,
+    tank: `Unlock Elephants (${cost}💀). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Spreader knockback/shock; douses fire; weak vs Wolf packs.`,
+    speed: `Unlock Wolves (${cost}💀). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Packs shred Elephants; hard-counter Snipers; dodge attacks.`,
+    goblin: `Unlock Goblins (${cost}💀). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Immune to Rail Gun beams; steals skulls from Graveyards/Mints; scoops battlefield skulls for bonus money; Dragons prioritize them.`,
+    striker: `Unlock Knights (${cost}💀). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Strong vs Wolves/towers; first strike deals double damage; weak vs Elephant+Sniper and Dragons.`,
+    sniper: `Unlock Snipers (${cost}💀). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Long-range; prioritizes Dragons; extremely weak vs Wolves.`,
+    peka: `Unlock Dragons (${cost}💀). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire; chases Goblins first; weak to Turrets & Snipers.`,
   };
   return {
     title: `Unlock ${label}`,
-    tooltip: tips[ut] || `Unlock ${label} for ${cost}💵.`,
+    tooltip: tips[ut] || `Unlock ${label} for ${cost}💀.`,
     theme: UNIT_THEME_MAP[ut] || 'tank',
   };
 }
@@ -4180,7 +4180,7 @@ function barracksStatBranchLabel(unitType, stat) {
 }
 
 function barracksStatBranchIcon(unitType, stat) {
-  if (unitType === 'goblin' && stat === 'damage') return '💵';
+  if (unitType === 'goblin' && stat === 'damage') return '💀';
   if (unitType === 'sniper' && stat === 'speed') return '🎯';
   return STAT_SKILL_ICONS[stat];
 }
@@ -4208,7 +4208,7 @@ function barracksStatMeta(unitLabel, stat, tier, unitType) {
     const dmg = Math.round((base.damage || 11) * mult);
     return {
       title: `${unitLabel} Loot ${tier}`,
-      tooltip: `Exact effect: Goblins steal ${farm}💵 from Farms and ${mint}💵 from Mints per hit (was ${prevFarm}/${prevMint}), and deal ${dmg} damage (${multLabel}, was ${formatMult(prev)}).`,
+      tooltip: `Exact effect: Goblins steal ${farm}💀 from Graveyards and ${mint}💀 from Mints per hit (was ${prevFarm}/${prevMint}), and deal ${dmg} damage (${multLabel}, was ${formatMult(prev)}).`,
       theme: 'loot',
       nodeLabel: multLabel,
     };
@@ -4348,14 +4348,14 @@ function engineersTowerUnlockMeta(tt) {
   const label = LIVE_ARMY.TOWER_LABELS[tt] || tt;
   const cost = LIVE_ARMY.towerUnlockCost(tt);
   const tips = {
-    turret: `Unlock Turrets (${cost}💵). Steady single-target shots from a wooden outpost. Base: ${TOWER_TYPES.turret.damage} dmg, range ${TOWER_TYPES.turret.range}, ${TOWER_TYPES.turret.fireRate}/s. Only tower that can shoot flying Dragons.`,
-    laser: `Unlock Rail Guns (${cost}💵). Piercing beam. Base range 680. Immune Goblins ignore the beam. Does not hit flying Dragons.`,
-    spread: `Unlock Spreaders (${cost}💵). Castle tower with wind blasts, knockback/paralyze. Click a placed tower to pick Fire, Ice, or Electricity (250💵, one only). Each element builds a charge bar for mixed elemental blasts. Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} blasts. Weak vs Elephants (immune to base shock).`,
-    missile: `Unlock Missile Bases (${cost}💵). Slow long-range area blasts. Expensive structure with its own upgrade panel.`,
+    turret: `Unlock Turrets (${cost}💀). Steady single-target shots from a wooden outpost. Base: ${TOWER_TYPES.turret.damage} dmg, range ${TOWER_TYPES.turret.range}, ${TOWER_TYPES.turret.fireRate}/s. Only tower that can shoot flying Dragons.`,
+    laser: `Unlock Rail Guns (${cost}💀). Piercing beam. Base range 680. Immune Goblins ignore the beam. Does not hit flying Dragons.`,
+    spread: `Unlock Spreaders (${cost}💀). Castle tower with wind blasts, knockback/paralyze. Click a placed tower to pick Fire, Ice, or Electricity (250💀, one only). Each element builds a charge bar for mixed elemental blasts. Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} blasts. Weak vs Elephants (immune to base shock).`,
+    missile: `Unlock Missile Bases (${cost}💀). Slow long-range area blasts. Expensive structure with its own upgrade panel.`,
   };
   return {
     title: `Unlock ${label}`,
-    tooltip: tips[tt] || `Unlock ${label} for ${cost}💵.`,
+    tooltip: tips[tt] || `Unlock ${label} for ${cost}💀.`,
     theme: TOWER_THEME_MAP[tt] || 'eng',
   };
 }
@@ -4414,7 +4414,7 @@ function skillCardHtml({
   html += `</${tag}>`;
 
   if (state === 'available' || state === 'afford-wait') {
-    html += `<div class="st-card-meta">${cost}💵</div>`;
+    html += `<div class="st-card-meta">${cost}💀</div>`;
   } else {
     html += '<div class="st-card-meta"></div>';
   }
@@ -4456,7 +4456,7 @@ function barracksMainUnitCardHtml({ theme, icon, label, tooltip, unlocked, affor
   html += `<div class="st-card-foot">${escapeHtml(unlocked ? label : 'Unlock')}</div>`;
   html += `</${tag}>`;
   if (!unlocked && (state === 'available' || state === 'afford-wait')) {
-    html += `<div class="brk-main-cost">${cost}💵</div>`;
+    html += `<div class="brk-main-cost">${cost}💀</div>`;
   }
   html += '</div>';
   return html;
@@ -4526,7 +4526,7 @@ function skillTreeTierHtml({ tier, maxTier, ownedTier, unlocked, cost, afford, i
   html += `<${tag} class="skill-node ${state}"${attrs}>`;
   html += `<span class="skill-gem tier-${gemTier}">${icon}</span>`;
   if (state === 'available' || state === 'afford-wait') {
-    html += `<span class="skill-node-cost">${cost}💵</span>`;
+    html += `<span class="skill-node-cost">${cost}💀</span>`;
   } else {
     html += `<span class="skill-node-tier">T${tier}</span>`;
   }
@@ -4547,7 +4547,7 @@ function buyEconomyUpgrade(pid, kind, target) {
     rec.unlocked = true;
     rec.yield = LIVE_ARMY.harvestYieldBase(target);
     rec.yieldCoinAmount = true;
-    addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building (+${rec.yield} per harvest)`);
+    addLog(`💀 ${p.name}: Unlocked ${target === 'farm' ? 'Graveyard' : 'Mint'} building (+${rec.yield} per harvest)`);
   } else if (kind === 'speed') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
     if (!rec.unlocked || rec.speed >= LIVE_ARMY.speedMax()) return false;
@@ -4555,9 +4555,9 @@ function buyEconomyUpgrade(pid, kind, target) {
     if (cost == null || p.coins < cost) return false;
     p.coins -= cost;
     rec.speed += 1;
-    const label = target === 'farm' ? 'Farm' : 'Mint';
+    const label = target === 'farm' ? 'Graveyard' : 'Mint';
     const interval = LIVE_ARMY.harvestInterval(p, target);
-    addLog(`💰 ${p.name}: ${label} harvest speed T${rec.speed} (every ${interval}s)`);
+    addLog(`💀 ${p.name}: ${label} harvest speed T${rec.speed} (every ${interval}s)`);
   } else if (kind === 'yield') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
     const nextYield = LIVE_ARMY.nextHarvestYield(target, rec.yield);
@@ -4567,8 +4567,8 @@ function buyEconomyUpgrade(pid, kind, target) {
     p.coins -= cost;
     rec.yield = nextYield;
     const amt = LIVE_ARMY.harvestAmount(p, target);
-    const label = target === 'farm' ? 'Farm' : 'Mint';
-    addLog(`💰 ${p.name}: ${label} harvest yield → ${amt} per harvest`);
+    const label = target === 'farm' ? 'Graveyard' : 'Mint';
+    addLog(`💀 ${p.name}: ${label} harvest yield → ${amt} per harvest`);
   } else if (kind === 'base') {
     const branch = target;
     const lvl = eco.base[branch] || 0;
@@ -4967,7 +4967,7 @@ function spellUnlockMeta(spellId) {
   const tip = SPELL_BLURBS[spellId] || '';
   return {
     title: `Unlock ${label}`,
-    tooltip: `Unlock ${label} (${cost}💵). ${tip} Appears on the bottom bar to cast.`,
+    tooltip: `Unlock ${label} (${cost}💀). ${tip} Appears on the bottom bar to cast.`,
   };
 }
 
@@ -4986,7 +4986,7 @@ function spellPowerMeta(spellId, tier) {
   }
   return {
     title: `${label} Lv${tier}`,
-    tooltip: `Exact effect: ${effect}. Cast ${cast}💵 · CD ${cd.toFixed(1)}s.`,
+    tooltip: `Exact effect: ${effect}. Cast ${cast}💀 · CD ${cd.toFixed(1)}s.`,
     nodeLabel: `Lv${tier}`,
   };
 }
@@ -5186,7 +5186,7 @@ function drawSpellRadiusPreview(spellId, x, y, pid) {
   const name = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
   let status = `r ${Math.round(r)}`;
   if (cd > 0) status = `${cd.toFixed(1)}s CD`;
-  else if (!canCast) status = 'Need 💵';
+  else if (!canCast) status = 'Need 💀';
 
   ctx.font = '800 14px Rajdhani, sans-serif';
   ctx.textAlign = 'center';
@@ -5736,7 +5736,7 @@ function updateSpreadUpgradeUI() {
       isOwned ? 'owned' : '',
       isLocked ? 'locked' : '',
     ].filter(Boolean).join(' ');
-    const costLabel = isOwned ? 'Active' : (isLocked ? 'Locked' : `${SPREAD_ELEMENT_COST}💵`);
+    const costLabel = isOwned ? 'Active' : (isLocked ? 'Locked' : `${SPREAD_ELEMENT_COST}💀`);
     html += `<button type="button" class="${cls}" data-spread-element="${key}" ${disabled ? 'disabled' : ''}>
       <div class="ssk-icon">${meta.icon}</div>
       <div class="ssk-name">${meta.label}</div>
@@ -5801,7 +5801,7 @@ function updateMissileUpgradeUI() {
   list.innerHTML = ['rate', 'damage', 'radius'].map((branch) => {
     const lvl = up[branch] || 1;
     const cost = 140 + lvl * 100;
-    return `<button type="button" class="econ-upgrade-buy" data-missile-branch="${branch}" ${p.coins < cost || lvl >= 6 ? 'disabled' : ''}>${labels[branch]} Lv${lvl + 1} — ${cost}💵</button>`;
+    return `<button type="button" class="econ-upgrade-buy" data-missile-branch="${branch}" ${p.coins < cost || lvl >= 6 ? 'disabled' : ''}>${labels[branch]} Lv${lvl + 1} — ${cost}💀</button>`;
   }).join('');
 }
 
@@ -5954,23 +5954,23 @@ function updateCommanderPanelUI() {
   ];
   let html = rows.map(({ tier: t, cap: c }) => {
     const cost = commanderTierCost(t);
-    const tip = `Exact effect: raise Commander deploy cap to ${c} units per click for ${cost}💵. Bulk cost scales by 1 + count/10 (e.g. ${c} units = ${(1 + c / 10).toFixed(1)}× unit price).`;
+    const tip = `Exact effect: raise Commander deploy cap to ${c} units per click for ${cost}💀. Bulk cost scales by 1 + count/10 (e.g. ${c} units = ${(1 + c / 10).toFixed(1)}× unit price).`;
     if (tier >= t) {
       return `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn owned" disabled>✓ Up to ${c} units — owned</button>${skillInfoHtml(tip)}</div>`;
     }
     const buyable = tier === t - 1;
     const disabled = !buyable || p.coins < cost ? 'disabled' : '';
     const lockNote = buyable ? '' : ' (unlock previous first)';
-    return `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn" data-commander-tier="${t}" ${disabled}>Up to ${c} units — ${cost}💵${lockNote}</button>${skillInfoHtml(tip)}</div>`;
+    return `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn" data-commander-tier="${t}" ${disabled}>Up to ${c} units — ${cost}💀${lockNote}</button>${skillInfoHtml(tip)}</div>`;
   }).join('');
 
-  const specialTip = `Exact effect: unlock Special Commands for ${COMMANDER_SPECIAL_COST}💵. Adds an on-screen order button to cycle Attack (normal), Retreat (fall back), and Hold (stay put — ranged units can still shoot).`;
+  const specialTip = `Exact effect: unlock Special Commands for ${COMMANDER_SPECIAL_COST}💀. Adds an on-screen order button to cycle Attack (normal), Retreat (fall back), and Hold (stay put — ranged units can still shoot).`;
   if (hasSpecial) {
     html += `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn owned" disabled>✓ Special Commands — owned</button>${skillInfoHtml(specialTip)}</div>`;
   } else {
     const canBuy = commanderUnlocked(p) && p.coins >= COMMANDER_SPECIAL_COST;
     const lockNote = commanderUnlocked(p) ? '' : ' (unlock Commander first)';
-    html += `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn" data-commander-special="1" ${canBuy ? '' : 'disabled'}>Special Commands — ${COMMANDER_SPECIAL_COST}💵${lockNote}</button>${skillInfoHtml(specialTip)}</div>`;
+    html += `<div class="cmd-skill-row"><button type="button" class="cmd-skill-btn" data-commander-special="1" ${canBuy ? '' : 'disabled'}>Special Commands — ${COMMANDER_SPECIAL_COST}💀${lockNote}</button>${skillInfoHtml(specialTip)}</div>`;
   }
 
   tree.innerHTML = html;
@@ -6072,7 +6072,7 @@ const skillScrollHoldTimers = new WeakMap();
 
 function updateSkillPanelFooter(footerId, coins) {
   const el = document.getElementById(footerId);
-  if (el) el.innerHTML = `<span class="st-coins">${Math.floor(coins)} 💵 AVAILABLE</span>`;
+  if (el) el.innerHTML = `<span class="st-coins">${Math.floor(coins)} 💀 AVAILABLE</span>`;
 }
 
 function updateSkillScrollButtons(listId) {
@@ -6218,7 +6218,7 @@ function updateIncomeUpgradeUI(force) {
           ${atMax ? '<span class="econ-max">MAX LEVEL</span>' : `<span class="econ-next">Next: +${nextAmt}/${def.intervalLabel}</span>`}
       </div>
       <button type="button" class="econ-upgrade-buy" data-upgrade="${type}" ${!canBuy ? 'disabled' : ''}>
-        ${atMax ? 'MAX' : `${cost}💵`}
+        ${atMax ? 'MAX' : `${cost}💀`}
       </button>
     </div>`;
     }).join(''));
@@ -6228,7 +6228,7 @@ function updateIncomeUpgradeUI(force) {
   const eco = LIVE_ARMY.economyRecord(p);
   const baseBranches = LIVE_ARMY.BASE_BRANCHES || ['income', 'health', 'defense'];
   const baseLabels = LIVE_ARMY.BASE_BRANCH_LABELS || { income: 'Income', health: 'Health', defense: 'Guns' };
-  const baseIcons = LIVE_ARMY.BASE_BRANCH_ICONS || { income: '💵', health: '❤️', defense: '🔫' };
+  const baseIcons = LIVE_ARMY.BASE_BRANCH_ICONS || { income: '💀', health: '❤️', defense: '🔫' };
 
   let html = '<div class="st-grid-scroll"><div class="st-canvas">';
 
@@ -6237,7 +6237,7 @@ function updateIncomeUpgradeUI(force) {
     theme: 'hq',
     icon: '🏛',
     title: 'Headquarters',
-    tooltip: 'Exact effect: root of the Base skill tree. HQ Income, Health, Guns, Turret upgrades, Commander, Farm, and Mint all branch from here.',
+    tooltip: 'Exact effect: root of the Base skill tree. HQ Income, Health, Guns, Turret upgrades, Commander, Graveyard, and Mint all branch from here.',
     unlocked: true,
     isUnlock: false,
     ownedTier: 1,
@@ -6307,7 +6307,7 @@ function updateIncomeUpgradeUI(force) {
       theme: 'loot',
       icon: '🎖️',
       title: 'Commander',
-      tooltip: 'Exact effect: unlock Commander for 300💵. Lets you deploy up to 3 units per click in Front Line / Train / Group formation. Commander menu upgrades raise the cap to 6 (600💵) then 9 (900💵), and Special Commands (200💵) unlock Attack / Retreat / Hold orders. Bulk deploy costs scale by 1 + count/10.',
+      tooltip: 'Exact effect: unlock Commander for 300💀. Lets you deploy up to 3 units per click in Front Line / Train / Group formation. Commander menu upgrades raise the cap to 6 (600💀) then 9 (900💀), and Special Commands (200💀) unlock Attack / Retreat / Hold orders. Bulk deploy costs scale by 1 + count/10.',
       isUnlock: true, unlocked, afford: p.coins >= cost, cost,
       tier: 0, maxTier: 0, ownedTier: unlocked ? 1 : 0,
       dataAttrs: unlocked ? '' : ' data-commander-unlock="1"',
@@ -6332,10 +6332,10 @@ function updateIncomeUpgradeUI(force) {
     const unlockCost = LIVE_ARMY.economyUnlockCost(type);
     const unlocked = !!rec.unlocked;
     const theme = type === 'farm' ? 'farm' : 'mint';
-    const unlockTitle = type === 'farm' ? 'Unlock Farm' : 'Unlock Mint';
+    const unlockTitle = type === 'farm' ? 'Unlock Graveyard' : 'Unlock Mint';
     const unlockTip = type === 'farm'
-      ? `Exact effect: unlock Farm buildings for ${unlockCost}💵. Each Farm starts at 5💵 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 5→10→15→25💵.`
-      : `Exact effect: unlock Mint buildings for ${unlockCost}💵. Each Mint starts at 10💵 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 10→15→20→25💵.`;
+      ? `Exact effect: unlock Graveyard buildings for ${unlockCost}💀. Each Graveyard starts at 5💀 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 5→10→15→25💀.`
+      : `Exact effect: unlock Mint buildings for ${unlockCost}💀. Each Mint starts at 10💀 every 4s. Speed upgrades: 4s→3s→2s→1s. Yield upgrades: 10→15→20→25💀.`;
 
     let side = '<div class="st-section st-half st-econ-side">';
     side += `<div class="st-section-title">${title}</div>`;
@@ -6379,7 +6379,7 @@ function updateIncomeUpgradeUI(force) {
         title: meta.title,
         tooltip: meta.tooltip,
         tier, maxTier, ownedTier: unlocked ? LIVE_ARMY.harvestYieldTier(rec, type) : 0, unlocked,
-        cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '🌾' : '💵',
+        cost, afford: cost != null && p.coins >= cost, icon: type === 'farm' ? '🪦' : '💀',
         dataAttrs: ` data-econ-yield="${type}"`,
       }));
     }
@@ -6390,12 +6390,12 @@ function updateIncomeUpgradeUI(force) {
 
     const cur = unlocked ? LIVE_ARMY.harvestAmount(p, type) : 0;
     const interval = unlocked ? LIVE_ARMY.harvestInterval(p, type) : 4;
-    side += `<p class="st-footnote">${unlocked ? `${cur}💵 every ${interval}s per building` : 'Unlock to build on the map'}</p>`;
+    side += `<p class="st-footnote">${unlocked ? `${cur}💀 every ${interval}s per building` : 'Unlock to build on the map'}</p>`;
     side += '</div>';
     return side;
   }
 
-  html += economySideTree('farm', 'Farms', '🌾');
+  html += economySideTree('farm', 'Graveyards', '🪦');
   html += economySideTree('mint', 'Mints', '💰');
 
   html += '</div>';
@@ -9247,6 +9247,7 @@ function setupSurvivalLive() {
   blasts = [];
   fireFields = [];
   groundIceChunks = [];
+  goreMarks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -9298,7 +9299,7 @@ function setupSurvivalLive() {
   document.getElementById('bottom-panel').classList.remove('hidden');
   selectedTool = firstEnabledDeployTool();
   addLog('⚔️ Local Live Battle — all gameplay runs in your browser.');
-  addLog('⚔️ Open Economy to unlock Farm & Mint, then climb each skill tree.');
+  addLog('⚔️ Open Economy to unlock Graveyard & Mint, then climb each skill tree.');
   if (survivalAiBrain) {
     addLog('🤖 Enemy is scouting your army — expect a planned strike, not constant waves.');
   }
@@ -9314,6 +9315,7 @@ function setupSimulator() {
   blasts = [];
   fireFields = [];
   groundIceChunks = [];
+  goreMarks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -9419,6 +9421,7 @@ function setupSurvivalLivePvp(opts) {
   blasts = [];
   fireFields = [];
   groundIceChunks = [];
+  goreMarks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -10147,7 +10150,7 @@ function endSurvivalLive() {
     title = '💀 Defeat';
     text = isSurvivalPvp()
       ? `${players[enemy].name} destroyed your base!`
-      : 'Your base was destroyed.\n\nTip: The enemy is chaotic — exploit their random builds and strike when they waste coins!';
+      : 'Your base was destroyed.\n\nTip: The enemy is chaotic — exploit their random builds and strike when they waste skulls!';
     btnText = isSurvivalPvp() ? 'Back to Menu' : 'Try Again';
   } else {
     title = '🏆 Victory!';
@@ -10270,8 +10273,8 @@ const ACHIEVEMENTS = {
   fortress:         { title: '🏰 Fortress',          desc: 'Take zero base damage this round',           reward: 80,  tier: 'gold' },
   iron_fortress:    { title: '🏯 Iron Fortress',     desc: 'End round with base above 90% HP',           reward: 55,  tier: 'silver' },
   last_block:       { title: '👊 Last Block',        desc: 'Only one unit left when round ends',         reward: 105, tier: 'legend' },
-  comeback:         { title: '💵 War Economy',       desc: 'Earn 80+ backup coins this round',           reward: 65,  tier: 'silver' },
-  war_fund:         { title: '💰 War Fund',          desc: 'Earn 150+ backup coins this round',          reward: 110, tier: 'gold' },
+  comeback:         { title: '💀 War Economy',       desc: 'Earn 80+ backup skulls this round',           reward: 65,  tier: 'silver' },
+  war_fund:         { title: '💰 War Fund',          desc: 'Earn 150+ backup skulls this round',          reward: 110, tier: 'gold' },
   mint_survivor:    { title: '🏦 Mint Condition',    desc: '2+ Mints survived the round',                reward: 60,  tier: 'silver' },
   mint_empire:      { title: '🏦 Mint Empire',       desc: '3+ Mints survived the round',              reward: 100, tier: 'gold' },
 };
@@ -10328,6 +10331,8 @@ let spreadTracks = [];
 let blasts = [];
 let fireFields = [];
 let groundIceChunks = [];
+let goreMarks = [];
+let battlefieldSkulls = [];
 let meteors = [];
 let slimeBursts = [];
 let healFields = [];
@@ -10359,7 +10364,16 @@ function wholeHp(value) {
 }
 
 function applyHpLoss(entity, amount) {
-  if (entity && entity.hp !== undefined) entity.hp = wholeHp(entity.hp - amount);
+  if (!entity || entity.hp === undefined) return;
+  const before = entity.hp;
+  entity.hp = wholeHp(entity.hp - amount);
+  if (!(amount > 0 && before > 0 && entity.x != null)) return;
+  if (!((entity.type && UNIT_TYPES[entity.type]) || entity.towerType)) return;
+  // Throttle tiny DoT ticks so continuous burn doesn't carpet the field.
+  const t = (typeof combatTime === 'number') ? combatTime : 0;
+  if (amount < 3 && (entity._bloodSplatAt || 0) + 0.14 > t) return;
+  entity._bloodSplatAt = t;
+  spawnBloodSplat(entity.x, entity.y, Math.min(1.8, 0.45 + amount / 10));
 }
 
 // ─── Free Mode (arcade tank) ─────────────────────────────────────────────────
@@ -11222,6 +11236,7 @@ function setupFree2pMode() {
   blasts = [];
   fireFields = [];
   groundIceChunks = [];
+  goreMarks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -11646,6 +11661,7 @@ function setupFreeMode() {
   blasts = [];
   fireFields = [];
   groundIceChunks = [];
+  goreMarks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -13641,6 +13657,7 @@ function resolveDeadUnits() {
   for (const u of dead) {
     u._deathProcessed = true;
     dropUnitIceShardsToGround(u);
+    spawnDeathGore(u);
     onUnitKilled(u);
     trySplitBloop(u);
   }
@@ -13710,7 +13727,7 @@ function towerPlaceFailReason(pid, towerType, x, y, excludeId) {
   const p = players[pid];
   if (!isTowerEnabled(towerType)) return 'That building is unavailable.';
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canPlaceStructure(p, towerType)) {
-    if (towerType === 'farm') return 'Unlock Farm in Economy first.';
+    if (towerType === 'farm') return 'Unlock Graveyard in Economy first.';
     if (towerType === 'mint') return 'Unlock Mint in Economy first.';
     if (towerType === 'barracks') return 'Only one Barracks per team.';
     if (towerType === 'engineers') return 'Only one Tower Depot per team.';
@@ -13719,7 +13736,7 @@ function towerPlaceFailReason(pid, towerType, x, y, excludeId) {
     return 'Cannot place that structure.';
   }
   const cost = towerCost(p, towerType);
-  if (p.coins < cost) return `Need ${cost}💵 (you have ${Math.floor(p.coins)}💵).`;
+  if (p.coins < cost) return `Need ${cost}💀 (you have ${Math.floor(p.coins)}💀).`;
   if (!inZone(x, pid)) return 'Place inside your territory.';
   if (!onLand(y)) return 'Place on the battlefield.';
   if (overlapsRubble(x, y, p)) return 'Blocked by ruins.';
@@ -13735,7 +13752,7 @@ function unitPlaceFailReason(pid, type, x, y) {
     return 'Unlock this unit in Barracks first.';
   }
   const ut = unitDef(type, pid);
-  if (p.coins < ut.cost) return `Need ${ut.cost}💵 (you have ${Math.floor(p.coins)}💵).`;
+  if (p.coins < ut.cost) return `Need ${ut.cost}💀 (you have ${Math.floor(p.coins)}💀).`;
   if (!canPlaceUnit(x, y, pid, type)) {
     if (isSurvivalLive() && phase === 'combat') {
       if (!inZone(x, pid)) return 'Deploy inside your territory.';
@@ -13904,7 +13921,7 @@ function triggerAchievement(playerId, achId, opts = {}) {
   const a = ACHIEVEMENTS[achId];
   players[playerId].combatReward = (players[playerId].combatReward || 0) + a.reward;
   showAchievementToast(playerId, achId);
-  addLog(`🏅 ${players[playerId].name}: ${a.title} (+${a.reward}💵)`);
+  addLog(`🏅 ${players[playerId].name}: ${a.title} (+${a.reward}💀)`);
 }
 
 function showAchievementToast(playerId, achId) {
@@ -13919,7 +13936,7 @@ function showAchievementToast(playerId, achId) {
     ${tierLabel ? `<div class="ach-tier-badge">${tierLabel}</div>` : ''}
     <div class="ach-title">${a.title}</div>
     <div class="ach-desc">${a.desc}</div>
-    <div class="ach-reward">+${a.reward} 💵</div>
+    <div class="ach-reward">+${a.reward} 💀</div>
   `;
   feed.insertBefore(card, feed.firstChild);
   while (feed.children.length > 10) feed.lastElementChild.remove();
@@ -13951,7 +13968,7 @@ function renderAchievementPanel() {
       <div class="ach-info">
         <div class="ach-info-title">${ach.title}</div>
         <div class="ach-info-desc">${ach.desc}</div>
-        <div class="ach-info-reward">+${ach.reward} 💵</div>
+        <div class="ach-info-reward">+${ach.reward} 💀</div>
       </div>
     </div>`;
   }).join('');
@@ -14057,6 +14074,250 @@ function spawnParticles(x, y, color, n = 6) {
       color, size: rand(4, 10),
     });
   }
+}
+
+const GORE_MAX = 220;
+const BLOOD_SPLAT_LIFE = 9;
+const DEATH_GORE_LIFE = 16;
+
+function pushGoreMark(mark) {
+  goreMarks.push(mark);
+  if (goreMarks.length > GORE_MAX) goreMarks.splice(0, goreMarks.length - GORE_MAX);
+}
+
+/** Small blood spray on the ground from any hit. */
+function spawnBloodSplat(x, y, intensity = 1) {
+  if (x == null || y == null) return;
+  const n = 1 + Math.floor(Math.random() * 2 + intensity * 0.8);
+  for (let i = 0; i < n; i++) {
+    const life = BLOOD_SPLAT_LIFE * (0.55 + Math.random() * 0.55);
+    pushGoreMark({
+      kind: 'blood',
+      x: x + rand(-10, 10) * intensity,
+      y: y + rand(-7, 7) * intensity,
+      r: (3 + Math.random() * 5) * (0.7 + intensity * 0.35),
+      rot: Math.random() * Math.PI * 2,
+      stretch: 0.55 + Math.random() * 0.7,
+      life,
+      maxLife: life,
+      shade: Math.random(),
+    });
+  }
+  // Brief airborne droplets
+  spawnParticles(x, y, Math.random() > 0.5 ? '#7f1d1d' : '#b91c1c', 2 + Math.floor(intensity));
+}
+
+/** Bones + blood puddle when a unit dies. Also drops collectible skulls for Goblins. */
+function spawnDeathGore(unit) {
+  if (!unit || unit.x == null) return;
+  const sz = getUnitSize(unit) || 16;
+  spawnBloodSplat(unit.x, unit.y, 1.6 + sz / 28);
+  // Extra puddle under the body
+  const puddleLife = DEATH_GORE_LIFE * (0.85 + Math.random() * 0.25);
+  pushGoreMark({
+    kind: 'blood',
+    x: unit.x + rand(-4, 4),
+    y: unit.y + rand(-2, 3),
+    r: 8 + sz * 0.35 + Math.random() * 4,
+    rot: Math.random() * Math.PI,
+    stretch: 0.45 + Math.random() * 0.35,
+    life: puddleLife,
+    maxLife: puddleLife,
+    shade: 0.2 + Math.random() * 0.3,
+  });
+  // Scattered skeleton bones
+  const boneCount = 3 + Math.floor(Math.random() * 3) + (sz > 22 ? 2 : 0);
+  for (let i = 0; i < boneCount; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 4 + Math.random() * (10 + sz * 0.4);
+    const life = DEATH_GORE_LIFE * (0.75 + Math.random() * 0.4);
+    pushGoreMark({
+      kind: 'bone',
+      x: unit.x + Math.cos(ang) * dist,
+      y: unit.y + Math.sin(ang) * dist * 0.65,
+      rot: Math.random() * Math.PI * 2,
+      len: 5 + Math.random() * 7 + sz * 0.08,
+      thick: 1.4 + Math.random() * 1.2,
+      style: Math.floor(Math.random() * 3),
+      life,
+      maxLife: life,
+    });
+  }
+  spawnBattlefieldSkullsFromUnit(unit);
+  spawnParticles(unit.x, unit.y, '#f5f5f4', 5);
+  spawnParticles(unit.x, unit.y, '#7f1d1d', 8);
+}
+
+const SKULL_PICKUP_LIFE = 28;
+const SKULL_PICKUP_RANGE = 20;
+const SKULL_SEEK_RANGE = 320;
+const SKULL_MAX = 80;
+
+function skullDropValue(unit) {
+  const cost = UNIT_TYPES[unit.type]?.cost || 20;
+  // Bigger / pricier corpses leave richer skulls.
+  return Math.max(1, Math.min(8, Math.round(cost / 45) + (unit.isMini ? 0 : 1)));
+}
+
+function spawnBattlefieldSkullsFromUnit(unit) {
+  if (!unit || unit.x == null) return;
+  const value = skullDropValue(unit);
+  const count = value >= 5 ? 2 : 1;
+  const each = Math.max(1, Math.floor(value / count));
+  let left = value;
+  for (let i = 0; i < count; i++) {
+    const v = i === count - 1 ? left : each;
+    left -= v;
+    const ang = Math.random() * Math.PI * 2;
+    const d = 6 + Math.random() * 14;
+    battlefieldSkulls.push({
+      x: unit.x + Math.cos(ang) * d,
+      y: unit.y + Math.sin(ang) * d * 0.7,
+      value: v,
+      life: SKULL_PICKUP_LIFE,
+      maxLife: SKULL_PICKUP_LIFE,
+      bob: Math.random() * Math.PI * 2,
+      rot: Math.random() * 0.4 - 0.2,
+    });
+  }
+  if (battlefieldSkulls.length > SKULL_MAX) {
+    battlefieldSkulls.splice(0, battlefieldSkulls.length - SKULL_MAX);
+  }
+}
+
+function updateBattlefieldSkulls(dt) {
+  for (let i = battlefieldSkulls.length - 1; i >= 0; i--) {
+    const s = battlefieldSkulls[i];
+    s.life -= dt;
+    s.bob = (s.bob || 0) + dt * 3.2;
+    if (s.life <= 0) battlefieldSkulls.splice(i, 1);
+  }
+}
+
+function drawBattlefieldSkulls() {
+  for (const s of battlefieldSkulls) {
+    const fade = Math.max(0, Math.min(1, s.life / Math.max(0.01, s.maxLife)));
+    const a = fade > 0.25 ? 0.95 : 0.95 * (fade / 0.25);
+    const bobY = Math.sin(s.bob || 0) * 1.8;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(s.x, s.y + bobY);
+    ctx.rotate(s.rot || 0);
+    // Soft glow so Goblins can spot them
+    ctx.fillStyle = 'rgba(254, 202, 202, 0.22)';
+    ctx.beginPath();
+    ctx.arc(0, 2, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💀', 0, 0);
+    if ((s.value || 1) > 1) {
+      ctx.font = '700 9px Rajdhani, sans-serif';
+      ctx.fillStyle = '#fcd34d';
+      ctx.fillText(`+${s.value}`, 0, 11);
+    }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function nearestBattlefieldSkull(unit, maxRange = SKULL_SEEK_RANGE) {
+  let best = null, bestD = maxRange;
+  for (const s of battlefieldSkulls) {
+    const d = Math.hypot(s.x - unit.x, s.y - unit.y);
+    if (d < bestD) { bestD = d; best = s; }
+  }
+  return best ? { skull: best, dist: bestD } : null;
+}
+
+/** Goblins scoop skulls off the ground for bonus skulls (money). */
+function goblinTryPickupSkulls(unit) {
+  if (!unit || unit.type !== 'goblin' || unit.hp <= 0) return;
+  for (let i = battlefieldSkulls.length - 1; i >= 0; i--) {
+    const s = battlefieldSkulls[i];
+    if (Math.hypot(s.x - unit.x, s.y - unit.y) > SKULL_PICKUP_RANGE) continue;
+    const gain = Math.max(1, s.value || 1);
+    players[unit.owner].coins += gain;
+    spawnFloatText(s.x, s.y - 14, `💀 +${gain}`, '#fcd34d');
+    spawnParticles(s.x, s.y, '#e7e5e4', 3);
+    battlefieldSkulls.splice(i, 1);
+  }
+}
+
+function updateGoreMarks(dt) {
+  for (let i = goreMarks.length - 1; i >= 0; i--) {
+    const g = goreMarks[i];
+    g.life -= dt;
+    if (g.life <= 0) goreMarks.splice(i, 1);
+  }
+}
+
+function drawGoreMarks() {
+  for (const g of goreMarks) {
+    const fade = Math.max(0, Math.min(1, g.life / Math.max(0.01, g.maxLife)));
+    // Linger full, then fade the last 30%
+    const a = fade > 0.3 ? 0.72 : 0.72 * (fade / 0.3);
+    ctx.save();
+    ctx.translate(g.x, g.y);
+    ctx.rotate(g.rot || 0);
+    ctx.globalAlpha = a;
+    if (g.kind === 'blood') {
+      const r = g.r || 5;
+      const stretch = g.stretch || 0.65;
+      const shade = g.shade || 0.4;
+      ctx.fillStyle = shade < 0.35 ? '#450a0a' : (shade < 0.65 ? '#7f1d1d' : '#991b1b');
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r, r * stretch, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Irregular drip lobes
+      ctx.fillStyle = shade < 0.5 ? '#7f1d1d' : '#b91c1c';
+      ctx.beginPath();
+      ctx.ellipse(r * 0.35, r * 0.15, r * 0.35, r * 0.22, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.4, -r * 0.1, r * 0.28, r * 0.18, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (g.kind === 'bone') {
+      const len = g.len || 8;
+      const thick = g.thick || 2;
+      ctx.strokeStyle = '#e7e5e4';
+      ctx.fillStyle = '#d6d3d1';
+      ctx.lineCap = 'round';
+      if (g.style === 2) {
+        // Small skull fragment
+        ctx.beginPath();
+        ctx.arc(0, 0, thick * 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1c1917';
+        ctx.beginPath();
+        ctx.arc(-thick * 0.5, -thick * 0.2, thick * 0.35, 0, Math.PI * 2);
+        ctx.arc(thick * 0.5, -thick * 0.2, thick * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (g.style === 1) {
+        // Curved rib
+        ctx.lineWidth = thick;
+        ctx.beginPath();
+        ctx.arc(0, 0, len * 0.45, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+      } else {
+        // Long bone with knobby ends
+        ctx.lineWidth = thick;
+        ctx.beginPath();
+        ctx.moveTo(-len / 2, 0);
+        ctx.lineTo(len / 2, 0);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(-len / 2, 0, thick * 1.15, 0, Math.PI * 2);
+        ctx.arc(len / 2, 0, thick * 1.15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function rubbleNow() {
@@ -14586,101 +14847,46 @@ function drawRuinedFarmField(x, y, sz, crumble, sink, seed = 0.5) {
   };
 
   const soil = ctx.createLinearGradient(ox - fieldW / 2, oy - fieldH / 2, ox + fieldW / 2, oy + fieldH / 2);
-  soil.addColorStop(0, '#4a3826');
-  soil.addColorStop(0.35, '#5e4832');
-  soil.addColorStop(0.68, '#3a2e1e');
-  soil.addColorStop(1, '#261e14');
+  soil.addColorStop(0, '#2a221c');
+  soil.addColorStop(0.35, '#3a3028');
+  soil.addColorStop(0.68, '#1c1612');
+  soil.addColorStop(1, '#120e0c');
   ctx.fillStyle = soil;
   roundRect(ox - fieldW / 2, oy - fieldH / 2, fieldW, fieldH, 6);
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(18,12,6,0.38)';
-  ctx.lineWidth = 1;
-  for (let row = 0; row < 5; row++) {
-    const ry = oy - fieldH / 2 + 7 + row * (fieldH / 5.1);
-    ctx.beginPath();
-    ctx.moveTo(ox - fieldW / 2 + 5, ry + (rnd(row) - 0.5) * 3);
-    ctx.lineTo(ox + fieldW / 2 - 5, ry + (rnd(row + 9) - 0.5) * 4);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = 'rgba(16,10,6,0.5)';
-  for (let i = 0; i < 5; i++) {
-    const cx = ox - fieldW / 3 + rnd(i * 4) * fieldW * 0.62;
-    const cy = oy - fieldH / 4 + rnd(i * 6) * fieldH * 0.55;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 4 + rnd(i) * 5, 2.5 + rnd(i + 1) * 2.5, rnd(i * 2) * Math.PI, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.strokeStyle = '#6b5a38';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 14; i++) {
-    const sx = ox - fieldW / 2 + 8 + rnd(i * 11) * (fieldW - 16);
-    const sy = oy - fieldH / 2 + 6 + rnd(i * 13) * (fieldH - 14);
-    ctx.beginPath();
-    ctx.moveTo(sx, sy + 4 + rnd(i) * 2);
-    ctx.lineTo(sx + (rnd(i + 3) - 0.5) * 4, sy);
-    ctx.stroke();
-  }
-
-  const drawStake = (x1, y1, x2, y2, thick) => {
-    ctx.strokeStyle = '#4a3520';
-    ctx.lineWidth = thick;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.strokeStyle = '#2a1c10';
-    ctx.lineWidth = thick * 0.5;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-  };
-
-  const stakes = [
-    [-fieldW * 0.34, -fieldH * 0.12, -fieldW * 0.14, fieldH * 0.14],
-    [fieldW * 0.18, fieldH * 0.2, fieldW * 0.36, -fieldH * 0.06],
-    [-fieldW * 0.04, fieldH * 0.24, fieldW * 0.14, -fieldH * 0.18],
-    [fieldW * 0.06, -fieldH * 0.26, -fieldW * 0.18, fieldH * 0.04],
-    [-fieldW * 0.26, fieldH * 0.18, fieldW * 0.08, -fieldH * 0.08],
+  // Toppled / cracked tombstones
+  const stones = [
+    { x: -0.28, y: -0.05, rot: -0.35 - crumble * 0.4, w: 8, h: 12 },
+    { x: 0.05, y: 0.08, rot: 0.55 + crumble * 0.3, w: 9, h: 14 },
+    { x: 0.3, y: -0.02, rot: 0.15, w: 7, h: 10 },
   ];
-  for (let i = 0; i < stakes.length; i++) {
-    const s = stakes[i];
-    const broken = crumble > 0.35 && i % 2 === 0;
-    const scale = broken ? 0.5 + rnd(i) * 0.2 : 1;
-    drawStake(ox + s[0], oy + s[1], ox + s[2] * scale, oy + s[3] * scale, 2.6 - (i % 2) * 0.6);
-  }
-
-  ctx.strokeStyle = '#5c4228';
-  ctx.lineWidth = 2;
-  const clusters = [[-0.08, 0.02], [0.24, -0.1], [-0.22, 0.14], [0.05, 0.2]];
-  for (let ci = 0; ci < clusters.length; ci++) {
-    const [cxn, cyn] = clusters[ci];
-    const cx = ox + cxn * fieldW;
-    const cy = oy + cyn * fieldH;
-    const len = 10 + rnd(ci * 5) * 5;
-    for (let a = 0; a < 4; a++) {
-      const ang = a * Math.PI / 4 + 0.15;
-      const snap = crumble > 0.5 && a % 2 === 0 ? 0.55 : 1;
-      ctx.beginPath();
-      ctx.moveTo(cx - Math.cos(ang) * len, cy - Math.sin(ang) * len * 0.55);
-      ctx.lineTo(cx + Math.cos(ang) * len * 0.3 * snap, cy + Math.sin(ang) * len * 0.2 * snap);
-      ctx.stroke();
-    }
-  }
-
-  ctx.fillStyle = '#3d2c18';
-  for (let i = 0; i < 7; i++) {
-    const px = ox - fieldW / 2 + 3 + i * (fieldW / 6.2);
-    const ph = 5 + rnd(i * 2) * 6;
-    roundRect(px, oy + fieldH / 2 - ph - 1, 2.5, ph, 1);
+  for (let i = 0; i < stones.length; i++) {
+    const st = stones[i];
+    const broken = crumble > 0.4 && i % 2 === 0;
+    ctx.save();
+    ctx.translate(ox + st.x * fieldW, oy + st.y * fieldH);
+    ctx.rotate(st.rot);
+    ctx.fillStyle = broken ? '#57534e' : '#78716c';
+    const hh = broken ? st.h * 0.55 : st.h * (1 - crumble * 0.25);
+    roundRect(-st.w / 2, -hh / 2, st.w, hh, 2);
     ctx.fill();
+    ctx.restore();
   }
 
-  ctx.strokeStyle = 'rgba(90,70,45,0.55)';
+  // Broken fence spikes
+  ctx.strokeStyle = '#44403c';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 4; i++) {
+    const fx = ox - fieldW / 2 + 8 + rnd(i * 3) * (fieldW - 16);
+    const lean = (rnd(i + 2) - 0.5) * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(fx, oy + fieldH / 2 - 2);
+    ctx.lineTo(fx + lean * 10, oy - fieldH / 2 + 8 + crumble * 6);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(90,70,55,0.55)';
   ctx.lineWidth = 1.5;
   ctx.strokeRect(ox - fieldW / 2, oy - fieldH / 2, fieldW, fieldH);
 }
@@ -14905,23 +15111,22 @@ function drawFarmRuinScar(s) {
   ctx.save();
   ctx.globalAlpha = 0.32 + seed * 0.12;
   const soil = ctx.createRadialGradient(x, y, 0, x, y, fieldW * 0.55);
-  soil.addColorStop(0, 'rgba(74,56,38,0.55)');
-  soil.addColorStop(0.6, 'rgba(58,44,28,0.25)');
+  soil.addColorStop(0, 'rgba(40,32,28,0.55)');
+  soil.addColorStop(0.6, 'rgba(28,22,18,0.25)');
   soil.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = soil;
   ctx.beginPath();
   ctx.ellipse(x, y, fieldW * 0.5, fieldH * 0.45, seed * 0.3, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(74,52,32,0.45)';
-  ctx.lineWidth = 1.2;
-  for (let i = 0; i < 2; i++) {
-    const ang = seed * 2 + i * 1.1;
-    const len = 5 + seed * 3;
-    ctx.beginPath();
-    ctx.moveTo(x - Math.cos(ang) * len, y - Math.sin(ang) * len * 0.5);
-    ctx.lineTo(x + Math.cos(ang) * len * 0.4, y + Math.sin(ang) * len * 0.2);
-    ctx.stroke();
-  }
+  // Faint fallen headstone
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = '#78716c';
+  ctx.save();
+  ctx.translate(x + 2, y);
+  ctx.rotate(0.4 + seed);
+  roundRect(-3, -5, 6, 10, 1);
+  ctx.fill();
+  ctx.restore();
   ctx.restore();
 }
 
@@ -15425,27 +15630,64 @@ function drawTower(t, ownerColor, alpha = 1) {
   } else if (def.style === 'farm' || def.style === 'farm_live') {
     const fieldW = sz * 1.85;
     const fieldH = sz * 1.35;
-    ctx.fillStyle = '#5c4033';
+    // Graveyard plot — dark soil mound
+    ctx.fillStyle = '#2a221c';
     roundRect(-fieldW / 2, -fieldH / 2, fieldW, fieldH, 6);
     ctx.fill();
-    ctx.fillStyle = '#3d2817';
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 6; col++) {
-        ctx.fillRect(-fieldW / 2 + 4 + col * (fieldW / 6.2), -fieldH / 2 + 4 + row * (fieldH / 4.5), fieldW / 7, fieldH / 6);
-      }
-    }
-    ctx.fillStyle = '#4ade80';
-    for (let i = 0; i < 14; i++) {
-      const fx = -fieldW / 2 + 8 + (i % 7) * (fieldW / 7.5);
-      const fy = -fieldH / 2 + 6 + Math.floor(i / 7) * (fieldH / 3.2);
-      ctx.beginPath();
-      ctx.moveTo(fx, fy + 6);
-      ctx.lineTo(fx - 3, fy);
-      ctx.lineTo(fx + 3, fy);
-      ctx.closePath();
+    ctx.fillStyle = '#1c1612';
+    ctx.beginPath();
+    ctx.ellipse(0, fieldH * 0.12, fieldW * 0.42, fieldH * 0.28, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Iron fence posts
+    ctx.strokeStyle = '#57534e';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) {
+      const fx = -fieldW / 2 + 6 + i * ((fieldW - 12) / 4);
+      ctx.beginPath();
+      ctx.moveTo(fx, fieldH / 2 - 2);
+      ctx.lineTo(fx, -fieldH / 2 + 4);
+      ctx.stroke();
+      ctx.fillStyle = '#78716c';
+      ctx.beginPath();
+      ctx.moveTo(fx, -fieldH / 2 + 4);
+      ctx.lineTo(fx - 2.5, -fieldH / 2 + 10);
+      ctx.lineTo(fx + 2.5, -fieldH / 2 + 10);
+      ctx.closePath();
+      ctx.fill();
     }
-    ctx.strokeStyle = '#8B6914';
+    ctx.strokeStyle = '#44403c';
+    ctx.beginPath();
+    ctx.moveTo(-fieldW / 2 + 4, -fieldH / 2 + 14);
+    ctx.lineTo(fieldW / 2 - 4, -fieldH / 2 + 14);
+    ctx.stroke();
+    // Tombstones
+    const stones = [
+      { x: -fieldW * 0.28, y: 2, w: 8, h: 14 },
+      { x: 0, y: -2, w: 9, h: 16 },
+      { x: fieldW * 0.26, y: 4, w: 7, h: 12 },
+    ];
+    for (const st of stones) {
+      ctx.fillStyle = '#a8a29e';
+      roundRect(st.x - st.w / 2, st.y - st.h / 2, st.w, st.h, 2);
+      ctx.fill();
+      ctx.fillStyle = '#78716c';
+      ctx.beginPath();
+      ctx.arc(st.x, st.y - st.h / 2 + 1, st.w / 2, Math.PI, 0);
+      ctx.fill();
+      ctx.strokeStyle = '#44403c';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(st.x, st.y - 3);
+      ctx.lineTo(st.x, st.y + 3);
+      ctx.moveTo(st.x - 2.5, st.y - 1);
+      ctx.lineTo(st.x + 2.5, st.y - 1);
+      ctx.stroke();
+    }
+    ctx.font = `${Math.max(8, Math.floor(sz * 0.45))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('💀', 0, fieldH * 0.42);
+    ctx.textAlign = 'left';
+    ctx.strokeStyle = '#57534e';
     ctx.lineWidth = 2;
     ctx.strokeRect(-fieldW / 2, -fieldH / 2, fieldW, fieldH);
   } else if (def.style === 'mint_live') {
@@ -17121,6 +17363,7 @@ function startCombat() {
   blasts = [];
   fireFields = [];
   groundIceChunks = [];
+  goreMarks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -17245,6 +17488,11 @@ function getMovementGoal(unit) {
   if (stance === 'retreat') return basePos(unit.owner);
 
   if (behavior === 'goblin') {
+    // Prefer loose skulls on the field — free money before raiding buildings.
+    const nearSkull = nearestBattlefieldSkull(unit, SKULL_SEEK_RANGE);
+    if (nearSkull && nearSkull.dist < 260) {
+      return { x: nearSkull.skull.x, y: nearSkull.skull.y };
+    }
     let best = null, bestD = Infinity;
     for (const tw of players[enemy].turrets) {
       if (tw.hp <= 0) continue;
@@ -17253,6 +17501,8 @@ function getMovementGoal(unit) {
       if (d < bestD) { bestD = d; best = { x: tw.x, y: tw.y }; }
     }
     if (best) return best;
+    // If a skull is farther but still in seek range, grab it before other towers.
+    if (nearSkull) return { x: nearSkull.skull.x, y: nearSkull.skull.y };
     let bestT = null, bestTD = Infinity;
     for (const tw of players[enemy].turrets) {
       if (tw.hp <= 0) continue;
@@ -17491,10 +17741,11 @@ function applyDamageToTarget(attacker, target, rawDamage) {
     p.baseDamageThisRound += dmg;
     pulseBaseShake(p);
     trackDamageDealt(attacker.owner, dmg, true);
-    spawnParticles(basePos(p.id).x, basePos(p.id).y, p.color.main, 8);
+    const bp = basePos(p.id);
+    spawnParticles(bp.x, bp.y, p.color.main, 8);
+    spawnBloodSplat(bp.x, bp.y, 1.2);
     if (jousted) {
       attacker.joustReady = false;
-      const bp = basePos(p.id);
       spawnFloatText(bp.x, bp.y - 18, 'JOUST!', '#fca5a5');
       spawnParticles(bp.x, bp.y, '#fecaca', 10);
     }
@@ -17517,7 +17768,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
         if (take > 0) {
           players[victimId].coins -= take;
           players[attacker.owner].coins += take;
-          spawnFloatText(t.x, t.y - 24, `💰 +${take}`, '#4ade80');
+          spawnFloatText(t.x, t.y - 24, `💀 +${take}`, '#a8a29e');
         }
       }
     }
@@ -19134,6 +19385,7 @@ function updateCombat(dt) {
       }
     }
     tickUnitIceShards(u, dt);
+    if (u.type === 'goblin') goblinTryPickupSkulls(u);
     if (u.iceSlow) {
       if (u.iceSlow.life > 0) {
         u.iceSlow.life = Math.max(0, u.iceSlow.life - dt);
@@ -19190,6 +19442,8 @@ function updateCombat(dt) {
   updateUnitIgnites(dt);
   updateFireFields(dt);
   updateGroundIceChunks(dt);
+  updateGoreMarks(dt);
+  updateBattlefieldSkulls(dt);
   updateSpellEffects(dt);
   updateTowers(dt);
   updateMissiles(dt);
@@ -19436,7 +19690,7 @@ function commanderPlaceFailReason(pid, type, positions) {
   const ut = unitDef(type, pid);
   const n = positions.length;
   const total = commanderBatchCost(pid, type, n);
-  if (p.coins < total) return `Need ${total} coins to deploy all ${n} ${ut.name}s`;
+  if (p.coins < total) return `Need ${total}💀 to deploy all ${n} ${ut.name}s`;
   return `Not enough room to place all ${n} units`;
 }
 
@@ -19521,7 +19775,7 @@ function handleClick(pos) {
     if (isSurvivalLive() && phase === 'combat') {
       if (survivalLivePlaceTower(pid, selectedTool, pos.x, pos.y)) {
         if (gameMode === 'survival' && pid === 0) survivalRecordPlayerTower(selectedTool);
-        addLog(`${def.name} placed (-${cost} coins)`);
+        addLog(`${def.name} placed (-${cost}💀)`);
         updateUI();
       }
       return;
@@ -19530,7 +19784,7 @@ function handleClick(pos) {
     p.coins -= cost;
     syncLiveArmyStructures();
     if (gameMode === 'survival' && pid === 0) survivalRecordPlayerTower(selectedTool);
-    addLog(`${def.name} placed (-${cost} coins)`);
+    addLog(`${def.name} placed (-${cost}💀)`);
     updateUI();
     return;
   }
@@ -19709,44 +19963,44 @@ function updateUI() {
     const costEl = btn.querySelector('.cost');
     if (UNIT_TYPES[tool]) {
       const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, pid) : UNIT_TYPES[tool];
-      if (costEl) costEl.textContent = `💵 ${ut.cost}`;
+      if (costEl) costEl.textContent = `💀 ${ut.cost}`;
       const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
       const canAfford = p.coins >= ut.cost;
       if (alwaysSelectableTools) {
         // Keep selectable so you can queue a buy while saving — gray if unaffordable.
         btn.disabled = !unlocked;
         btn.classList.toggle('unaffordable', !!unlocked && !canAfford);
-        btn.title = !unlocked ? 'Requires Barracks unlock' : (!canAfford ? `Need ${ut.cost}💵` : '');
+        btn.title = !unlocked ? 'Requires Barracks unlock' : (!canAfford ? `Need ${ut.cost}💀` : '');
       } else {
         btn.disabled = !isUnitEnabled(tool) || !canUseTools || !canAfford || !unlocked;
         btn.classList.toggle('unaffordable', !!unlocked && canUseTools && !canAfford);
-        btn.title = unlocked ? (!canAfford ? `Need ${ut.cost}💵` : '') : 'Requires Barracks unlock';
+        btn.title = unlocked ? (!canAfford ? `Need ${ut.cost}💀` : '') : 'Requires Barracks unlock';
       }
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
-      if (costEl) costEl.textContent = `💵 ${price}`;
+      if (costEl) costEl.textContent = `💀 ${price}`;
       const canAfford = p.coins >= price;
       if (alwaysSelectableTools) {
         btn.disabled = false;
         btn.classList.toggle('unaffordable', !canAfford);
-        btn.title = canAfford ? '' : `Need ${price}💵`;
+        btn.title = canAfford ? '' : `Need ${price}💀`;
       } else {
         btn.disabled = !isTowerEnabled(tool) || !canUseTools || !canAfford;
         btn.classList.toggle('unaffordable', canUseTools && !canAfford);
-        btn.title = canAfford ? '' : `Need ${price}💵`;
+        btn.title = canAfford ? '' : `Need ${price}💀`;
       }
     } else if (isSpellTool(tool)) {
       const lvl = LIVE_ARMY?.spellLevel(p, tool) || 0;
       const castCost = lvl > 0 ? LIVE_ARMY.spellCastCost(tool, lvl) : 0;
       const cd = p.liveArmy?.laboratory?.cds?.[tool] || 0;
-      if (costEl) costEl.textContent = cd > 0 ? `${cd.toFixed(1)}s` : `💵 ${castCost}`;
+      if (costEl) costEl.textContent = cd > 0 ? `${cd.toFixed(1)}s` : `💀 ${castCost}`;
       const canCast = alwaysSelectableTools && LIVE_ARMY.canCastSpell(p, tool);
       const canAfford = lvl > 0 && p.coins >= castCost;
       btn.disabled = !canCast;
       btn.classList.toggle('unaffordable', cd <= 0 && lvl > 0 && !canAfford);
       btn.title = cd > 0
         ? `Cooldown ${cd.toFixed(1)}s`
-        : (lvl > 0 ? (!canAfford ? `Need ${castCost}💵` : spellExactTip(tool, lvl)) : 'Unlock in Laboratory');
+        : (lvl > 0 ? (!canAfford ? `Need ${castCost}💀` : spellExactTip(tool, lvl)) : 'Unlock in Laboratory');
     } else if (tool === 'move') {
       btn.disabled = alwaysSelectableTools ? false : !canUseTools;
       btn.classList.remove('unaffordable');
@@ -20172,7 +20426,7 @@ function startSurvivalLive(difficulty) {
   const mult = survivalAiIncomeMult();
   showBanner(
     `Live Battle — ${survivalDifficultyLabel()}`,
-      `Faster economy — build quick!\n\n💰 Open Economy to unlock Farm & Mint skill trees\n🏛 Upgrade HQ income, health, and defense guns\n🏕 Build Barracks to unlock units\n\nEnemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
+      `Faster economy — build quick!\n\n💀 Open Economy to unlock Graveyard & Mint skill trees\n🏛 Upgrade HQ income, health, and defense guns\n🏕 Build Barracks to unlock units\n\nEnemy earns ${mult}× income on ${survivalDifficultyLabel().toLowerCase()}.`,
     'Fight!'
   );
   } catch (err) {
@@ -20330,6 +20584,7 @@ function resetGame() {
   blasts = [];
   fireFields = [];
   groundIceChunks = [];
+  goreMarks = [];
   meteors = [];
   slimeBursts = [];
   healFields = [];
@@ -20524,6 +20779,8 @@ function renderFrame(time) {
 
   if (phase === 'combat') {
     drawFireFields();
+    drawGoreMarks();
+    drawBattlefieldSkulls();
     drawGroundIceChunks();
     drawSpellEffects();
     for (const u of combatUnits) drawUnit(u);
@@ -20546,7 +20803,7 @@ function renderFrame(time) {
         if (tw.hp <= 0) continue;
         if (tw.towerType !== 'mint' && tw.towerType !== 'farm') continue;
         if (phase === 'prep' && pid !== activePlayer) continue;
-        ctx.fillStyle = tw.towerType === 'farm' ? '#86efac' : '#d4b84a';
+        ctx.fillStyle = tw.towerType === 'farm' ? '#a8a29e' : '#d4b84a';
         ctx.font = UI_FONT_BOLD;
         ctx.textAlign = 'center';
         const amt = tw.towerType === 'farm'
@@ -20634,7 +20891,7 @@ function renderFrame(time) {
         ctx.lineWidth = 3.5;
         ctx.strokeStyle = 'rgba(0,0,0,0.75)';
         ctx.fillStyle = okAll ? '#fcd34d' : '#ef4444';
-        const label = `${total} 💵`;
+        const label = `${total} 💀`;
         ctx.strokeText(label, cx, ly);
         ctx.fillText(label, cx, ly);
         ctx.restore();
