@@ -9,12 +9,12 @@ window.LIVE_ARMY = (function () {
 
   const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'missile'];
   const ECON_TOWERS = ['farm', 'mint'];
-  const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'sniper', 'peka'];
+  const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'sniper', 'yeti', 'peka'];
   const UNIT_LABELS = {
-    tank: 'Elephant', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', peka: 'Dragon',
+    tank: 'Elephant', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', yeti: 'Yeti', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
-    tank: 100, speed: 150, striker: 50, sniper: 250, goblin: 125, peka: 500,
+    tank: 100, speed: 150, striker: 50, sniper: 250, goblin: 125, yeti: 350, peka: 500,
   };
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 3;
@@ -217,7 +217,7 @@ window.LIVE_ARMY = (function () {
   const BASE_INCOME_UPGRADE_COSTS = [150, 300, 450];
   const BASE_BRANCHES = ['income', 'health', 'defense'];
   const BASE_BRANCH_LABELS = { income: 'Income', health: 'Health', defense: 'Guns' };
-  const BASE_BRANCH_ICONS = { income: '💀', health: '❤️', defense: '🔫' };
+  const BASE_BRANCH_ICONS = { income: '💵', health: '❤️', defense: '🔫' };
 
   function freshMissileUpgrades() {
     return { rate: 1, damage: 1, radius: 1 };
@@ -283,6 +283,7 @@ window.LIVE_ARMY = (function () {
     gameRules.towers.engineers = true;
     gameRules.towers.laboratory = true;
     gameRules.units.goblin = true;
+    gameRules.units.yeti = true;
     for (const p of players) {
       p.liveArmy = {
         barracks: freshBarracks(),
@@ -335,8 +336,8 @@ window.LIVE_ARMY = (function () {
     const el = document.getElementById('economy-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Unlock graveyards and mints, then upgrade harvest speed and yield on separate branches. Enemy levels are hidden.'
-      : 'Unlock graveyards and mints, then upgrade harvest speed (4s→1s) and yield per harvest on separate branches.';
+      ? 'HQ, turrets, commander, farms & mints. Enemy levels stay hidden.'
+      : 'Headquarters, turrets, commander, farms, and mints.';
   }
 
   function initPlayer(p) {
@@ -364,7 +365,9 @@ window.LIVE_ARMY = (function () {
 
   function getPlacementCollisionRadius(towerType) {
     const type = towerType?.towerType || towerType;
-    if (type === 'farm') return Math.ceil(FARM_SIZE / 2) + 4;
+    // Farm visual footprint is wide — keep collision at least half-size + pad
+    // so farms cannot clip other structures even after gap clearance.
+    if (type === 'farm') return Math.ceil(FARM_SIZE / 2) + 6;
     if (type === 'laboratory') return 20;
     if (type === 'barracks' || type === 'engineers' || type === 'missile') return 26;
     if (type === 'mint') return 12;
@@ -378,11 +381,11 @@ window.LIVE_ARMY = (function () {
   function modifyTowerDef(type, def, ownerId, opts) {
     if (!active) return def;
     const d = { ...def };
-    if (type === 'farm') { d.size = FARM_SIZE; d.name = 'Graveyard'; d.style = 'farm_live'; }
+    if (type === 'farm') { d.size = FARM_SIZE; d.name = 'Farm'; d.style = 'farm_live'; }
     else if (type === 'mint') { d.size = MINT_SIZE; d.name = 'Bank'; d.style = 'mint_live'; }
     else if (type === 'barracks') { d.size = STRUCTURE_SIZE; d.name = 'Barracks'; d.style = 'barracks'; d.cost = 100; d.hp = 120; }
     else if (type === 'engineers') { d.size = STRUCTURE_SIZE; d.name = 'Tower Depot'; d.style = 'engineers'; d.cost = 100; d.hp = 110; }
-    else if (type === 'laboratory') { d.size = LABORATORY_SIZE; d.name = 'Laboratory'; d.style = 'laboratory'; d.cost = 100; d.hp = 130; }
+    else if (type === 'laboratory') { d.size = LABORATORY_SIZE; d.name = "Wizard's Nest"; d.style = 'laboratory'; d.cost = 100; d.hp = 130; }
     else if (type === 'missile') {
       d.size = STRUCTURE_SIZE; d.name = 'Missile Base'; d.style = 'missile_live';
       d.fireInterval = 9; d.damage = 4; d.blastRadius = 72; d.missileSpeed = 260;
@@ -542,7 +545,7 @@ window.LIVE_ARMY = (function () {
         wearoffTime: 1,
       };
     }
-    // heal: yellow potion — +30 HP/s base = +10 HP every 1/3s (units + towers)
+    // heal: yellow potion — +30 HP/s base = +10 HP every 1/3s (units + towers + base)
     return {
       radius: 90 + (lvl - 1) * 12,
       duration: 3 + (lvl - 1) * 0.5,
@@ -921,21 +924,7 @@ window.LIVE_ARMY = (function () {
   }
 
   function syncBuildToolbar() {
-    const strikerBtn = document.querySelector('.btn-striker');
-    const bloopBtn = document.querySelector('.btn-bloop');
-    const laserBtn = document.querySelector('.btn-laser');
-    if (strikerBtn && strikerBtn.childNodes[0]?.nodeType === 3) {
-      strikerBtn.childNodes[0].textContent = active ? '🐴 Knight' : '🟥 Striker';
-    } else if (strikerBtn) {
-      const label = strikerBtn.childNodes[0];
-      if (label) label.textContent = active ? '🐴 Knight' : '🟥 Striker';
-    }
-    if (bloopBtn) bloopBtn.style.display = active ? 'none' : '';
-    if (laserBtn && active) laserBtn.childNodes[0].textContent = '⚡ Rail Gun';
-    const slimeBtn = document.querySelector('.btn-slime');
-    if (slimeBtn && active) slimeBtn.childNodes[0].textContent = '🧟 Zombie Slime';
-    const healBtn = document.querySelector('.btn-heal');
-    if (healBtn && active) healBtn.childNodes[0].textContent = '🧴 Yellow Potion';
+    // Hotbar icons/labels are refreshed by syncHotbarUI in updateUI.
   }
 
   return {
