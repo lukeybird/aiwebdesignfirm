@@ -437,6 +437,9 @@
     }
 
     .hot-slot-canvas {
+      position: absolute;
+      inset: 0;
+      margin: auto;
       width: 52px;
       height: 52px;
       image-rendering: auto;
@@ -445,6 +448,9 @@
     }
 
     .hot-slot-glyph {
+      position: absolute;
+      inset: 0;
+      margin: auto;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -455,6 +461,12 @@
       text-align: center;
       pointer-events: none;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,0.65));
+    }
+
+    /* Author `display` rules beat the UA [hidden] stylesheet — keep hide working. */
+    .hot-slot-canvas[hidden],
+    .hot-slot-glyph[hidden] {
+      display: none !important;
     }
 
     .hot-slot-cost {
@@ -1163,7 +1175,6 @@
       color: #1f2937;
     }
 
-    #barracks-upgrade-panel,
     #engineers-upgrade-panel,
     #laboratory-upgrade-panel {
       position: absolute;
@@ -1176,9 +1187,369 @@
       pointer-events: auto;
     }
 
-    #barracks-upgrade-panel.hidden,
     #engineers-upgrade-panel.hidden,
     #laboratory-upgrade-panel.hidden { display: none; }
+
+    /* ── Barracks: side drawer (same shell as Base menu) ── */
+    #barracks-upgrade-panel {
+      position: absolute;
+      inset: 0;
+      z-index: 18;
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-start;
+      pointer-events: auto;
+      background:
+        linear-gradient(90deg, rgba(6, 10, 8, 0.72) 0%, rgba(6, 10, 8, 0.28) 42%, transparent 70%);
+    }
+
+    #barracks-upgrade-panel.dock-right {
+      justify-content: flex-end;
+      background:
+        linear-gradient(270deg, rgba(6, 10, 8, 0.72) 0%, rgba(6, 10, 8, 0.28) 42%, transparent 70%);
+    }
+
+    #barracks-upgrade-panel.hidden { display: none; }
+
+    #barracks-upgrade-panel .barracks-st-panel {
+      width: 50%;
+      max-width: none;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 0;
+      border-left: none;
+      border-color: #6ee7a0;
+      background:
+        linear-gradient(185deg, rgba(16, 36, 22, 0.98) 0%, rgba(8, 14, 12, 0.99) 48%, rgba(6, 10, 10, 1) 100%);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.75),
+        12px 0 48px rgba(0, 0, 0, 0.55),
+        inset -1px 0 0 rgba(110, 231, 160, 0.18),
+        inset 0 0 60px rgba(0, 0, 0, 0.35);
+      animation: baseDrawerInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #barracks-upgrade-panel.dock-right .barracks-st-panel {
+      border-radius: 0;
+      border-left: 3px solid #6ee7a0;
+      border-right: none;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.75),
+        -12px 0 48px rgba(0, 0, 0, 0.55),
+        inset 1px 0 0 rgba(110, 231, 160, 0.18),
+        inset 0 0 60px rgba(0, 0, 0, 0.35);
+      animation: baseDrawerInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #barracks-upgrade-panel .st-header {
+      background: linear-gradient(180deg, #3d9a5c 0%, #1f6b3a 48%, #134528 100%);
+      border-bottom: 2px solid #86efac;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 4px 14px rgba(0, 0, 0, 0.4);
+      padding: 12px 14px;
+    }
+
+    #barracks-upgrade-panel .st-header-title {
+      font-size: 1.05rem;
+      letter-spacing: 0.16em;
+    }
+
+    #barracks-upgrade-panel .st-panel-desc {
+      padding: 8px 14px 6px;
+      font-size: 0.68rem;
+      color: #a7d4b4;
+    }
+
+    #barracks-upgrade-panel .st-scroll-wrap {
+      max-height: none;
+      flex: 1;
+      padding: 0 8px 8px 10px;
+    }
+
+    #barracks-upgrade-panel.dock-right .st-scroll-wrap {
+      flex-direction: row-reverse;
+      padding: 0 10px 8px 8px;
+    }
+
+    #barracks-upgrade-panel .st-scroll-btn {
+      border-color: #6ee7a0;
+      background: linear-gradient(180deg, #1f4a30 0%, #0e2418 100%);
+      color: #bbf7d0;
+      width: 40px;
+      height: 48px;
+      font-size: 1.15rem;
+    }
+
+    #barracks-upgrade-panel .st-scroll-btn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #2d6b44 0%, #163526 100%);
+    }
+
+    .brk-troop-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px 10px;
+      padding: 8px 4px 28px;
+    }
+
+    .brk-troop-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      min-width: 0;
+      cursor: default;
+    }
+
+    .brk-troop-portrait-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 3.6;
+      overflow: hidden;
+      border: 2px solid rgba(180, 210, 170, 0.35);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.75),
+        inset 0 0 24px rgba(0, 0, 0, 0.35);
+      background: #0a120e;
+    }
+
+    .brk-troop-card.is-owned .brk-troop-portrait-wrap {
+      border-color: #86efac;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.75),
+        0 0 14px rgba(110, 231, 160, 0.35),
+        inset 0 0 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .brk-troop-card.is-locked .brk-troop-portrait-wrap {
+      filter: grayscale(0.55) brightness(0.72);
+    }
+
+    .brk-troop-portrait {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .brk-troop-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, transparent 48%, rgba(0, 0, 0, 0.72) 100%),
+        radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.35) 100%);
+    }
+
+    .brk-troop-badge {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 6px;
+      z-index: 2;
+      text-align: center;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      padding: 5px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      pointer-events: none;
+    }
+
+    .brk-troop-badge.is-cost {
+      color: #fef9c3;
+      background: rgba(8, 12, 10, 0.78);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    }
+
+    .brk-troop-badge.is-owned-tag {
+      top: 6px;
+      bottom: auto;
+      left: 6px;
+      right: auto;
+      color: #bbf7d0;
+      background: rgba(20, 83, 45, 0.85);
+      border-color: rgba(134, 239, 172, 0.55);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-size: 0.62rem;
+      padding: 4px 7px;
+    }
+
+    .brk-troop-card:not(.is-owned) .brk-troop-portrait-wrap {
+      cursor: pointer;
+    }
+
+    .brk-troop-card:not(.is-owned):not(.is-locked) .brk-troop-portrait-wrap:hover {
+      border-color: #bbf7d0;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.75),
+        0 0 16px rgba(110, 231, 160, 0.4);
+    }
+
+    button.brk-troop-hit {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    button.brk-troop-hit:disabled {
+      cursor: not-allowed;
+    }
+
+    .brk-troop-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+      color: #f0fdf4;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+      line-height: 1.2;
+      padding: 0 2px;
+    }
+
+    .brk-troop-meta {
+      font-size: 0.58rem;
+      line-height: 1.25;
+      text-align: center;
+      color: #86efac;
+      opacity: 0.88;
+      padding: 0 2px 2px;
+    }
+
+    .brk-troop-skills-btn {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(134, 239, 172, 0.55);
+      border-radius: 6px;
+      padding: 7px 8px;
+      background: linear-gradient(180deg, #1f6b3a 0%, #134528 100%);
+      color: #ecfdf5;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .brk-troop-skills-btn:hover {
+      filter: brightness(1.1);
+      border-color: #bbf7d0;
+    }
+
+    .brk-skill-view {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 4px 2px 28px;
+    }
+
+    .brk-skill-back {
+      align-self: flex-start;
+      border: 1px solid rgba(134, 239, 172, 0.45);
+      background: rgba(8, 24, 14, 0.85);
+      color: #bbf7d0;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .brk-skill-back:hover {
+      border-color: #86efac;
+      color: #ecfdf5;
+    }
+
+    .brk-skill-hero {
+      display: flex;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .brk-skill-hero-art {
+      position: relative;
+      width: 38%;
+      max-width: 180px;
+      flex-shrink: 0;
+      aspect-ratio: 3 / 3.6;
+      overflow: hidden;
+      border: 2px solid #86efac;
+      background: #0a120e;
+      box-shadow: 0 0 14px rgba(110, 231, 160, 0.25);
+    }
+
+    .brk-skill-hero-art canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .brk-skill-hero-copy {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .brk-skill-hero-copy h4 {
+      margin: 0;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #ecfdf5;
+    }
+
+    .brk-skill-hero-copy p {
+      margin: 0;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: #a7d4b4;
+    }
+
+    .brk-skill-tracks {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 8px 4px 4px;
+      border-top: 1px solid rgba(110, 231, 160, 0.25);
+    }
+
+    .brk-skill-track-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .brk-skill-track-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #86efac;
+    }
+
+    .brk-skill-view .brk-stat-track {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
 
     /* ── Base menu: side drawer on your base edge ── */
     #econ-upgrade-panel {
@@ -2275,6 +2646,14 @@
         linear-gradient(180deg, #0a0e1a 0%, #060810 100%);
     }
 
+    #barracks-upgrade-list {
+      padding: 10px 8px 40px;
+      background:
+        radial-gradient(ellipse 90% 40% at 50% 0%, rgba(46, 120, 72, 0.18) 0%, transparent 55%),
+        repeating-linear-gradient(60deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 22px),
+        linear-gradient(180deg, #081410 0%, #050a08 100%);
+    }
+
     #econ-upgrade-list {
       flex: 1;
       min-height: 0;
@@ -3153,17 +3532,17 @@
       <button id="laboratory-upgrade-btn" class="hidden" type="button" title="Wizard's Nest spells">Wizard's Nest</button>
       <button id="missile-upgrade-btn" class="hidden" type="button" title="Missile base upgrades">Missile</button>
       <div id="lab-casting-banner" class="lab-casting-banner hidden">Click the battlefield to cast</div>
-      <div id="barracks-upgrade-panel" class="hidden">
-        <div class="st-panel">
+      <div id="barracks-upgrade-panel" class="hidden dock-left">
+        <div class="st-panel barracks-st-panel" role="dialog" aria-labelledby="barracks-panel-title">
           <div class="st-header">
-            <span class="st-header-emblem">⚜</span>
-            <h3 class="st-header-title">Barracks Skill Tree</h3>
-            <button id="barracks-panel-close" class="st-header-close" type="button">✕</button>
+            <span class="st-header-emblem" aria-hidden="true">🏕</span>
+            <h3 id="barracks-panel-title" class="st-header-title">Barracks</h3>
+            <button id="barracks-panel-close" class="st-header-close" type="button" aria-label="Close barracks">✕</button>
           </div>
-          <p id="barracks-upgrade-desc" class="st-panel-desc">Unlock units in the top row, then upgrade each type on the small tracks below.</p>
+          <p id="barracks-upgrade-desc" class="st-panel-desc">Recruit troops, then open Skill Tree on each recruited card to upgrade them.</p>
           <div class="st-scroll-wrap">
             <div id="barracks-upgrade-list" class="st-skill-scroll"></div>
-            <div class="st-scroll-nav" aria-label="Scroll barracks tree">
+            <div class="st-scroll-nav" aria-label="Scroll troop list">
               <button type="button" class="st-scroll-btn st-scroll-up" data-list="barracks-upgrade-list" title="Scroll up">▲</button>
               <button type="button" class="st-scroll-btn st-scroll-down" data-list="barracks-upgrade-list" title="Scroll down">▼</button>
             </div>
@@ -3495,8 +3874,8 @@ const UNIT_TYPES = {
     targetsUnits: false, targetsTowers: true, targetsBase: false,
   },
   yeti: {
-    name: 'Yeti', hp: 195, speed: 48, damage: 32, attackRate: 0.55, range: 34, cost: 95,
-    color: '#f0f9ff', accent: '#7dd3fc', size: 26, behavior: 'hunter', prefersUnits: true,
+    name: 'Yeti', hp: 195, speed: 48, damage: 32, attackRate: 0.55, range: 34, cost: 350,
+    color: '#9fd4ea', accent: '#e8f4fc', size: 28, behavior: 'hunter', prefersUnits: true,
   },
 };
 
@@ -3964,14 +4343,14 @@ function paintHotbarStructureIcon(g, tool, cx, cy, scale) {
     g.arc(16, -14, 4, 0, Math.PI * 2);
     g.fill();
   } else if (tool === 'laboratory') {
-    g.fillStyle = '#312e81';
+    g.fillStyle = '#38bdf8';
     g.fillRect(-8, -6, 16, 22);
-    g.fillStyle = '#4c1d95';
+    g.fillStyle = '#7dd3fc';
     g.beginPath();
     g.moveTo(-11, -6); g.lineTo(0, -22); g.lineTo(11, -6);
     g.closePath();
     g.fill();
-    g.fillStyle = '#c4b5fd';
+    g.fillStyle = '#e0f2fe';
     g.fillRect(-4, 2, 3, 5);
     g.fillRect(2, 2, 3, 5);
     g.fillStyle = '#fbbf24';
@@ -4301,7 +4680,7 @@ const TOWER_MANUAL = {
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus coins every round. Protect them!',
   farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests coins on a timer. Upgrade harvest speed and yield in the Economy tree.',
   laboratory: "Spell keep for your army. Build one Wizard's Nest to unlock Fireball, Zombie Slime, and Yellow Potion from the skill tree, then cast them from the bottom bar.",
-  barracks: 'Unlocks and upgrades your deployable units. One per team.',
+  barracks: 'Unlocks deployable units. Recruit from the list, then upgrade each troop from its Skill Tree button.',
   engineers: 'Unlocks and upgrades combat towers. One per team.',
 };
 
@@ -5272,14 +5651,14 @@ function buyBarracksUpgrade(pid, kind, unitType, stat) {
   if (kind === 'unlock') {
     const cost = LIVE_ARMY.unitUnlockCost(unitType);
     if (rec.unlocked || p.coins < cost) return false;
-  p.coins -= cost;
+    p.coins -= cost;
     rec.unlocked = true;
     addLog(`🏕 ${p.name}: Unlocked ${LIVE_ARMY.UNIT_LABELS[unitType] || unitType}`);
   } else if (kind === 'stat' && stat) {
     if (!rec.unlocked || (rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) return false;
     const cost = LIVE_ARMY.statUpgradeCost(p, unitType, stat);
     if (cost == null || p.coins < cost) return false;
-  p.coins -= cost;
+    p.coins -= cost;
     rec[stat] = (rec[stat] || 0) + 1;
     const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
     const statLabel = barracksStatBranchLabel(unitType, stat).toLowerCase();
@@ -5359,6 +5738,415 @@ function buyMissileUpgrade(pid, towerId, branch) {
   return true;
 }
 
+function paintBarracksPortraitBg(g, w, h, c0, c1, c2) {
+  const grad = g.createLinearGradient(0, 0, w * 0.2, h);
+  grad.addColorStop(0, c0);
+  grad.addColorStop(0.55, c1);
+  grad.addColorStop(1, c2);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
+}
+
+function paintBarracksTroopPortrait(g, unitType, w, h) {
+  g.clearRect(0, 0, w, h);
+  const cx = w * 0.5;
+  const cy = h * 0.52;
+
+  if (unitType === 'striker') {
+    paintBarracksPortraitBg(g, w, h, '#3b1d1d', '#1a0c0c', '#0a0505');
+    // Caparison / shoulder armor
+    g.fillStyle = '#7f1d1d';
+    g.beginPath();
+    g.ellipse(cx, cy + h * 0.28, w * 0.42, h * 0.22, 0, 0, Math.PI * 2);
+    g.fill();
+    // Helmet
+    const helm = g.createRadialGradient(cx - 8, cy - 30, 4, cx, cy - 10, w * 0.34);
+    helm.addColorStop(0, '#f3f4f6');
+    helm.addColorStop(0.45, '#9ca3af');
+    helm.addColorStop(1, '#374151');
+    g.fillStyle = helm;
+    g.beginPath();
+    g.ellipse(cx, cy - h * 0.06, w * 0.28, h * 0.3, 0, 0, Math.PI * 2);
+    g.fill();
+    // Visor slit
+    g.fillStyle = '#111827';
+    g.fillRect(cx - w * 0.16, cy - h * 0.08, w * 0.32, h * 0.05);
+    g.fillStyle = '#f87171';
+    g.globalAlpha = 0.55;
+    g.fillRect(cx - w * 0.14, cy - h * 0.07, w * 0.28, h * 0.03);
+    g.globalAlpha = 1;
+    // Plume
+    g.fillStyle = '#dc2626';
+    g.beginPath();
+    g.moveTo(cx - 6, cy - h * 0.34);
+    g.quadraticCurveTo(cx + 18, cy - h * 0.55, cx + 4, cy - h * 0.28);
+    g.quadraticCurveTo(cx - 2, cy - h * 0.4, cx - 6, cy - h * 0.34);
+    g.fill();
+    // Lance tip glint
+    g.strokeStyle = '#fde68a';
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(cx + w * 0.22, cy + h * 0.05);
+    g.lineTo(cx + w * 0.42, cy - h * 0.12);
+    g.stroke();
+  } else if (unitType === 'tank') {
+    paintBarracksPortraitBg(g, w, h, '#5b6b52', '#2f3a2c', '#141a12');
+    // Ears
+    g.fillStyle = '#8b9498';
+    for (const dir of [-1, 1]) {
+      g.beginPath();
+      g.ellipse(cx + dir * w * 0.28, cy - h * 0.02, w * 0.14, h * 0.22, dir * 0.35, 0, Math.PI * 2);
+      g.fill();
+    }
+    // Head
+    const hide = g.createRadialGradient(cx - 10, cy - 20, 8, cx, cy, w * 0.38);
+    hide.addColorStop(0, '#d6d3d1');
+    hide.addColorStop(0.5, '#a8a29e');
+    hide.addColorStop(1, '#57534e');
+    g.fillStyle = hide;
+    g.beginPath();
+    g.ellipse(cx, cy + h * 0.02, w * 0.34, h * 0.32, 0, 0, Math.PI * 2);
+    g.fill();
+    // Trunk
+    g.fillStyle = '#78716c';
+    g.beginPath();
+    g.moveTo(cx - 10, cy + h * 0.12);
+    g.quadraticCurveTo(cx + 8, cy + h * 0.35, cx - 4, cy + h * 0.42);
+    g.quadraticCurveTo(cx - 16, cy + h * 0.28, cx - 10, cy + h * 0.12);
+    g.fill();
+    // Tusks
+    g.fillStyle = '#f5f5f4';
+    for (const dir of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(cx + dir * 18, cy + h * 0.08);
+      g.quadraticCurveTo(cx + dir * 34, cy + h * 0.22, cx + dir * 22, cy + h * 0.32);
+      g.quadraticCurveTo(cx + dir * 16, cy + h * 0.18, cx + dir * 18, cy + h * 0.08);
+      g.fill();
+    }
+    // Eye
+    g.fillStyle = '#1c1917';
+    g.beginPath();
+    g.ellipse(cx + w * 0.1, cy - h * 0.06, 5, 4, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#fbbf24';
+    g.beginPath();
+    g.arc(cx + w * 0.11, cy - h * 0.06, 1.6, 0, Math.PI * 2);
+    g.fill();
+  } else if (unitType === 'goblin') {
+    paintBarracksPortraitBg(g, w, h, '#14532d', '#052e16', '#02140a');
+    // Ears
+    g.fillStyle = '#4ade80';
+    for (const dir of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(cx + dir * w * 0.12, cy - h * 0.12);
+      g.lineTo(cx + dir * w * 0.38, cy - h * 0.32);
+      g.lineTo(cx + dir * w * 0.14, cy - h * 0.02);
+      g.closePath();
+      g.fill();
+    }
+    // Head
+    const skin = g.createRadialGradient(cx - 6, cy - 16, 4, cx, cy, w * 0.32);
+    skin.addColorStop(0, '#86efac');
+    skin.addColorStop(0.55, '#22c55e');
+    skin.addColorStop(1, '#166534');
+    g.fillStyle = skin;
+    g.beginPath();
+    g.ellipse(cx, cy, w * 0.3, h * 0.3, 0, 0, Math.PI * 2);
+    g.fill();
+    // Eyes
+    g.fillStyle = '#ef4444';
+    g.beginPath();
+    g.ellipse(cx - 14, cy - 6, 7, 8, 0, 0, Math.PI * 2);
+    g.ellipse(cx + 14, cy - 6, 7, 8, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#111';
+    g.beginPath();
+    g.arc(cx - 14, cy - 5, 2.5, 0, Math.PI * 2);
+    g.arc(cx + 14, cy - 5, 2.5, 0, Math.PI * 2);
+    g.fill();
+    // Grin
+    g.fillStyle = '#14532d';
+    g.beginPath();
+    g.ellipse(cx, cy + 18, 16, 10, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#f8fafc';
+    for (let i = -2; i <= 2; i++) {
+      g.fillRect(cx + i * 6 - 2, cy + 12, 3.5, 8);
+    }
+  } else if (unitType === 'speed') {
+    paintBarracksPortraitBg(g, w, h, '#3f3f46', '#18181b', '#09090b');
+    // Fur mane
+    g.fillStyle = '#e4e4e7';
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI * 0.9 + (i / 9) * Math.PI * 1.8;
+      g.beginPath();
+      g.moveTo(cx + Math.cos(a) * w * 0.12, cy + Math.sin(a) * h * 0.1 - 8);
+      g.lineTo(cx + Math.cos(a) * w * 0.4, cy + Math.sin(a) * h * 0.34 - 8);
+      g.lineTo(cx + Math.cos(a + 0.2) * w * 0.12, cy + Math.sin(a + 0.2) * h * 0.1 - 8);
+      g.closePath();
+      g.fill();
+    }
+    // Head
+    const fur = g.createRadialGradient(cx - 8, cy - 12, 4, cx, cy + 4, w * 0.34);
+    fur.addColorStop(0, '#fafafa');
+    fur.addColorStop(0.5, '#d4d4d8');
+    fur.addColorStop(1, '#71717a');
+    g.fillStyle = fur;
+    g.beginPath();
+    g.ellipse(cx, cy + 4, w * 0.3, h * 0.28, 0, 0, Math.PI * 2);
+    g.fill();
+    // Snout
+    g.fillStyle = '#a1a1aa';
+    g.beginPath();
+    g.ellipse(cx, cy + h * 0.14, w * 0.16, h * 0.12, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#18181b';
+    g.beginPath();
+    g.ellipse(cx, cy + h * 0.16, 8, 6, 0, 0, Math.PI * 2);
+    g.fill();
+    // Eyes
+    g.fillStyle = '#fbbf24';
+    g.beginPath();
+    g.ellipse(cx - 14, cy - 4, 5, 4, 0, 0, Math.PI * 2);
+    g.ellipse(cx + 14, cy - 4, 5, 4, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#000';
+    g.beginPath();
+    g.arc(cx - 13, cy - 4, 2, 0, Math.PI * 2);
+    g.arc(cx + 15, cy - 4, 2, 0, Math.PI * 2);
+    g.fill();
+    // Teeth
+    g.fillStyle = '#fafafa';
+    g.beginPath();
+    g.moveTo(cx - 10, cy + h * 0.18);
+    g.lineTo(cx - 6, cy + h * 0.28);
+    g.lineTo(cx - 2, cy + h * 0.18);
+    g.moveTo(cx + 2, cy + h * 0.18);
+    g.lineTo(cx + 6, cy + h * 0.28);
+    g.lineTo(cx + 10, cy + h * 0.18);
+    g.fill();
+  } else if (unitType === 'sniper') {
+    paintBarracksPortraitBg(g, w, h, '#1f2937', '#0f172a', '#020617');
+    // Hood
+    g.fillStyle = '#111827';
+    g.beginPath();
+    g.moveTo(cx - w * 0.32, cy + h * 0.2);
+    g.quadraticCurveTo(cx - w * 0.35, cy - h * 0.35, cx, cy - h * 0.38);
+    g.quadraticCurveTo(cx + w * 0.35, cy - h * 0.35, cx + w * 0.32, cy + h * 0.2);
+    g.closePath();
+    g.fill();
+    // Face shadow
+    g.fillStyle = '#374151';
+    g.beginPath();
+    g.ellipse(cx, cy, w * 0.18, h * 0.2, 0, 0, Math.PI * 2);
+    g.fill();
+    // Scope glow eye
+    g.fillStyle = '#67e8f9';
+    g.beginPath();
+    g.arc(cx + 6, cy - 4, 5, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#ecfeff';
+    g.beginPath();
+    g.arc(cx + 7, cy - 5, 2, 0, Math.PI * 2);
+    g.fill();
+    // Rifle across frame
+    g.fillStyle = '#292524';
+    g.save();
+    g.translate(cx + 10, cy + 24);
+    g.rotate(-0.35);
+    g.fillRect(-50, -4, 90, 8);
+    g.fillStyle = '#57534e';
+    g.fillRect(20, -7, 28, 14);
+    g.restore();
+  } else if (unitType === 'yeti') {
+    paintBarracksPortraitBg(g, w, h, '#0c4a6e', '#082f49', '#020617');
+    // Spiky white mane
+    g.fillStyle = '#f8fafc';
+    for (let i = 0; i < 12; i++) {
+      const a = -Math.PI * 0.95 + (i / 11) * Math.PI * 1.9;
+      const len = w * (0.34 + (i % 3) * 0.04);
+      g.beginPath();
+      g.moveTo(cx + Math.cos(a) * w * 0.14, cy + Math.sin(a) * h * 0.1 - 4);
+      g.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len * 0.85 - 4);
+      g.lineTo(cx + Math.cos(a + 0.18) * w * 0.14, cy + Math.sin(a + 0.18) * h * 0.1 - 4);
+      g.closePath();
+      g.fill();
+    }
+    // Icy blue face/muscle
+    const ice = g.createRadialGradient(cx - 8, cy - 10, 4, cx, cy + 6, w * 0.34);
+    ice.addColorStop(0, '#e0f2fe');
+    ice.addColorStop(0.45, '#7dd3fc');
+    ice.addColorStop(1, '#0284c7');
+    g.fillStyle = ice;
+    g.beginPath();
+    g.ellipse(cx, cy + 4, w * 0.28, h * 0.3, 0, 0, Math.PI * 2);
+    g.fill();
+    // Brow
+    g.fillStyle = '#0369a1';
+    g.beginPath();
+    g.ellipse(cx, cy - h * 0.06, w * 0.22, h * 0.08, 0, 0, Math.PI * 2);
+    g.fill();
+    // Eyes
+    g.fillStyle = '#0f172a';
+    g.beginPath();
+    g.ellipse(cx - 14, cy - 2, 5, 4, 0, 0, Math.PI * 2);
+    g.ellipse(cx + 14, cy - 2, 5, 4, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#38bdf8';
+    g.beginPath();
+    g.arc(cx - 13, cy - 2, 1.8, 0, Math.PI * 2);
+    g.arc(cx + 15, cy - 2, 1.8, 0, Math.PI * 2);
+    g.fill();
+    // Roaring maw
+    g.fillStyle = '#1e1b1b';
+    g.beginPath();
+    g.ellipse(cx, cy + 22, 18, 14, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#f8fafc';
+    for (let i = -2; i <= 2; i++) {
+      g.beginPath();
+      g.moveTo(cx + i * 7 - 2, cy + 14);
+      g.lineTo(cx + i * 7, cy + 26);
+      g.lineTo(cx + i * 7 + 2, cy + 14);
+      g.fill();
+    }
+    // Claw hint at bottom
+    g.fillStyle = '#0f172a';
+    for (let i = -1; i <= 1; i++) {
+      g.beginPath();
+      g.moveTo(cx + i * 16 - 4, cy + h * 0.34);
+      g.lineTo(cx + i * 16, cy + h * 0.44);
+      g.lineTo(cx + i * 16 + 4, cy + h * 0.34);
+      g.fill();
+    }
+  } else if (unitType === 'peka') {
+    paintBarracksPortraitBg(g, w, h, '#7f1d1d', '#450a0a', '#1c0505');
+    // Wings hint
+    g.fillStyle = '#991b1b';
+    for (const dir of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.quadraticCurveTo(cx + dir * w * 0.5, cy - h * 0.25, cx + dir * w * 0.42, cy + h * 0.2);
+      g.quadraticCurveTo(cx + dir * w * 0.22, cy + h * 0.05, cx, cy + 10);
+      g.fill();
+    }
+    // Head
+    const scales = g.createRadialGradient(cx - 10, cy - 16, 6, cx, cy, w * 0.36);
+    scales.addColorStop(0, '#f87171');
+    scales.addColorStop(0.45, '#dc2626');
+    scales.addColorStop(1, '#7f1d1d');
+    g.fillStyle = scales;
+    g.beginPath();
+    g.ellipse(cx, cy, w * 0.3, h * 0.3, 0, 0, Math.PI * 2);
+    g.fill();
+    // Horns
+    g.fillStyle = '#e7e5e4';
+    for (const dir of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(cx + dir * 16, cy - h * 0.18);
+      g.lineTo(cx + dir * 28, cy - h * 0.4);
+      g.lineTo(cx + dir * 8, cy - h * 0.2);
+      g.closePath();
+      g.fill();
+    }
+    // Eyes
+    g.fillStyle = '#fde047';
+    g.beginPath();
+    g.ellipse(cx - 12, cy - 6, 6, 5, 0, 0, Math.PI * 2);
+    g.ellipse(cx + 12, cy - 6, 6, 5, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#111';
+    g.beginPath();
+    g.ellipse(cx - 11, cy - 6, 2.5, 4, 0, 0, Math.PI * 2);
+    g.ellipse(cx + 13, cy - 6, 2.5, 4, 0, 0, Math.PI * 2);
+    g.fill();
+    // Mouth fire glow
+    const fire = g.createRadialGradient(cx, cy + 24, 2, cx, cy + 24, 28);
+    fire.addColorStop(0, '#fde047');
+    fire.addColorStop(0.5, '#f97316');
+    fire.addColorStop(1, 'rgba(127,29,29,0)');
+    g.fillStyle = fire;
+    g.beginPath();
+    g.arc(cx, cy + 26, 26, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#1c1917';
+    g.beginPath();
+    g.ellipse(cx, cy + 22, 16, 10, 0, 0, Math.PI * 2);
+    g.fill();
+  } else {
+    paintBarracksPortraitBg(g, w, h, '#334155', '#0f172a', '#020617');
+    g.fillStyle = '#94a3b8';
+    g.beginPath();
+    g.arc(cx, cy, w * 0.2, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+function paintBarracksTroopPortraits(root) {
+  const host = root || document.getElementById('barracks-upgrade-list');
+  if (!host) return;
+  host.querySelectorAll('canvas.brk-troop-portrait[data-unit]').forEach((canvas) => {
+    const type = canvas.dataset.unit;
+    const g = canvas.getContext('2d');
+    if (!g || !type) return;
+    paintBarracksTroopPortrait(g, type, canvas.width, canvas.height);
+  });
+}
+
+let barracksSkillFocus = null; // unit type when viewing that troop's skill tree
+
+function barracksUnitSkillTreeHtml(p, ut) {
+  const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
+  const rec = LIVE_ARMY.unitRecord(p, ut);
+  const base = UNIT_TYPES[ut] || {};
+  const blurb = UNIT_MANUAL[ut] || '';
+  const branches = LIVE_ARMY.STAT_BRANCHES || ['speed', 'damage', 'health'];
+  const shortBlurb = blurb.length > 160 ? `${blurb.slice(0, 157)}…` : blurb;
+
+  let html = '<div class="brk-skill-view">';
+  html += '<button type="button" class="brk-skill-back" data-barracks-skills-back="1">← All troops</button>';
+  html += '<div class="brk-skill-hero">';
+  html += '<div class="brk-skill-hero-art">';
+  html += `<canvas class="brk-troop-portrait" data-unit="${ut}" width="200" height="240" aria-hidden="true"></canvas>`;
+  html += '<div class="brk-troop-vignette"></div>';
+  html += '</div>';
+  html += '<div class="brk-skill-hero-copy">';
+  html += `<h4>${escapeHtml(label)}</h4>`;
+  html += `<p>${escapeHtml(shortBlurb || 'Upgrade this troop along Speed, Attack, and Health.')}</p>`;
+  html += `<p class="brk-troop-meta" style="text-align:left;padding:0">${escapeHtml(`${base.hp || '?'} HP · ${base.damage || '?'} dmg · ${base.cost || '?'}💵 deploy`)}</p>`;
+  html += '</div></div>';
+
+  html += '<div class="brk-skill-tracks">';
+  for (const stat of branches) {
+    const branchTheme = barracksStatBranchTheme(ut, stat);
+    const branchLabel = barracksStatBranchLabel(ut, stat);
+    const nodes = [];
+    for (let tier = 1; tier <= LIVE_ARMY.STAT_MAX; tier++) {
+      const meta = barracksStatMeta(label, stat, tier, ut);
+      const cost = LIVE_ARMY.statUpgradeCost(p, ut, stat);
+      nodes.push(barracksMiniStatNodeHtml({
+        tier,
+        maxTier: LIVE_ARMY.STAT_MAX,
+        ownedTier: rec[stat] || 0,
+        unlocked: true,
+        cost,
+        afford: p.coins >= cost,
+        icon: barracksStatTierIcon(ut, stat, tier),
+        theme: branchTheme,
+        dataAttrs: ` data-barracks-stat="${stat}" data-barracks-unit="${ut}"`,
+        tip: meta.tooltip,
+        nodeLabel: meta.nodeLabel,
+      }));
+    }
+    html += '<div class="brk-skill-track-block">';
+    html += `<div class="brk-skill-track-label">${escapeHtml(branchLabel)}</div>`;
+    html += barracksMiniStatRow(nodes, branchTheme);
+    html += '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
 function updateBarracksUpgradeUI(force) {
   const list = document.getElementById('barracks-upgrade-list');
   if (!list || !LIVE_ARMY?.isActive()) return;
@@ -5368,83 +6156,64 @@ function updateBarracksUpgradeUI(force) {
   const p = players[pid];
   const b = p.liveArmy?.barracks;
   if (!b?.built) {
+    barracksSkillFocus = null;
     setSkillListHtml('barracks-upgrade-list', '<p style="opacity:0.7;font-size:0.8rem;padding:12px 18px">Build a Barracks first.</p>');
     return;
   }
 
-  const branches = LIVE_ARMY.STAT_BRANCHES || ['speed', 'damage', 'health'];
-  const units = LIVE_ARMY.UNIT_ORDER.filter((ut) => UNIT_TYPES[ut]);
-  const colCount = Math.max(units.length, 1);
+  if (barracksSkillFocus) {
+    const focusRec = LIVE_ARMY.unitRecord(p, barracksSkillFocus);
+    if (!UNIT_TYPES[barracksSkillFocus] || !focusRec.unlocked) {
+      barracksSkillFocus = null;
+    }
+  }
 
-  let html = `<div class="brk-board" style="--brk-cols:${colCount}">`;
-  html += '<div class="brk-section-label">Recruit units</div>';
-  html += '<div class="brk-units-strip">';
+  if (barracksSkillFocus) {
+    setSkillListHtml('barracks-upgrade-list', barracksUnitSkillTreeHtml(p, barracksSkillFocus));
+    paintBarracksTroopPortraits(list);
+    return;
+  }
+
+  const units = LIVE_ARMY.UNIT_ORDER
+    .filter((ut) => UNIT_TYPES[ut])
+    .slice()
+    .sort((a, b) => LIVE_ARMY.unitUnlockCost(a) - LIVE_ARMY.unitUnlockCost(b)
+      || (LIVE_ARMY.UNIT_LABELS[a] || a).localeCompare(LIVE_ARMY.UNIT_LABELS[b] || b));
+
+  let html = '<div class="brk-troop-list">';
 
   for (const ut of units) {
     const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
     const rec = LIVE_ARMY.unitRecord(p, ut);
     const unlockCost = LIVE_ARMY.unitUnlockCost(ut);
     const unlocked = !!rec.unlocked;
-    const unitTheme = UNIT_THEME_MAP[ut] || 'tank';
-    const unlockMeta = barracksUnlockMeta(ut);
+    const afford = p.coins >= unlockCost;
+    const base = UNIT_TYPES[ut] || {};
+    const meta = `${base.hp || '?'} HP · ${base.damage || '?'} dmg · ${base.cost || '?'}💵`;
+    const locked = !unlocked && !afford;
 
-    html += barracksMainUnitCardHtml({
-      theme: unitTheme,
-      icon: UNIT_SKILL_ICONS[ut] || '⚔️',
-      label,
-      tooltip: unlockMeta.tooltip,
-      unlocked,
-      afford: p.coins >= unlockCost,
-      cost: unlockCost,
-      dataAttrs: unlocked ? '' : ` data-barracks-unlock="${ut}"`,
-    });
-  }
-
-  html += '</div>';
-  html += '<div class="brk-section-label">Unit upgrades</div>';
-  html += '<div class="brk-upgrades-strip">';
-
-  for (const ut of units) {
-    const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
-    const rec = LIVE_ARMY.unitRecord(p, ut);
-    const unlocked = !!rec.unlocked;
-    const unitTheme = UNIT_THEME_MAP[ut] || 'tank';
-
-    html += `<div class="brk-lane${unlocked ? '' : ' is-locked'} st-theme-${unitTheme}">`;
-    html += `<div class="brk-lane-title">${escapeHtml(label)}</div>`;
-
-    for (const stat of branches) {
-      const branchTheme = barracksStatBranchTheme(ut, stat);
-      const branchLabel = barracksStatBranchLabel(ut, stat);
-      const nodes = [];
-      for (let tier = 1; tier <= LIVE_ARMY.STAT_MAX; tier++) {
-        const meta = barracksStatMeta(label, stat, tier, ut);
-        const cost = LIVE_ARMY.statUpgradeCost(p, ut, stat);
-        nodes.push(barracksMiniStatNodeHtml({
-          tier,
-          maxTier: LIVE_ARMY.STAT_MAX,
-          ownedTier: rec[stat] || 0,
-          unlocked,
-          cost,
-          afford: p.coins >= cost,
-          icon: barracksStatTierIcon(ut, stat, tier),
-          theme: branchTheme,
-          dataAttrs: ` data-barracks-stat="${stat}" data-barracks-unit="${ut}"`,
-          tip: meta.tooltip,
-          nodeLabel: meta.nodeLabel,
-        }));
-      }
-      html += '<div class="brk-stat-line">';
-      html += `<span class="brk-stat-tag st-theme-${branchTheme}">${escapeHtml(branchLabel)}</span>`;
-      html += barracksMiniStatRow(nodes, branchTheme);
-      html += '</div>';
+    html += `<div class="brk-troop-card${unlocked ? ' is-owned' : ''}${locked ? ' is-locked' : ''}">`;
+    html += '<div class="brk-troop-portrait-wrap">';
+    html += `<canvas class="brk-troop-portrait" data-unit="${ut}" width="200" height="240" aria-hidden="true"></canvas>`;
+    html += '<div class="brk-troop-vignette"></div>';
+    if (unlocked) {
+      html += '<div class="brk-troop-badge is-owned-tag">Recruited</div>';
+    } else {
+      html += `<div class="brk-troop-badge is-cost">${unlockCost}💵</div>`;
+      html += `<button type="button" class="brk-troop-hit" data-barracks-unlock="${ut}" ${afford ? '' : 'disabled'} aria-label="Unlock ${escapeHtml(label)}"></button>`;
     }
-
+    html += '</div>';
+    html += `<div class="brk-troop-name">${escapeHtml(label)}</div>`;
+    html += `<div class="brk-troop-meta">${escapeHtml(meta)}</div>`;
+    if (unlocked) {
+      html += `<button type="button" class="brk-troop-skills-btn" data-barracks-skills="${ut}">Skill Tree</button>`;
+    }
     html += '</div>';
   }
 
-  html += '</div></div>';
+  html += '</div>';
   setSkillListHtml('barracks-upgrade-list', html);
+  paintBarracksTroopPortraits(list);
 }
 
 function updateEngineersUpgradeUI(force) {
@@ -5535,15 +6304,26 @@ function updateEngineersUpgradeUI(force) {
   setSkillListHtml('engineers-upgrade-list', html);
 }
 
+function syncBarracksMenuDockSide() {
+  const panel = document.getElementById('barracks-upgrade-panel');
+  if (!panel) return;
+  const onRight = getLocalPlayerId() === 1;
+  panel.classList.toggle('dock-right', onRight);
+  panel.classList.toggle('dock-left', !onRight);
+}
+
 function toggleBarracksPanel(show) {
   const panel = document.getElementById('barracks-upgrade-panel');
   if (!panel) return;
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
   if (open) {
+    syncBarracksMenuDockSide();
     bindSkillPanelScrollNav('barracks-upgrade-list');
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncBarracksPanelCopy?.();
     updateBarracksUpgradeUI(true);
+  } else {
+    barracksSkillFocus = null;
   }
   syncLiveMenuPause();
 }
@@ -17470,87 +18250,215 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
     ctx.arc(w * 0.08, -h * 0.12, 2.5, 0, Math.PI * 2);
     ctx.fill();
   } else if (type === 'yeti') {
-    // White yeti — icy fur, crystal horns, big fists
-    const fur = ctx.createRadialGradient(0, -h * 0.05, 2, 0, 0, w * 0.48);
-    fur.addColorStop(0, '#ffffff');
-    fur.addColorStop(0.55, '#e8f4fc');
-    fur.addColorStop(1, '#b6d8ef');
+    // Top-down vicious ice yeti — blue muscle, white spiked fur.
+    // Fists stay tucked until the punch (strike) frame.
+    const phase = opts.attackPhase || 'idle';
+    const ap = clamp(opts.attackProgress || 0, 0, 1);
+    const ice = '#7eb8d4';
+    const iceDeep = '#4a8fb0';
+    const iceLite = '#b8e0f0';
+    const fur = '#f7fbff';
+    const furShade = '#d5e8f2';
+    const claw = '#141414';
+    const maw = '#1a1010';
+
+    // Spiked white fur silhouette around the body
+    ctx.fillStyle = fur;
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 - 0.2;
+      // denser mane on shoulders / back (-x), thinner toward head
+      const along = Math.cos(a);
+      const len = w * (0.34 + (along < 0 ? 0.22 : 0.08) + (i % 3) * 0.03);
+      const base = w * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - 0.18) * base * 0.85, Math.sin(a - 0.18) * h * 0.42);
+      ctx.lineTo(Math.cos(a) * len, Math.sin(a) * h * 0.55);
+      ctx.lineTo(Math.cos(a + 0.18) * base * 0.85, Math.sin(a + 0.18) * h * 0.42);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Broad muscular torso (icy blue)
+    const bodyGrad = ctx.createRadialGradient(-w * 0.05, 0, 2, 0, 0, w * 0.42);
+    bodyGrad.addColorStop(0, iceLite);
+    bodyGrad.addColorStop(0.55, ice);
+    bodyGrad.addColorStop(1, iceDeep);
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.36, h * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // White chest / shoulder fur clumps
     ctx.fillStyle = fur;
     ctx.beginPath();
-    ctx.ellipse(0, h * 0.08, w * 0.38, h * 0.34, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.06, -h * 0.02, w * 0.22, h * 0.28, 0, 0, Math.PI * 2);
     ctx.fill();
-    // belly frost
-    ctx.fillStyle = 'rgba(186, 230, 253, 0.55)';
-    ctx.beginPath();
-    ctx.ellipse(0, h * 0.14, w * 0.2, h * 0.18, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // head
-    ctx.fillStyle = '#f8fbff';
-    ctx.beginPath();
-    ctx.arc(0, -h * 0.22, w * 0.26, 0, Math.PI * 2);
-    ctx.fill();
-    // ice horns / crystal tufts
-    ctx.fillStyle = '#7dd3fc';
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.14, -h * 0.38);
-    ctx.lineTo(-w * 0.22, -h * 0.62);
-    ctx.lineTo(-w * 0.02, -h * 0.42);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(w * 0.14, -h * 0.38);
-    ctx.lineTo(w * 0.22, -h * 0.62);
-    ctx.lineTo(w * 0.02, -h * 0.42);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#e0f2fe';
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.14, -h * 0.38);
-    ctx.lineTo(-w * 0.18, -h * 0.52);
-    ctx.lineTo(-w * 0.06, -h * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    // icy eyes
-    ctx.fillStyle = '#0ea5e9';
-    ctx.beginPath();
-    ctx.arc(-w * 0.09, -h * 0.24, 2.6, 0, Math.PI * 2);
-    ctx.arc(w * 0.09, -h * 0.24, 2.6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#e0f2fe';
-    ctx.beginPath();
-    ctx.arc(-w * 0.08, -h * 0.25, 1, 0, Math.PI * 2);
-    ctx.arc(w * 0.1, -h * 0.25, 1, 0, Math.PI * 2);
-    ctx.fill();
-    // tusks
-    ctx.fillStyle = '#bae6fd';
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.06, -h * 0.12);
-    ctx.lineTo(-w * 0.1, h * 0.02);
-    ctx.lineTo(-w * 0.02, -h * 0.1);
-    ctx.moveTo(w * 0.06, -h * 0.12);
-    ctx.lineTo(w * 0.1, h * 0.02);
-    ctx.lineTo(w * 0.02, -h * 0.1);
-    ctx.fill();
-    // big arms / fists
-    ctx.fillStyle = '#dbeafe';
-    ctx.beginPath();
-    ctx.ellipse(-w * 0.4, h * 0.08, w * 0.16, h * 0.14, -0.35, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.4, h * 0.08, w * 0.16, h * 0.14, 0.35, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#f0f9ff';
-    ctx.beginPath();
-    ctx.arc(-w * 0.48, h * 0.18, w * 0.14, 0, Math.PI * 2);
-    ctx.arc(w * 0.48, h * 0.18, w * 0.14, 0, Math.PI * 2);
-    ctx.fill();
-    // frost knuckles
-    ctx.fillStyle = '#7dd3fc';
-    for (const side of [-1, 1]) {
-      for (let i = -1; i <= 1; i++) {
+    ctx.fillStyle = furShade;
+    for (const dir of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.02, dir * h * 0.22, w * 0.14, h * 0.16, dir * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Hind legs / haunches (tucked)
+    ctx.fillStyle = ice;
+    for (const dir of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.28, dir * h * 0.22, w * 0.12, h * 0.14, dir * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = fur;
+    for (const dir of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.34, dir * h * 0.26, w * 0.1, h * 0.12, dir * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Black claws on feet (subtle)
+    ctx.fillStyle = claw;
+    for (const dir of [-1, 1]) {
+      for (let c = -1; c <= 1; c++) {
         ctx.beginPath();
-        ctx.arc(side * w * 0.48 + i * 3.2, h * 0.22, 1.6, 0, Math.PI * 2);
+        ctx.ellipse(-w * 0.42, dir * h * 0.26 + c * 2.2, 2.2, 1.2, 0, 0, Math.PI * 2);
         ctx.fill();
       }
     }
+
+    // Arms: tucked close at idle; huge clawed fist on punch
+    let punchReach = 0;
+    let fistScale = 0.55;
+    let armAlpha = 0.55;
+    if (phase === 'windup') {
+      punchReach = -w * (0.04 + ap * 0.08);
+      fistScale = 0.5;
+      armAlpha = 0.45;
+    } else if (phase === 'strike') {
+      punchReach = w * (0.42 + ap * 0.38);
+      fistScale = 1.05 + ap * 0.15;
+      armAlpha = 1;
+    } else if (phase === 'recovery') {
+      punchReach = w * (1 - ap) * 0.45;
+      fistScale = 0.7 + (1 - ap) * 0.25;
+      armAlpha = 0.55 + (1 - ap) * 0.35;
+    }
+
+    // Off-hand stays tucked under the shoulder (barely visible)
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = iceDeep;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.02, h * 0.28, w * 0.1, h * 0.1, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Punching arm — tucked blob when idle, full extension on strike
+    ctx.globalAlpha = armAlpha;
+    ctx.fillStyle = ice;
+    ctx.beginPath();
+    if (phase === 'strike' || (phase === 'recovery' && ap < 0.55) || phase === 'windup') {
+      // arm shaft toward +x (facing)
+      const ax0 = w * 0.08;
+      const ay0 = -h * 0.12;
+      const ax1 = Math.max(w * 0.12, punchReach);
+      ctx.beginPath();
+      ctx.moveTo(ax0, ay0 - h * 0.08);
+      ctx.quadraticCurveTo((ax0 + ax1) * 0.5, ay0 - h * 0.14, ax1, ay0 - h * 0.06 * fistScale);
+      ctx.lineTo(ax1, ay0 + h * 0.1 * fistScale);
+      ctx.quadraticCurveTo((ax0 + ax1) * 0.5, ay0 + h * 0.12, ax0, ay0 + h * 0.1);
+      ctx.closePath();
+      ctx.fill();
+
+      // Massive fist
+      const fx = punchReach + w * 0.06;
+      const fy = ay0;
+      const fr = w * 0.15 * fistScale;
+      const fistGrad = ctx.createRadialGradient(fx - 2, fy - 2, 1, fx, fy, fr);
+      fistGrad.addColorStop(0, iceLite);
+      fistGrad.addColorStop(0.6, ice);
+      fistGrad.addColorStop(1, iceDeep);
+      ctx.fillStyle = fistGrad;
+      ctx.beginPath();
+      ctx.ellipse(fx, fy, fr, fr * 0.85, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Black claws — only really read when the fist is out
+      if (phase === 'strike' || (phase === 'recovery' && ap < 0.4)) {
+        ctx.fillStyle = claw;
+        for (let c = -1; c <= 1; c++) {
+          ctx.beginPath();
+          ctx.moveTo(fx + fr * 0.55, fy + c * fr * 0.38);
+          ctx.lineTo(fx + fr * 1.35, fy + c * fr * 0.42);
+          ctx.lineTo(fx + fr * 0.55, fy + c * fr * 0.22);
+          ctx.closePath();
+          ctx.fill();
+        }
+        // Frost bloom on impact frame
+        if (phase === 'strike') {
+          ctx.globalAlpha = 0.35 + ap * 0.25;
+          ctx.fillStyle = '#e0f2fe';
+          ctx.beginPath();
+          ctx.arc(fx + fr * 0.4, fy, fr * 1.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    } else {
+      // Idle: small tucked shoulder mass — no obvious fist
+      ctx.beginPath();
+      ctx.ellipse(w * 0.04, -h * 0.22, w * 0.11, h * 0.1, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Head — forward, snarling
+    ctx.fillStyle = ice;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.28, 0, w * 0.2, h * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // White facial mane / beard spikes
+    ctx.fillStyle = fur;
+    for (let i = 0; i < 7; i++) {
+      const a = -0.9 + (i / 6) * 1.8;
+      const len = w * (0.18 + (i % 2) * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.22 + Math.cos(a) * w * 0.06, Math.sin(a) * h * 0.12);
+      ctx.lineTo(w * 0.22 + Math.cos(a) * len, Math.sin(a) * len * 0.9);
+      ctx.lineTo(w * 0.22 + Math.cos(a + 0.25) * w * 0.06, Math.sin(a + 0.25) * h * 0.12);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Brow ridge
+    ctx.fillStyle = iceDeep;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.32, -h * 0.06, w * 0.14, h * 0.07, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Deep-set vicious eyes
+    ctx.fillStyle = '#0b1220';
+    ctx.beginPath();
+    ctx.ellipse(w * 0.34, -h * 0.04, 2.4, 1.8, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.34, h * 0.05, 2.4, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#7dd3fc';
+    ctx.beginPath();
+    ctx.arc(w * 0.35, -h * 0.04, 1.1, 0, Math.PI * 2);
+    ctx.arc(w * 0.35, h * 0.05, 1.1, 0, Math.PI * 2);
+    ctx.fill();
+    // Roaring maw with teeth
+    ctx.fillStyle = maw;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.4, 0, w * 0.1, h * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f8fafc';
+    for (let t = -2; t <= 2; t++) {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.36, t * 2.4);
+      ctx.lineTo(w * 0.46, t * 2.6);
+      ctx.lineTo(w * 0.36, t * 2.4 + 1.8);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Nose
+    ctx.fillStyle = claw;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.38, 0, 2.2, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
   } else if (type === 'sniper') {
     const sc2 = sc * 0.92;
     // shadow silhouette — small soldier in dark gear
@@ -19395,19 +20303,17 @@ function getUnitAttackDrawPose(type, opts = {}) {
       x = (1 - p) * 3;
     }
   } else if (type === 'yeti') {
+    // Body coils back; the fist pop is drawn in the sprite itself.
     if (phase === 'windup') {
-      x = -4 - p * 6;
-      y = -2 - p * 3;
-      sx = 0.92;
-      sy = 1.08 + p * 0.06;
+      x = -3 - p * 5;
+      sx = 0.94;
+      sy = 1.06;
     } else if (phase === 'strike') {
-      x = 10 + p * 8;
-      y = 2 + p * 2;
-      sx = 1.18;
-      sy = 0.88;
+      x = 2 + p * 3;
+      sx = 1.06;
+      sy = 0.94;
     } else {
-      x = (1 - p) * 6;
-      y = (1 - p) * 2;
+      x = (1 - p) * 2;
     }
   } else if (type === 'sniper') {
     if (phase === 'windup') {
@@ -21391,6 +22297,22 @@ document.getElementById('barracks-upgrade-panel').addEventListener('click', (e) 
   if (e.target.id === 'barracks-upgrade-panel') toggleBarracksPanel(false);
 });
 document.getElementById('barracks-upgrade-list').addEventListener('click', (e) => {
+  const backBtn = e.target.closest('[data-barracks-skills-back]');
+  if (backBtn) {
+    barracksSkillFocus = null;
+    invalidateSkillListCache('barracks-upgrade-list');
+    updateBarracksUpgradeUI(true);
+    return;
+  }
+
+  const skillsBtn = e.target.closest('[data-barracks-skills]');
+  if (skillsBtn) {
+    barracksSkillFocus = skillsBtn.dataset.barracksSkills;
+    invalidateSkillListCache('barracks-upgrade-list');
+    updateBarracksUpgradeUI(true);
+    return;
+  }
+
   const unlockBtn = e.target.closest('[data-barracks-unlock]');
   const statBtn = e.target.closest('[data-barracks-stat]');
   const btn = unlockBtn || statBtn;

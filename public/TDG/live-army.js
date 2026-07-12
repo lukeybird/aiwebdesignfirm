@@ -14,7 +14,7 @@ window.LIVE_ARMY = (function () {
     tank: 'Elephant', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', yeti: 'Yeti', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
-    tank: 100, speed: 150, striker: 50, sniper: 250, goblin: 125, yeti: 350, peka: 500,
+    tank: 100, speed: 150, striker: 50, sniper: 250, goblin: 125, yeti: 250, peka: 500,
   };
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 3;
@@ -312,8 +312,8 @@ window.LIVE_ARMY = (function () {
     const el = document.getElementById('barracks-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Grow each unit down its skill tree. Deeper tiers cost more. Stat levels are hidden from your opponent.'
-      : 'Unlock units in the top row, then climb the small Speed, Attack, and Health tracks below each type.';
+      ? 'Recruit troops from the list, then open each recruited card’s Skill Tree. Opponent upgrades stay hidden.'
+      : 'Recruit troops from the list. After unlocking a unit, tap Skill Tree on its card to upgrade Speed, Attack, and Health.';
   }
 
   function syncEngineersPanelCopy() {
