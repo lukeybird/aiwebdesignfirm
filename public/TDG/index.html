@@ -1286,8 +1286,8 @@
     .brk-troop-list {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px 10px;
-      padding: 8px 4px 28px;
+      gap: 14px 12px;
+      padding: 10px 4px 32px;
     }
 
     .brk-troop-card {
@@ -1295,7 +1295,7 @@
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      gap: 6px;
+      gap: 7px;
       padding: 0;
       background: transparent;
       border: none;
@@ -1306,25 +1306,67 @@
     .brk-troop-portrait-wrap {
       position: relative;
       width: 100%;
-      aspect-ratio: 3 / 3.6;
+      aspect-ratio: 3 / 3.7;
       overflow: hidden;
-      border: 2px solid rgba(180, 210, 170, 0.35);
+      border: 2px solid #d4b24a;
       box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.75),
-        inset 0 0 24px rgba(0, 0, 0, 0.35);
-      background: #0a120e;
+        0 0 0 1px #1a1408,
+        0 0 0 3px rgba(12, 18, 10, 0.98),
+        0 0 18px rgba(201, 162, 39, 0.22),
+        0 10px 26px rgba(0, 0, 0, 0.6),
+        inset 0 0 0 1px rgba(255, 230, 150, 0.35),
+        inset 0 -48px 56px rgba(0, 0, 0, 0.5);
+      background:
+        linear-gradient(145deg, rgba(255, 220, 140, 0.08), transparent 40%),
+        #05080a;
+      clip-path: polygon(0 0, 100% 0, 100% 91%, 93% 100%, 7% 100%, 0 91%);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .brk-troop-portrait-wrap::before,
+    .brk-troop-portrait-wrap::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      z-index: 4;
+      border: 2px solid #f0d060;
+      pointer-events: none;
+      opacity: 0.9;
+      filter: drop-shadow(0 0 3px rgba(240, 208, 96, 0.45));
+    }
+
+    .brk-troop-portrait-wrap::before {
+      top: 5px;
+      left: 5px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .brk-troop-portrait-wrap::after {
+      top: 5px;
+      right: 5px;
+      border-left: none;
+      border-bottom: none;
     }
 
     .brk-troop-card.is-owned .brk-troop-portrait-wrap {
       border-color: #86efac;
       box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.75),
-        0 0 14px rgba(110, 231, 160, 0.35),
-        inset 0 0 20px rgba(0, 0, 0, 0.25);
+        0 0 0 1px #052e16,
+        0 0 0 3px rgba(16, 50, 28, 0.95),
+        0 0 22px rgba(110, 231, 160, 0.45),
+        0 8px 22px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(187, 247, 208, 0.35);
+    }
+
+    .brk-troop-card.is-owned .brk-troop-portrait-wrap::before,
+    .brk-troop-card.is-owned .brk-troop-portrait-wrap::after {
+      border-color: #bbf7d0;
     }
 
     .brk-troop-card.is-locked .brk-troop-portrait-wrap {
-      filter: grayscale(0.55) brightness(0.72);
+      filter: grayscale(0.7) brightness(0.62) saturate(0.7);
     }
 
     .brk-troop-portrait {
@@ -1332,7 +1374,9 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center top;
       pointer-events: none;
+      image-rendering: auto;
     }
 
     .brk-troop-vignette {
@@ -1340,44 +1384,47 @@
       inset: 0;
       pointer-events: none;
       background:
-        linear-gradient(180deg, transparent 48%, rgba(0, 0, 0, 0.72) 100%),
-        radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.35) 100%);
+        linear-gradient(180deg, rgba(0,0,0,0.08) 0%, transparent 22%, transparent 58%, rgba(0,0,0,0.62) 100%),
+        radial-gradient(ellipse at 50% 30%, transparent 42%, rgba(0, 0, 0, 0.28) 100%);
+      box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.25);
     }
 
     .brk-troop-badge {
       position: absolute;
-      left: 6px;
-      right: 6px;
-      bottom: 6px;
+      left: 8px;
+      right: 8px;
+      bottom: 10px;
       z-index: 2;
       text-align: center;
-      font-family: 'Rajdhani', sans-serif;
-      font-weight: 800;
-      font-size: 0.78rem;
-      letter-spacing: 0.04em;
-      padding: 5px 6px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      padding: 6px 8px;
+      border: 1px solid rgba(232, 197, 71, 0.55);
       pointer-events: none;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
     }
 
     .brk-troop-badge.is-cost {
-      color: #fef9c3;
-      background: rgba(8, 12, 10, 0.78);
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+      color: #fef3c7;
+      background: linear-gradient(180deg, rgba(40, 28, 8, 0.92), rgba(12, 10, 6, 0.94));
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.35), 0 1px 2px rgba(0, 0, 0, 0.95);
     }
 
     .brk-troop-badge.is-owned-tag {
-      top: 6px;
+      top: 8px;
       bottom: auto;
-      left: 6px;
+      left: 8px;
       right: auto;
-      color: #bbf7d0;
-      background: rgba(20, 83, 45, 0.85);
-      border-color: rgba(134, 239, 172, 0.55);
-      letter-spacing: 0.1em;
+      color: #ecfdf5;
+      background: linear-gradient(180deg, rgba(22, 101, 52, 0.95), rgba(6, 40, 20, 0.95));
+      border-color: rgba(134, 239, 172, 0.65);
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      font-size: 0.62rem;
-      padding: 4px 7px;
+      font-size: 0.58rem;
+      padding: 5px 8px;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
     }
 
     .brk-troop-card:not(.is-owned) .brk-troop-portrait-wrap {
@@ -1385,10 +1432,14 @@
     }
 
     .brk-troop-card:not(.is-owned):not(.is-locked) .brk-troop-portrait-wrap:hover {
-      border-color: #bbf7d0;
+      border-color: #f0d060;
+      transform: translateY(-2px);
       box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.75),
-        0 0 16px rgba(110, 231, 160, 0.4);
+        0 0 0 1px #1a1408,
+        0 0 0 3px rgba(30, 50, 28, 0.95),
+        0 0 24px rgba(232, 197, 71, 0.35),
+        0 12px 28px rgba(0, 0, 0, 0.55),
+        inset 0 0 0 1px rgba(255, 230, 150, 0.4);
     }
 
     button.brk-troop-hit {
@@ -1408,14 +1459,16 @@
 
     .brk-troop-name {
       font-family: 'Orbitron', sans-serif;
-      font-size: 0.7rem;
+      font-size: 0.74rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       text-align: center;
-      color: #f0fdf4;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-      line-height: 1.2;
+      color: #fff8e7;
+      text-shadow:
+        0 0 12px rgba(201, 162, 39, 0.35),
+        0 2px 4px rgba(0, 0, 0, 0.9);
+      line-height: 1.15;
       padding: 0 2px;
     }
 
@@ -1423,8 +1476,8 @@
       font-size: 0.58rem;
       line-height: 1.25;
       text-align: center;
-      color: #86efac;
-      opacity: 0.88;
+      color: #b7d4a8;
+      opacity: 0.9;
       padding: 0 2px 2px;
     }
 
@@ -1483,14 +1536,18 @@
 
     .brk-skill-hero-art {
       position: relative;
-      width: 38%;
-      max-width: 180px;
+      width: 42%;
+      max-width: 220px;
       flex-shrink: 0;
-      aspect-ratio: 3 / 3.6;
+      aspect-ratio: 3 / 3.7;
       overflow: hidden;
-      border: 2px solid #86efac;
-      background: #0a120e;
-      box-shadow: 0 0 14px rgba(110, 231, 160, 0.25);
+      border: 2px solid #c9a84a;
+      background: #05080a;
+      box-shadow:
+        0 0 0 1px #1a1408,
+        0 0 18px rgba(201, 162, 39, 0.28),
+        inset 0 0 0 1px rgba(255, 230, 150, 0.28);
+      clip-path: polygon(0 0, 100% 0, 100% 92%, 94% 100%, 6% 100%, 0 92%);
     }
 
     .brk-skill-hero-art canvas {
@@ -1749,30 +1806,30 @@
 
       #econ-upgrade-panel .st-header,
       #barracks-upgrade-panel .st-header {
-        padding: 12px 12px 12px 14px;
-        padding-top: max(12px, env(safe-area-inset-top, 12px));
-        gap: 10px;
+        padding: 8px 10px 8px 12px;
+        padding-top: 8px;
+        gap: 8px;
       }
 
       #econ-upgrade-panel .st-header-title,
       #barracks-upgrade-panel .st-header-title {
-        font-size: 0.95rem;
-        letter-spacing: 0.12em;
+        font-size: 0.82rem;
+        letter-spacing: 0.1em;
       }
 
       #econ-upgrade-panel .st-header-close,
       #barracks-upgrade-panel .st-header-close {
-        width: 44px;
-        height: 44px;
-        font-size: 1.15rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
         flex-shrink: 0;
       }
 
       #econ-upgrade-panel .st-panel-desc,
       #barracks-upgrade-panel .st-panel-desc {
-        padding: 8px 14px 4px;
-        font-size: 0.72rem;
-        line-height: 1.35;
+        padding: 4px 12px 2px;
+        font-size: 0.64rem;
+        line-height: 1.3;
       }
 
       #econ-upgrade-panel .st-scroll-wrap,
@@ -1780,7 +1837,8 @@
       #econ-upgrade-panel.dock-right .st-scroll-wrap,
       #barracks-upgrade-panel.dock-right .st-scroll-wrap {
         flex-direction: row;
-        padding: 0 8px calc(10px + env(safe-area-inset-bottom, 0px));
+        padding: 0 6px calc(6px + env(safe-area-inset-bottom, 0px));
+        min-height: 0;
       }
 
       /* Finger scroll is enough — reclaim the side button strip */
@@ -1793,50 +1851,52 @@
       #barracks-upgrade-list {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        min-height: 0;
       }
 
       .brk-troop-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px 8px;
-        padding: 6px 2px 20px;
+        gap: 8px 6px;
+        padding: 4px 2px 12px;
       }
 
       .brk-troop-name {
-        font-size: 0.64rem;
+        font-size: 0.6rem;
       }
 
       .brk-troop-skills-btn {
-        min-height: 40px;
-        font-size: 0.74rem;
-        padding: 8px 8px;
+        min-height: 36px;
+        font-size: 0.7rem;
+        padding: 6px 6px;
       }
 
       .brk-troop-badge {
-        font-size: 0.74rem;
-        padding: 6px 6px;
+        font-size: 0.66rem;
+        padding: 4px 5px;
       }
 
       .brk-skill-hero {
         flex-direction: column;
         align-items: stretch;
+        gap: 8px;
       }
 
       .brk-skill-hero-art {
-        width: 100%;
+        width: min(100%, 220px);
         max-width: none;
-        aspect-ratio: 16 / 11;
+        aspect-ratio: 16 / 10;
         align-self: center;
       }
 
       .brk-skill-hero-copy h4 {
-        font-size: 0.92rem;
+        font-size: 0.88rem;
       }
 
       .brk-skill-back {
-        min-height: 42px;
-        padding: 10px 14px;
-        font-size: 0.82rem;
+        min-height: 36px;
+        padding: 8px 12px;
+        font-size: 0.78rem;
       }
 
       .brk-skill-view .brk-mini-node,
@@ -1846,11 +1906,55 @@
 
       #econ-upgrade-panel .st-row {
         justify-content: flex-start;
-        padding-bottom: 10px;
+        padding-bottom: 8px;
       }
 
       #econ-upgrade-panel .st-canvas {
-        padding: 8px 2px 20px;
+        padding: 4px 2px 12px;
+      }
+
+      /* Compact skill-tree cards so Mints / trees fit short phone screens */
+      .st-card {
+        width: 58px;
+      }
+
+      .st-card.root {
+        width: 64px;
+      }
+
+      .st-card-body {
+        min-height: 44px;
+      }
+
+      .st-card.root .st-card-body {
+        min-height: 50px;
+      }
+
+      .st-card-icon {
+        font-size: 1.35rem;
+      }
+
+      .st-card.root .st-card-icon {
+        font-size: 1.55rem;
+      }
+
+      .st-card-foot {
+        font-size: 0.58rem;
+        padding: 2px 2px 2px;
+      }
+
+      .st-card-stars {
+        font-size: 0.48rem;
+        min-height: 0.55rem;
+      }
+
+      .st-vline {
+        min-height: 18px;
+      }
+
+      .st-section-title {
+        font-size: 0.72rem;
+        margin-bottom: 6px;
       }
 
       /* Centered skill-tree modals → full screen too */
@@ -1884,24 +1988,25 @@
 
       #engineers-upgrade-panel .st-header,
       #laboratory-upgrade-panel .st-header {
-        padding: 12px 12px 12px 14px;
-        padding-top: max(12px, env(safe-area-inset-top, 12px));
+        padding: 8px 10px 8px 12px;
+        padding-top: 8px;
       }
 
       #engineers-upgrade-panel .st-header-close,
       #laboratory-upgrade-panel .st-header-close,
       #missile-upgrade-panel .econ-panel-header button,
       #spread-upgrade-panel .econ-panel-header button {
-        width: 44px;
-        height: 44px;
-        font-size: 1.15rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
         flex-shrink: 0;
       }
 
       #engineers-upgrade-panel .st-scroll-wrap,
       #laboratory-upgrade-panel .st-scroll-wrap {
         flex-direction: row;
-        padding: 0 8px calc(10px + env(safe-area-inset-bottom, 0px));
+        padding: 0 6px calc(6px + env(safe-area-inset-bottom, 0px));
+        min-height: 0;
       }
 
       #engineers-upgrade-panel .st-scroll-nav,
@@ -1915,7 +2020,8 @@
       #spread-upgrade-list {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        min-height: 0;
       }
 
       #missile-upgrade-panel > .econ-panel-inner,
@@ -1923,7 +2029,7 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
       }
 
       #missile-upgrade-list,
@@ -1935,17 +2041,60 @@
 
       /* Barracks skill tree detail — roomy tracks on phones */
       .brk-skill-view {
-        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
       }
 
       .brk-skill-view .brk-stat-track {
-        gap: 6px;
+        gap: 4px;
       }
 
       .brk-board {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: 12px;
+        padding-bottom: 8px;
+      }
+    }
+
+    @media (max-width: 820px) and (max-height: 430px), (max-height: 380px) {
+      #econ-upgrade-panel .st-panel-desc,
+      #barracks-upgrade-panel .st-panel-desc,
+      #engineers-upgrade-panel .st-panel-desc,
+      #laboratory-upgrade-panel .st-panel-desc {
+        display: none;
+      }
+
+      .st-card {
+        width: 48px;
+      }
+
+      .st-card.root {
+        width: 54px;
+      }
+
+      .st-card-body {
+        min-height: 36px;
+      }
+
+      .st-card.root .st-card-body {
+        min-height: 42px;
+      }
+
+      .st-card-icon {
+        font-size: 1.15rem;
+      }
+
+      .st-card.root .st-card-icon {
+        font-size: 1.3rem;
+      }
+
+      .brk-troop-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px 4px;
+      }
+
+      .brk-skill-hero-art {
+        width: min(100%, 160px);
+        aspect-ratio: 2 / 1;
       }
     }
 
@@ -3711,6 +3860,251 @@
     .ach-panel-row .ach-info-desc { opacity: 0.78; font-size: 0.65rem; margin-top: 2px; }
     .ach-panel-row .ach-info-reward { color: #FFE66D; font-weight: 600; margin-top: 3px; font-size: 0.65rem; }
 
+    /* ── Mobile: compact top/bottom HUD so play + upgrade UI get the space ── */
+    body.mobile-device .medieval-hud-top {
+      min-height: 0;
+      padding: 3px 6px 3px;
+      border-bottom-width: 2px;
+    }
+
+    body.mobile-device .medieval-hud-bottom {
+      min-height: 0;
+      padding: 3px 4px calc(3px + env(safe-area-inset-bottom, 0px));
+      border-top-width: 2px;
+    }
+
+    body.mobile-device .medieval-hud::before,
+    body.mobile-device .medieval-hud::after {
+      width: 7px;
+      height: 7px;
+      margin-top: -3.5px;
+    }
+    body.mobile-device .medieval-hud::before { left: 4px; }
+    body.mobile-device .medieval-hud::after { right: 4px; }
+
+    body.mobile-device .medieval-hud-top .medieval-hud-inner {
+      padding-right: 36px;
+      gap: 4px;
+    }
+
+    body.mobile-device #top-bar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      gap: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      overscroll-behavior-x: contain;
+    }
+
+    body.mobile-device #top-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    body.mobile-device .stat-pill {
+      padding: 2px 7px;
+      font-size: 0.72rem;
+      gap: 3px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      line-height: 1.15;
+    }
+
+    body.mobile-device .stat-pill .icon {
+      font-size: 0.82rem;
+    }
+
+    body.mobile-device #coins-pill {
+      min-width: 0;
+    }
+
+    body.mobile-device #phase-display,
+    body.mobile-device #round-pill {
+      max-width: 7.2rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    body.mobile-device .pill-label {
+      display: none;
+    }
+
+    body.mobile-device #survival-speed-pill {
+      padding: 1px 3px;
+      gap: 2px;
+    }
+
+    body.mobile-device .surv-speed-btn {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    body.mobile-device #fullscreen-btn {
+      right: 12px;
+      width: 26px;
+      height: 26px;
+      font-size: 0.85rem;
+      border-radius: 4px;
+    }
+
+    body.mobile-device #bottom-panel {
+      gap: 6px;
+      align-items: center;
+    }
+
+    body.mobile-device .mc-hotbar,
+    body.mobile-device #commander-dock {
+      padding: 2px;
+      gap: 2px;
+      border-width: 2px;
+    }
+
+    body.mobile-device .hot-slot,
+    body.mobile-device .cmd-fab {
+      width: 40px;
+      height: 40px;
+    }
+
+    body.mobile-device .hot-slot-canvas,
+    body.mobile-device .hot-slot-glyph {
+      width: 34px;
+      height: 34px;
+    }
+
+    body.mobile-device .hot-slot-glyph {
+      font-size: 1.45rem;
+    }
+
+    body.mobile-device .hot-slot-key {
+      font-size: 0.55rem;
+      top: 0;
+      left: 2px;
+    }
+
+    body.mobile-device .hot-slot-cost {
+      font-size: 0.52rem;
+      right: 1px;
+      bottom: 0;
+    }
+
+    body.mobile-device .hot-slot.active,
+    body.mobile-device #commander-fab.active,
+    body.mobile-device #cmd-count-fab.active,
+    body.mobile-device #cmd-form-fab.active {
+      box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.12),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.5),
+        0 0 0 1px #111,
+        0 0 0 2px rgba(255, 255, 255, 0.9);
+    }
+
+    body.mobile-device #cmd-count-fab-num {
+      font-size: 1.05rem;
+    }
+
+    body.mobile-device #cmd-stance-fab-icon {
+      font-size: 1.15rem;
+    }
+
+    body.mobile-device .btn-ready {
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      min-width: 0;
+      border-radius: 6px;
+    }
+
+    /* Landscape phones: even tighter chrome */
+    body.landscape-mobile .medieval-hud-top {
+      padding: 2px 5px;
+    }
+
+    body.landscape-mobile .medieval-hud-bottom {
+      padding: 2px 3px calc(2px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.landscape-mobile .hot-slot,
+    body.landscape-mobile .cmd-fab {
+      width: 36px;
+      height: 36px;
+    }
+
+    body.landscape-mobile .hot-slot-canvas,
+    body.landscape-mobile .hot-slot-glyph {
+      width: 30px;
+      height: 30px;
+    }
+
+    body.landscape-mobile .hot-slot-glyph {
+      font-size: 1.25rem;
+    }
+
+    body.landscape-mobile .stat-pill {
+      padding: 1px 6px;
+      font-size: 0.68rem;
+    }
+
+    /* Very short viewports (phone landscape + browser chrome) */
+    @media (max-height: 430px) {
+      body.mobile-device .medieval-hud-top {
+        padding: 1px 4px;
+      }
+
+      body.mobile-device .medieval-hud-bottom {
+        padding: 1px 2px calc(1px + env(safe-area-inset-bottom, 0px));
+      }
+
+      body.mobile-device .hot-slot,
+      body.mobile-device .cmd-fab {
+        width: 32px;
+        height: 32px;
+      }
+
+      body.mobile-device .hot-slot-canvas,
+      body.mobile-device .hot-slot-glyph {
+        width: 26px;
+        height: 26px;
+      }
+
+      body.mobile-device .hot-slot-glyph {
+        font-size: 1.1rem;
+      }
+
+      body.mobile-device .stat-pill {
+        padding: 1px 5px;
+        font-size: 0.62rem;
+      }
+
+      body.mobile-device #fullscreen-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.75rem;
+        right: 10px;
+      }
+    }
+
+    /* Free the play slot while upgrade menus are open */
+    body.mobile-device #game-stage:has(#econ-upgrade-panel:not(.hidden)) #hud-bottom,
+    body.mobile-device #game-stage:has(#barracks-upgrade-panel:not(.hidden)) #hud-bottom,
+    body.mobile-device #game-stage:has(#engineers-upgrade-panel:not(.hidden)) #hud-bottom,
+    body.mobile-device #game-stage:has(#laboratory-upgrade-panel:not(.hidden)) #hud-bottom,
+    body.mobile-device #game-stage:has(#missile-upgrade-panel:not(.hidden)) #hud-bottom,
+    body.mobile-device #game-stage:has(#spread-upgrade-panel:not(.hidden)) #hud-bottom,
+    body.mobile-device #game-stage:has(#commander-panel:not(.hidden)) #hud-bottom {
+      display: none !important;
+    }
+
+    body.mobile-device #game-stage:has(#econ-upgrade-panel:not(.hidden)) .medieval-hud-top,
+    body.mobile-device #game-stage:has(#barracks-upgrade-panel:not(.hidden)) .medieval-hud-top,
+    body.mobile-device #game-stage:has(#engineers-upgrade-panel:not(.hidden)) .medieval-hud-top,
+    body.mobile-device #game-stage:has(#laboratory-upgrade-panel:not(.hidden)) .medieval-hud-top,
+    body.mobile-device #game-stage:has(#missile-upgrade-panel:not(.hidden)) .medieval-hud-top,
+    body.mobile-device #game-stage:has(#spread-upgrade-panel:not(.hidden)) .medieval-hud-top {
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+
     #orientation-hint {
       display: none;
       position: fixed;
@@ -3760,11 +4154,11 @@
     <div class="medieval-hud-inner">
       <div id="top-bar">
         <div class="stat-pill" id="coins-pill"><span class="icon">💵</span> <span id="coins-display">0</span></div>
-        <div class="stat-pill" id="hp-pill"><span class="icon">❤️</span> Base <span id="base-hp-display">600</span></div>
-        <div class="stat-pill hidden" id="income-pill"><span class="icon">📈</span> <span id="income-rate-display">0</span>/s</div>
+        <div class="stat-pill" id="hp-pill"><span class="icon">❤️</span> <span class="pill-label">Base </span><span id="base-hp-display">600</span></div>
+        <div class="stat-pill hidden" id="income-pill"><span class="icon">📈</span> <span id="income-rate-display">0</span><span class="pill-suffix">/s</span></div>
         <div class="stat-pill" id="round-pill"><span class="icon">🔄</span> <span id="round-label">Round</span> <span id="round-display">1</span></div>
         <div class="stat-pill" id="phase-display">Menu</div>
-        <div class="stat-pill hidden" id="enemy-hp-pill"><span class="icon">💀</span> Enemy <span id="enemy-hp-display">600</span></div>
+        <div class="stat-pill hidden" id="enemy-hp-pill"><span class="icon">💀</span> <span class="pill-label">Enemy </span><span id="enemy-hp-display">600</span></div>
         <div class="stat-pill hidden" id="survival-speed-pill">
           <button type="button" class="surv-speed-btn active" data-speed="1">1×</button>
           <button type="button" class="surv-speed-btn" data-speed="2">2×</button>
@@ -5994,360 +6388,7 @@ function buyMissileUpgrade(pid, towerId, branch) {
   return true;
 }
 
-function paintBarracksPortraitBg(g, w, h, c0, c1, c2) {
-  const grad = g.createLinearGradient(0, 0, w * 0.2, h);
-  grad.addColorStop(0, c0);
-  grad.addColorStop(0.55, c1);
-  grad.addColorStop(1, c2);
-  g.fillStyle = grad;
-  g.fillRect(0, 0, w, h);
-}
-
-function paintBarracksTroopPortrait(g, unitType, w, h) {
-  g.clearRect(0, 0, w, h);
-  const cx = w * 0.5;
-  const cy = h * 0.52;
-
-  if (unitType === 'striker') {
-    paintBarracksPortraitBg(g, w, h, '#3b1d1d', '#1a0c0c', '#0a0505');
-    // Caparison / shoulder armor
-    g.fillStyle = '#7f1d1d';
-    g.beginPath();
-    g.ellipse(cx, cy + h * 0.28, w * 0.42, h * 0.22, 0, 0, Math.PI * 2);
-    g.fill();
-    // Helmet
-    const helm = g.createRadialGradient(cx - 8, cy - 30, 4, cx, cy - 10, w * 0.34);
-    helm.addColorStop(0, '#f3f4f6');
-    helm.addColorStop(0.45, '#9ca3af');
-    helm.addColorStop(1, '#374151');
-    g.fillStyle = helm;
-    g.beginPath();
-    g.ellipse(cx, cy - h * 0.06, w * 0.28, h * 0.3, 0, 0, Math.PI * 2);
-    g.fill();
-    // Visor slit
-    g.fillStyle = '#111827';
-    g.fillRect(cx - w * 0.16, cy - h * 0.08, w * 0.32, h * 0.05);
-    g.fillStyle = '#f87171';
-    g.globalAlpha = 0.55;
-    g.fillRect(cx - w * 0.14, cy - h * 0.07, w * 0.28, h * 0.03);
-    g.globalAlpha = 1;
-    // Plume
-    g.fillStyle = '#dc2626';
-    g.beginPath();
-    g.moveTo(cx - 6, cy - h * 0.34);
-    g.quadraticCurveTo(cx + 18, cy - h * 0.55, cx + 4, cy - h * 0.28);
-    g.quadraticCurveTo(cx - 2, cy - h * 0.4, cx - 6, cy - h * 0.34);
-    g.fill();
-    // Lance tip glint
-    g.strokeStyle = '#fde68a';
-    g.lineWidth = 3;
-    g.beginPath();
-    g.moveTo(cx + w * 0.22, cy + h * 0.05);
-    g.lineTo(cx + w * 0.42, cy - h * 0.12);
-    g.stroke();
-  } else if (unitType === 'tank') {
-    paintBarracksPortraitBg(g, w, h, '#5b6b52', '#2f3a2c', '#141a12');
-    // Ears
-    g.fillStyle = '#8b9498';
-    for (const dir of [-1, 1]) {
-      g.beginPath();
-      g.ellipse(cx + dir * w * 0.28, cy - h * 0.02, w * 0.14, h * 0.22, dir * 0.35, 0, Math.PI * 2);
-      g.fill();
-    }
-    // Head
-    const hide = g.createRadialGradient(cx - 10, cy - 20, 8, cx, cy, w * 0.38);
-    hide.addColorStop(0, '#d6d3d1');
-    hide.addColorStop(0.5, '#a8a29e');
-    hide.addColorStop(1, '#57534e');
-    g.fillStyle = hide;
-    g.beginPath();
-    g.ellipse(cx, cy + h * 0.02, w * 0.34, h * 0.32, 0, 0, Math.PI * 2);
-    g.fill();
-    // Trunk
-    g.fillStyle = '#78716c';
-    g.beginPath();
-    g.moveTo(cx - 10, cy + h * 0.12);
-    g.quadraticCurveTo(cx + 8, cy + h * 0.35, cx - 4, cy + h * 0.42);
-    g.quadraticCurveTo(cx - 16, cy + h * 0.28, cx - 10, cy + h * 0.12);
-    g.fill();
-    // Tusks
-    g.fillStyle = '#f5f5f4';
-    for (const dir of [-1, 1]) {
-      g.beginPath();
-      g.moveTo(cx + dir * 18, cy + h * 0.08);
-      g.quadraticCurveTo(cx + dir * 34, cy + h * 0.22, cx + dir * 22, cy + h * 0.32);
-      g.quadraticCurveTo(cx + dir * 16, cy + h * 0.18, cx + dir * 18, cy + h * 0.08);
-      g.fill();
-    }
-    // Eye
-    g.fillStyle = '#1c1917';
-    g.beginPath();
-    g.ellipse(cx + w * 0.1, cy - h * 0.06, 5, 4, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#fbbf24';
-    g.beginPath();
-    g.arc(cx + w * 0.11, cy - h * 0.06, 1.6, 0, Math.PI * 2);
-    g.fill();
-  } else if (unitType === 'goblin') {
-    paintBarracksPortraitBg(g, w, h, '#14532d', '#052e16', '#02140a');
-    // Ears
-    g.fillStyle = '#4ade80';
-    for (const dir of [-1, 1]) {
-      g.beginPath();
-      g.moveTo(cx + dir * w * 0.12, cy - h * 0.12);
-      g.lineTo(cx + dir * w * 0.38, cy - h * 0.32);
-      g.lineTo(cx + dir * w * 0.14, cy - h * 0.02);
-      g.closePath();
-      g.fill();
-    }
-    // Head
-    const skin = g.createRadialGradient(cx - 6, cy - 16, 4, cx, cy, w * 0.32);
-    skin.addColorStop(0, '#86efac');
-    skin.addColorStop(0.55, '#22c55e');
-    skin.addColorStop(1, '#166534');
-    g.fillStyle = skin;
-    g.beginPath();
-    g.ellipse(cx, cy, w * 0.3, h * 0.3, 0, 0, Math.PI * 2);
-    g.fill();
-    // Eyes
-    g.fillStyle = '#ef4444';
-    g.beginPath();
-    g.ellipse(cx - 14, cy - 6, 7, 8, 0, 0, Math.PI * 2);
-    g.ellipse(cx + 14, cy - 6, 7, 8, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#111';
-    g.beginPath();
-    g.arc(cx - 14, cy - 5, 2.5, 0, Math.PI * 2);
-    g.arc(cx + 14, cy - 5, 2.5, 0, Math.PI * 2);
-    g.fill();
-    // Grin
-    g.fillStyle = '#14532d';
-    g.beginPath();
-    g.ellipse(cx, cy + 18, 16, 10, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#f8fafc';
-    for (let i = -2; i <= 2; i++) {
-      g.fillRect(cx + i * 6 - 2, cy + 12, 3.5, 8);
-    }
-  } else if (unitType === 'speed') {
-    paintBarracksPortraitBg(g, w, h, '#3f3f46', '#18181b', '#09090b');
-    // Fur mane
-    g.fillStyle = '#e4e4e7';
-    for (let i = 0; i < 10; i++) {
-      const a = -Math.PI * 0.9 + (i / 9) * Math.PI * 1.8;
-      g.beginPath();
-      g.moveTo(cx + Math.cos(a) * w * 0.12, cy + Math.sin(a) * h * 0.1 - 8);
-      g.lineTo(cx + Math.cos(a) * w * 0.4, cy + Math.sin(a) * h * 0.34 - 8);
-      g.lineTo(cx + Math.cos(a + 0.2) * w * 0.12, cy + Math.sin(a + 0.2) * h * 0.1 - 8);
-      g.closePath();
-      g.fill();
-    }
-    // Head
-    const fur = g.createRadialGradient(cx - 8, cy - 12, 4, cx, cy + 4, w * 0.34);
-    fur.addColorStop(0, '#fafafa');
-    fur.addColorStop(0.5, '#d4d4d8');
-    fur.addColorStop(1, '#71717a');
-    g.fillStyle = fur;
-    g.beginPath();
-    g.ellipse(cx, cy + 4, w * 0.3, h * 0.28, 0, 0, Math.PI * 2);
-    g.fill();
-    // Snout
-    g.fillStyle = '#a1a1aa';
-    g.beginPath();
-    g.ellipse(cx, cy + h * 0.14, w * 0.16, h * 0.12, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#18181b';
-    g.beginPath();
-    g.ellipse(cx, cy + h * 0.16, 8, 6, 0, 0, Math.PI * 2);
-    g.fill();
-    // Eyes
-    g.fillStyle = '#fbbf24';
-    g.beginPath();
-    g.ellipse(cx - 14, cy - 4, 5, 4, 0, 0, Math.PI * 2);
-    g.ellipse(cx + 14, cy - 4, 5, 4, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#000';
-    g.beginPath();
-    g.arc(cx - 13, cy - 4, 2, 0, Math.PI * 2);
-    g.arc(cx + 15, cy - 4, 2, 0, Math.PI * 2);
-    g.fill();
-    // Teeth
-    g.fillStyle = '#fafafa';
-    g.beginPath();
-    g.moveTo(cx - 10, cy + h * 0.18);
-    g.lineTo(cx - 6, cy + h * 0.28);
-    g.lineTo(cx - 2, cy + h * 0.18);
-    g.moveTo(cx + 2, cy + h * 0.18);
-    g.lineTo(cx + 6, cy + h * 0.28);
-    g.lineTo(cx + 10, cy + h * 0.18);
-    g.fill();
-  } else if (unitType === 'sniper') {
-    paintBarracksPortraitBg(g, w, h, '#1f2937', '#0f172a', '#020617');
-    // Hood
-    g.fillStyle = '#111827';
-    g.beginPath();
-    g.moveTo(cx - w * 0.32, cy + h * 0.2);
-    g.quadraticCurveTo(cx - w * 0.35, cy - h * 0.35, cx, cy - h * 0.38);
-    g.quadraticCurveTo(cx + w * 0.35, cy - h * 0.35, cx + w * 0.32, cy + h * 0.2);
-    g.closePath();
-    g.fill();
-    // Face shadow
-    g.fillStyle = '#374151';
-    g.beginPath();
-    g.ellipse(cx, cy, w * 0.18, h * 0.2, 0, 0, Math.PI * 2);
-    g.fill();
-    // Scope glow eye
-    g.fillStyle = '#67e8f9';
-    g.beginPath();
-    g.arc(cx + 6, cy - 4, 5, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#ecfeff';
-    g.beginPath();
-    g.arc(cx + 7, cy - 5, 2, 0, Math.PI * 2);
-    g.fill();
-    // Rifle across frame
-    g.fillStyle = '#292524';
-    g.save();
-    g.translate(cx + 10, cy + 24);
-    g.rotate(-0.35);
-    g.fillRect(-50, -4, 90, 8);
-    g.fillStyle = '#57534e';
-    g.fillRect(20, -7, 28, 14);
-    g.restore();
-  } else if (unitType === 'yeti') {
-    paintBarracksPortraitBg(g, w, h, '#0c4a6e', '#082f49', '#020617');
-    // Spiky white mane
-    g.fillStyle = '#f8fafc';
-    for (let i = 0; i < 12; i++) {
-      const a = -Math.PI * 0.95 + (i / 11) * Math.PI * 1.9;
-      const len = w * (0.34 + (i % 3) * 0.04);
-      g.beginPath();
-      g.moveTo(cx + Math.cos(a) * w * 0.14, cy + Math.sin(a) * h * 0.1 - 4);
-      g.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len * 0.85 - 4);
-      g.lineTo(cx + Math.cos(a + 0.18) * w * 0.14, cy + Math.sin(a + 0.18) * h * 0.1 - 4);
-      g.closePath();
-      g.fill();
-    }
-    // Icy blue face/muscle
-    const ice = g.createRadialGradient(cx - 8, cy - 10, 4, cx, cy + 6, w * 0.34);
-    ice.addColorStop(0, '#e0f2fe');
-    ice.addColorStop(0.45, '#7dd3fc');
-    ice.addColorStop(1, '#0284c7');
-    g.fillStyle = ice;
-    g.beginPath();
-    g.ellipse(cx, cy + 4, w * 0.28, h * 0.3, 0, 0, Math.PI * 2);
-    g.fill();
-    // Brow
-    g.fillStyle = '#0369a1';
-    g.beginPath();
-    g.ellipse(cx, cy - h * 0.06, w * 0.22, h * 0.08, 0, 0, Math.PI * 2);
-    g.fill();
-    // Eyes
-    g.fillStyle = '#0f172a';
-    g.beginPath();
-    g.ellipse(cx - 14, cy - 2, 5, 4, 0, 0, Math.PI * 2);
-    g.ellipse(cx + 14, cy - 2, 5, 4, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#38bdf8';
-    g.beginPath();
-    g.arc(cx - 13, cy - 2, 1.8, 0, Math.PI * 2);
-    g.arc(cx + 15, cy - 2, 1.8, 0, Math.PI * 2);
-    g.fill();
-    // Roaring maw
-    g.fillStyle = '#1e1b1b';
-    g.beginPath();
-    g.ellipse(cx, cy + 22, 18, 14, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#f8fafc';
-    for (let i = -2; i <= 2; i++) {
-      g.beginPath();
-      g.moveTo(cx + i * 7 - 2, cy + 14);
-      g.lineTo(cx + i * 7, cy + 26);
-      g.lineTo(cx + i * 7 + 2, cy + 14);
-      g.fill();
-    }
-    // Claw hint at bottom
-    g.fillStyle = '#0f172a';
-    for (let i = -1; i <= 1; i++) {
-      g.beginPath();
-      g.moveTo(cx + i * 16 - 4, cy + h * 0.34);
-      g.lineTo(cx + i * 16, cy + h * 0.44);
-      g.lineTo(cx + i * 16 + 4, cy + h * 0.34);
-      g.fill();
-    }
-  } else if (unitType === 'peka') {
-    paintBarracksPortraitBg(g, w, h, '#7f1d1d', '#450a0a', '#1c0505');
-    // Wings hint
-    g.fillStyle = '#991b1b';
-    for (const dir of [-1, 1]) {
-      g.beginPath();
-      g.moveTo(cx, cy);
-      g.quadraticCurveTo(cx + dir * w * 0.5, cy - h * 0.25, cx + dir * w * 0.42, cy + h * 0.2);
-      g.quadraticCurveTo(cx + dir * w * 0.22, cy + h * 0.05, cx, cy + 10);
-      g.fill();
-    }
-    // Head
-    const scales = g.createRadialGradient(cx - 10, cy - 16, 6, cx, cy, w * 0.36);
-    scales.addColorStop(0, '#f87171');
-    scales.addColorStop(0.45, '#dc2626');
-    scales.addColorStop(1, '#7f1d1d');
-    g.fillStyle = scales;
-    g.beginPath();
-    g.ellipse(cx, cy, w * 0.3, h * 0.3, 0, 0, Math.PI * 2);
-    g.fill();
-    // Horns
-    g.fillStyle = '#e7e5e4';
-    for (const dir of [-1, 1]) {
-      g.beginPath();
-      g.moveTo(cx + dir * 16, cy - h * 0.18);
-      g.lineTo(cx + dir * 28, cy - h * 0.4);
-      g.lineTo(cx + dir * 8, cy - h * 0.2);
-      g.closePath();
-      g.fill();
-    }
-    // Eyes
-    g.fillStyle = '#fde047';
-    g.beginPath();
-    g.ellipse(cx - 12, cy - 6, 6, 5, 0, 0, Math.PI * 2);
-    g.ellipse(cx + 12, cy - 6, 6, 5, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#111';
-    g.beginPath();
-    g.ellipse(cx - 11, cy - 6, 2.5, 4, 0, 0, Math.PI * 2);
-    g.ellipse(cx + 13, cy - 6, 2.5, 4, 0, 0, Math.PI * 2);
-    g.fill();
-    // Mouth fire glow
-    const fire = g.createRadialGradient(cx, cy + 24, 2, cx, cy + 24, 28);
-    fire.addColorStop(0, '#fde047');
-    fire.addColorStop(0.5, '#f97316');
-    fire.addColorStop(1, 'rgba(127,29,29,0)');
-    g.fillStyle = fire;
-    g.beginPath();
-    g.arc(cx, cy + 26, 26, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#1c1917';
-    g.beginPath();
-    g.ellipse(cx, cy + 22, 16, 10, 0, 0, Math.PI * 2);
-    g.fill();
-  } else {
-    paintBarracksPortraitBg(g, w, h, '#334155', '#0f172a', '#020617');
-    g.fillStyle = '#94a3b8';
-    g.beginPath();
-    g.arc(cx, cy, w * 0.2, 0, Math.PI * 2);
-    g.fill();
-  }
-}
-
-function paintBarracksTroopPortraits(root) {
-  const host = root || document.getElementById('barracks-upgrade-list');
-  if (!host) return;
-  host.querySelectorAll('canvas.brk-troop-portrait[data-unit]').forEach((canvas) => {
-    const type = canvas.dataset.unit;
-    const g = canvas.getContext('2d');
-    if (!g || !type) return;
-    paintBarracksTroopPortrait(g, type, canvas.width, canvas.height);
-  });
-}
+function paintBarracksTroopPortraits() { /* portraits are static webp assets */ }
 
 let barracksSkillFocus = null; // unit type when viewing that troop's skill tree
 
@@ -6363,7 +6404,7 @@ function barracksUnitSkillTreeHtml(p, ut) {
   html += '<button type="button" class="brk-skill-back" data-barracks-skills-back="1">← All troops</button>';
   html += '<div class="brk-skill-hero">';
   html += '<div class="brk-skill-hero-art">';
-  html += `<canvas class="brk-troop-portrait" data-unit="${ut}" width="200" height="240" aria-hidden="true"></canvas>`;
+  html += `<img class="brk-troop-portrait" src="/TDG/portraits/${ut}.webp" alt="" loading="lazy" decoding="async" />`;
   html += '<div class="brk-troop-vignette"></div>';
   html += '</div>';
   html += '<div class="brk-skill-hero-copy">';
@@ -6426,7 +6467,6 @@ function updateBarracksUpgradeUI(force) {
 
   if (barracksSkillFocus) {
     setSkillListHtml('barracks-upgrade-list', barracksUnitSkillTreeHtml(p, barracksSkillFocus));
-    paintBarracksTroopPortraits(list);
     return;
   }
 
@@ -6450,7 +6490,7 @@ function updateBarracksUpgradeUI(force) {
 
     html += `<div class="brk-troop-card${unlocked ? ' is-owned' : ''}${locked ? ' is-locked' : ''}">`;
     html += '<div class="brk-troop-portrait-wrap">';
-    html += `<canvas class="brk-troop-portrait" data-unit="${ut}" width="200" height="240" aria-hidden="true"></canvas>`;
+    html += `<img class="brk-troop-portrait" src="/TDG/portraits/${ut}.webp" alt="" loading="lazy" decoding="async" />`;
     html += '<div class="brk-troop-vignette"></div>';
     if (unlocked) {
       html += '<div class="brk-troop-badge is-owned-tag">Recruited</div>';
@@ -6469,7 +6509,6 @@ function updateBarracksUpgradeUI(force) {
 
   html += '</div>';
   setSkillListHtml('barracks-upgrade-list', html);
-  paintBarracksTroopPortraits(list);
 }
 
 function updateEngineersUpgradeUI(force) {
@@ -6582,6 +6621,7 @@ function toggleBarracksPanel(show) {
     barracksSkillFocus = null;
   }
   syncLiveMenuPause();
+  notifyHudLayoutChange();
 }
 
 const SPELL_BLURBS = {
@@ -6727,6 +6767,7 @@ function toggleLaboratoryPanel(show) {
     updateLaboratoryUI(true);
   }
   syncLiveMenuPause();
+  notifyHudLayoutChange();
 }
 
 function isSpellTool(tool) {
@@ -7390,6 +7431,7 @@ function toggleEngineersPanel(show) {
     updateEngineersUpgradeUI(true);
   }
   syncLiveMenuPause();
+  notifyHudLayoutChange();
 }
 
 let activeMissileTowerId = null;
@@ -7566,6 +7608,7 @@ function toggleSpreadPanel(show) {
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
   if (open) updateSpreadUpgradeUI();
+  notifyHudLayoutChange();
 }
 
 function findOwnSpreadTowerAt(pos, pid) {
@@ -7676,6 +7719,7 @@ function toggleMissilePanel(show) {
   const open = show !== undefined ? show : panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !open);
   if (open) updateMissileUpgradeUI();
+  notifyHudLayoutChange();
 }
 
 function buyBaseCannonUpgrade(pid, branch) {
@@ -7702,6 +7746,7 @@ function toggleCommanderPanel(show) {
   panel.classList.toggle('hidden', !open);
   if (open) updateCommanderPanelUI();
   syncLiveMenuPause();
+  notifyHudLayoutChange();
 }
 
 function commanderFormFabSvg(formation) {
@@ -8058,6 +8103,12 @@ function syncBaseMenuDockSide() {
   panel.classList.toggle('dock-left', !onRight);
 }
 
+function notifyHudLayoutChange() {
+  requestAnimationFrame(() => {
+    if (typeof resize === 'function') resize();
+  });
+}
+
 function toggleEconPanel(show) {
   const panel = document.getElementById('econ-upgrade-panel');
   if (!panel) return;
@@ -8070,6 +8121,7 @@ function toggleEconPanel(show) {
     updateIncomeUpgradeUI(true);
   }
   syncLiveMenuPause();
+  notifyHudLayoutChange();
 }
 
 function updateIncomeUpgradeUI(force) {
