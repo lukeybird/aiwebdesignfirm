@@ -19,10 +19,13 @@ window.LIVE_ARMY = (function () {
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 3;
   const STAT_UPGRADE_COSTS = [150, 450, 1200];
-  // Tier 0 = no upgrade; tiers 1–3 are purchased levels.
-  const UNIT_DAMAGE_MULT = [1, 2, 4, 8];
-  const UNIT_HEALTH_MULT = [1, 3, 6, 10];
-  const UNIT_SPEED_MULT = [1, 1.3, 1.6, 2];
+  // Speed branch is half price (base stats = half of damage/health full potential).
+  const STAT_SPEED_UPGRADE_COSTS = STAT_UPGRADE_COSTS.map((c) => Math.round(c / 2));
+  // Tier 0 = starting power (half of full potential for damage/health).
+  // Tiers 1–3 climb toward 2× (damage/health) or 1.5× (speed).
+  const UNIT_DAMAGE_MULT = [1, 1.33, 1.67, 2];
+  const UNIT_HEALTH_MULT = [1, 1.33, 1.67, 2];
+  const UNIT_SPEED_MULT = [1, 1.15, 1.3, 1.5];
   const ENGINEER_BRANCHES = ['damage', 'range', 'health', 'knockback'];
   const TURRET_ENGINEER_BRANCHES = ['damage', 'firerate', 'range'];
   const ENGINEER_BRANCH_LABELS = { damage: 'Damage', range: 'Range', health: 'Health', knockback: 'Knockback', firerate: 'Fire Rate' };
@@ -312,32 +315,32 @@ window.LIVE_ARMY = (function () {
     const el = document.getElementById('barracks-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Recruit troops from the list, then open each recruited card’s Skill Tree. Opponent upgrades stay hidden.'
-      : 'Recruit troops from the list. After unlocking a unit, tap Skill Tree on its card to upgrade Speed, Attack, and Health.';
+      ? 'Recruit troops from the list, then tap the tree on a recruited card. Opponent upgrades stay hidden.'
+      : 'Recruit troops from the list. After unlocking a unit, tap the tree on its card to upgrade Speed, Attack, and Health.';
   }
 
   function syncEngineersPanelCopy() {
     const el = document.getElementById('engineers-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Unlock each tower type, then upgrade damage, range, health, and knockback. Deeper tiers cost more — levels are hidden.'
-      : 'Unlock each tower at the top of its column, then climb damage, range, health, and knockback branches.';
+      ? 'Unlock towers from the list, then tap the tree on a card. Opponent upgrades stay hidden.'
+      : 'Unlock towers from the list. After unlocking, tap the tree on a card to upgrade Damage, Range, Health, and more.';
   }
 
   function syncLaboratoryPanelCopy() {
     const el = document.getElementById('laboratory-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'Unlock spells at the top, then climb each spell track. Cast from the bottom bar — levels are hidden from your opponent.'
-      : 'Unlock Fireball, Zombie Slime, and Yellow Potion at the top, then upgrade each spell. Cast from the bottom bar like units.';
+      ? 'Unlock spells from the list, then tap the tree on a card. Cast from the hotbar — levels stay hidden.'
+      : 'Unlock spells from the list. After unlocking, tap the tree on a card to upgrade Power. Cast from the hotbar.';
   }
 
   function syncEconomyPanelCopy() {
     const el = document.getElementById('economy-upgrade-desc');
     if (!el) return;
     el.textContent = pvpMode
-      ? 'HQ, turrets, commander, farms & mints. Enemy levels stay hidden.'
-      : 'Headquarters, turrets, commander, farms, and mints.';
+      ? 'Open HQ, Farm, Mint, or Commander cards. Enemy levels stay hidden.'
+      : 'Tap a card, then the tree, to upgrade Headquarters, Farm, Mint, or Commander.';
   }
 
   function initPlayer(p) {
@@ -609,7 +612,8 @@ window.LIVE_ARMY = (function () {
     const rec = unitRecord(p, type);
     const lvl = rec[stat] || 0;
     if (lvl >= STAT_MAX) return null;
-    return STAT_UPGRADE_COSTS[lvl];
+    const table = stat === 'speed' ? STAT_SPEED_UPGRADE_COSTS : STAT_UPGRADE_COSTS;
+    return table[lvl];
   }
 
   function towerUnlocked(p, type) {
