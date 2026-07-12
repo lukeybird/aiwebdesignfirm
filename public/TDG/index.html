@@ -1704,6 +1704,262 @@
       align-items: center;
     }
 
+    /* Half menus → full screen on phones / small viewports */
+    @media (max-width: 820px), (max-height: 560px) {
+      #econ-upgrade-panel,
+      #barracks-upgrade-panel {
+        justify-content: stretch;
+        background: rgba(4, 10, 7, 0.96);
+        padding:
+          env(safe-area-inset-top, 0px)
+          env(safe-area-inset-right, 0px)
+          env(safe-area-inset-bottom, 0px)
+          env(safe-area-inset-left, 0px);
+      }
+
+      #econ-upgrade-panel.dock-right,
+      #barracks-upgrade-panel.dock-right {
+        justify-content: stretch;
+        background: rgba(4, 10, 7, 0.96);
+      }
+
+      #econ-upgrade-panel .economy-st-panel,
+      #barracks-upgrade-panel .barracks-st-panel {
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        animation: halfMenuMobileIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      #econ-upgrade-panel.dock-right .economy-st-panel,
+      #barracks-upgrade-panel.dock-right .barracks-st-panel {
+        border: none;
+        box-shadow: none;
+        animation: halfMenuMobileIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      @keyframes halfMenuMobileIn {
+        from { transform: translateY(12%); opacity: 0.35; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      #econ-upgrade-panel .st-header,
+      #barracks-upgrade-panel .st-header {
+        padding: 12px 12px 12px 14px;
+        padding-top: max(12px, env(safe-area-inset-top, 12px));
+        gap: 10px;
+      }
+
+      #econ-upgrade-panel .st-header-title,
+      #barracks-upgrade-panel .st-header-title {
+        font-size: 0.95rem;
+        letter-spacing: 0.12em;
+      }
+
+      #econ-upgrade-panel .st-header-close,
+      #barracks-upgrade-panel .st-header-close {
+        width: 44px;
+        height: 44px;
+        font-size: 1.15rem;
+        flex-shrink: 0;
+      }
+
+      #econ-upgrade-panel .st-panel-desc,
+      #barracks-upgrade-panel .st-panel-desc {
+        padding: 8px 14px 4px;
+        font-size: 0.72rem;
+        line-height: 1.35;
+      }
+
+      #econ-upgrade-panel .st-scroll-wrap,
+      #barracks-upgrade-panel .st-scroll-wrap,
+      #econ-upgrade-panel.dock-right .st-scroll-wrap,
+      #barracks-upgrade-panel.dock-right .st-scroll-wrap {
+        flex-direction: row;
+        padding: 0 8px calc(10px + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* Finger scroll is enough — reclaim the side button strip */
+      #econ-upgrade-panel .st-scroll-nav,
+      #barracks-upgrade-panel .st-scroll-nav {
+        display: none;
+      }
+
+      #econ-upgrade-list,
+      #barracks-upgrade-list {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .brk-troop-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 8px;
+        padding: 6px 2px 20px;
+      }
+
+      .brk-troop-name {
+        font-size: 0.64rem;
+      }
+
+      .brk-troop-skills-btn {
+        min-height: 40px;
+        font-size: 0.74rem;
+        padding: 8px 8px;
+      }
+
+      .brk-troop-badge {
+        font-size: 0.74rem;
+        padding: 6px 6px;
+      }
+
+      .brk-skill-hero {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .brk-skill-hero-art {
+        width: 100%;
+        max-width: none;
+        aspect-ratio: 16 / 11;
+        align-self: center;
+      }
+
+      .brk-skill-hero-copy h4 {
+        font-size: 0.92rem;
+      }
+
+      .brk-skill-back {
+        min-height: 42px;
+        padding: 10px 14px;
+        font-size: 0.82rem;
+      }
+
+      .brk-skill-view .brk-mini-node,
+      .brk-skill-view .brk-mini-wrap {
+        touch-action: manipulation;
+      }
+
+      #econ-upgrade-panel .st-row {
+        justify-content: flex-start;
+        padding-bottom: 10px;
+      }
+
+      #econ-upgrade-panel .st-canvas {
+        padding: 8px 2px 20px;
+      }
+
+      /* Centered skill-tree modals → full screen too */
+      #engineers-upgrade-panel,
+      #laboratory-upgrade-panel,
+      #missile-upgrade-panel,
+      #spread-upgrade-panel {
+        align-items: stretch;
+        justify-content: stretch;
+        background: rgba(4, 10, 7, 0.96);
+        padding:
+          env(safe-area-inset-top, 0px)
+          env(safe-area-inset-right, 0px)
+          env(safe-area-inset-bottom, 0px)
+          env(safe-area-inset-left, 0px);
+      }
+
+      #engineers-upgrade-panel > .st-panel,
+      #laboratory-upgrade-panel > .st-panel,
+      #missile-upgrade-panel > .econ-panel-inner,
+      #spread-upgrade-panel > .econ-panel-inner {
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        animation: halfMenuMobileIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      #engineers-upgrade-panel .st-header,
+      #laboratory-upgrade-panel .st-header {
+        padding: 12px 12px 12px 14px;
+        padding-top: max(12px, env(safe-area-inset-top, 12px));
+      }
+
+      #engineers-upgrade-panel .st-header-close,
+      #laboratory-upgrade-panel .st-header-close,
+      #missile-upgrade-panel .econ-panel-header button,
+      #spread-upgrade-panel .econ-panel-header button {
+        width: 44px;
+        height: 44px;
+        font-size: 1.15rem;
+        flex-shrink: 0;
+      }
+
+      #engineers-upgrade-panel .st-scroll-wrap,
+      #laboratory-upgrade-panel .st-scroll-wrap {
+        flex-direction: row;
+        padding: 0 8px calc(10px + env(safe-area-inset-bottom, 0px));
+      }
+
+      #engineers-upgrade-panel .st-scroll-nav,
+      #laboratory-upgrade-panel .st-scroll-nav {
+        display: none;
+      }
+
+      #engineers-upgrade-list,
+      #laboratory-upgrade-list,
+      #missile-upgrade-list,
+      #spread-upgrade-list {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+      }
+
+      #missile-upgrade-panel > .econ-panel-inner,
+      #spread-upgrade-panel > .econ-panel-inner {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      }
+
+      #missile-upgrade-list,
+      #spread-upgrade-list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+      }
+
+      /* Barracks skill tree detail — roomy tracks on phones */
+      .brk-skill-view {
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .brk-skill-view .brk-stat-track {
+        gap: 6px;
+      }
+
+      .brk-board {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 12px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .brk-troop-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 6px;
+      }
+
+      .brk-troop-meta {
+        font-size: 0.54rem;
+      }
+    }
+
     .lab-casting-banner {
       position: absolute;
       top: 96px;
