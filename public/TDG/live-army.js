@@ -5,9 +5,10 @@ window.LIVE_ARMY = (function () {
   const LABORATORY_SIZE = 36;
   const COMBAT_TOWER_SIZE = 22;
   const TURRET_SIZE = 34;
+  const ARCHER_SIZE = 44; // ~2× a normal combat tower
   const MINT_SIZE = 16;
 
-  const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'missile'];
+  const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'missile', 'archer'];
   const ECON_TOWERS = ['farm', 'mint'];
   const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'sniper', 'yeti', 'peka'];
   const UNIT_LABELS = {
@@ -47,10 +48,10 @@ window.LIVE_ARMY = (function () {
   const SPREAD_KB_WEAK = 0.5;
   const SPREAD_KB_STRONG = 4;
   const TOWER_LABELS = {
-    turret: 'Turret', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile',
+    turret: 'Turret', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile', archer: 'Archer Tower',
   };
   const TOWER_UNLOCK_COST = {
-    turret: 125, laser: 165, spread: 145, missile: 220,
+    turret: 125, laser: 165, spread: 145, missile: 220, archer: 185,
   };
 
   function freshTowerRecord() {
@@ -280,6 +281,7 @@ window.LIVE_ARMY = (function () {
     gameRules.towers.spread = true;
     gameRules.towers.turret = true;
     gameRules.towers.missile = true;
+    gameRules.towers.archer = true;
     gameRules.towers.mint = true;
     gameRules.towers.farm = true;
     gameRules.towers.barracks = true;
@@ -362,6 +364,7 @@ window.LIVE_ARMY = (function () {
     if (type === 'farm' || type === 'barracks' || type === 'engineers' || type === 'missile') return STRUCTURE_SIZE;
     if (type === 'mint') return MINT_SIZE;
     if (type === 'turret') return TURRET_SIZE;
+    if (type === 'archer') return ARCHER_SIZE;
     if (type === 'laser' || type === 'spread') return COMBAT_TOWER_SIZE;
     return t.size || COMBAT_TOWER_SIZE;
   }
@@ -372,7 +375,7 @@ window.LIVE_ARMY = (function () {
     // so farms cannot clip other structures even after gap clearance.
     if (type === 'farm') return Math.ceil(FARM_SIZE / 2) + 6;
     if (type === 'laboratory') return 20;
-    if (type === 'barracks' || type === 'engineers' || type === 'missile') return 26;
+    if (type === 'barracks' || type === 'engineers' || type === 'missile' || type === 'archer') return 26;
     if (type === 'mint') return 12;
     if (type === 'turret') return 20;
     if (type === 'laser' || type === 'spread') return 14;
@@ -396,6 +399,11 @@ window.LIVE_ARMY = (function () {
     else if (type === 'laser') { d.size = COMBAT_TOWER_SIZE; d.name = 'Rail Gun'; d.style = 'railgun'; d.color = '#EAB308'; d.accent = '#CA8A04'; d.range = 680; }
     else if (type === 'spread') { d.size = COMBAT_TOWER_SIZE; d.knockback = SPREAD_KB_WEAK; d.name = 'Spreader'; }
     else if (type === 'turret') { d.size = TURRET_SIZE; d.hp = 140; d.damage = 24; d.name = 'Turret'; }
+    else if (type === 'archer') {
+      d.size = ARCHER_SIZE; d.name = 'Archer Tower'; d.style = 'archer';
+      d.range = 540; d.damage = 48; d.fireRate = 0.48; d.arrowCount = 3;
+      d.hp = 130; d.color = '#92400e'; d.accent = '#78350f';
+    }
 
     // Base cannons run on their own dedicated skill tree, so callers can request
     // the live-adjusted base stats without the shared engineer-tower bonuses.

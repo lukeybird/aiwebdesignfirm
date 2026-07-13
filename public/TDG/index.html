@@ -360,6 +360,14 @@
       display: none !important;
     }
 
+    .mc-hotbar-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 6px;
+      pointer-events: auto;
+    }
+
     .mc-hotbar {
       display: flex;
       align-items: stretch;
@@ -373,6 +381,298 @@
         inset 0 -2px 0 rgba(0, 0, 0, 0.55),
         0 4px 14px rgba(0, 0, 0, 0.45);
     }
+
+    .hot-cursor-wrap {
+      display: flex;
+      align-items: stretch;
+      gap: 3px;
+      padding: 5px;
+      background: linear-gradient(180deg, #3a3a3a 0%, #2b2b2b 40%, #1a1a1a 100%);
+      border: 3px solid #1a1a1a;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+        0 4px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    .hot-loadout-btn {
+      width: 36px;
+      height: 58px;
+      margin: 0;
+      padding: 0;
+      border: 2px solid #1f1f1f;
+      border-radius: 0;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.06), transparent 42%),
+        #2f2a22;
+      box-shadow:
+        inset 2px 2px 0 rgba(255, 255, 255, 0.08),
+        inset -2px -2px 0 rgba(0, 0, 0, 0.55);
+      color: #fde68a;
+      font-size: 1.15rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      pointer-events: auto;
+    }
+    .hot-loadout-btn:hover { filter: brightness(1.12); }
+
+    /* ── Hotbar inventory: side drawer (same shell as Barracks / Base) ── */
+    #hotbar-loadout-panel {
+      position: absolute;
+      inset: 0;
+      z-index: 18;
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-start;
+      pointer-events: auto;
+      background:
+        linear-gradient(90deg, rgba(6, 10, 8, 0.72) 0%, rgba(6, 10, 8, 0.28) 42%, transparent 70%);
+    }
+    #hotbar-loadout-panel.dock-right {
+      justify-content: flex-end;
+      background:
+        linear-gradient(270deg, rgba(6, 10, 8, 0.72) 0%, rgba(6, 10, 8, 0.28) 42%, transparent 70%);
+    }
+    #hotbar-loadout-panel.hidden { display: none; }
+    #hotbar-loadout-panel .hotbar-loadout-inner {
+      width: 50%;
+      max-width: none;
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      border-radius: 0;
+      border: 3px solid #6ee7a0;
+      border-left: none;
+      background:
+        linear-gradient(185deg, rgba(16, 36, 22, 0.98) 0%, rgba(8, 14, 12, 0.99) 48%, rgba(6, 10, 10, 1) 100%);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.75),
+        12px 0 48px rgba(0, 0, 0, 0.55),
+        inset -1px 0 0 rgba(110, 231, 160, 0.18),
+        inset 0 0 60px rgba(0, 0, 0, 0.35);
+      animation: baseDrawerInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      container-type: inline-size;
+      container-name: loadout-panel;
+    }
+    #hotbar-loadout-panel.dock-right .hotbar-loadout-inner {
+      border-left: 3px solid #6ee7a0;
+      border-right: none;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.75),
+        -12px 0 48px rgba(0, 0, 0, 0.55),
+        inset 1px 0 0 rgba(110, 231, 160, 0.18),
+        inset 0 0 60px rgba(0, 0, 0, 0.35);
+      animation: baseDrawerInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #hotbar-loadout-panel .st-header {
+      background: linear-gradient(180deg, #3d9a5c 0%, #1f6b3a 48%, #134528 100%);
+      border-bottom: 2px solid #86efac;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 4px 14px rgba(0, 0, 0, 0.4);
+      padding: 12px 14px;
+    }
+    #hotbar-loadout-panel .st-header-title {
+      font-size: 1.05rem;
+      letter-spacing: 0.16em;
+    }
+    #hotbar-loadout-panel .st-panel-desc,
+    #hotbar-loadout-hint {
+      margin: 0;
+      padding: 8px 14px 6px;
+      font-size: 0.68rem;
+      line-height: 1.4;
+      color: #a7d4b4;
+    }
+    #hotbar-loadout-hint.assigning {
+      color: #fde68a;
+      font-weight: 700;
+    }
+    .hotbar-loadout-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 4px 10px 8px;
+    }
+    .hotbar-loadout-dock {
+      flex-shrink: 0;
+      padding: 6px 10px 0;
+      border-top: 1px solid rgba(110, 231, 160, 0.25);
+      background: rgba(0, 0, 0, 0.22);
+    }
+    .hl-section-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #86efac;
+      opacity: 0.85;
+      margin: 8px 0 4px;
+      text-align: left;
+      font-weight: 700;
+    }
+    .hl-inventory-bag,
+    .hl-inventory-hotbar {
+      width: 100%;
+      border: 2px solid rgba(110, 231, 160, 0.35);
+      background: rgba(0, 0, 0, 0.35);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    .hl-hotbar-strip {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      gap: clamp(3px, 0.8cqw, 8px);
+      padding: clamp(5px, 1.2cqw, 10px);
+      margin-bottom: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .hl-slot-cell,
+    .hl-catalog-cell {
+      position: relative;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      aspect-ratio: 1;
+      height: auto;
+      border: 2px solid #1f1f1f;
+      border-radius: 0;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.06), transparent 42%),
+        #2a2a2a;
+      box-shadow:
+        inset 2px 2px 0 rgba(255, 255, 255, 0.08),
+        inset -2px -2px 0 rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+      min-width: 0;
+    }
+    .hl-slot-cell {
+      cursor: default;
+    }
+    .hl-slot-cell.is-empty {
+      background: #1a1a1a;
+      opacity: 0.95;
+    }
+    .hl-slot-cell.drag-over,
+    .hl-catalog-cell.drag-over {
+      border-color: #facc15;
+      box-shadow:
+        inset 2px 2px 0 rgba(255, 255, 255, 0.12),
+        inset -2px -2px 0 rgba(0, 0, 0, 0.5),
+        0 0 0 2px #111,
+        0 0 0 4px rgba(250, 204, 21, 0.85);
+      z-index: 2;
+    }
+    .hl-catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-auto-rows: auto;
+      gap: clamp(4px, 1cqw, 10px);
+      align-content: start;
+      padding: clamp(5px, 1.2cqw, 10px);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .hl-empty-bag {
+      margin: 0;
+      padding: 16px 10px;
+      width: 100%;
+      grid-column: 1 / -1;
+      text-align: center;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: #a7d4b4;
+    }
+    .hl-catalog-cell {
+      cursor: grab;
+      font-family: inherit;
+      color: inherit;
+    }
+    .hl-catalog-cell:active { cursor: grabbing; }
+    .hl-catalog-cell:hover { filter: brightness(1.12); }
+    .hl-catalog-cell.selected {
+      border-color: #ffffff;
+      box-shadow:
+        inset 2px 2px 0 rgba(255, 255, 255, 0.12),
+        inset -2px -2px 0 rgba(0, 0, 0, 0.5),
+        0 0 0 2px #111,
+        0 0 0 4px rgba(255, 255, 255, 0.9);
+      z-index: 2;
+    }
+    .hl-catalog-cell.dragging,
+    .hl-slot-cell.dragging {
+      opacity: 0.35;
+    }
+    #hotbar-drag-ghost {
+      position: fixed;
+      top: 0;
+      left: 0;
+      transform: translate(-9999px, -9999px);
+      z-index: 99999;
+      pointer-events: none;
+    }
+    .hl-cell-label { display: none; }
+    .hl-slot-cell .hot-slot-canvas,
+    .hl-catalog-cell .hot-slot-canvas {
+      width: 88%;
+      height: 88%;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .hl-slot-cell .hot-slot-glyph,
+    .hl-catalog-cell .hot-slot-glyph {
+      width: auto;
+      height: auto;
+      max-width: 88%;
+      max-height: 88%;
+      font-size: clamp(1.1rem, 11cqw, 2.6rem);
+    }
+    .hl-slot-cell .hot-slot-portrait,
+    .hl-catalog-cell .hot-slot-portrait {
+      inset: 4%;
+      width: 92%;
+      height: 92%;
+      object-position: center 16%;
+    }
+    .hl-slot-cell .hot-slot-key,
+    .hl-catalog-cell .hot-slot-key {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: clamp(0.55rem, 2.8cqw, 0.75rem);
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.92);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+      line-height: 1;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .hotbar-loadout-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 8px 2px 12px;
+    }
+    .hotbar-loadout-actions button {
+      font-family: inherit;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 0;
+      border: 2px solid #1f4a30;
+      background: linear-gradient(180deg, #1f4a30 0%, #0e2418 100%);
+      color: #bbf7d0;
+      cursor: pointer;
+      box-shadow: inset 1px 1px 0 rgba(255,255,255,0.12), inset -1px -1px 0 rgba(0,0,0,0.45);
+    }
+    .hotbar-loadout-actions button.primary {
+      border-color: #86efac;
+      background: linear-gradient(180deg, #3d9a5c 0%, #1f6b3a 100%);
+      color: #f0fdf4;
+    }
+    .hotbar-loadout-actions button.hidden { display: none; }
 
     .hot-slot {
       position: relative;
@@ -422,9 +722,12 @@
       background: #252525;
     }
 
-    .hot-slot:disabled,
-    .hot-slot.unaffordable {
+    .hot-slot:disabled {
       cursor: not-allowed;
+    }
+
+    .hot-slot.unaffordable:not(:disabled) {
+      cursor: pointer;
     }
 
     .hot-slot.unaffordable .hot-slot-canvas,
@@ -2134,6 +2437,7 @@
     @media (max-width: 820px), (max-height: 560px) {
       #econ-upgrade-panel,
       #barracks-upgrade-panel,
+      #hotbar-loadout-panel,
       #commander-panel {
         justify-content: stretch;
         background: rgba(4, 10, 7, 0.96);
@@ -2142,6 +2446,7 @@
 
       #econ-upgrade-panel.dock-right,
       #barracks-upgrade-panel.dock-right,
+      #hotbar-loadout-panel.dock-right,
       #commander-panel.dock-right {
         justify-content: stretch;
         background: rgba(4, 10, 7, 0.96);
@@ -2149,6 +2454,7 @@
 
       #econ-upgrade-panel .economy-st-panel,
       #barracks-upgrade-panel .barracks-st-panel,
+      #hotbar-loadout-panel .hotbar-loadout-inner,
       #commander-panel .commander-st-panel {
         width: 100%;
         max-width: 100%;
@@ -2162,6 +2468,7 @@
 
       #econ-upgrade-panel.dock-right .economy-st-panel,
       #barracks-upgrade-panel.dock-right .barracks-st-panel,
+      #hotbar-loadout-panel.dock-right .hotbar-loadout-inner,
       #commander-panel.dock-right .commander-st-panel {
         border: none;
         box-shadow: none;
@@ -2175,6 +2482,7 @@
 
       #econ-upgrade-panel .st-header,
       #barracks-upgrade-panel .st-header,
+      #hotbar-loadout-panel .st-header,
       #commander-panel .st-header {
         padding: 8px 10px 8px 12px;
         padding-top: 8px;
@@ -2183,13 +2491,15 @@
 
       #econ-upgrade-panel .st-header-title,
       #barracks-upgrade-panel .st-header-title,
+      #hotbar-loadout-panel .st-header-title,
       #commander-panel .st-header-title {
         font-size: 0.82rem;
         letter-spacing: 0.1em;
       }
 
       #econ-upgrade-panel .st-header-close,
-      #barracks-upgrade-panel .st-header-close {
+      #barracks-upgrade-panel .st-header-close,
+      #hotbar-loadout-panel .st-header-close {
         width: 36px;
         height: 36px;
         font-size: 1rem;
@@ -2197,7 +2507,8 @@
       }
 
       #econ-upgrade-panel .st-panel-desc,
-      #barracks-upgrade-panel .st-panel-desc {
+      #barracks-upgrade-panel .st-panel-desc,
+      #hotbar-loadout-panel .st-panel-desc {
         padding: 4px 12px 2px;
         font-size: 0.64rem;
         line-height: 1.3;
@@ -2931,7 +3242,8 @@
     body.mobile-device .play-slot-menu .st-header-close,
     body.mobile-device .play-slot-menu .econ-panel-header > button,
     body.mobile-device .play-slot-menu #commander-close,
-    body.mobile-device .play-slot-menu #ach-panel-close {
+    body.mobile-device .play-slot-menu #ach-panel-close,
+    body.mobile-device .play-slot-menu #hotbar-loadout-close {
       display: none !important;
     }
 
@@ -4042,6 +4354,50 @@
       margin: 0 0 12px;
       line-height: 1.45;
     }
+    .tower-manage-upgrades {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tower-upgrade-btn {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      background: linear-gradient(180deg, rgba(120, 53, 15, 0.95), rgba(69, 26, 3, 0.95));
+      color: #fef3c7;
+      font-family: inherit;
+      font-size: 0.86rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: left;
+      line-height: 1.35;
+    }
+    .tower-upgrade-btn:hover:not(:disabled) {
+      border-color: rgba(253, 224, 71, 0.75);
+      color: #fffbeb;
+    }
+    .tower-upgrade-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .tower-upgrade-btn .tu-sub {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+    .tower-upgrade-owned {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      background: rgba(20, 83, 45, 0.35);
+      color: #bbf7d0;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
 
     .spread-skill-tree {
       display: flex;
@@ -4668,6 +5024,7 @@
     }
 
     body.mobile-device .mc-hotbar,
+    body.mobile-device .hot-cursor-wrap,
     body.mobile-device #commander-dock {
       padding: 2px;
       gap: 2px;
@@ -4678,6 +5035,12 @@
     body.mobile-device .cmd-fab {
       width: 40px;
       height: 40px;
+    }
+
+    body.mobile-device .hot-loadout-btn {
+      width: 28px;
+      height: 40px;
+      font-size: 0.95rem;
     }
 
     body.mobile-device .hot-slot-canvas,
@@ -4980,6 +5343,29 @@
           <div id="tower-manage-actions"></div>
         </div>
       </div>
+      <div id="hotbar-loadout-panel" class="hidden dock-left">
+        <div class="st-panel hotbar-loadout-inner" role="dialog" aria-labelledby="hotbar-loadout-title">
+          <div class="st-header">
+            <span class="st-header-emblem" aria-hidden="true">☰</span>
+            <h3 id="hotbar-loadout-title" class="st-header-title">Hotbar</h3>
+            <button id="hotbar-loadout-close" class="st-header-close" type="button" aria-label="Close hotbar menu">✕</button>
+          </div>
+          <p id="hotbar-loadout-hint" class="st-panel-desc">Click an unlocked item to add it to the next empty slot (1 first). Or drag, or select and press 1–9 / 0.</p>
+          <div class="hotbar-loadout-scroll">
+            <p class="hl-section-label">Inventory</p>
+            <div id="hotbar-loadout-list" class="hl-catalog-grid hl-inventory-bag" aria-label="Unlocked items"></div>
+          </div>
+          <div class="hotbar-loadout-dock">
+            <p class="hl-section-label">Hotbar</p>
+            <div id="hotbar-loadout-slots" class="hl-hotbar-strip hl-inventory-hotbar" aria-label="Hotbar slots"></div>
+            <div class="hotbar-loadout-actions">
+              <button type="button" id="hotbar-loadout-clear-tool" class="hidden">Remove from hotbar</button>
+              <button type="button" id="hotbar-loadout-reset">Clear hotbar</button>
+              <button type="button" id="hotbar-loadout-done" class="primary">Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="econ-upgrade-panel" class="hidden dock-left">
         <div class="st-panel economy-st-panel" role="dialog" aria-labelledby="econ-panel-title">
           <div class="st-header">
@@ -5014,7 +5400,7 @@
             <span class="st-header-emblem" aria-hidden="true">🎖️</span>
             <h3 id="commander-panel-title" class="st-header-title">Commander</h3>
             <button id="commander-close" class="st-header-close" type="button" aria-label="Close commander">✕</button>
-          </div>
+      </div>
           <p id="commander-upgrade-desc" class="st-panel-desc">Pick a unit from the bar, then click the battlefield to drop a whole formation at once.</p>
           <div class="st-scroll-wrap">
             <div id="commander-upgrade-list" class="st-skill-scroll">
@@ -5023,27 +5409,27 @@
                   <div class="brk-skill-hero-art">
                     <img class="brk-troop-portrait" src="/TDG/portraits/commander.webp" alt="" decoding="async" />
                     <div class="brk-troop-vignette"></div>
-                  </div>
+          </div>
                   <div class="brk-skill-hero-copy">
                     <h4>Field Orders</h4>
                     <p>Set deploy size and formation, then unlock caps and Special Commands below.</p>
                   </div>
                 </div>
                 <div class="cmd-controls-block">
-                  <div class="cmd-row">
-                    <span class="cmd-label">Units at once</span>
-                    <div class="cmd-stepper">
-                      <button id="cmd-minus" type="button">−</button>
-                      <span id="cmd-count">1</span>
-                      <button id="cmd-plus" type="button">+</button>
-                    </div>
-                  </div>
-                  <div class="cmd-formations" id="cmd-formations">
+          <div class="cmd-row">
+            <span class="cmd-label">Units at once</span>
+            <div class="cmd-stepper">
+              <button id="cmd-minus" type="button">−</button>
+              <span id="cmd-count">1</span>
+              <button id="cmd-plus" type="button">+</button>
+            </div>
+          </div>
+          <div class="cmd-formations" id="cmd-formations">
                     <button class="cmd-form-btn" type="button" data-formation="front"><svg viewBox="0 0 48 48" aria-hidden="true"></svg><span>Front</span></button>
                     <button class="cmd-form-btn" type="button" data-formation="train"><svg viewBox="0 0 48 48" aria-hidden="true"></svg><span>Train</span></button>
                     <button class="cmd-form-btn" type="button" data-formation="group"><svg viewBox="0 0 48 48" aria-hidden="true"></svg><span>Group</span></button>
-                  </div>
-                  <canvas id="commander-preview" width="300" height="150"></canvas>
+          </div>
+          <canvas id="commander-preview" width="300" height="150"></canvas>
                 </div>
                 <div class="brk-skill-tracks" id="cmd-skilltree"></div>
               </div>
@@ -5173,7 +5559,19 @@
   <div id="hud-bottom" class="medieval-hud medieval-hud-bottom">
     <div class="medieval-hud-inner">
       <div id="bottom-panel" class="hidden">
-        <div id="hotbar" class="mc-hotbar" role="toolbar" aria-label="Build hotbar"></div>
+        <div class="mc-hotbar-row">
+          <div class="hot-cursor-wrap">
+            <button id="hotbar-cursor" class="hot-slot" type="button" title="Cursor (A / V)" data-tool="move">
+              <span class="hot-slot-key">A</span>
+              <img class="hot-slot-portrait" alt="" hidden decoding="async" />
+              <canvas class="hot-slot-canvas" width="56" height="56" aria-hidden="true"></canvas>
+              <span class="hot-slot-glyph">👆</span>
+              <span class="hot-slot-cost"></span>
+            </button>
+            <button id="hotbar-loadout-btn" class="hot-loadout-btn" type="button" title="Arrange hotbar">☰</button>
+      </div>
+          <div id="hotbar" class="mc-hotbar" role="toolbar" aria-label="Build hotbar"></div>
+    </div>
         <div id="commander-dock" class="hidden" aria-label="Commander controls">
           <div id="commander-quickbar" class="hidden">
             <button id="cmd-stance-fab" class="cmd-fab hidden" type="button" title="Special Commands — tap to cycle">
@@ -5295,6 +5693,11 @@ const TOWER_TYPES = {
     name: 'Missile', hp: 75, damage: 7, fireInterval: 3,
     cost: 1100, size: 28, color: '#64748B', accent: '#334155', style: 'missile',
     missileSpeed: 320, blastRadius: 100,
+  },
+  archer: {
+    name: 'Archer Tower', hp: 110, range: 520, damage: 44, fireRate: 0.5,
+    cost: 120, size: 48, color: '#92400e', accent: '#78350f', style: 'archer',
+    arrowCount: 3, maxMiss: 118,
   },
   mint: {
     name: 'Mint', hp: 50, cost: 200, incomePerRound: 42,
@@ -5552,7 +5955,7 @@ const DEFAULT_GAME_RULES = {
   bloopBounty: true,
   achievements: true,
   units: { tank: true, speed: true, striker: true, sniper: true, bloop: true, peka: true, goblin: false, yeti: false },
-  towers: { turret: true, laser: true, spread: true, missile: true, mint: true, farm: true, barracks: false, engineers: false, laboratory: false },
+  towers: { turret: true, laser: true, spread: true, missile: true, archer: true, mint: true, farm: true, barracks: false, engineers: false, laboratory: false },
 };
 
 let gameRules = JSON.parse(JSON.stringify(DEFAULT_GAME_RULES));
@@ -5571,7 +5974,7 @@ function enabledTowerTypes() {
 function firstEnabledDeployTool() {
   const live = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive();
   if (live) return 'move';
-  const order = ['tank', 'speed', 'striker', 'sniper', 'bloop', 'peka', 'turret', 'laser', 'spread', 'missile', 'farm', 'mint'];
+  const order = ['tank', 'speed', 'striker', 'sniper', 'peka', 'turret', 'laser', 'spread', 'missile', 'archer', 'farm', 'mint'];
   for (const t of order) {
     if (UNIT_TYPES[t] && isUnitEnabled(t)) return t;
     if (TOWER_TYPES[t] && isTowerEnabled(t)) return t;
@@ -5593,12 +5996,56 @@ function ensureValidSelectedTool() {
   if (TOWER_TYPES[selectedTool] && !isTowerEnabled(selectedTool)) selectedTool = firstEnabledDeployTool();
 }
 
-const HOTBAR_SIZE = 9;
+const HOTBAR_SIZE = 10; // keys 1-9 then 0
+/** Fresh hotbar at the start of every game: Barracks, Tower Depot, Wizard's Nest. */
+const HOTBAR_GAME_START = [
+  'barracks', 'engineers', 'laboratory',
+  null, null, null, null, null, null, null,
+];
 const HOTBAR_FILL_ORDER = [
-  'farm', 'mint', 'turret', 'laser', 'spread', 'missile',
-  'tank', 'speed', 'striker', 'goblin', 'sniper', 'yeti', 'peka', 'bloop',
+  'barracks', 'engineers', 'laboratory',
+  'farm', 'mint',
+  'striker', 'tank', 'goblin', 'speed', 'sniper', 'yeti', 'peka',
+  'turret', 'laser', 'spread', 'missile', 'archer',
   'fireball', 'slime', 'heal',
 ];
+/** Loadout menu order: how you unlock / buy things in a typical run. */
+const LOADOUT_CATALOG_ORDER = HOTBAR_FILL_ORDER;
+
+function useLiveHotbarFilters() {
+  return typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()
+    && isSurvivalLive() && !isSimulatorMode();
+}
+
+function getLoadoutCatalogTools(p = players[getLocalPlayerId()] || players[0]) {
+  const liveFilters = useLiveHotbarFilters();
+  return LOADOUT_CATALOG_ORDER.filter((tool) => {
+    if (tool === 'bloop') return false;
+    if (!UNIT_TYPES[tool] && !TOWER_TYPES[tool] && !isSpellTool(tool)
+      && tool !== 'barracks' && tool !== 'engineers' && tool !== 'laboratory') return false;
+    return isHotbarToolVisible(tool, p, liveFilters);
+  });
+}
+
+function sanitizeHotbarLayout() {
+  if (!hotbarCustomSlots) return;
+  let changed = false;
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const t = hotbarCustomSlots[i];
+    if (!t) continue;
+    // Keep temporarily unplaceable tools (e.g. Barracks while built) so they return when usable again.
+    // Only strip invalid / retired ids.
+    const valid = t !== 'bloop' && (
+      UNIT_TYPES[t] || TOWER_TYPES[t] || isSpellTool(t)
+      || t === 'barracks' || t === 'engineers' || t === 'laboratory'
+    );
+    if (!valid) {
+      hotbarCustomSlots[i] = null;
+      changed = true;
+    }
+  }
+  if (changed) saveHotbarCustomLayout();
+}
 const HOTBAR_GLYPHS = {
   move: '👆',
   tank: '🐘',
@@ -5618,14 +6065,176 @@ const HOTBAR_GLYPHS = {
   laser: '⚡',
   spread: '🏰',
   missile: '🚀',
+  archer: '🏹',
+  barracks: '⛺',
+  engineers: '🔧',
+  laboratory: '🧙',
 };
 
 const HOTBAR_PORTRAIT_IDS = new Set([
   'striker', 'tank', 'goblin', 'speed', 'sniper', 'yeti', 'peka',
-  'turret', 'laser', 'spread', 'missile',
+  'turret', 'laser', 'spread', 'missile', 'archer',
   'fireball', 'slime', 'heal',
   'farm', 'mint', 'barracks', 'engineers', 'laboratory', 'commander',
 ]);
+
+/** Custom layout: length HOTBAR_SIZE, tool ids or null. null = use auto-fill defaults. */
+let hotbarCustomSlots = null;
+let pendingHotbarAssign = null;
+let hotbarDragPayload = null;
+
+const LOADOUT_CANVAS_PX = 96;
+const HOTBAR_DRAG_GHOST_PX = 58;
+
+function loadoutCellInnerHtml(canvasSize = LOADOUT_CANVAS_PX) {
+  return `<img class="hot-slot-portrait" alt="" hidden decoding="async" />
+    <canvas class="hot-slot-canvas" width="${canvasSize}" height="${canvasSize}" aria-hidden="true"></canvas>
+    <span class="hot-slot-glyph" hidden></span>`;
+}
+
+function getHotbarDragGhost() {
+  let ghost = document.getElementById('hotbar-drag-ghost');
+  if (ghost) return ghost;
+  ghost = document.createElement('div');
+  ghost.id = 'hotbar-drag-ghost';
+  ghost.className = 'hot-slot';
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.innerHTML = loadoutCellInnerHtml(56);
+  document.body.appendChild(ghost);
+  return ghost;
+}
+
+/** Small hotbar-sized drag preview instead of the large inventory tile. */
+function applyHotbarDragImage(e, sourceEl, tool) {
+  const ghost = getHotbarDragGhost();
+  paintHotbarIcon(ghost, tool);
+
+  const srcPortrait = sourceEl.querySelector('.hot-slot-portrait');
+  const ghostPortrait = ghost.querySelector('.hot-slot-portrait');
+  const ghostCanvas = ghost.querySelector('.hot-slot-canvas');
+  const ghostGlyph = ghost.querySelector('.hot-slot-glyph');
+  if (srcPortrait && ghostPortrait && !srcPortrait.hidden && srcPortrait.src) {
+    ghostPortrait.src = srcPortrait.src;
+    ghostPortrait.hidden = false;
+    if (ghostCanvas) ghostCanvas.hidden = true;
+    if (ghostGlyph) ghostGlyph.hidden = true;
+  }
+
+  const half = HOTBAR_DRAG_GHOST_PX / 2;
+  e.dataTransfer.setDragImage(ghost, half, half);
+}
+
+function seedHotbarCustomFromCurrent(p) {
+  const slots = ensureHotbarCustomSlots();
+  const current = buildDefaultHotbarSlots(p || players[getLocalPlayerId()] || players[0]);
+  for (let i = 0; i < HOTBAR_SIZE; i++) slots[i] = current[i];
+  return slots;
+}
+
+function placeToolOnHotbarSlot(tool, slotIndex, fromSlotIndex = null) {
+  if (slotIndex < 0 || slotIndex >= HOTBAR_SIZE) return;
+  if (!tool || tool === 'move') return;
+  const wasDefault = !hotbarCustomSlots;
+  const slots = ensureHotbarCustomSlots();
+  if (wasDefault) seedHotbarCustomFromCurrent();
+
+  const displaced = slots[slotIndex];
+  if (fromSlotIndex != null && fromSlotIndex >= 0 && fromSlotIndex < HOTBAR_SIZE && fromSlotIndex !== slotIndex) {
+    slots[fromSlotIndex] = displaced || null;
+    slots[slotIndex] = tool;
+  } else {
+    for (let i = 0; i < slots.length; i++) {
+      if (slots[i] === tool) slots[i] = null;
+    }
+    slots[slotIndex] = tool;
+  }
+  saveHotbarCustomLayout();
+  pendingHotbarAssign = null;
+  updateHotbarLoadoutUI();
+  updateUI();
+}
+
+function clearHotbarSlot(slotIndex) {
+  if (slotIndex < 0 || slotIndex >= HOTBAR_SIZE) return;
+  const wasDefault = !hotbarCustomSlots;
+  const slots = ensureHotbarCustomSlots();
+  if (wasDefault) seedHotbarCustomFromCurrent();
+  if (!slots[slotIndex]) return;
+  slots[slotIndex] = null;
+  saveHotbarCustomLayout();
+  updateHotbarLoadoutUI();
+  updateUI();
+}
+
+function assignToolToHotbarSlot(tool, slotIndex) {
+  placeToolOnHotbarSlot(tool, slotIndex, null);
+}
+
+/** Put a newly unlocked tool in the first empty hotbar slot (1→9, then 0). Local player only.
+ *  A slot counts as empty if nothing usable is shown there (includes slots reserved for
+ *  already-placed Barracks / Depot / Nest). */
+function tryAutoAssignHotbarTool(tool, pid = getLocalPlayerId()) {
+  if (!tool || tool === 'move') return false;
+  if (pid !== getLocalPlayerId()) return false;
+  const p = players[pid] || players[0];
+  if (!p) return false;
+  const live = useLiveHotbarFilters();
+  if (!isHotbarToolVisible(tool, p, live)) return false;
+
+  const wasDefault = !hotbarCustomSlots;
+  const slots = ensureHotbarCustomSlots();
+  if (wasDefault) seedHotbarCustomFromCurrent(p);
+
+  // Already sitting in a usable hotbar slot — don't duplicate.
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    if (slots[i] === tool && isHotbarToolVisible(tool, p, live)) return false;
+  }
+  // Drop stale/invisible copies so we can place into the earliest free key.
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    if (slots[i] === tool) slots[i] = null;
+  }
+
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const occupant = slots[i];
+    if (occupant && isHotbarToolVisible(occupant, p, live)) continue;
+    slots[i] = tool;
+    saveHotbarCustomLayout();
+    const loadout = document.getElementById('hotbar-loadout-panel');
+    if (loadout && !loadout.classList.contains('hidden')) updateHotbarLoadoutUI();
+    return true;
+  }
+  return false;
+}
+
+function hotbarSlotKeyLabel(index) {
+  return index === 9 ? '0' : String(index + 1);
+}
+
+function hotbarDigitToIndex(digit) {
+  if (digit === '0') return 9;
+  const n = Number(digit);
+  if (n >= 1 && n <= 9) return n - 1;
+  return -1;
+}
+
+function resetHotbarForNewGame() {
+  hotbarCustomSlots = HOTBAR_GAME_START.slice();
+  pendingHotbarAssign = null;
+  selectedTool = 'move';
+  selectedHotbarIndex = -1;
+  toggleHotbarLoadoutPanel(false);
+}
+
+function saveHotbarCustomLayout() {
+  /* Hotbar layout is session-only — resetHotbarForNewGame runs each game. */
+}
+
+function ensureHotbarCustomSlots() {
+  if (!hotbarCustomSlots) {
+    hotbarCustomSlots = Array(HOTBAR_SIZE).fill(null);
+  }
+  return hotbarCustomSlots;
+}
 
 function menuPortraitSrc(id) {
   if (!id || !HOTBAR_PORTRAIT_IDS.has(id)) return null;
@@ -5639,12 +6248,15 @@ function hotbarPortraitSrc(tool) {
 function selectHotbarTool(tool, slotIndex = null) {
   const next = tool || 'move';
   selectedTool = next;
-  if (slotIndex != null && slotIndex >= 0) {
+  if (next === 'move') {
+    // Empty hotbar slots act as cursor while keeping that slot highlighted.
+    selectedHotbarIndex = (slotIndex != null && slotIndex >= 0) ? slotIndex : -1;
+  } else if (slotIndex != null && slotIndex >= 0) {
     selectedHotbarIndex = slotIndex;
   } else {
     const slots = getHotbarSlotTools(players[getLocalPlayerId()] || players[0]);
     const found = slots.findIndex((t) => t === next);
-    selectedHotbarIndex = found >= 0 ? found : 0;
+    selectedHotbarIndex = found >= 0 ? found : -1;
   }
   if (isSpellTool(next)) setPendingSpellCast(next);
   else setPendingSpellCast(null);
@@ -5661,28 +6273,38 @@ function initHotbar() {
     btn.className = 'hot-slot is-empty';
     btn.dataset.slotIndex = String(i);
     btn.innerHTML = `
-      <span class="hot-slot-key">${i + 1}</span>
+      <span class="hot-slot-key">${hotbarSlotKeyLabel(i)}</span>
       <img class="hot-slot-portrait" alt="" hidden decoding="async" />
       <canvas class="hot-slot-canvas" width="56" height="56" aria-hidden="true"></canvas>
       <span class="hot-slot-glyph" hidden></span>
       <span class="hot-slot-cost"></span>
     `;
     btn.addEventListener('click', () => {
-      const tool = btn.dataset.tool || null;
-      const empty = !tool || btn.classList.contains('is-empty');
-      // Empty slots act as the cursor.
-      if (empty) {
-        if (!(isSurvivalLive() && phase === 'combat') && !canPlayerBuildNow()) return;
-        selectHotbarTool('move', i);
+      if (pendingHotbarAssign) {
+        assignToolToHotbarSlot(pendingHotbarAssign, i);
         return;
       }
-      if (!(isSurvivalLive() && phase === 'combat') && !canPlayerBuildNow() && tool !== 'move') return;
-      if (btn.disabled && tool !== 'move') return;
+      const tool = btn.dataset.tool || null;
+      const empty = !tool || btn.classList.contains('is-empty');
+      if (empty) {
+        selectHotbarSlot(i);
+        return;
+      }
       selectHotbarTool(tool, i);
     });
     bar.appendChild(btn);
   }
   bar.dataset.ready = '1';
+
+  const cursor = document.getElementById('hotbar-cursor');
+  if (cursor && cursor.dataset.ready !== '1') {
+    cursor.addEventListener('click', () => {
+      if (!(isSurvivalLive() && phase === 'combat') && !canPlayerBuildNow()) return;
+      selectHotbarTool('move');
+    });
+    paintHotbarIcon(cursor, 'move');
+    cursor.dataset.ready = '1';
+  }
 }
 
 function isHotbarToolVisible(tool, p, liveCombat) {
@@ -5696,42 +6318,289 @@ function isHotbarToolVisible(tool, p, liveCombat) {
   return false;
 }
 
-function getHotbarSlotTools(p) {
+function buildDefaultHotbarSlots(p) {
+  const liveFilters = useLiveHotbarFilters();
+  if (liveFilters) return HOTBAR_GAME_START.slice();
+
   const slots = Array(HOTBAR_SIZE).fill(null);
-  slots[0] = 'move';
-  const liveCombat = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()
-    && isSurvivalLive() && phase === 'combat' && !isSimulatorMode();
-
-  if (liveCombat) {
-    if (isHotbarToolVisible('barracks', p, true)) slots[1] = 'barracks';
-    if (isHotbarToolVisible('engineers', p, true)) slots[2] = 'engineers';
-    if (isHotbarToolVisible('laboratory', p, true)) slots[3] = 'laboratory';
-
-    const used = new Set(slots.filter(Boolean));
-    let fillIdx = 1;
-    for (const tool of HOTBAR_FILL_ORDER) {
-      if (used.has(tool) || !isHotbarToolVisible(tool, p, true)) continue;
-      while (fillIdx < HOTBAR_SIZE && slots[fillIdx] != null) fillIdx++;
-      if (fillIdx >= HOTBAR_SIZE) break;
-      slots[fillIdx] = tool;
-      used.add(tool);
-      fillIdx++;
-    }
-    return slots;
-  }
-
-  const classicOrder = [
-    'tank', 'speed', 'striker', 'sniper', 'bloop', 'peka', 'goblin',
-    'turret', 'laser', 'spread', 'missile', 'farm', 'mint',
-    'barracks', 'engineers', 'laboratory',
-  ];
-  let idx = 1;
+  const classicOrder = LOADOUT_CATALOG_ORDER;
+  let idx = 0;
   for (const tool of classicOrder) {
     if (!isHotbarToolVisible(tool, p, false)) continue;
     if (idx >= HOTBAR_SIZE) break;
     slots[idx++] = tool;
   }
   return slots;
+}
+
+function getHotbarSlotTools(p) {
+  const liveFilters = useLiveHotbarFilters();
+  const raw = hotbarCustomSlots
+    ? hotbarCustomSlots.map((t) => (t && t !== 'move' ? t : null))
+    : buildDefaultHotbarSlots(p);
+  return raw.map((t) => (t && isHotbarToolVisible(t, p, liveFilters) ? t : null));
+}
+
+function clearToolFromHotbar(tool) {
+  if (!tool) return;
+  const wasDefault = !hotbarCustomSlots;
+  const slots = ensureHotbarCustomSlots();
+  if (wasDefault) seedHotbarCustomFromCurrent();
+  let changed = false;
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i] === tool) {
+      slots[i] = null;
+      changed = true;
+    }
+  }
+  if (changed) {
+    saveHotbarCustomLayout();
+    pendingHotbarAssign = null;
+    updateHotbarLoadoutUI();
+    updateUI();
+  }
+}
+
+function clearHotbarLayout() {
+  const slots = ensureHotbarCustomSlots();
+  for (let i = 0; i < HOTBAR_SIZE; i++) slots[i] = null;
+  saveHotbarCustomLayout();
+  pendingHotbarAssign = null;
+  selectedTool = 'move';
+  selectedHotbarIndex = -1;
+  updateHotbarLoadoutUI();
+  updateUI();
+}
+
+function findHotbarSlotForTool(tool) {
+  const slots = getHotbarSlotTools(players[getLocalPlayerId()] || players[0]);
+  return slots.findIndex((t) => t === tool);
+}
+
+function paintLoadoutCells(root) {
+  if (!root) return;
+  root.querySelectorAll('[data-loadout-tool]').forEach((el) => {
+    paintHotbarIcon(el, el.dataset.loadoutTool || null);
+  });
+  root.querySelectorAll('.hl-slot-cell[data-tool]').forEach((el) => {
+    const tool = el.dataset.tool || null;
+    paintHotbarIcon(el, tool && tool !== '' ? tool : null);
+  });
+}
+
+function findFirstEmptyHotbarSlot(p = players[getLocalPlayerId()] || players[0]) {
+  const live = useLiveHotbarFilters();
+  const slots = ensureHotbarCustomSlots();
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const occupant = slots[i];
+    if (occupant && isHotbarToolVisible(occupant, p, live)) continue;
+    return i;
+  }
+  return -1;
+}
+
+/** Click an unlocked item to put it on the earliest empty key (1→9, then 0). */
+function addToolToHotbarFromCatalog(tool) {
+  if (!tool || tool === 'move') return false;
+  const p = players[getLocalPlayerId()] || players[0];
+  if (!p) return false;
+  const live = useLiveHotbarFilters();
+  if (!isHotbarToolVisible(tool, p, live)) return false;
+
+  // Already on the bar — leave selection mode for reposition / remove.
+  if (findHotbarSlotForTool(tool) >= 0) return false;
+
+  const emptyIdx = findFirstEmptyHotbarSlot(p);
+  if (emptyIdx < 0) return false;
+
+  assignToolToHotbarSlot(tool, emptyIdx);
+  return true;
+}
+
+function updateHotbarLoadoutUI() {
+  const slotsEl = document.getElementById('hotbar-loadout-slots');
+  const list = document.getElementById('hotbar-loadout-list');
+  const hint = document.getElementById('hotbar-loadout-hint');
+  const clearBtn = document.getElementById('hotbar-loadout-clear-tool');
+  if (!list || !slotsEl) return;
+
+  const p = players[getLocalPlayerId()] || players[0];
+  const catalogTools = getLoadoutCatalogTools(p);
+  const slots = getHotbarSlotTools(p);
+
+  if (hint) {
+    if (pendingHotbarAssign) {
+      hint.classList.add('assigning');
+      hint.textContent = `${toolHotbarLabel(pendingHotbarAssign)} — drag to a hotbar slot, click a slot, or press 1–9 / 0.`;
+    } else {
+      hint.classList.remove('assigning');
+      hint.textContent = 'Click an unlocked item to add it to the next empty slot (1 first). Or drag, or select and press 1–9 / 0.';
+    }
+  }
+
+  let slotsHtml = '';
+  for (let i = 0; i < HOTBAR_SIZE; i++) {
+    const tool = slots[i] || null;
+    slotsHtml += `<div class="hl-slot-cell${tool ? '' : ' is-empty'}" data-slot-index="${i}" data-tool="${tool || ''}" ${tool ? `draggable="true" data-loadout-tool="${tool}"` : ''}>
+      <span class="hot-slot-key">${hotbarSlotKeyLabel(i)}</span>
+      ${loadoutCellInnerHtml()}
+    </div>`;
+  }
+  slotsEl.innerHTML = slotsHtml;
+  paintLoadoutCells(slotsEl);
+
+  let catalogHtml = '';
+  if (catalogTools.length === 0) {
+    catalogHtml = '<p class="hl-empty-bag">Nothing unlocked yet — build Barracks, unlock units in menus, and buy towers from the Tower Depot.</p>';
+  } else {
+    for (const tool of catalogTools) {
+      const selected = pendingHotbarAssign === tool;
+      const slotIdx = findHotbarSlotForTool(tool);
+      catalogHtml += `<button type="button" class="hl-catalog-cell${selected ? ' selected' : ''}" data-loadout-tool="${tool}" draggable="true" title="${toolHotbarLabel(tool)}">
+          ${slotIdx >= 0 ? `<span class="hot-slot-key" style="left:auto;right:4px;font-size:0.75rem">${hotbarSlotKeyLabel(slotIdx)}</span>` : ''}
+          ${loadoutCellInnerHtml()}
+        </button>`;
+    }
+  }
+  list.innerHTML = catalogHtml;
+  paintLoadoutCells(list);
+
+  if (clearBtn) {
+    const showClear = !!(pendingHotbarAssign && findHotbarSlotForTool(pendingHotbarAssign) >= 0);
+    clearBtn.classList.toggle('hidden', !showClear);
+  }
+}
+
+function initLoadoutPanelEvents() {
+  const panel = document.getElementById('hotbar-loadout-panel');
+  if (!panel || panel.dataset.loadoutReady === '1') return;
+  panel.dataset.loadoutReady = '1';
+
+  panel.addEventListener('click', (e) => {
+    if (e.target.id === 'hotbar-loadout-panel') toggleHotbarLoadoutPanel(false);
+  });
+
+  panel.addEventListener('click', (e) => {
+    const slotCell = e.target.closest('.hl-slot-cell[data-slot-index]');
+    if (slotCell && pendingHotbarAssign) {
+      assignToolToHotbarSlot(pendingHotbarAssign, Number(slotCell.dataset.slotIndex));
+      return;
+    }
+    const catalogBtn = e.target.closest('.hl-catalog-cell[data-loadout-tool]');
+    if (catalogBtn) {
+      const tool = catalogBtn.dataset.loadoutTool;
+      // Empty slots (e.g. after Clear): one click adds to slot 1, then 2, …
+      if (addToolToHotbarFromCatalog(tool)) return;
+      pendingHotbarAssign = tool;
+      updateHotbarLoadoutUI();
+    }
+  });
+
+  panel.addEventListener('mouseenter', (e) => {
+    const catalogBtn = e.target.closest('.hl-catalog-cell[data-loadout-tool]');
+    if (!catalogBtn) return;
+    pendingHotbarAssign = catalogBtn.dataset.loadoutTool;
+    updateHotbarLoadoutUI();
+  }, true);
+
+  panel.addEventListener('contextmenu', (e) => {
+    const slot = e.target.closest('.hl-slot-cell[data-slot-index]');
+    if (!slot) return;
+    e.preventDefault();
+    clearHotbarSlot(Number(slot.dataset.slotIndex));
+  });
+
+  panel.addEventListener('dragstart', (e) => {
+    const catalogBtn = e.target.closest('.hl-catalog-cell[data-loadout-tool]');
+    const slotCell = e.target.closest('.hl-slot-cell[data-loadout-tool]');
+    if (catalogBtn) {
+      hotbarDragPayload = { tool: catalogBtn.dataset.loadoutTool, fromSlot: null };
+      e.dataTransfer.setData('text/plain', catalogBtn.dataset.loadoutTool);
+      e.dataTransfer.effectAllowed = 'move';
+      applyHotbarDragImage(e, catalogBtn, catalogBtn.dataset.loadoutTool);
+      catalogBtn.classList.add('dragging');
+      return;
+    }
+    if (slotCell) {
+      hotbarDragPayload = { tool: slotCell.dataset.loadoutTool, fromSlot: Number(slotCell.dataset.slotIndex) };
+      e.dataTransfer.setData('text/plain', slotCell.dataset.loadoutTool);
+      e.dataTransfer.effectAllowed = 'move';
+      applyHotbarDragImage(e, slotCell, slotCell.dataset.loadoutTool);
+      slotCell.classList.add('dragging');
+    }
+  });
+
+  panel.addEventListener('dragend', (e) => {
+    hotbarDragPayload = null;
+    panel.querySelectorAll('.dragging, .drag-over').forEach((el) => {
+      el.classList.remove('dragging', 'drag-over');
+    });
+  });
+
+  panel.addEventListener('dragover', (e) => {
+    const slot = e.target.closest('.hl-slot-cell[data-slot-index]');
+    if (!slot || !hotbarDragPayload?.tool) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    panel.querySelectorAll('.hl-slot-cell.drag-over').forEach((el) => el.classList.remove('drag-over'));
+    slot.classList.add('drag-over');
+  });
+
+  panel.addEventListener('dragleave', (e) => {
+    const slot = e.target.closest('.hl-slot-cell[data-slot-index]');
+    if (slot) slot.classList.remove('drag-over');
+  });
+
+  panel.addEventListener('drop', (e) => {
+    const slot = e.target.closest('.hl-slot-cell[data-slot-index]');
+    if (!slot || !hotbarDragPayload?.tool) return;
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+    const toSlot = Number(slot.dataset.slotIndex);
+    placeToolOnHotbarSlot(hotbarDragPayload.tool, toSlot, hotbarDragPayload.fromSlot);
+    hotbarDragPayload = null;
+  });
+}
+
+function syncHotbarLoadoutDockSide() {
+  const panel = document.getElementById('hotbar-loadout-panel');
+  if (!panel) return;
+  const onRight = getLocalPlayerId() === 1;
+  panel.classList.toggle('dock-right', onRight);
+  panel.classList.toggle('dock-left', !onRight);
+}
+
+function toggleHotbarLoadoutPanel(show) {
+  const panel = document.getElementById('hotbar-loadout-panel');
+  if (!panel) return;
+  const open = show !== undefined ? !!show : panel.classList.contains('hidden');
+  if (open) {
+    if (typeof toggleEconPanel === 'function') toggleEconPanel(false);
+    if (typeof toggleBarracksPanel === 'function') toggleBarracksPanel(false);
+    if (typeof toggleEngineersPanel === 'function') toggleEngineersPanel(false);
+    if (typeof toggleLaboratoryPanel === 'function') toggleLaboratoryPanel(false);
+    if (typeof toggleMissilePanel === 'function') toggleMissilePanel(false);
+    if (typeof toggleSpreadPanel === 'function') toggleSpreadPanel(false);
+    if (typeof closeTowerManagePanel === 'function') closeTowerManagePanel();
+    if (typeof toggleCommanderPanel === 'function') toggleCommanderPanel(false);
+    if (typeof toggleAchievementPanel === 'function') toggleAchievementPanel(false);
+    pendingHotbarAssign = null;
+    sanitizeHotbarLayout();
+    syncHotbarLoadoutDockSide();
+    panel.classList.remove('hidden');
+    initLoadoutPanelEvents();
+    updateHotbarLoadoutUI();
+    requestAnimationFrame(() => {
+      paintLoadoutCells(document.getElementById('hotbar-loadout-slots'));
+      paintLoadoutCells(document.getElementById('hotbar-loadout-list'));
+    });
+  } else {
+    panel.classList.add('hidden');
+    pendingHotbarAssign = null;
+  }
+  syncLiveMenuPause();
+  syncMenuCloseFab();
+  notifyHudLayoutChange();
 }
 
 function toolHotbarLabel(tool) {
@@ -5794,13 +6663,7 @@ function paintHotbarStructureIcon(g, tool, cx, cy, scale) {
     g.arc(0, -22, 2.5, 0, Math.PI * 2);
     g.fill();
   } else if (tool === 'farm') {
-    g.fillStyle = '#166534';
-    g.fillRect(-14, 4, 28, 10);
-    g.fillStyle = '#86efac';
-    g.beginPath();
-    g.moveTo(-16, 4); g.lineTo(0, -14); g.lineTo(16, 4);
-    g.closePath();
-    g.fill();
+    drawFarmPlot(g, 0, 0, 17);
   } else if (tool === 'mint') {
     g.fillStyle = '#a16207';
     g.fillRect(-14, -4, 28, 18);
@@ -5808,12 +6671,13 @@ function paintHotbarStructureIcon(g, tool, cx, cy, scale) {
     g.fillRect(-10, -14, 20, 10);
     g.fillStyle = '#78350f';
     g.fillRect(-3, 2, 6, 12);
-  } else if (tool === 'turret' || tool === 'laser' || tool === 'spread' || tool === 'missile') {
+  } else if (tool === 'turret' || tool === 'laser' || tool === 'spread' || tool === 'missile' || tool === 'archer') {
     const colors = {
       turret: ['#a16207', '#fef3c7'],
       laser: ['#be185d', '#f9a8d4'],
       spread: ['#57534e', '#e7e5e4'],
       missile: ['#334155', '#94a3b8'],
+      archer: ['#92400e', '#fde68a'],
     };
     const [base, top] = colors[tool];
     g.fillStyle = base;
@@ -5885,17 +6749,21 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
   initHotbar();
   const slots = getHotbarSlotTools(p);
   const buttons = document.querySelectorAll('#hotbar .hot-slot');
-  // Keep the highlighted empty/cursor slot valid if tools shifted.
-  if (selectedTool === 'move') {
-    const at = slots[selectedHotbarIndex];
-    if (at && at !== 'move') {
-      const moveIdx = slots.findIndex((t) => t === 'move');
-      selectedHotbarIndex = moveIdx >= 0 ? moveIdx : 0;
-    }
-  } else {
+  if (selectedTool === 'move' && selectedHotbarIndex >= 0 && slots[selectedHotbarIndex]) {
+    // Empty-slot cursor was filled (auto-assign / unlock) — fall back to the dedicated cursor.
+    selectedHotbarIndex = -1;
+  } else if (selectedTool !== 'move') {
     const match = slots.findIndex((t) => t === selectedTool);
     if (match >= 0) selectedHotbarIndex = match;
   }
+
+  const cursorBtn = document.getElementById('hotbar-cursor');
+  if (cursorBtn) {
+    cursorBtn.classList.toggle('active', selectedTool === 'move' && selectedHotbarIndex === -1);
+    cursorBtn.disabled = alwaysSelectableTools ? false : !canUseTools;
+    cursorBtn.title = 'Cursor (A / V)';
+  }
+
   buttons.forEach((btn, i) => {
     const tool = slots[i] || null;
     const prevTool = btn.dataset.tool || '';
@@ -5910,7 +6778,7 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
     btn.classList.toggle('is-empty', !tool);
     const isActive = tool
       ? tool === selectedTool && selectedHotbarIndex === i
-      : selectedTool === 'move' && selectedHotbarIndex === i;
+      : selectedHotbarIndex === i;
     btn.classList.toggle('active', isActive);
 
     if (tool !== prevTool) paintHotbarIcon(btn, tool);
@@ -5922,55 +6790,40 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
 
     if (!tool) {
       if (costEl) costEl.textContent = '';
-      btn.disabled = alwaysSelectableTools ? false : !canUseTools;
-      btn.title = 'Cursor';
+      btn.disabled = false;
+      btn.title = pendingHotbarAssign
+        ? `Assign to slot ${hotbarSlotKeyLabel(i)}`
+        : `Empty slot — cursor (${hotbarSlotKeyLabel(i)})`;
       return;
     }
 
     btn.title = toolHotbarLabel(tool);
-
-    if (tool === 'move') {
-      btn.disabled = alwaysSelectableTools ? false : !canUseTools;
-      if (costEl) costEl.textContent = '';
-      return;
-    }
 
     if (UNIT_TYPES[tool]) {
       const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, getLocalPlayerId()) : UNIT_TYPES[tool];
       if (costEl) costEl.textContent = String(ut.cost);
       const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
       const canAfford = p.coins >= ut.cost;
-      if (alwaysSelectableTools) {
-        btn.disabled = !unlocked;
-        btn.classList.toggle('unaffordable', !!unlocked && !canAfford);
-        btn.title = !unlocked ? 'Requires Barracks unlock' : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool));
-      } else {
-        btn.disabled = !isUnitEnabled(tool) || !canUseTools || !canAfford || !unlocked;
-        btn.classList.toggle('unaffordable', !!unlocked && canUseTools && !canAfford);
-        btn.title = unlocked ? (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool)) : 'Requires Barracks unlock';
-      }
+      btn.disabled = LIVE_ARMY?.isActive() ? !unlocked : !isUnitEnabled(tool);
+      btn.classList.toggle('unaffordable', !btn.disabled && !canAfford);
+      btn.title = !unlocked
+        ? 'Requires Barracks unlock'
+        : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool));
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
       if (costEl) costEl.textContent = String(price);
       const canAfford = p.coins >= price;
-      if (alwaysSelectableTools) {
-        btn.disabled = false;
-        btn.classList.toggle('unaffordable', !canAfford);
-        btn.title = canAfford ? toolHotbarLabel(tool) : `Need ${price}💵`;
-      } else {
-        btn.disabled = !isTowerEnabled(tool) || !canUseTools || !canAfford;
-        btn.classList.toggle('unaffordable', canUseTools && !canAfford);
-        btn.title = canAfford ? toolHotbarLabel(tool) : `Need ${price}💵`;
-      }
+      btn.disabled = LIVE_ARMY?.isActive() ? false : !isTowerEnabled(tool);
+      btn.classList.toggle('unaffordable', !btn.disabled && !canAfford);
+      btn.title = canAfford ? toolHotbarLabel(tool) : `Need ${price}💵`;
     } else if (isSpellTool(tool)) {
       const lvl = LIVE_ARMY?.spellLevel(p, tool) || 0;
       const castCost = lvl > 0 ? LIVE_ARMY.spellCastCost(tool, lvl) : 0;
       const cd = p.liveArmy?.laboratory?.cds?.[tool] || 0;
       if (costEl) costEl.textContent = cd > 0 ? `${cd.toFixed(0)}s` : String(castCost);
-      const canCast = alwaysSelectableTools && LIVE_ARMY.canCastSpell(p, tool);
       const canAfford = lvl > 0 && p.coins >= castCost;
-      btn.disabled = !canCast;
-      btn.classList.toggle('unaffordable', cd <= 0 && lvl > 0 && !canAfford);
+      btn.disabled = lvl <= 0;
+      btn.classList.toggle('unaffordable', lvl > 0 && (cd > 0 || !canAfford));
       btn.title = cd > 0
         ? `Cooldown ${cd.toFixed(1)}s`
         : (lvl > 0 ? (!canAfford ? `Need ${castCost}💵` : toolHotbarLabel(tool)) : "Unlock in Wizard's Nest");
@@ -5979,15 +6832,17 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
 }
 
 function selectHotbarSlot(index) {
+  if (pendingHotbarAssign) {
+    assignToolToHotbarSlot(pendingHotbarAssign, index);
+    return;
+  }
   const btn = document.querySelector(`#hotbar .hot-slot[data-slot-index="${index}"]`);
   if (!btn) return;
   const tool = btn.dataset.tool || null;
   if (!tool || btn.classList.contains('is-empty')) {
-    if (btn.disabled) return;
     selectHotbarTool('move', index);
     return;
   }
-  if (btn.disabled && tool !== 'move') return;
   selectHotbarTool(tool, index);
 }
 
@@ -6150,6 +7005,7 @@ const TOWER_MANUAL = {
   laser: 'Fires a piercing beam straight across the battlefield. Hits every enemy in the line. Great against clustered units.',
   spread: 'Castle tower — fires a wide volley of wind blasts. Long range, knockback on hit, and briefly paralyzes enemies. Click to enchant with Fire, Ice, or Electricity. Weak vs Elephants (immune to base shock).',
   missile: 'Launches explosive missiles that deal area damage on impact. Expensive but devastating against groups and structures.',
+  archer: 'Huge watchtower with three archers. Fires long arcing volleys — arrows only hurt when they land. Deadly up close, wildly inaccurate at max range. Prefers Dragons and can clip them mid-flight (half damage to dragons). Click to upgrade Double / Triple / Quad volleys.',
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus coins every round. Protect them!',
   farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests coins on a timer. Upgrade harvest speed and yield in the Economy tree.',
   laboratory: "Spell keep for your army. Build one Wizard's Nest to unlock Fireball, Zombie Slime, and Yellow Potion from the skill tree, then cast them from the bottom bar.",
@@ -6361,7 +7217,8 @@ function syncLiveMenuPause() {
     || open('engineers-upgrade-panel')
     || open('commander-panel')
     || open('econ-upgrade-panel')
-    || open('laboratory-upgrade-panel');
+    || open('laboratory-upgrade-panel')
+    || open('hotbar-loadout-panel');
 }
 let survivalDifficulty = 'easy';
 let survivalIncomeTimer = 0;
@@ -6818,8 +7675,8 @@ function engineersTowerBranchLabel(tt, branch) {
   return LIVE_ARMY.ENGINEER_BRANCH_LABELS?.[branch] || branch;
 }
 
-const TOWER_THEME_MAP = { turret: 'eng-dmg', laser: 'eng-rng', spread: 'eng-push', missile: 'eng' };
-const TOWER_SKILL_ICONS = { turret: '🪵', laser: '⚡', spread: '💥', missile: '🚀' };
+const TOWER_THEME_MAP = { turret: 'eng-dmg', laser: 'eng-rng', spread: 'eng-push', missile: 'eng', archer: 'eng-rng' };
+const TOWER_SKILL_ICONS = { turret: '🪵', laser: '⚡', spread: '💥', missile: '🚀', archer: '🏹' };
 
 function engineersStatTierIcon(branch, tier) {
   const icons = LIVE_ARMY.ENGINEER_BRANCH_ICONS || { damage: '⚔️', range: '🎯', health: '🛡️', knockback: '💨' };
@@ -6842,6 +7699,7 @@ function engineersTowerUnlockMeta(tt) {
     laser: `Unlock Rail Guns (${cost}💵). Piercing beam. Base range 680. Immune Goblins ignore the beam. Does not hit flying Dragons.`,
     spread: `Unlock Spreaders (${cost}💵). Castle tower with wind blasts, knockback/paralyze. Click a placed tower to pick Fire, Ice, or Electricity (250💵, one only). Each element builds a charge bar for mixed elemental blasts. Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} blasts. Weak vs Elephants (immune to base shock).`,
     missile: `Unlock Missile Bases (${cost}💵). Slow long-range area blasts. Expensive structure with its own upgrade panel.`,
+    archer: `Unlock Archer Towers (${cost}💵). Huge 3-archer watchtower. Long arcing volleys (3 arrows). Upgrade on the tower for Double / Triple / Quad volleys. Accurate up close, wild at range. Prefers Dragons; mid-air clips deal half damage to dragons.`,
   };
   return {
     title: `Unlock ${label}`,
@@ -7038,6 +7896,7 @@ function buyEconomyUpgrade(pid, kind, target) {
     rec.yield = LIVE_ARMY.harvestYieldBase(target);
     rec.yieldCoinAmount = true;
     addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building (+${rec.yield} per harvest)`);
+    tryAutoAssignHotbarTool(target, pid);
   } else if (kind === 'speed') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
     if (!rec.unlocked || rec.speed >= LIVE_ARMY.speedMax()) return false;
@@ -7166,14 +8025,15 @@ function buyBarracksUpgrade(pid, kind, unitType, stat) {
   if (kind === 'unlock') {
     const cost = LIVE_ARMY.unitUnlockCost(unitType);
     if (rec.unlocked || p.coins < cost) return false;
-    p.coins -= cost;
+  p.coins -= cost;
     rec.unlocked = true;
     addLog(`🏕 ${p.name}: Unlocked ${LIVE_ARMY.UNIT_LABELS[unitType] || unitType}`);
+    tryAutoAssignHotbarTool(unitType, pid);
   } else if (kind === 'stat' && stat) {
     if (!rec.unlocked || (rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) return false;
     const cost = LIVE_ARMY.statUpgradeCost(p, unitType, stat);
     if (cost == null || p.coins < cost) return false;
-    p.coins -= cost;
+  p.coins -= cost;
     rec[stat] = (rec[stat] || 0) + 1;
     const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
     const statLabel = barracksStatBranchLabel(unitType, stat).toLowerCase();
@@ -7205,6 +8065,7 @@ function buyEngineersUpgrade(pid, kind, towerType, branch) {
     rec.unlocked = true;
     const label = LIVE_ARMY.TOWER_LABELS[towerType] || towerType;
     addLog(`🏗️ ${p.name}: Unlocked ${label}`);
+    tryAutoAssignHotbarTool(towerType, pid);
   } else if (kind === 'stat' && branch) {
     if (!rec.unlocked || LIVE_ARMY.engineerStatLevel(rec, branch) >= LIVE_ARMY.ENGINEER_STAT_MAX) return false;
     const cost = LIVE_ARMY.engineersUpgradeCost(p, towerType, branch);
@@ -7435,8 +8296,8 @@ let barracksSkillFocus = null; // unit type when viewing that troop's skill tree
 let economySkillFocus = null; // hq | farm | mint | commander
 
 function barracksUnitSkillTreeHtml(p, ut) {
-  const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
-  const rec = LIVE_ARMY.unitRecord(p, ut);
+    const label = LIVE_ARMY.UNIT_LABELS[ut] || ut;
+    const rec = LIVE_ARMY.unitRecord(p, ut);
   const base = UNIT_TYPES[ut] || {};
   const blurb = UNIT_MANUAL[ut] || '';
   const branches = LIVE_ARMY.STAT_BRANCHES || ['speed', 'damage', 'health'];
@@ -7467,33 +8328,33 @@ function barracksUnitSkillTreeHtml(p, ut) {
   html += '<div class="brk-branch-fork" aria-hidden="true"></div>';
   html += '<div class="brk-branch-cols">';
 
-  for (const stat of branches) {
-    const branchTheme = barracksStatBranchTheme(ut, stat);
-    const branchLabel = barracksStatBranchLabel(ut, stat);
+    for (const stat of branches) {
+      const branchTheme = barracksStatBranchTheme(ut, stat);
+      const branchLabel = barracksStatBranchLabel(ut, stat);
     html += `<div class="brk-branch-col st-theme-${branchTheme}">`;
     html += '<div class="brk-branch-col-cap" aria-hidden="true"></div>';
     html += `<div class="brk-branch-col-label">${escapeHtml(branchLabel)}</div>`;
     for (let tier = 1; tier <= maxTier; tier++) {
       if (tier > 1) html += '<div class="brk-branch-vline" aria-hidden="true"></div>';
-      const meta = barracksStatMeta(label, stat, tier, ut);
-      const cost = LIVE_ARMY.statUpgradeCost(p, ut, stat);
+        const meta = barracksStatMeta(label, stat, tier, ut);
+        const cost = LIVE_ARMY.statUpgradeCost(p, ut, stat);
       html += barracksMiniStatNodeHtml({
-        tier,
+          tier,
         maxTier,
-        ownedTier: rec[stat] || 0,
+          ownedTier: rec[stat] || 0,
         unlocked: true,
-        cost,
-        afford: p.coins >= cost,
-        icon: barracksStatTierIcon(ut, stat, tier),
-        theme: branchTheme,
-        dataAttrs: ` data-barracks-stat="${stat}" data-barracks-unit="${ut}"`,
+          cost,
+          afford: p.coins >= cost,
+          icon: barracksStatTierIcon(ut, stat, tier),
+          theme: branchTheme,
+          dataAttrs: ` data-barracks-stat="${stat}" data-barracks-unit="${ut}"`,
         wrapAttrs: ` data-brk-hover-stat="${stat}" data-brk-hover-tier="${tier}" data-brk-hover-unit="${ut}"`,
-        tip: meta.tooltip,
-        nodeLabel: meta.nodeLabel,
+          tip: meta.tooltip,
+          nodeLabel: meta.nodeLabel,
       });
+      }
+      html += '</div>';
     }
-    html += '</div>';
-  }
 
   html += '</div></div></div>';
   return html;
@@ -7571,8 +8432,8 @@ function updateBarracksUpgradeUI(force) {
 let engineersSkillFocus = null; // tower type when viewing that tower's skill tree
 
 function engineersTowerSkillTreeHtml(p, tt) {
-  const label = LIVE_ARMY.TOWER_LABELS[tt] || tt;
-  const rec = LIVE_ARMY.towerRecord(p, tt);
+    const label = LIVE_ARMY.TOWER_LABELS[tt] || tt;
+    const rec = LIVE_ARMY.towerRecord(p, tt);
   const base = TOWER_TYPES[tt] || {};
   const unlockMeta = engineersTowerUnlockMeta(tt);
   const maxTier = LIVE_ARMY.ENGINEER_STAT_MAX || 3;
@@ -7592,31 +8453,31 @@ function engineersTowerSkillTreeHtml(p, tt) {
   html += '</div></div>';
 
   html += '<div class="brk-skill-tracks">';
-  for (const branch of engineersTowerBranches(tt)) {
-    const branchTheme = ENG_THEME_MAP[branch];
-    const branchLabel = engineersTowerBranchLabel(tt, branch);
-    const nodes = [];
-    for (let tier = 1; tier <= maxTier; tier++) {
-      const meta = engineersBranchMeta(label, branch, tier, tt);
-      const cost = LIVE_ARMY.engineersUpgradeCost(p, tt, branch);
-      nodes.push(barracksMiniStatNodeHtml({
-        tier,
-        maxTier,
-        ownedTier: LIVE_ARMY.engineerStatLevel(rec, branch),
+    for (const branch of engineersTowerBranches(tt)) {
+      const branchTheme = ENG_THEME_MAP[branch];
+      const branchLabel = engineersTowerBranchLabel(tt, branch);
+      const nodes = [];
+      for (let tier = 1; tier <= maxTier; tier++) {
+        const meta = engineersBranchMeta(label, branch, tier, tt);
+        const cost = LIVE_ARMY.engineersUpgradeCost(p, tt, branch);
+        nodes.push(barracksMiniStatNodeHtml({
+          tier,
+          maxTier,
+          ownedTier: LIVE_ARMY.engineerStatLevel(rec, branch),
         unlocked: true,
-        cost,
-        afford: p.coins >= cost,
-        icon: engineersStatTierIcon(branch, tier),
-        theme: meta.theme || branchTheme,
-        dataAttrs: ` data-eng-stat="${branch}" data-eng-tower="${tt}"`,
-        tip: meta.tooltip,
-        nodeLabel: meta.nodeLabel,
-      }));
-    }
+          cost,
+          afford: p.coins >= cost,
+          icon: engineersStatTierIcon(branch, tier),
+          theme: meta.theme || branchTheme,
+          dataAttrs: ` data-eng-stat="${branch}" data-eng-tower="${tt}"`,
+          tip: meta.tooltip,
+          nodeLabel: meta.nodeLabel,
+        }));
+      }
     html += '<div class="brk-skill-track-block">';
     html += `<div class="brk-skill-track-label">${escapeHtml(branchLabel)}</div>`;
-    html += barracksMiniStatRow(nodes, branchTheme);
-    html += '</div>';
+      html += barracksMiniStatRow(nodes, branchTheme);
+      html += '</div>';
   }
   html += '</div></div>';
   return html;
@@ -7745,8 +8606,8 @@ function spellExactTip(spellId, level) {
 let laboratorySkillFocus = null; // spell id when viewing that spell's skill tree
 
 function laboratorySpellSkillTreeHtml(p, spellId) {
-  const label = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
-  const lvl = LIVE_ARMY.spellLevel(p, spellId);
+    const label = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
+    const lvl = LIVE_ARMY.spellLevel(p, spellId);
   const maxTier = LIVE_ARMY.SPELL_MAX_LEVEL || 3;
   const tip = (SPELL_BLURBS[spellId] || '').slice(0, 180);
 
@@ -7764,27 +8625,27 @@ function laboratorySpellSkillTreeHtml(p, spellId) {
   html += '</div></div>';
 
   html += '<div class="brk-skill-tracks">';
-  const nodes = [];
-  for (let tier = 1; tier <= maxTier; tier++) {
-    const meta = spellPowerMeta(spellId, tier);
+    const nodes = [];
+    for (let tier = 1; tier <= maxTier; tier++) {
+      const meta = spellPowerMeta(spellId, tier);
     const cost = LIVE_ARMY.spellUpgradeCostAtLevel(lvl) ?? LIVE_ARMY.spellUnlockOrUpgradeCost(p, spellId);
-    nodes.push(barracksMiniStatNodeHtml({
-      tier,
-      maxTier,
-      ownedTier: lvl,
+      nodes.push(barracksMiniStatNodeHtml({
+        tier,
+        maxTier,
+        ownedTier: lvl,
       unlocked: true,
-      cost: cost ?? 0,
-      afford: cost != null && p.coins >= cost,
-      icon: SPELL_SKILL_ICONS[spellId] || '✨',
-      theme: 'spell-pwr',
-      dataAttrs: ` data-lab-upgrade="${spellId}"`,
-      tip: meta.tooltip,
-      nodeLabel: meta.nodeLabel,
-    }));
-  }
+        cost: cost ?? 0,
+        afford: cost != null && p.coins >= cost,
+        icon: SPELL_SKILL_ICONS[spellId] || '✨',
+        theme: 'spell-pwr',
+        dataAttrs: ` data-lab-upgrade="${spellId}"`,
+        tip: meta.tooltip,
+        nodeLabel: meta.nodeLabel,
+      }));
+    }
   html += '<div class="brk-skill-track-block">';
   html += '<div class="brk-skill-track-label">Power</div>';
-  html += barracksMiniStatRow(nodes, 'spell-pwr');
+    html += barracksMiniStatRow(nodes, 'spell-pwr');
   html += '</div></div></div>';
   return html;
 }
@@ -7961,9 +8822,11 @@ function drawSpellRadiusPreview(spellId, x, y, pid) {
 function buyLaboratorySpell(pid, spellId) {
   if (!LIVE_ARMY?.isActive()) return false;
   const p = players[pid];
+  const prevLvl = LIVE_ARMY.spellLevel(p, spellId);
   if (!LIVE_ARMY.buySpellUpgrade(p, spellId)) return false;
   const lvl = LIVE_ARMY.spellLevel(p, spellId);
   addLog(`🔮 ${p.name}: ${LIVE_ARMY.SPELL_LABELS[spellId]} → Lv${lvl}`);
+  if (prevLvl <= 0 && lvl > 0) tryAutoAssignHotbarTool(spellId, pid);
   updateLaboratoryUI(true);
   updateUI();
   return true;
@@ -8777,7 +9640,7 @@ function tryOpenCursorStructurePanel(pos, pid) {
 }
 
 function selectCursorTool() {
-  selectHotbarTool('move', 0);
+  selectHotbarTool('move');
 }
 
 /** One-of hubs return to cursor after place; combat towers stay selected for multi-place. */
@@ -8785,7 +9648,7 @@ function afterTowerPlaced(towerType) {
   if (towerType === 'barracks' || towerType === 'engineers' || towerType === 'laboratory') {
     selectCursorTool();
   } else {
-    updateUI();
+  updateUI();
   }
 }
 
@@ -9330,6 +10193,7 @@ const PLAY_SLOT_MENU_IDS = [
   'missile-upgrade-panel',
   'spread-upgrade-panel',
   'tower-manage-panel',
+  'hotbar-loadout-panel',
   'econ-upgrade-panel',
   'achievement-panel',
   'commander-panel',
@@ -9388,6 +10252,12 @@ function closeOpenPlayMenus() {
   if (typeof closeTowerManagePanel === 'function') closeTowerManagePanel();
   if (typeof toggleCommanderPanel === 'function') toggleCommanderPanel(false);
   if (typeof toggleAchievementPanel === 'function') toggleAchievementPanel(false);
+  if (typeof toggleHotbarLoadoutPanel === 'function') toggleHotbarLoadoutPanel(false);
+  else {
+    const loadout = document.getElementById('hotbar-loadout-panel');
+    if (loadout) loadout.classList.add('hidden');
+    pendingHotbarAssign = null;
+  }
   syncMenuCloseFab();
 }
 
@@ -9425,14 +10295,14 @@ function updateIncomeUpgradeUI(force) {
 
   if (!LIVE_ARMY?.isActive()) {
     setSkillListHtml('econ-upgrade-list', ['base', 'mint', 'farm'].map(type => {
-      const def = INCOME_UPGRADE_DEFS[type];
+    const def = INCOME_UPGRADE_DEFS[type];
       const lvl = incomeUpgradeLevel(pid, type);
       const cur = survivalIncomeAmount(pid, type);
-      const atMax = lvl >= INCOME_UPGRADE_MAX;
-      const nextAmt = atMax ? null : survivalIncomeAmountAtLevel(type, lvl + 1);
+    const atMax = lvl >= INCOME_UPGRADE_MAX;
+    const nextAmt = atMax ? null : survivalIncomeAmountAtLevel(type, lvl + 1);
       const cost = incomeUpgradeCost(pid, type);
-      const canBuy = cost !== null && p.coins >= cost;
-      return `<div class="econ-upgrade-row">
+    const canBuy = cost !== null && p.coins >= cost;
+    return `<div class="econ-upgrade-row">
       <div class="econ-upgrade-info">
         <strong>${def.icon} ${def.name}</strong>
         <span>Lv ${lvl} · <span class="econ-yield">+${cur}/${def.intervalLabel}</span></span>
@@ -9508,47 +10378,47 @@ function updateIncomeUpgradeUI(force) {
 
   function economyHqTracksHtml() {
     let body = '<div class="brk-skill-tracks">';
-    for (const branch of baseBranches) {
-      const maxTier = LIVE_ARMY.baseBranchMax(branch);
-      const owned = eco.base[branch] || 0;
-      const nodes = [];
-      for (let tier = 1; tier <= maxTier; tier++) {
-        const meta = econBaseSkillMeta(branch, tier);
-        const cost = LIVE_ARMY.economyBaseCost(p, branch);
-        nodes.push(dramaticSkillNodeHtml({
-          theme: meta.theme,
-          title: meta.title,
-          tooltip: meta.tooltip,
-          tier, maxTier, ownedTier: owned, unlocked: true,
-          cost, afford: p.coins >= cost, icon: baseIcons[branch],
-          dataAttrs: ` data-econ-base="${branch}"`,
-        }));
-      }
+  for (const branch of baseBranches) {
+    const maxTier = LIVE_ARMY.baseBranchMax(branch);
+    const owned = eco.base[branch] || 0;
+    const nodes = [];
+    for (let tier = 1; tier <= maxTier; tier++) {
+      const meta = econBaseSkillMeta(branch, tier);
+      const cost = LIVE_ARMY.economyBaseCost(p, branch);
+      nodes.push(dramaticSkillNodeHtml({
+        theme: meta.theme,
+        title: meta.title,
+        tooltip: meta.tooltip,
+        tier, maxTier, ownedTier: owned, unlocked: true,
+        cost, afford: p.coins >= cost, icon: baseIcons[branch],
+        dataAttrs: ` data-econ-base="${branch}"`,
+      }));
+    }
       body += '<div class="brk-skill-track-block">';
       body += `<div class="brk-skill-track-label">${escapeHtml(baseLabels[branch])}</div>`;
       body += dramaticSkillRow(nodes, true, BASE_BRANCH_THEME[branch]);
       body += '</div>';
     }
 
-    const cannonSkills = getBaseCannonSkills(p);
-    const cannonThemes = { firerate: 'eng-rate', damage: 'eng-dmg', range: 'eng-rng' };
-    const cannonIcons = { firerate: '⚡', damage: '⚔️', range: '🎯' };
-    for (const branch of ['firerate', 'damage', 'range']) {
-      const cfg = BASE_CANNON_SKILL[branch];
-      const owned = cannonSkills[branch] || 0;
-      const cost = baseCannonSkillCost(branch, owned);
-      const nodes = [];
-      for (let tier = 1; tier <= BASE_CANNON_SKILL_MAX; tier++) {
-        const meta = econCannonSkillMeta(branch, tier);
-        nodes.push(dramaticSkillNodeHtml({
-          theme: cannonThemes[branch],
-          title: meta.title,
-          tooltip: meta.tooltip,
-          tier, maxTier: BASE_CANNON_SKILL_MAX, ownedTier: owned, unlocked: true,
-          cost, afford: cost != null && p.coins >= cost, icon: cannonIcons[branch],
-          dataAttrs: ` data-cannon-branch="${branch}"`,
-        }));
-      }
+  const cannonSkills = getBaseCannonSkills(p);
+  const cannonThemes = { firerate: 'eng-rate', damage: 'eng-dmg', range: 'eng-rng' };
+  const cannonIcons = { firerate: '⚡', damage: '⚔️', range: '🎯' };
+  for (const branch of ['firerate', 'damage', 'range']) {
+    const cfg = BASE_CANNON_SKILL[branch];
+    const owned = cannonSkills[branch] || 0;
+    const cost = baseCannonSkillCost(branch, owned);
+    const nodes = [];
+    for (let tier = 1; tier <= BASE_CANNON_SKILL_MAX; tier++) {
+      const meta = econCannonSkillMeta(branch, tier);
+      nodes.push(dramaticSkillNodeHtml({
+        theme: cannonThemes[branch],
+        title: meta.title,
+        tooltip: meta.tooltip,
+        tier, maxTier: BASE_CANNON_SKILL_MAX, ownedTier: owned, unlocked: true,
+        cost, afford: cost != null && p.coins >= cost, icon: cannonIcons[branch],
+        dataAttrs: ` data-cannon-branch="${branch}"`,
+      }));
+    }
       body += '<div class="brk-skill-track-block">';
       body += `<div class="brk-skill-track-label">Turret ${escapeHtml(cfg.label)}</div>`;
       body += dramaticSkillRow(nodes, true, cannonThemes[branch]);
@@ -9574,7 +10444,7 @@ function updateIncomeUpgradeUI(force) {
     html += '<div class="brk-skill-hero-copy"><h4>Headquarters</h4>';
     html += '<p>Income, health, guns, and base turret upgrades.</p></div></div>';
     html += economyHqTracksHtml();
-    html += '</div>';
+  html += '</div>';
     setSkillListHtml('econ-upgrade-list', html);
     updateSkillPanelFooter('econ-upgrade-footer', p.coins);
     return;
@@ -9592,7 +10462,7 @@ function updateIncomeUpgradeUI(force) {
     html += `<div class="brk-skill-hero-copy"><h4>${label}</h4>`;
     html += `<p>${rec.unlocked ? 'Upgrade harvest speed and yield.' : 'Unlock this building, then upgrade harvest speed and yield.'}</p></div></div>`;
     if (!rec.unlocked) {
-      const unlockCost = LIVE_ARMY.economyUnlockCost(type);
+    const unlockCost = LIVE_ARMY.economyUnlockCost(type);
       const afford = p.coins >= unlockCost;
       html += `<div style="padding:8px 4px 12px"><button type="button" class="brk-troop-skills-btn" style="width:auto;border-radius:8px;padding:10px 16px" data-econ-unlock="${type}" ${afford ? '' : 'disabled'}>Unlock ${unlockCost}💵</button></div>`;
     } else {
@@ -12509,6 +13379,7 @@ function getUnitFormationSlot(type, index, pid) {
 function setupSurvivalLive() {
   combatUnits = [];
   pellets = [];
+  archerArrows = [];
   beams = [];
   missiles = [];
   spreadTracks = [];
@@ -12554,8 +13425,8 @@ function setupSurvivalLive() {
     players[1].name = 'Player 2';
     commanderCount = commanderCap(players[0]) || 1;
   } else {
-    players[1].isAI = true;
-    players[1].name = 'Enemy';
+  players[1].isAI = true;
+  players[1].name = 'Enemy';
   }
   activePlayer = 0;
   phase = 'combat';
@@ -12579,7 +13450,7 @@ function setupSurvivalLive() {
     refreshSandboxCoins();
     addLog('🧪 Sandbox — unlimited coins. Control both sides with P1 / P2 (or Space).');
   } else {
-    addLog('⚔️ Local Live Battle — all gameplay runs in your browser.');
+  addLog('⚔️ Local Live Battle — all gameplay runs in your browser.');
   }
   addLog('⚔️ Open Economy to unlock Farm & Mint, then climb each skill tree.');
   if (survivalAiBrain) {
@@ -12591,6 +13462,7 @@ function setupSurvivalLive() {
 function setupSimulator() {
   combatUnits = [];
   pellets = [];
+  archerArrows = [];
   beams = [];
   missiles = [];
   spreadTracks = [];
@@ -12698,6 +13570,7 @@ function setupSurvivalLivePvp(opts) {
 
   combatUnits = [];
   pellets = [];
+  archerArrows = [];
   beams = [];
   missiles = [];
   spreadTracks = [];
@@ -12780,6 +13653,7 @@ function serializeTower(t) {
     spreadChargeMax: t.spreadChargeMax,
     fireCharge: t.fireCharge,
     fireChargeMax: t.fireChargeMax,
+    archerVolleyMult: t.archerVolleyMult || undefined,
     isBaseDefense: !!t.isBaseDefense,
     baseCannon: !!t.baseCannon,
     freezeLeft: t.freezeLeft || 0,
@@ -12866,6 +13740,7 @@ function getPvpSnapshot() {
     })),
     combatUnits: combatUnits.map(serializeUnit),
     pellets: pellets.map((p) => ({ ...p })),
+    archerArrows: archerArrows.map((a) => ({ ...a, trail: undefined })),
     beams: beams.map((b) => ({ ...b })),
     missiles: missiles.map((m) => ({ ...m })),
     spreadTracks: spreadTracks.map((s) => ({ ...s })),
@@ -12980,6 +13855,9 @@ function applyPvpSnapshot(state) {
   // Keep local ephemeral FX if the network packet omitted them (slim sync).
   if (Object.prototype.hasOwnProperty.call(state, 'pellets')) {
     pellets = (state.pellets || []).map((p) => ({ ...p }));
+  }
+  if (Object.prototype.hasOwnProperty.call(state, 'archerArrows')) {
+    archerArrows = (state.archerArrows || []).map((a) => ({ ...a, trail: [] }));
   }
   if (Object.prototype.hasOwnProperty.call(state, 'beams')) {
     beams = (state.beams || []).map((b) => ({ ...b }));
@@ -13156,6 +14034,9 @@ function applyPvpAction(fromPlayerId, action) {
   }
   if (type === 'spread_element') {
     return buySpreadElement(fromPlayerId, action.towerId, action.element);
+  }
+  if (type === 'archer_volley') {
+    return buyArcherVolleyUpgrade(fromPlayerId, action.towerId);
   }
   if (type === 'sell_tower') {
     return sellTower(fromPlayerId, action.towerId);
@@ -13493,24 +14374,26 @@ function endSurvivalLive() {
 // Counter multipliers: attacker type -> defender type
 const COUNTERS = {
   // Elephant: strong vs Spreaders (immune to shock/knockback), extremely weak vs Wolves.
-  tank:    { tank: 1.0, speed: 0.45, striker: 1.2,  sniper: 0.85, yeti: 0.9,  peka: 0.85, bloop: 1.05, goblin: 1.1,  turret: 1.15, laser: 1.2,  spread: 1.45, missile: 0.95, mint: 1.1,  farm: 1.1,  base: 0.95 },
+  tank:    { tank: 1.0, speed: 0.45, striker: 1.2,  sniper: 0.85, yeti: 0.9,  peka: 0.85, bloop: 1.05, goblin: 1.1,  turret: 1.15, laser: 1.2,  spread: 1.45, missile: 0.95, archer: 1.25, mint: 1.1,  farm: 1.1,  base: 0.95 },
   // Wolf: pack devours Elephants; double damage to Snipers (who can't track them); strong vs most towers.
-  speed:   { tank: 1.45, speed: 1.0, striker: 1.3,  sniper: 2.0,  yeti: 1.15, peka: 0.6,  bloop: 1.05, goblin: 1.1,  turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  mint: 1.15, farm: 1.15, base: 1.25 },
+  speed:   { tank: 1.45, speed: 1.0, striker: 1.3,  sniper: 2.0,  yeti: 1.15, peka: 0.6,  bloop: 1.05, goblin: 1.1,  turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  archer: 0.75, mint: 1.15, farm: 1.15, base: 1.25 },
   // Knight: strong vs Wolves and almost every unit/tower; does only 1/4 damage to Elephants; weak vs Sniper and Dragons.
-  striker: { tank: 0.25, speed: 1.35, striker: 1.0,  sniper: 1.2,  yeti: 1.05, peka: 0.65, bloop: 1.15, goblin: 1.2,  turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  mint: 1.2,  farm: 1.2,  base: 1.2 },
+  striker: { tank: 0.25, speed: 1.35, striker: 1.0,  sniper: 1.2,  yeti: 1.05, peka: 0.65, bloop: 1.15, goblin: 1.2,  turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, mint: 1.2,  farm: 1.2,  base: 1.2 },
   // Sniper: strong with a frontline tank; extremely weak vs Wolves (their hard counter).
-  sniper:  { tank: 1.05, speed: 0.4,  striker: 1.15, sniper: 1.0,  yeti: 1.25, peka: 1.35, bloop: 0.95, goblin: 0.9,  turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, mint: 1.2,  farm: 1.2,  base: 1.1 },
+  sniper:  { tank: 1.05, speed: 0.4,  striker: 1.15, sniper: 1.0,  yeti: 1.25, peka: 1.35, bloop: 0.95, goblin: 0.9,  turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, archer: 0.9,  mint: 1.2,  farm: 1.2,  base: 1.1 },
   // Yeti: freezing punches punish packs; struggles vs long range and dragons.
-  yeti:    { tank: 1.1,  speed: 1.25, striker: 1.05, sniper: 0.85, yeti: 1.0,  peka: 0.7,  bloop: 1.1,  goblin: 1.15, turret: 1.15, laser: 0.9,  spread: 1.2,  missile: 1.0,  mint: 1.15, farm: 1.15, base: 1.1 },
-  // Dragon: weak to Turrets & Snipers; hates Goblins (chases them first).
-  peka:    { tank: 1.15, speed: 0.5,  striker: 0.75, sniper: 1.2,  yeti: 1.15, peka: 1.0,  bloop: 0.9,  goblin: 1.5,  turret: 1.35, laser: 1.3,  spread: 0.95, missile: 1.15, mint: 1.25, farm: 1.25, base: 1.15 },
-  bloop:   { tank: 0.9,  speed: 1.0,  striker: 0.8,  sniper: 0.8,  yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 0.95, turret: 1.0,  laser: 0.85, spread: 1.05, missile: 1.05, mint: 1.05, farm: 1.05, base: 1.0 },
-  goblin:  { tank: 0.85, speed: 0.9,  striker: 0.75, sniper: 0.7,  yeti: 0.8,  peka: 0.55, bloop: 1.0,  goblin: 1.0,  turret: 1.35, laser: 0,    spread: 1.1,  missile: 0.9,  mint: 1.4,  farm: 1.4,  base: 0.4 },
-  turret:  { tank: 0.9,  speed: 0.7,  striker: 0.85, sniper: 1.15, yeti: 1.05, peka: 1.1,  bloop: 0.85, goblin: 1.1,  turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, mint: 1.0, farm: 1.0, base: 0 },
-  laser:   { tank: 1.15, speed: 0.5,  striker: 0.85, sniper: 1.35, yeti: 1.1,  peka: 1.2,  bloop: 1.0,  goblin: 0,    turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, mint: 1.0, farm: 1.0, base: 0 },
-  spread:  { tank: 0.55, speed: 1.1,  striker: 0.85, sniper: 1.25, yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 1.15, turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  yeti:    { tank: 1.1,  speed: 1.25, striker: 1.05, sniper: 0.85, yeti: 1.0,  peka: 0.7,  bloop: 1.1,  goblin: 1.15, turret: 1.15, laser: 0.9,  spread: 1.2,  missile: 1.0,  archer: 0.85, mint: 1.15, farm: 1.15, base: 1.1 },
+  // Dragon: weak to Turrets & Snipers; hates Goblins (chases them first). Archer volleys also threaten them.
+  peka:    { tank: 1.15, speed: 0.5,  striker: 0.75, sniper: 1.2,  yeti: 1.15, peka: 1.0,  bloop: 0.9,  goblin: 1.5,  turret: 1.35, laser: 1.3,  spread: 0.95, missile: 1.15, archer: 1.2,  mint: 1.25, farm: 1.25, base: 1.15 },
+  bloop:   { tank: 0.9,  speed: 1.0,  striker: 0.8,  sniper: 0.8,  yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 0.95, turret: 1.0,  laser: 0.85, spread: 1.05, missile: 1.05, archer: 1.05, mint: 1.05, farm: 1.05, base: 1.0 },
+  goblin:  { tank: 0.85, speed: 0.9,  striker: 0.75, sniper: 0.7,  yeti: 0.8,  peka: 0.55, bloop: 1.0,  goblin: 1.0,  turret: 1.35, laser: 0,    spread: 1.1,  missile: 0.9,  archer: 1.05, mint: 1.4,  farm: 1.4,  base: 0.4 },
+  turret:  { tank: 0.9,  speed: 0.7,  striker: 0.85, sniper: 1.15, yeti: 1.05, peka: 1.1,  bloop: 0.85, goblin: 1.1,  turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  laser:   { tank: 1.15, speed: 0.5,  striker: 0.85, sniper: 1.35, yeti: 1.1,  peka: 1.2,  bloop: 1.0,  goblin: 0,    turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  spread:  { tank: 0.55, speed: 1.1,  striker: 0.85, sniper: 1.25, yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 1.15, turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, mint: 1.0, farm: 1.0, base: 0 },
   // Missile: targets Dragons first when they are on the field.
-  missile: { tank: 0.85, speed: 1.15, striker: 0.85, sniper: 1.1,  yeti: 1.05, peka: 1.35, bloop: 1.1,  goblin: 1.0,  turret: 0.8,  laser: 1.0, spread: 1.0, missile: 1.0, mint: 0.9,  farm: 0.9,  base: 0.4 },
+  missile: { tank: 0.85, speed: 1.15, striker: 0.85, sniper: 1.1,  yeti: 1.05, peka: 1.35, bloop: 1.1,  goblin: 1.0,  turret: 0.8,  laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, mint: 0.9,  farm: 0.9,  base: 0.4 },
+  // Archer: heavy vs ground; half damage already baked vs dragons in combat — still prefers them.
+  archer:  { tank: 1.35, speed: 1.2,  striker: 1.25, sniper: 1.15, yeti: 1.2,  peka: 1.0,  bloop: 1.15, goblin: 1.2,  turret: 0.7,  laser: 0.75, spread: 0.8,  missile: 0.7,  archer: 1.0, mint: 1.0,  farm: 1.0,  base: 0.35 },
 };
 
 const BLOOP_BOUNTY_FULL = 1.0; // full bloop cost to killer
@@ -13635,13 +14518,14 @@ let phase = 'menu'; // menu | prep | combat | summary | gameover | free | free2p
 let round = 1;
 let activePlayer = 0; // 0 = P1, 1 = P2/AI
 let selectedTool = 'move';
-let selectedHotbarIndex = 0;
+let selectedHotbarIndex = -1;
 let dragging = null;
 let combatTime = 0;
 let particles = [];
 let beams = [];
 let missiles = [];
 let pellets = [];
+let archerArrows = [];
 let spreadTracks = [];
 let blasts = [];
 let fireFields = [];
@@ -14548,6 +15432,7 @@ function free2pScatterDrops(x, y, source) {
 function setupFree2pMode() {
   combatUnits = [];
   pellets = [];
+  archerArrows = [];
   beams = [];
   missiles = [];
   blasts = [];
@@ -14974,6 +15859,7 @@ function drawFreeWorldBackground() {
 function setupFreeMode() {
   combatUnits = [];
   pellets = [];
+  archerArrows = [];
   beams = [];
   missiles = [];
   blasts = [];
@@ -16819,6 +17705,7 @@ function drawFree2pViewport(pid, localPlayer, dt) {
   drawBeams(dt);
   drawFreePellets();
   drawPellets();
+  drawArcherArrows();
   drawFreePickups();
   drawMissilesAndBlasts(dt);
   drawParticles(dt);
@@ -17122,8 +18009,10 @@ function towerSellValue(tw) {
 }
 
 function canSellTower(tw) {
-  // HQ pad cannons (isBaseDefense) stay unsellable; starter field towers are fine.
-  return !!(tw && tw.hp > 0 && !tw.isBaseDefense);
+  // HQ pad cannons + structure hubs stay unsellable.
+  if (!tw || tw.hp <= 0 || tw.isBaseDefense) return false;
+  if (tw.towerType === 'barracks' || tw.towerType === 'engineers' || tw.towerType === 'laboratory') return false;
+  return true;
 }
 
 function towerSellButtonHtml(tw) {
@@ -17131,6 +18020,85 @@ function towerSellButtonHtml(tw) {
   const refund = towerSellValue(tw);
   const label = refund > 0 ? `Sell for ${refund}💵` : 'Sell (no refund)';
   return `<button type="button" class="tower-sell-btn" data-sell-tower="${tw.id}">${label}</button>`;
+}
+
+/** Archer Tower volley multipliers: base 3 arrows × 1/2/3/4. */
+const ARCHER_VOLLEY_MAX = 4;
+const ARCHER_VOLLEY_LABELS = {
+  2: 'Double Volley',
+  3: 'Triple Volley',
+  4: 'Quad Volley',
+};
+const ARCHER_VOLLEY_COSTS = {
+  2: 160,
+  3: 320,
+  4: 560,
+};
+
+function archerVolleyMult(tw) {
+  return clamp(Math.floor(tw?.archerVolleyMult || 1), 1, ARCHER_VOLLEY_MAX);
+}
+
+function archerArrowCount(tw, def) {
+  return (def?.arrowCount || 3) * archerVolleyMult(tw);
+}
+
+function archerVolleyUpgradeCost(tw) {
+  const next = archerVolleyMult(tw) + 1;
+  if (next > ARCHER_VOLLEY_MAX) return null;
+  return ARCHER_VOLLEY_COSTS[next] ?? null;
+}
+
+function archerVolleyUpgradeHtml(tw, coins) {
+  if (!tw || tw.towerType !== 'archer') return '';
+  const mult = archerVolleyMult(tw);
+  const base = TOWER_TYPES.archer?.arrowCount || 3;
+  let html = '<div class="tower-manage-upgrades">';
+  if (mult > 1) {
+    html += `<div class="tower-upgrade-owned">Volley ×${mult} — ${base * mult} arrows</div>`;
+  } else {
+    html += `<div class="tower-upgrade-owned" style="border-color:rgba(251,191,36,0.3);background:rgba(69,26,3,0.35);color:#fde68a">Base volley — ${base} arrows</div>`;
+  }
+  const next = mult + 1;
+  const cost = archerVolleyUpgradeCost(tw);
+  if (cost != null) {
+    const label = ARCHER_VOLLEY_LABELS[next] || `×${next} Volley`;
+    const disabled = coins < cost;
+    html += `<button type="button" class="tower-upgrade-btn" data-archer-volley="${tw.id}" ${disabled ? 'disabled' : ''}>
+      ${label} — ${cost}💵
+      <span class="tu-sub">${base * next} arrows per shot</span>
+    </button>`;
+  } else {
+    html += `<div class="tower-upgrade-owned">Max volley reached (×4)</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function buyArcherVolleyUpgrade(pid, towerId) {
+  const p = players[pid];
+  if (!p) return false;
+  const tw = p.turrets.find((t) => t.id === towerId && t.towerType === 'archer' && t.hp > 0);
+  if (!tw) return false;
+  const cost = archerVolleyUpgradeCost(tw);
+  if (cost == null || p.coins < cost) return false;
+  p.coins -= cost;
+  tw.archerVolleyMult = archerVolleyMult(tw) + 1;
+  tw.paidCost = (tw.paidCost || 0) + cost;
+  const label = ARCHER_VOLLEY_LABELS[tw.archerVolleyMult] || `×${tw.archerVolleyMult}`;
+  addLog(`🏹 ${p.name}: Archer Tower ${label} (${archerArrowCount(tw, towerDef('archer', pid))} arrows)`);
+  updateTowerManageUI();
+  updateUI();
+  return true;
+}
+
+function requestArcherVolleyUpgrade(towerId) {
+  const pid = getLocalPlayerId();
+  if (isSurvivalPvp()) {
+    pvpSendLocalAction({ type: 'archer_volley', towerId });
+    return;
+  }
+  buyArcherVolleyUpgrade(pid, towerId);
 }
 
 function findTowerByIdForPlayer(pid, towerId) {
@@ -17179,8 +18147,12 @@ function updateTowerManageUI() {
     ? STARTING_TOWER_SELL_VALUE / TOWER_SELL_RATE
     : (tw.paidCost != null ? tw.paidCost : (def?.cost || 0));
   const refund = towerSellValue(tw);
-  meta.innerHTML = `HP ${Math.ceil(tw.hp)} / ${Math.ceil(tw.maxHp)}<br>${tw.starterTower ? 'Starter tower' : `Invested ${Math.floor(invested)}💵`} · Sell refund ${refund}💵 (70%)`;
-  actions.innerHTML = towerSellButtonHtml(tw);
+  const volleyNote = tw.towerType === 'archer'
+    ? `<br>Volley ×${archerVolleyMult(tw)} · ${archerArrowCount(tw, def)} arrows`
+    : '';
+  meta.innerHTML = `HP ${Math.ceil(tw.hp)} / ${Math.ceil(tw.maxHp)}${volleyNote}<br>${tw.starterTower ? 'Starter tower' : `Invested ${Math.floor(invested)}💵`} · Sell refund ${refund}💵 (70%)`;
+  const p = players[pid];
+  actions.innerHTML = archerVolleyUpgradeHtml(tw, p?.coins || 0) + towerSellButtonHtml(tw);
 }
 
 function openTowerManagePanel(tw) {
@@ -17574,6 +18546,12 @@ function onTowerDestroyed(tower, killerId) {
   triggerAchievement(killerId, 'tower_smasher');
   if (combatStats[killerId].towerKills >= 3) triggerAchievement(killerId, 'tower_trio');
   if (combatStats[killerId].towerKills >= 5) triggerAchievement(killerId, 'tower_quad');
+
+  const hub = tower?.towerType;
+  if (hub === 'barracks' || hub === 'engineers' || hub === 'laboratory') {
+    syncLiveArmyStructures();
+    if (tryAutoAssignHotbarTool(hub, tower.owner)) updateUI();
+  }
 }
 
 function trackDamageDealt(attackerId, dmg, isBase) {
@@ -17831,6 +18809,116 @@ function roundRect(x, y, w, h, r) {
   ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
+}
+
+function roundRectOn(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y);
+  c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r);
+  c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h);
+  c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r);
+  c.quadraticCurveTo(x, y, x + r, y);
+  c.closePath();
+}
+
+const FARM_CROP_EMOJIS = ['🌾', '🌽', '🥕', '🍅', '🥬', '🍓', '🌻', '🫑', '🍆', '🥒'];
+const FARM_CROP_EMOJIS_RUINED = ['🍂', '🪨', '🥀', '🪵'];
+const FARM_EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+
+function farmPlotSeed(sx, sy) {
+  return (((sx * 12.9898 + sy * 78.233) % 1000) + 1000) % 1000 / 1000;
+}
+
+function drawFarmPlot(c, ox, oy, sz, opts = {}) {
+  const ruined = opts.ruined || 0;
+  const seed = opts.seed != null ? opts.seed : farmPlotSeed(ox, oy);
+  const rnd = (n) => {
+    const v = Math.sin((ox + oy) * 0.031 + n * 17.13 + seed * 6.28) * 43758.5453;
+    return v - Math.floor(v);
+  };
+
+  const fieldW = sz * 1.95;
+  const fieldH = sz * 1.42;
+  const x0 = ox - fieldW / 2;
+  const y0 = oy - fieldH / 2;
+  const cornerR = Math.min(6, sz * 0.12);
+
+  c.save();
+  const prevAlpha = c.globalAlpha;
+  if (ruined > 0) c.globalAlpha = prevAlpha * (1 - ruined * 0.22);
+
+  const soil = c.createLinearGradient(x0, y0, x0 + fieldW, y0 + fieldH);
+  soil.addColorStop(0, '#5c3d1e');
+  soil.addColorStop(0.35, '#7a5230');
+  soil.addColorStop(0.65, '#8b5e34');
+  soil.addColorStop(1, '#4a3016');
+  c.fillStyle = soil;
+  roundRectOn(c, x0, y0, fieldW, fieldH, cornerR);
+  c.fill();
+
+  c.fillStyle = 'rgba(61, 40, 20, 0.28)';
+  roundRectOn(c, x0 + 3, y0 + 3, fieldW - 6, fieldH - 6, Math.max(2, cornerR - 1));
+  c.fill();
+
+  const rowCount = ruined > 0.55 ? 2 : 4;
+  c.fillStyle = ruined > 0.35 ? 'rgba(42, 26, 12, 0.55)' : 'rgba(58, 36, 16, 0.45)';
+  for (let row = 0; row < rowCount; row++) {
+    const ry = y0 + 10 + row * ((fieldH - 20) / rowCount);
+    const rh = (fieldH - 20) / rowCount * 0.48;
+    roundRectOn(c, x0 + 8, ry, fieldW - 16, rh, 2);
+    c.fill();
+  }
+
+  c.strokeStyle = ruined > 0.4 ? 'rgba(120, 53, 15, 0.55)' : '#6b4423';
+  c.lineWidth = Math.max(1.2, sz * 0.035);
+  c.strokeRect(x0 + 3, y0 + 3, fieldW - 6, fieldH - 6);
+
+  const postR = Math.max(1.8, sz * 0.055);
+  c.fillStyle = '#a16207';
+  const corners = [
+    [x0 + 4, y0 + 4], [x0 + fieldW - 4, y0 + 4],
+    [x0 + 4, y0 + fieldH - 4], [x0 + fieldW - 4, y0 + fieldH - 4],
+  ];
+  for (let i = 0; i < corners.length; i++) {
+    if (ruined > 0.35 && rnd(i + 2) > 0.45) continue;
+    const [px, py] = corners[i];
+    c.beginPath();
+    c.arc(px, py, postR, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  const pool = ruined > 0.45 ? FARM_CROP_EMOJIS_RUINED : FARM_CROP_EMOJIS;
+  const cols = ruined > 0.65 ? 3 : 4;
+  const cropRows = ruined > 0.65 ? 2 : 3;
+  const fontSize = Math.max(6, sz * (ruined > 0 ? 0.18 : 0.2));
+  c.font = `${fontSize}px ${FARM_EMOJI_FONT}`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+
+  for (let row = 0; row < cropRows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const idx = row * cols + col;
+      if (ruined > 0.5 && rnd(idx + 11) > 0.62) continue;
+      const cx = x0 + 12 + (cols <= 1 ? 0 : col * (fieldW - 24) / (cols - 1));
+      const cy = y0 + 12 + (cropRows <= 1 ? 0 : row * (fieldH - 24) / (cropRows - 1));
+      const emoji = pool[Math.floor(rnd(idx + seed * 10) * pool.length)];
+      c.save();
+      const jitter = ruined > 0 ? (rnd(idx + 5) - 0.5) * ruined * 6 : (rnd(idx + 5) - 0.5) * 1.5;
+      c.translate(cx + jitter, cy + jitter * 0.4);
+      if (ruined > 0.25) c.rotate((rnd(idx + 9) - 0.5) * ruined * 0.9);
+      c.fillText(emoji, 0, 0);
+      c.restore();
+    }
+  }
+
+  c.textAlign = 'left';
+  c.textBaseline = 'alphabetic';
+  c.globalAlpha = prevAlpha;
+  c.restore();
 }
 
 function drawGroundShadow(x, y, rx, ry) {
@@ -18146,113 +19234,7 @@ function drawBaseTowerSlots(pid) {
 }
 
 function drawRuinedFarmField(x, y, sz, crumble, sink, seed = 0.5) {
-  const fieldW = sz * 1.85;
-  const fieldH = sz * 1.35;
-  const ox = x;
-  const oy = y + sink * 0.2;
-  const rnd = (n) => {
-    const v = Math.sin((ox + oy) * 0.031 + n * 17.13 + seed * 6.28) * 43758.5453;
-    return v - Math.floor(v);
-  };
-
-  const soil = ctx.createLinearGradient(ox - fieldW / 2, oy - fieldH / 2, ox + fieldW / 2, oy + fieldH / 2);
-  soil.addColorStop(0, '#4a3826');
-  soil.addColorStop(0.35, '#5e4832');
-  soil.addColorStop(0.68, '#3a2e1e');
-  soil.addColorStop(1, '#261e14');
-  ctx.fillStyle = soil;
-  roundRect(ox - fieldW / 2, oy - fieldH / 2, fieldW, fieldH, 6);
-  ctx.fill();
-
-  ctx.strokeStyle = 'rgba(18,12,6,0.38)';
-  ctx.lineWidth = 1;
-  for (let row = 0; row < 5; row++) {
-    const ry = oy - fieldH / 2 + 7 + row * (fieldH / 5.1);
-    ctx.beginPath();
-    ctx.moveTo(ox - fieldW / 2 + 5, ry + (rnd(row) - 0.5) * 3);
-    ctx.lineTo(ox + fieldW / 2 - 5, ry + (rnd(row + 9) - 0.5) * 4);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = 'rgba(16,10,6,0.5)';
-  for (let i = 0; i < 5; i++) {
-    const cx = ox - fieldW / 3 + rnd(i * 4) * fieldW * 0.62;
-    const cy = oy - fieldH / 4 + rnd(i * 6) * fieldH * 0.55;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 4 + rnd(i) * 5, 2.5 + rnd(i + 1) * 2.5, rnd(i * 2) * Math.PI, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.strokeStyle = '#6b5a38';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 14; i++) {
-    const sx = ox - fieldW / 2 + 8 + rnd(i * 11) * (fieldW - 16);
-    const sy = oy - fieldH / 2 + 6 + rnd(i * 13) * (fieldH - 14);
-    ctx.beginPath();
-    ctx.moveTo(sx, sy + 4 + rnd(i) * 2);
-    ctx.lineTo(sx + (rnd(i + 3) - 0.5) * 4, sy);
-    ctx.stroke();
-  }
-
-  const drawStake = (x1, y1, x2, y2, thick) => {
-    ctx.strokeStyle = '#4a3520';
-    ctx.lineWidth = thick;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.strokeStyle = '#2a1c10';
-    ctx.lineWidth = thick * 0.5;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-  };
-
-  const stakes = [
-    [-fieldW * 0.34, -fieldH * 0.12, -fieldW * 0.14, fieldH * 0.14],
-    [fieldW * 0.18, fieldH * 0.2, fieldW * 0.36, -fieldH * 0.06],
-    [-fieldW * 0.04, fieldH * 0.24, fieldW * 0.14, -fieldH * 0.18],
-    [fieldW * 0.06, -fieldH * 0.26, -fieldW * 0.18, fieldH * 0.04],
-    [-fieldW * 0.26, fieldH * 0.18, fieldW * 0.08, -fieldH * 0.08],
-  ];
-  for (let i = 0; i < stakes.length; i++) {
-    const s = stakes[i];
-    const broken = crumble > 0.35 && i % 2 === 0;
-    const scale = broken ? 0.5 + rnd(i) * 0.2 : 1;
-    drawStake(ox + s[0], oy + s[1], ox + s[2] * scale, oy + s[3] * scale, 2.6 - (i % 2) * 0.6);
-  }
-
-  ctx.strokeStyle = '#5c4228';
-  ctx.lineWidth = 2;
-  const clusters = [[-0.08, 0.02], [0.24, -0.1], [-0.22, 0.14], [0.05, 0.2]];
-  for (let ci = 0; ci < clusters.length; ci++) {
-    const [cxn, cyn] = clusters[ci];
-    const cx = ox + cxn * fieldW;
-    const cy = oy + cyn * fieldH;
-    const len = 10 + rnd(ci * 5) * 5;
-    for (let a = 0; a < 4; a++) {
-      const ang = a * Math.PI / 4 + 0.15;
-      const snap = crumble > 0.5 && a % 2 === 0 ? 0.55 : 1;
-      ctx.beginPath();
-      ctx.moveTo(cx - Math.cos(ang) * len, cy - Math.sin(ang) * len * 0.55);
-      ctx.lineTo(cx + Math.cos(ang) * len * 0.3 * snap, cy + Math.sin(ang) * len * 0.2 * snap);
-      ctx.stroke();
-    }
-  }
-
-  ctx.fillStyle = '#3d2c18';
-  for (let i = 0; i < 7; i++) {
-    const px = ox - fieldW / 2 + 3 + i * (fieldW / 6.2);
-    const ph = 5 + rnd(i * 2) * 6;
-    roundRect(px, oy + fieldH / 2 - ph - 1, 2.5, ph, 1);
-    ctx.fill();
-  }
-
-  ctx.strokeStyle = 'rgba(90,70,45,0.55)';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(ox - fieldW / 2, oy - fieldH / 2, fieldW, fieldH);
+  drawFarmPlot(ctx, x, y + sink * 0.2, sz, { ruined: crumble, seed });
 }
 
 /** Broken lawn-sprinkler wreck for destroyed Spreaders. Drawn in local tower space. */
@@ -18439,6 +19421,12 @@ function drawRuinedTower(r) {
     wreckRect('#374151', -sz * 0.15, -sz * 0.12, sz * 0.85, sz * 0.12, 1);
     wreckRect('#374151', -sz * 0.15, sz * 0.02, sz * 0.85, sz * 0.12, 1);
     wreckRect('#ca8a04', -sz * 0.35, -sz * 0.08, sz * 0.22, sz * 0.16, 2);
+  } else if (style === 'archer') {
+    wreckRect('#78350f', -sz * 0.55, -sz * 0.15, sz * 1.1, sz * 0.55, 3);
+    wreckRect('#57534e', -sz * 0.6, -sz * 0.4, sz * 1.2, sz * 0.18, 2);
+    wreckRect('#1e3a5f', -sz * 0.35, -sz * 0.55, 8, 10, 2);
+    wreckRect('#1e3a5f', -4, -sz * 0.58, 8, 10, 2);
+    wreckRect('#1e3a5f', sz * 0.2, -sz * 0.55, 8, 10, 2);
   } else {
     wreckRect('#3a4048', -9, -5, 16, 12, 2);
   }
@@ -18724,6 +19712,19 @@ function drawBase(pid, shake = 0, hpState) {
   ctx.restore();
 }
 
+function drawTowerDepthKey(t) {
+  // Foot of the building — lower on screen draws later (in front).
+  const sz = towerDefFor(t)?.size || 24;
+  return t.y + sz * 0.35;
+}
+
+function drawTowersDepthSorted(entries) {
+  entries
+    .filter((e) => e && e.t && e.t.hp > 0)
+    .sort((a, b) => drawTowerDepthKey(a.t) - drawTowerDepthKey(b.t) || a.t.x - b.t.x)
+    .forEach(({ t, color, alpha }) => drawTower(t, color, alpha == null ? 1 : alpha));
+}
+
 function drawTower(t, ownerColor, alpha = 1) {
   let ownerId = null;
   for (let i = 0; i < 2; i++) {
@@ -18736,11 +19737,11 @@ function drawTower(t, ownerColor, alpha = 1) {
   if (isSimulatorMode() && ownerId !== null) {
     ctx.filter = SIMULATOR_TEAM_COLORS[ownerId]?.hue || '';
   }
-  if (def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon' && def.style !== 'spread' && def.style !== 'railgun') {
+  if (def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon' && def.style !== 'spread' && def.style !== 'railgun' && def.style !== 'archer' && def.style !== 'farm' && def.style !== 'farm_live') {
   drawGroundShadow(t.x, t.y, sz * 1.1, sz * 0.35);
   }
 
-  if (!t.isBaseDefense && def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon' && def.style !== 'spread' && def.style !== 'railgun') {
+  if (!t.isBaseDefense && def.style !== 'laboratory' && def.style !== 'barracks' && def.style !== 'engineers' && def.style !== 'cannon' && def.style !== 'spread' && def.style !== 'railgun' && def.style !== 'archer' && def.style !== 'farm' && def.style !== 'farm_live') {
     // concrete pad (base-mounted towers use the fixed slab drawn underneath)
   const pad = ctx.createLinearGradient(t.x - sz, t.y, t.x + sz, t.y + sz);
   pad.addColorStop(0, '#7a8088');
@@ -18994,31 +19995,7 @@ function drawTower(t, ownerColor, alpha = 1) {
     ctx.fillText('$', 0, 4);
     ctx.textAlign = 'left';
   } else if (def.style === 'farm' || def.style === 'farm_live') {
-    const fieldW = sz * 1.85;
-    const fieldH = sz * 1.35;
-    ctx.fillStyle = '#5c4033';
-    roundRect(-fieldW / 2, -fieldH / 2, fieldW, fieldH, 6);
-    ctx.fill();
-    ctx.fillStyle = '#3d2817';
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 6; col++) {
-        ctx.fillRect(-fieldW / 2 + 4 + col * (fieldW / 6.2), -fieldH / 2 + 4 + row * (fieldH / 4.5), fieldW / 7, fieldH / 6);
-      }
-    }
-    ctx.fillStyle = '#4ade80';
-    for (let i = 0; i < 14; i++) {
-      const fx = -fieldW / 2 + 8 + (i % 7) * (fieldW / 7.5);
-      const fy = -fieldH / 2 + 6 + Math.floor(i / 7) * (fieldH / 3.2);
-      ctx.beginPath();
-      ctx.moveTo(fx, fy + 6);
-      ctx.lineTo(fx - 3, fy);
-      ctx.lineTo(fx + 3, fy);
-      ctx.closePath();
-    ctx.fill();
-    }
-    ctx.strokeStyle = '#8B6914';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-fieldW / 2, -fieldH / 2, fieldW, fieldH);
+    drawFarmPlot(ctx, 0, 0, sz, { seed: farmPlotSeed(t.x, t.y) });
   } else if (def.style === 'mint_live') {
     ctx.fillStyle = '#1e293b';
     roundRect(-sz * 0.9, -sz * 0.65, sz * 1.8, sz * 1.3, 4);
@@ -19478,7 +20455,7 @@ function drawTower(t, ownerColor, alpha = 1) {
       for (let i = 0; i < 7; i++) {
         const tx = barrelBase + tw * 0.12 + i * (barrelLen * 0.12);
         roundRect(tx, ry - 3.2, 2.2, 6.4, 0.6);
-        ctx.fill();
+    ctx.fill();
       }
     }
 
@@ -19539,6 +20516,121 @@ function drawTower(t, ownerColor, alpha = 1) {
     ctx.beginPath();
     ctx.arc(tw * 0.08, -th * 0.34, 1.8, 0, Math.PI * 2);
     ctx.fill();
+  } else if (def.style === 'archer') {
+    // Large timber watchtower with three archers on the battlements.
+    const tw = sz * 0.92;
+    const th = sz * 1.15;
+    const face = angle || 0;
+
+    // Stone/wood keep
+    const wood = ctx.createLinearGradient(-tw / 2, -th * 0.5, tw / 2, th * 0.45);
+    wood.addColorStop(0, '#a16207');
+    wood.addColorStop(0.45, '#78350f');
+    wood.addColorStop(1, '#451a03');
+    ctx.fillStyle = wood;
+    roundRect(-tw * 0.48, -th * 0.35, tw * 0.96, th * 0.9, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(28, 16, 6, 0.55)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    // Plank lines
+    ctx.strokeStyle = 'rgba(69, 26, 3, 0.45)';
+    ctx.lineWidth = 1.2;
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * tw * 0.12, -th * 0.28);
+      ctx.lineTo(i * tw * 0.12, th * 0.42);
+      ctx.stroke();
+    }
+
+    // Battlement crown
+    ctx.fillStyle = '#57534e';
+    roundRect(-tw * 0.52, -th * 0.48, tw * 1.04, th * 0.16, 2);
+    ctx.fill();
+    ctx.fillStyle = '#44403c';
+    for (let i = -3; i <= 3; i++) {
+      roundRect(i * (tw / 7) - 4, -th * 0.62, 8, 12, 1);
+      ctx.fill();
+    }
+
+    // Door
+    ctx.fillStyle = '#1c1917';
+    roundRect(-tw * 0.12, th * 0.18, tw * 0.24, th * 0.32, 2);
+    ctx.fill();
+
+    // Three archers along the top, facing aim direction
+    const drawArcherDude = (ax, ay, facing) => {
+      ctx.save();
+      ctx.translate(ax, ay);
+      // body
+      ctx.fillStyle = '#1e3a5f';
+      roundRect(-4.5, -2, 9, 11, 2);
+      ctx.fill();
+      // head
+      ctx.fillStyle = '#f5d0a9';
+      ctx.beginPath();
+      ctx.arc(0, -5, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+      // hood
+      ctx.fillStyle = '#14532d';
+      ctx.beginPath();
+      ctx.arc(0, -5.5, 3.6, Math.PI, 0);
+      ctx.fill();
+      // bow toward facing
+      ctx.rotate(facing);
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(6, 0, 7, -1.1, 1.1);
+      ctx.stroke();
+      ctx.strokeStyle = '#fef3c7';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(6, -6.5);
+      ctx.lineTo(6, 6.5);
+      ctx.stroke();
+      // nocked arrow
+      ctx.beginPath();
+      ctx.moveTo(2, 0);
+      ctx.lineTo(14, 0);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const roofY = -th * 0.42;
+    drawArcherDude(-tw * 0.28, roofY, face);
+    drawArcherDude(0, roofY - 1, face);
+    drawArcherDude(tw * 0.28, roofY, face);
+
+    // Banner
+    ctx.strokeStyle = '#292524';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(tw * 0.4, -th * 0.62);
+    ctx.lineTo(tw * 0.4, -th * 0.88);
+    ctx.stroke();
+    ctx.fillStyle = ownerColor || '#fbbf24';
+    const wave = Math.sin(animFrame * 0.14 + t.x) * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(tw * 0.4, -th * 0.88);
+    ctx.lineTo(tw * 0.4 + 11 + wave, -th * 0.82);
+    ctx.lineTo(tw * 0.4, -th * 0.76);
+    ctx.closePath();
+    ctx.fill();
+
+    // Volley tier plaque (×2 / ×3 / ×4)
+    const vMult = archerVolleyMult(t);
+    if (vMult > 1) {
+      ctx.fillStyle = 'rgba(28, 16, 6, 0.75)';
+      roundRect(-11, th * 0.02, 22, 12, 2);
+      ctx.fill();
+      ctx.fillStyle = '#fde68a';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`×${vMult}`, 0, th * 0.08);
+    }
   }
   ctx.restore();
 
@@ -21021,9 +22113,9 @@ function drawUnit(u) {
       filt += (filt ? ' ' : '') + 'saturate(0.55) brightness(1.12) hue-rotate(160deg)';
     }
     if (filt) ctx.filter = filt;
-    if (inFree && u.type === 'tank') {
-      drawFreeEnemyTank(u);
-    } else {
+  if (inFree && u.type === 'tank') {
+    drawFreeEnemyTank(u);
+  } else {
       drawUnitSprite(u.type, drawX, u.y + shakeY, u.facing, sz, {
         bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id, ownerId: u.owner,
         joustReady: u.joustReady,
@@ -21210,6 +22302,7 @@ function startCombat() {
   beams = [];
   missiles = [];
   pellets = [];
+  archerArrows = [];
   spreadTracks = [];
   blasts = [];
   fireFields = [];
@@ -23506,15 +24599,209 @@ function checkFieldAchievements(dt) {
 function enemiesInRange(t, ownerId) {
   const def = towerDefFor(t, ownerId);
   const list = [];
-  const isCannon = def.style === 'cannon';
+  const canTargetFlying = def.style === 'cannon' || def.style === 'archer';
   for (const u of combatUnits) {
     if (u.owner === ownerId || u.hp <= 0) continue;
-    if (unitIsFlying(u) && !isCannon) continue; // only Turrets can target flying dragons
+    if (unitIsFlying(u) && !canTargetFlying) continue;
     const d = dist(t, u);
     if (d <= (def.range || 9999)) list.push({ unit: u, dist: d });
   }
   list.sort((a, b) => a.dist - b.dist);
   return list;
+}
+
+/** Archer Tower: prefer Dragons, then nearest. */
+function findArcherTarget(t, ownerId) {
+  const list = enemiesInRange(t, ownerId);
+  if (!list.length) return null;
+  const dragons = list.filter((e) => e.unit.type === 'peka' || unitIsFlying(e.unit));
+  if (dragons.length) {
+    dragons.sort((a, b) => a.dist - b.dist);
+    return dragons[0].unit;
+  }
+  return list[0].unit;
+}
+
+const ARCHER_DRAGON_DMG_MULT = 0.5;
+const ARCHER_LAND_RADIUS = 22;
+
+function archerFlightTime(dist) {
+  return clamp(0.55 + dist / 420, 0.55, 1.55);
+}
+
+function fireArcherVolley(t, p, def) {
+  const target = findArcherTarget(t, p.id);
+  if (!target) return false;
+  const aimX = target.x;
+  const aimY = target.y;
+  const aimDist = Math.hypot(aimX - t.x, aimY - t.y);
+  t.angle = Math.atan2(aimY - t.y, aimX - t.x);
+  const range = def.range || 520;
+  const maxMiss = def.maxMiss || 118;
+  const rangeFrac = clamp(aimDist / range, 0, 1);
+  // Quadratic miss growth — fine up close, wild at max range.
+  const missR = rangeFrac * rangeFrac * maxMiss;
+  const count = archerArrowCount(t, def);
+  const dmg = def.damage || 44;
+  const muzzle = (def.size || 44) * 0.35;
+
+  for (let i = 0; i < count; i++) {
+    const side = (i - (count - 1) / 2) * (count > 6 ? 0.08 : 0.12);
+    const ox = t.x + Math.cos(t.angle) * muzzle - Math.sin(t.angle) * side * 14;
+    const oy = t.y + Math.sin(t.angle) * muzzle + Math.cos(t.angle) * side * 14 - 8;
+    const landX = aimX + rand(-missR, missR) + Math.cos(t.angle + Math.PI / 2) * side * (8 + missR * 0.15);
+    const landY = aimY + rand(-missR, missR) + Math.sin(t.angle + Math.PI / 2) * side * (8 + missR * 0.15);
+    const flightDist = Math.hypot(landX - ox, landY - oy);
+    const maxLife = archerFlightTime(flightDist);
+    const midX = (ox + landX) * 0.5;
+    const midY = (oy + landY) * 0.5 - Math.min(140, 40 + flightDist * 0.28);
+    archerArrows.push({
+      id: uid(),
+      sx: ox, sy: oy,
+      cx: midX, cy: midY,
+      tx: landX, ty: landY,
+      x: ox, y: oy,
+      prevX: ox, prevY: oy,
+      life: maxLife,
+      maxLife,
+      ownerId: p.id,
+      damage: dmg,
+      color: '#fef3c7',
+      tip: '#92400e',
+      trail: [],
+    });
+  }
+  spawnParticles(t.x + Math.cos(t.angle) * 12, t.y + Math.sin(t.angle) * 12, '#fde68a', 4);
+  return true;
+}
+
+function applyArcherArrowHit(arrow, unit) {
+  if (!unit || unit.hp <= 0) return;
+  if (unit.owner === arrow.ownerId) return;
+  unit.lastHitBy = arrow.ownerId;
+  let mult = 1;
+  if (unit.type === 'peka' || unitIsFlying(unit)) mult = ARCHER_DRAGON_DMG_MULT;
+  const counter = getCounter('archer', unit.type) || 1;
+  const dmg = Math.max(1, Math.round(arrow.damage * counter * mult));
+  applyHpLoss(unit, dmg);
+  trackDamageDealt(arrow.ownerId, dmg, false);
+  spawnParticles(unit.x, unit.y, arrow.tip || '#92400e', 5);
+  spawnFloatText(unit.x, unit.y - 18, `-${dmg}`, '#fef3c7');
+}
+
+function pointSegmentDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len2 = dx * dx + dy * dy || 1;
+  let t = ((px - x1) * dx + (py - y1) * dy) / len2;
+  t = clamp(t, 0, 1);
+  const qx = x1 + t * dx;
+  const qy = y1 + t * dy;
+  return Math.hypot(px - qx, py - qy);
+}
+
+function updateArcherArrows(dt) {
+  for (let i = archerArrows.length - 1; i >= 0; i--) {
+    const a = archerArrows[i];
+    a.prevX = a.x;
+    a.prevY = a.y;
+    a.life -= dt;
+    const t = clamp(1 - Math.max(0, a.life) / a.maxLife, 0, 1);
+    // Ease so they hang high early then dive
+    const eased = t < 0.55 ? (t / 0.55) * 0.45 : 0.45 + ((t - 0.55) / 0.45) * 0.55;
+    const pos = fireballBezier(a, eased);
+    a.x = pos.x;
+    a.y = pos.y;
+    if (!a.trail) a.trail = [];
+    a.trail.push({ x: a.x, y: a.y, a: 1 });
+    if (a.trail.length > 10) a.trail.shift();
+    for (const p of a.trail) p.a *= 0.86;
+
+    // Mid-flight: if the path crosses a dragon, clip it (half damage).
+    let clipped = false;
+    for (const u of combatUnits) {
+      if (u.owner === a.ownerId || u.hp <= 0) continue;
+      if (!(u.type === 'peka' || unitIsFlying(u))) continue;
+      const hitR = getUnitSize(u) * 0.85 + 6;
+      if (pointSegmentDist(u.x, u.y, a.prevX, a.prevY, a.x, a.y) <= hitR) {
+        applyArcherArrowHit(a, u);
+        clipped = true;
+        break;
+      }
+    }
+    if (clipped) {
+      archerArrows.splice(i, 1);
+      continue;
+    }
+
+    if (a.life > 0) continue;
+
+    // Landing impact — ground troops only (dragons already handled mid-air).
+    spawnParticles(a.tx, a.ty, '#a16207', 4);
+    blasts.push({ x: a.tx, y: a.ty, maxR: 14, life: 0.12, maxLife: 0.12, color: '#d6d3d1' });
+    for (const u of combatUnits) {
+      if (u.owner === a.ownerId || u.hp <= 0) continue;
+      if (unitIsFlying(u)) continue;
+      if (Math.hypot(u.x - a.tx, u.y - a.ty) <= ARCHER_LAND_RADIUS + getUnitSize(u) * 0.45) {
+        applyArcherArrowHit(a, u);
+      }
+    }
+    archerArrows.splice(i, 1);
+  }
+}
+
+function drawArcherArrows() {
+  for (const a of archerArrows) {
+    // Ground shadow of intended landing while in flight
+    const t = clamp(1 - Math.max(0, a.life) / a.maxLife, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = 0.2 + t * 0.25;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(a.tx, a.ty, 5 + t * 3, 2.5 + t, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    if (a.trail?.length > 1) {
+      for (let i = 1; i < a.trail.length; i++) {
+        const p0 = a.trail[i - 1];
+        const p1 = a.trail[i];
+        ctx.strokeStyle = `rgba(254, 243, 199, ${0.25 * p1.a})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+      }
+    }
+
+    const ang = Math.atan2(a.y - a.prevY, a.x - a.prevX) || 0;
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    ctx.rotate(ang);
+    ctx.fillStyle = a.tip || '#78350f';
+    ctx.beginPath();
+    ctx.moveTo(7, 0);
+    ctx.lineTo(-2, -2.4);
+    ctx.lineTo(-2, 2.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#fef3c7';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-2, 0);
+    ctx.lineTo(-11, 0);
+    ctx.stroke();
+    ctx.strokeStyle = '#b45309';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-11, 0);
+    ctx.lineTo(-14, -2.5);
+    ctx.moveTo(-11, 0);
+    ctx.lineTo(-14, 2.5);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function updateBaseCannon(p, dt) {
@@ -23568,6 +24855,14 @@ function updateTowers(dt) {
         if (t.cooldown <= 0) {
           t.cooldown = 1 / def.fireRate;
           firePiercingLaser(t, p, def);
+        }
+      } else if (def.style === 'archer') {
+        const aim = findArcherTarget(t, p.id);
+        if (!aim) continue;
+        t.angle = Math.atan2(aim.y - t.y, aim.x - t.x);
+        if (t.cooldown <= 0) {
+          t.cooldown = 1 / (def.fireRate || 0.5);
+          fireArcherVolley(t, p, def);
         }
       } else if (def.style === 'spread') {
         if (t.spreadElement) tickSpreadElementCharge(t, dt, p.id);
@@ -23664,10 +24959,10 @@ function resolveUnitOverlaps() {
           a.x -= dx * overlap;
           a.y -= dy * overlap;
         } else {
-          const pushX = dx * overlap * 0.5;
-          const pushY = dy * overlap * 0.5;
-          a.x -= pushX; a.y -= pushY;
-          b.x += pushX; b.y += pushY;
+        const pushX = dx * overlap * 0.5;
+        const pushY = dy * overlap * 0.5;
+        a.x -= pushX; a.y -= pushY;
+        b.x += pushX; b.y += pushY;
         }
       }
     }
@@ -23938,7 +25233,7 @@ function updateCombat(dt) {
 
     const paralyzed = isUnitFullyParalyzed(u);
     const stance = unitAttackStance(u.type);
-    const ut = unitDef(u.type, u.owner);
+      const ut = unitDef(u.type, u.owner);
     let tgt = resolveAttackTargetKey(u.attackTargetId, u);
     if (!tgt || (u.attackPhase === 'idle')) tgt = findTarget(u);
 
@@ -24017,6 +25312,7 @@ function updateCombat(dt) {
   resolveUnitOverlaps();
 
   updatePellets(dt);
+  updateArcherArrows(dt);
   updateUnitIgnites(dt);
   updateYetiIceTrails(dt);
   updateFireFields(dt);
@@ -24219,6 +25515,7 @@ function createTower(x, y, towerType, ownerId) {
     angle: ownerId === 0 ? 0 : Math.PI,
     cooldown: 0, laserTarget: null,
     spreadElement: towerType === 'spread' ? null : undefined,
+    archerVolleyMult: towerType === 'archer' ? 1 : undefined,
     paidCost: 0,
   };
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
@@ -24984,7 +26281,20 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && pendingSpellCast) {
     setPendingSpellCast(null);
     if (isSpellTool(selectedTool)) {
-      selectHotbarTool('move', 0);
+      selectHotbarTool('move');
+    }
+  }
+  if (e.key === 'Escape' && pendingHotbarAssign) {
+    pendingHotbarAssign = null;
+    updateHotbarLoadoutUI();
+    e.preventDefault();
+    return;
+  }
+  if (e.key === 'Escape') {
+    const loadout = document.getElementById('hotbar-loadout-panel');
+    if (loadout && !loadout.classList.contains('hidden')) {
+      toggleHotbarLoadoutPanel(false);
+      e.preventDefault();
     }
   }
 });
@@ -25021,6 +26331,13 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
   requestSellTower(sellBtn.dataset.sellTower);
+});
+document.addEventListener('click', (e) => {
+  const volleyBtn = e.target.closest('[data-archer-volley]');
+  if (!volleyBtn || volleyBtn.disabled) return;
+  e.preventDefault();
+  e.stopPropagation();
+  requestArcherVolleyUpgrade(volleyBtn.dataset.archerVolley);
 });
 document.getElementById('spread-upgrade-list').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-spread-element]');
@@ -25089,14 +26406,49 @@ initHotbar();
 document.addEventListener('keydown', (e) => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const digit = e.code?.startsWith('Digit') ? e.code.slice(5) : (e.key >= '1' && e.key <= '9' ? e.key : null);
-  if (!digit) return;
+
+  const key = e.key;
+  const code = e.code || '';
+
+  // Cursor: A or V
+  if (key === 'a' || key === 'A' || key === 'v' || key === 'V' || code === 'KeyA' || code === 'KeyV') {
+    const bottom = document.getElementById('bottom-panel');
+    if (!bottom || bottom.classList.contains('hidden')) return;
+    if (pendingHotbarAssign) return;
+    e.preventDefault();
+    selectHotbarTool('move');
+    return;
+  }
+
+  const digit = code.startsWith('Digit')
+    ? code.slice(5)
+    : ((key >= '0' && key <= '9') ? key : null);
+  if (digit == null) return;
+  const idx = hotbarDigitToIndex(digit);
+  if (idx < 0) return;
+
+  const loadoutOpen = document.getElementById('hotbar-loadout-panel')
+    && !document.getElementById('hotbar-loadout-panel').classList.contains('hidden');
   const bottom = document.getElementById('bottom-panel');
-  if (!bottom || bottom.classList.contains('hidden')) return;
-  const idx = Number(digit) - 1;
-  if (idx < 0 || idx >= HOTBAR_SIZE) return;
+  if (!loadoutOpen && (!bottom || bottom.classList.contains('hidden'))) return;
+
   e.preventDefault();
+  if (loadoutOpen) {
+    if (pendingHotbarAssign) assignToolToHotbarSlot(pendingHotbarAssign, idx);
+    return;
+  }
   selectHotbarSlot(idx);
+});
+
+document.getElementById('hotbar-loadout-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleHotbarLoadoutPanel();
+});
+document.getElementById('hotbar-loadout-close')?.addEventListener('click', () => toggleHotbarLoadoutPanel(false));
+document.getElementById('hotbar-loadout-done')?.addEventListener('click', () => toggleHotbarLoadoutPanel(false));
+document.getElementById('hotbar-loadout-reset')?.addEventListener('click', () => clearHotbarLayout());
+document.getElementById('hotbar-loadout-clear-tool')?.addEventListener('click', () => {
+  if (pendingHotbarAssign) clearToolFromHotbar(pendingHotbarAssign);
 });
 
 document.getElementById('btn-rulebook').addEventListener('click', () => {
@@ -25379,6 +26731,7 @@ function resetGame() {
   beams = [];
   missiles = [];
   pellets = [];
+  archerArrows = [];
   spreadTracks = [];
   blasts = [];
   fireFields = [];
@@ -25417,6 +26770,7 @@ function resetGame() {
   players[1].turrets = defaultStartingTowers(1);
 
   commitPublicSnapshots();
+  resetHotbarForNewGame();
   updateUI();
 }
 
@@ -25504,9 +26858,11 @@ function renderFrame(time) {
     for (const r of players[1].rubble) {
       if (freeInView(r.x, r.y)) drawRubble(r);
     }
-    for (const t of players[1].turrets) {
-      if (t.hp > 0 && freeInView(t.x, t.y, 120)) drawTower(t, P2_COLOR);
-    }
+    drawTowersDepthSorted(
+      players[1].turrets
+        .filter((t) => t.hp > 0 && freeInView(t.x, t.y, 120))
+        .map((t) => ({ t, color: P2_COLOR }))
+    );
     for (const u of combatUnits) {
       if (u.hp > 0 && freeInView(u.x, u.y, 80)) {
         drawUnit(u);
@@ -25533,6 +26889,7 @@ function renderFrame(time) {
     drawBeams(dt);
     drawFreePellets();
     drawPellets();
+    drawArcherArrows();
     drawFreePickups();
     drawMissilesAndBlasts(dt);
     drawParticles(dt);
@@ -25557,14 +26914,18 @@ function renderFrame(time) {
       if (hasBaseTowerSlots()) drawBaseTowerSlots(pid);
       for (const s of (stale.ruinScars || [])) drawRuinScar(s);
       for (const r of stale.rubble) drawRuins(r);
-      for (const t of stale.turrets) if (t.hp > 0) drawTower(t, live.color);
+      drawTowersDepthSorted(
+        (stale.turrets || []).filter((t) => t.hp > 0).map((t) => ({ t, color: live.color }))
+      );
       drawBase(pid, 0, stale);
       ctx.restore();
     } else {
       if (hasBaseTowerSlots()) drawBaseTowerSlots(pid);
       for (const s of (state.ruinScars || [])) drawRuinScar(s);
       for (const r of state.rubble) drawRuins(r);
-      for (const t of state.turrets) if (t.hp > 0) drawTower(t, live.color);
+      drawTowersDepthSorted(
+        (state.turrets || []).filter((t) => t.hp > 0).map((t) => ({ t, color: live.color }))
+      );
       if (phase === 'prep' && pid === activePlayer) {
         for (const d of live.deployments) drawDeployment(d, pid);
       }
@@ -25624,6 +26985,7 @@ function renderFrame(time) {
   if (phase === 'combat') {
     drawBeams(dt);
     drawPellets();
+    drawArcherArrows();
     drawMissilesAndBlasts(dt);
   }
 
