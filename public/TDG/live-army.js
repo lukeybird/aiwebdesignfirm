@@ -145,10 +145,10 @@ window.LIVE_ARMY = (function () {
     slime: '🧟',
     heal: '🧴',
   };
-  const SPELL_MAX_LEVEL = 3;
-  // Cost to unlock (level 0→1), then upgrade to 2 and 3.
+  // Spells are unlock-only — no Power skill tree.
+  const SPELL_MAX_LEVEL = 1;
   const SPELL_UNLOCK_COST = { fireball: 180, slime: 220, heal: 160 };
-  const SPELL_UPGRADE_COSTS = [280, 520];
+  const SPELL_UPGRADE_COSTS = [];
   const SPELL_CAST_COST = { fireball: 45, slime: 55, heal: 40 };
   const SPELL_COOLDOWN = { fireball: 8, slime: 12, heal: 10 };
 
@@ -332,9 +332,7 @@ window.LIVE_ARMY = (function () {
   function syncLaboratoryPanelCopy() {
     const el = document.getElementById('laboratory-upgrade-desc');
     if (!el) return;
-    el.textContent = pvpMode
-      ? 'Unlock spells from the list, then tap the tree on a card. Cast from the hotbar — levels stay hidden.'
-      : 'Unlock spells from the list. After unlocking, tap the tree on a card to upgrade Power. Cast from the hotbar.';
+    el.textContent = 'Unlock spells from the list, then cast them from the hotbar.';
   }
 
   function syncEconomyPanelCopy() {
@@ -502,7 +500,8 @@ window.LIVE_ARMY = (function () {
   }
 
   function spellLevel(p, spellId) {
-    return laboratoryRecord(p).spells[spellId]?.level || 0;
+    const raw = laboratoryRecord(p).spells[spellId]?.level || 0;
+    return Math.min(SPELL_MAX_LEVEL, raw);
   }
 
   function spellUnlocked(p, spellId) {

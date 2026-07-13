@@ -5300,7 +5300,7 @@
             <h3 class="st-header-title">Wizard's Nest Skill Tree</h3>
             <button id="laboratory-panel-close" class="st-header-close" type="button">✕</button>
           </div>
-          <p id="laboratory-upgrade-desc" class="st-panel-desc">Unlock spells, then tap the tree on a card to upgrade Power. Cast from the hotbar.</p>
+          <p id="laboratory-upgrade-desc" class="st-panel-desc">Unlock spells from the list, then cast them from the hotbar.</p>
           <div class="st-scroll-wrap">
             <div id="laboratory-upgrade-list" class="st-skill-scroll"></div>
             <div class="st-scroll-nav" aria-label="Scroll laboratory tree">
@@ -7008,7 +7008,7 @@ const TOWER_MANUAL = {
   archer: 'Huge watchtower with three archers. Fires long arcing volleys — arrows only hurt when they land. Deadly up close, wildly inaccurate at max range. Prefers Dragons and can clip them mid-flight (half damage to dragons). Click to upgrade Double / Triple / Quad volleys.',
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus coins every round. Protect them!',
   farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests coins on a timer. Upgrade harvest speed and yield in the Economy tree.',
-  laboratory: "Spell keep for your army. Build one Wizard's Nest to unlock Fireball, Zombie Slime, and Yellow Potion from the skill tree, then cast them from the bottom bar.",
+  laboratory: "Spell keep for your army. Build one Wizard's Nest to unlock Fireball, Zombie Slime, and Yellow Potion, then cast them from the bottom bar.",
   barracks: 'Unlocks deployable units. Recruit from the list, then upgrade each troop from the tree icon on its card.',
   engineers: 'Unlocks and upgrades combat towers. One per team.',
 };
@@ -8578,11 +8578,10 @@ function spellUnlockMeta(spellId) {
   };
 }
 
-function spellPowerMeta(spellId, tier) {
-  const label = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
-  const stats = LIVE_ARMY.spellStats(spellId, tier);
-  const cast = LIVE_ARMY.spellCastCost(spellId, tier);
-  const cd = LIVE_ARMY.spellCooldown(spellId, tier);
+function spellExactTip(spellId, level) {
+  const stats = LIVE_ARMY.spellStats(spellId, Math.max(1, level || 1));
+  const cast = LIVE_ARMY.spellCastCost(spellId, 1);
+  const cd = LIVE_ARMY.spellCooldown(spellId, 1);
   let effect;
   if (spellId === 'fireball') {
     effect = `${stats.damage} dmg (${stats.dragonMult.toFixed(1)}× vs Dragons), knockback ${Math.round(stats.knockback)}, radius ${Math.round(stats.radius)}`;
@@ -8591,63 +8590,7 @@ function spellPowerMeta(spellId, tier) {
   } else {
     effect = `heal allies & towers +${stats.healPerTick} HP / ${stats.tickInterval.toFixed(2)}s for ${stats.duration.toFixed(1)}s, radius ${Math.round(stats.radius)}`;
   }
-  return {
-    title: `${label} Lv${tier}`,
-    tooltip: `Exact effect: ${effect}. Cast ${cast}💵 · CD ${cd.toFixed(1)}s.`,
-    nodeLabel: `Lv${tier}`,
-  };
-}
-
-function spellExactTip(spellId, level) {
-  const meta = spellPowerMeta(spellId, Math.max(1, level || 1));
-  return meta.tooltip;
-}
-
-let laboratorySkillFocus = null; // spell id when viewing that spell's skill tree
-
-function laboratorySpellSkillTreeHtml(p, spellId) {
-    const label = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
-    const lvl = LIVE_ARMY.spellLevel(p, spellId);
-  const maxTier = LIVE_ARMY.SPELL_MAX_LEVEL || 3;
-  const tip = (SPELL_BLURBS[spellId] || '').slice(0, 180);
-
-  let html = '<div class="brk-skill-view">';
-  html += '<button type="button" class="brk-skill-back" data-lab-skills-back="1">← All spells</button>';
-  html += '<div class="brk-skill-hero">';
-  html += '<div class="brk-skill-hero-art">';
-  html += `<img class="brk-troop-portrait" src="${menuPortraitSrc(spellId)}" alt="" loading="lazy" decoding="async" />`;
-  html += '<div class="brk-troop-vignette"></div>';
-  html += '</div>';
-  html += '<div class="brk-skill-hero-copy">';
-  html += `<h4>${escapeHtml(label)}</h4>`;
-  html += `<p>${escapeHtml(tip)}</p>`;
-  html += `<p class="brk-troop-meta" style="text-align:left;padding:0">Power Lv ${lvl} / ${maxTier}</p>`;
-  html += '</div></div>';
-
-  html += '<div class="brk-skill-tracks">';
-    const nodes = [];
-    for (let tier = 1; tier <= maxTier; tier++) {
-      const meta = spellPowerMeta(spellId, tier);
-    const cost = LIVE_ARMY.spellUpgradeCostAtLevel(lvl) ?? LIVE_ARMY.spellUnlockOrUpgradeCost(p, spellId);
-      nodes.push(barracksMiniStatNodeHtml({
-        tier,
-        maxTier,
-        ownedTier: lvl,
-      unlocked: true,
-        cost: cost ?? 0,
-        afford: cost != null && p.coins >= cost,
-        icon: SPELL_SKILL_ICONS[spellId] || '✨',
-        theme: 'spell-pwr',
-        dataAttrs: ` data-lab-upgrade="${spellId}"`,
-        tip: meta.tooltip,
-        nodeLabel: meta.nodeLabel,
-      }));
-    }
-  html += '<div class="brk-skill-track-block">';
-  html += '<div class="brk-skill-track-label">Power</div>';
-    html += barracksMiniStatRow(nodes, 'spell-pwr');
-  html += '</div></div></div>';
-  return html;
+  return `Exact effect: ${effect}. Cast ${cast}💵 · CD ${cd.toFixed(1)}s.`;
 }
 
 function updateLaboratoryUI(force) {
@@ -8658,32 +8601,19 @@ function updateLaboratoryUI(force) {
   const pid = getLocalPlayerId();
   const p = players[pid];
   if (!LIVE_ARMY.hasLaboratory(p)) {
-    laboratorySkillFocus = null;
     setSkillListHtml('laboratory-upgrade-list', '<p style="opacity:0.7;font-size:0.8rem;padding:12px 18px">Build a Wizard\'s Nest first.</p>');
     return;
   }
   const lab = LIVE_ARMY.laboratoryRecord(p);
   lab.built = true;
 
-  const spells = LIVE_ARMY.SPELL_IDS;
-
-  if (laboratorySkillFocus) {
-    const lvl = LIVE_ARMY.spellLevel(p, laboratorySkillFocus);
-    if (!LIVE_ARMY.SPELL_IDS.includes(laboratorySkillFocus) || lvl <= 0) laboratorySkillFocus = null;
-  }
-  if (laboratorySkillFocus) {
-    setSkillListHtml('laboratory-upgrade-list', laboratorySpellSkillTreeHtml(p, laboratorySkillFocus));
-    return;
-  }
-
   let html = '<div class="brk-troop-list">';
-  for (const spellId of spells) {
+  for (const spellId of LIVE_ARMY.SPELL_IDS) {
     const label = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
-    const lvl = LIVE_ARMY.spellLevel(p, spellId);
-    const unlocked = lvl > 0;
+    const unlocked = LIVE_ARMY.spellUnlocked(p, spellId);
     const unlockCost = LIVE_ARMY.spellUnlockCost(spellId);
     const afford = p.coins >= unlockCost;
-    const meta = unlocked ? `Power Lv ${lvl}` : 'Spell cast from hotbar';
+    const meta = unlocked ? 'Ready on hotbar' : 'Unlock to cast from hotbar';
     html += menuRosterCardHtml({
       id: spellId,
       label,
@@ -8692,7 +8622,6 @@ function updateLaboratoryUI(force) {
       afford,
       unlockCost,
       unlockAttr: `data-lab-unlock="${spellId}"`,
-      skillsAttr: `data-lab-skills="${spellId}"`,
       ownedTag: 'Unlocked',
     });
   }
@@ -8710,8 +8639,6 @@ function toggleLaboratoryPanel(show) {
     if (typeof LIVE_ARMY !== 'undefined') LIVE_ARMY.syncLaboratoryPanelCopy?.();
     updateLaboratoryUI(true);
     syncStructureSellFooters();
-  } else {
-    laboratorySkillFocus = null;
   }
   syncLiveMenuPause();
   notifyHudLayoutChange();
@@ -8825,8 +8752,10 @@ function buyLaboratorySpell(pid, spellId) {
   const prevLvl = LIVE_ARMY.spellLevel(p, spellId);
   if (!LIVE_ARMY.buySpellUpgrade(p, spellId)) return false;
   const lvl = LIVE_ARMY.spellLevel(p, spellId);
-  addLog(`🔮 ${p.name}: ${LIVE_ARMY.SPELL_LABELS[spellId]} → Lv${lvl}`);
-  if (prevLvl <= 0 && lvl > 0) tryAutoAssignHotbarTool(spellId, pid);
+  if (prevLvl <= 0 && lvl > 0) {
+    addLog(`🔮 ${p.name} unlocked ${LIVE_ARMY.SPELL_LABELS[spellId]}`);
+    tryAutoAssignHotbarTool(spellId, pid);
+  }
   updateLaboratoryUI(true);
   updateUI();
   return true;
@@ -26250,25 +26179,9 @@ document.getElementById('laboratory-upgrade-panel').addEventListener('click', (e
   if (e.target.id === 'laboratory-upgrade-panel') toggleLaboratoryPanel(false);
 });
 document.getElementById('laboratory-upgrade-list').addEventListener('click', (e) => {
-  const backBtn = e.target.closest('[data-lab-skills-back]');
-  if (backBtn) {
-    laboratorySkillFocus = null;
-    invalidateSkillListCache('laboratory-upgrade-list');
-    updateLaboratoryUI(true);
-    return;
-  }
-  const skillsBtn = e.target.closest('[data-lab-skills]');
-  if (skillsBtn) {
-    laboratorySkillFocus = skillsBtn.dataset.labSkills;
-    invalidateSkillListCache('laboratory-upgrade-list');
-    updateLaboratoryUI(true);
-    return;
-  }
   const unlockBtn = e.target.closest('[data-lab-unlock]');
-  const upgradeBtn = e.target.closest('[data-lab-upgrade]');
-  const btn = unlockBtn || upgradeBtn;
-  if (!btn || btn.disabled) return;
-  const spellId = unlockBtn?.dataset.labUnlock || upgradeBtn?.dataset.labUpgrade;
+  if (!unlockBtn || unlockBtn.disabled) return;
+  const spellId = unlockBtn.dataset.labUnlock;
   if (!spellId) return;
   const pid = getLocalPlayerId();
   if (isSurvivalPvp()) {
