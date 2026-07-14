@@ -10,13 +10,19 @@ window.LIVE_ARMY = (function () {
 
   const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'archer', 'catapult'];
   const ECON_TOWERS = ['farm', 'mint'];
-  const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
+  const HERO_UNITS = ['wolf_hunter'];
+  const UNIT_ORDER = ['wolf_hunter', 'tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
   const UNIT_LABELS = {
+    wolf_hunter: 'Hunter',
     tank: 'Elephant', speed: 'Wolf', striker: 'Knight', swordsman: 'Swordsman', farmer: 'Farmer', sniper: 'Sniper', bowman: 'Archer', goblin: 'Goblin', yeti: 'Yeti', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
+    wolf_hunter: 300,
     tank: 100, speed: 150, striker: 50, swordsman: 100, farmer: 200, sniper: 250, bowman: 175, goblin: 125, yeti: 250, peka: 500,
   };
+  function isHeroUnit(type) {
+    return HERO_UNITS.includes(type);
+  }
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 3;
   const STAT_UPGRADE_COSTS = [150, 450, 1200];
@@ -66,11 +72,12 @@ window.LIVE_ARMY = (function () {
   function normalizeTowerRecord(rec) {
     if (!rec) return freshTowerRecord();
     rec.unlocked = !!rec.unlocked;
-    rec.damage = rec.damage || 0;
-    rec.range = rec.range || 0;
-    rec.health = rec.health || 0;
-    rec.knockback = rec.knockback || 0;
-    rec.firerate = rec.firerate || 0;
+    // Global Tower Depot mastery trees were removed — keep unlock only.
+    rec.damage = 0;
+    rec.range = 0;
+    rec.health = 0;
+    rec.knockback = 0;
+    rec.firerate = 0;
     return rec;
   }
 
@@ -78,9 +85,6 @@ window.LIVE_ARMY = (function () {
     const out = normalizeTowerRecord(target);
     const src = normalizeTowerRecord(source);
     out.unlocked = out.unlocked || src.unlocked;
-    for (const key of ENGINEER_STAT_KEYS) {
-      out[key] = Math.max(out[key] || 0, src[key] || 0);
-    }
     return out;
   }
 
@@ -282,6 +286,48 @@ window.LIVE_ARMY = (function () {
       d: { id: 'diamond_scales', label: 'Diamond Scales', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-diamond-scales.webp' },
       fin: { id: 'ancient_wyrm', label: 'Ancient Wyrm', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-ancient-wyrm.webp' },
     }),
+
+    // Hunter — bazaar skills (mostly free-pick; Ravenous requires Werewolf).
+    wolf_hunter: (() => {
+      const mk = (id, label, cost, icon, blurb, requires = []) => ({
+        id, label, cost, requires, effects: {}, icon, blurb,
+      });
+      const iconFor = (id) => `/TDG/portraits/skill-${id.replace(/_/g, '-')}.webp`;
+      const werewolf = mk(
+        'werewolf', 'Werewolf', 350, iconFor('werewolf'),
+        'Sprint as a wolf to close long gaps on wolves/elephants, then turn back and attack. With no prey left, stay a wolf — fake-fight allies, steal +2💵/sec from farms (visible only to you).',
+      );
+      const ravenous = mk(
+        'ravenous', 'Ravenous', 500, iconFor('ravenous'),
+        'Werewolf farm theft becomes +5💵/sec.',
+        ['werewolf'],
+      );
+      const twinSpears = mk(
+        'twin_spears', 'Twin Spears', 280, iconFor('twin-spears'),
+        'Carry 2 throwing spears instead of 1.',
+      );
+      const quickLunge = mk(
+        'quick_lunge', 'Quick Lunge', 320, iconFor('quick-lunge'),
+        'Lunge cooldown cut in half (10s → 5s).',
+      );
+      const boneCache = mk(
+        'bone_cache', 'Bone Cache', 300, iconFor('bone-cache'),
+        'Carry 3 more bone axes (3 → 6).',
+      );
+      const order = [werewolf.id, ravenous.id, twinSpears.id, quickLunge.id, boneCache.id];
+      return {
+        style: 'bazaar',
+        order,
+        skills: {
+          [werewolf.id]: werewolf,
+          [ravenous.id]: ravenous,
+          [twinSpears.id]: twinSpears,
+          [quickLunge.id]: quickLunge,
+          [boneCache.id]: boneCache,
+        },
+        layout: { bazaar: order },
+      };
+    })(),
   };
 
   // Back-compat aliases for Knight-only call sites.
@@ -654,44 +700,8 @@ window.LIVE_ARMY = (function () {
       d.color = '#92400e'; d.accent = '#57534e';
     }
 
-    // Base cannons run on their own dedicated skill tree, so callers can request
-    // the live-adjusted base stats without the shared engineer-tower bonuses.
-    if (opts && opts.skipEngineerBonus) return d;
-
-    if (ownerId != null && COMBAT_TOWERS.includes(type) && playersRef?.[ownerId]) {
-      const rec = towerRecord(playersRef[ownerId], type);
-      const max = ENGINEER_STAT_MAX;
-      const engLvl = type === 'turret'
-        ? (rec.damage || 0) + (rec.firerate || 0) + (rec.range || 0)
-        : (rec.damage || 0) + (rec.range || 0) + (rec.health || 0) + (rec.knockback || 0);
-      if (rec.unlocked || engLvl > 0) {
-        if (type === 'turret') {
-          const dmgLvl = Math.min(rec.damage || 0, max);
-          const rateLvl = Math.min(rec.firerate || 0, max);
-          const rngLvl = Math.min(rec.range || 0, max);
-          d.damage = (d.damage || 24) * (CANNON_DAMAGE_MULT[dmgLvl] || 1);
-          d.fireRate = (d.fireRate || 1.2) * (CANNON_FIRERATE_MULT[rateLvl] || 1);
-          d.range = (d.range || 178) * (CANNON_RANGE_MULT[rngLvl] || 1);
-        } else {
-          const dmgLvl = Math.min(rec.damage || 0, max);
-          const rngLvl = Math.min(rec.range || 0, max);
-          const hpLvl = Math.min(rec.health || 0, max);
-          const kbLvl = Math.min(rec.knockback || 0, max);
-          const dmgMult = 1 + dmgLvl * ENG_DAMAGE_PER_LVL;
-          d.damage = (d.damage || d.pelletDamage || 0) * dmgMult;
-          if (d.pelletDamage) d.pelletDamage *= dmgMult;
-          if (d.splashDamage) d.splashDamage *= dmgMult;
-          const rangePerLvl = type === 'laser' ? ENG_RAIL_RANGE_PER_LVL : ENG_RANGE_PER_LVL;
-          d.range = (d.range || 160) * (1 + rngLvl * rangePerLvl);
-          d.hp = (d.hp || 80) * (1 + hpLvl * ENG_HEALTH_PER_LVL);
-          d.maxHp = d.hp;
-          d.fireRate = (d.fireRate || 1) * (1 + dmgLvl * ENG_FIRERATE_PER_LVL);
-          if (type === 'spread') {
-            d.knockback = SPREAD_KB_WEAK + (SPREAD_KB_STRONG - SPREAD_KB_WEAK) * (kbLvl / max);
-          }
-        }
-      }
-    }
+    // Base cannons run on their own dedicated skill tree (opts.skipEngineerBonus).
+    // Combat tower global Depot mastery was removed — base defs only.
     return d;
   }
 
@@ -1134,18 +1144,6 @@ window.LIVE_ARMY = (function () {
   }
 
   function missileStats(t, ownerId) {
-    const rec = playersRef?.[ownerId] ? towerRecord(playersRef[ownerId], 'missile') : null;
-    const engLvl = rec ? (rec.damage || 0) + (rec.range || 0) : 0;
-    if (active && rec && (rec.unlocked || engLvl > 0)) {
-      const dmg = rec.damage || 0;
-      const rng = rec.range || 0;
-      return {
-        fireInterval: 9 / (0.55 + (1 + dmg * 0.08) * 0.45),
-        damage: 4 * (1 + dmg * 0.35),
-        blastRadius: 72 + rng * 28,
-        missileSpeed: 260 + rng * 40,
-      };
-    }
     const up = t.missileUpgrades || freshMissileUpgrades();
     return {
       fireInterval: 9 / (0.55 + up.rate * 0.45),
@@ -1339,6 +1337,8 @@ window.LIVE_ARMY = (function () {
     TOWER_LABELS,
     TOWER_UNLOCK_COST,
     UNIT_ORDER,
+    HERO_UNITS,
+    isHeroUnit,
     UNIT_LABELS,
     UNIT_UNLOCK_COST,
     STAT_BRANCHES,
