@@ -8,14 +8,14 @@ window.LIVE_ARMY = (function () {
   const ARCHER_SIZE = 44; // ~2× a normal combat tower
   const MINT_SIZE = 16;
 
-  const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'missile', 'archer'];
+  const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'archer', 'catapult'];
   const ECON_TOWERS = ['farm', 'mint'];
-  const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'sniper', 'yeti', 'peka'];
+  const UNIT_ORDER = ['tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
   const UNIT_LABELS = {
-    tank: 'Elephant', speed: 'Wolf', striker: 'Knight', sniper: 'Sniper', goblin: 'Goblin', yeti: 'Yeti', peka: 'Dragon',
+    tank: 'Elephant', speed: 'Wolf', striker: 'Knight', swordsman: 'Swordsman', farmer: 'Farmer', sniper: 'Sniper', bowman: 'Archer', goblin: 'Goblin', yeti: 'Yeti', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
-    tank: 100, speed: 150, striker: 50, sniper: 250, goblin: 125, yeti: 250, peka: 500,
+    tank: 100, speed: 150, striker: 50, swordsman: 100, farmer: 200, sniper: 250, bowman: 175, goblin: 125, yeti: 250, peka: 500,
   };
   const STAT_BRANCHES = ['speed', 'damage', 'health'];
   const STAT_MAX = 3;
@@ -48,10 +48,10 @@ window.LIVE_ARMY = (function () {
   const SPREAD_KB_WEAK = 0.5;
   const SPREAD_KB_STRONG = 4;
   const TOWER_LABELS = {
-    turret: 'Turret', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile', archer: 'Archer Tower',
+    turret: 'Turret', laser: 'Rail Gun', spread: 'Spreader', missile: 'Missile', archer: 'Archer Tower', catapult: 'Catapult',
   };
   const TOWER_UNLOCK_COST = {
-    turret: 125, laser: 165, spread: 145, missile: 220, archer: 185,
+    turret: 125, laser: 165, spread: 145, missile: 220, archer: 185, catapult: 175,
   };
 
   function freshTowerRecord() {
@@ -119,7 +119,247 @@ window.LIVE_ARMY = (function () {
   let playersRef = null;
 
   function freshUnitRecord() {
-    return { unlocked: false, speed: 0, damage: 0, health: 0 };
+    return { unlocked: false, speed: 0, damage: 0, health: 0, skills: {} };
+  }
+
+  /**
+   * Branching barracks skill trees (Knight-style layout).
+   * Each finished tree adds +1.0 total to ATK / HP / SPD → 2× base. AS never scales.
+   * Sniper & Archer Speed nodes also grow Range (via applyStatBonuses).
+   * Goblin Damage nodes also grow loot (dmgMult → lootMult).
+   */
+  const BRANCH_THIRD = 1 / 3;
+  const BRANCH_COSTS = {
+    a: 250, b: 200, mid: 500, c: 550, d: 550, fin: 950,
+  }; // 3000 total — same economy as Knight
+
+  function mkBranchSkill(id, label, costKey, requires, effects, blurb, art) {
+    return {
+      id,
+      label,
+      cost: BRANCH_COSTS[costKey],
+      requires,
+      effects,
+      blurb,
+      ...(art.icon ? { icon: art.icon } : {}),
+      ...(art.glyph ? { glyph: art.glyph } : {}),
+    };
+  }
+
+  function mkStandardBranchTree(defs) {
+    // defs: { a, b, mid, c, d, fin } each { id, label, effects, blurb, icon?, glyph? }
+    const a = mkBranchSkill(defs.a.id, defs.a.label, 'a', [], defs.a.effects, defs.a.blurb, defs.a);
+    const b = mkBranchSkill(defs.b.id, defs.b.label, 'b', [], defs.b.effects, defs.b.blurb, defs.b);
+    const mid = mkBranchSkill(defs.mid.id, defs.mid.label, 'mid', [defs.a.id, defs.b.id], defs.mid.effects, defs.mid.blurb, defs.mid);
+    const c = mkBranchSkill(defs.c.id, defs.c.label, 'c', [defs.mid.id], defs.c.effects, defs.c.blurb, defs.c);
+    const d = mkBranchSkill(defs.d.id, defs.d.label, 'd', [defs.mid.id], defs.d.effects, defs.d.blurb, defs.d);
+    const fin = mkBranchSkill(defs.fin.id, defs.fin.label, 'fin', [defs.c.id, defs.d.id], defs.fin.effects, defs.fin.blurb, defs.fin);
+    const skills = { [a.id]: a, [b.id]: b, [mid.id]: mid, [c.id]: c, [d.id]: d, [fin.id]: fin };
+    return {
+      order: [a.id, b.id, mid.id, c.id, d.id, fin.id],
+      skills,
+      layout: {
+        split1: [a.id, b.id],
+        mid: mid.id,
+        split2: [c.id, d.id],
+        final: fin.id,
+      },
+    };
+  }
+
+  const UNIT_SKILL_TREES = {
+    striker: mkStandardBranchTree({
+      a: {
+        id: 'sharper_steel', label: 'Sharper Steel',
+        effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack',
+        icon: '/TDG/portraits/skill-sharper-steel.webp',
+      },
+      b: {
+        id: 'lighter_boots', label: 'Lighter Boots',
+        effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed',
+        icon: '/TDG/portraits/skill-lighter-boots.webp',
+      },
+      mid: {
+        id: 'fitted_armour', label: 'Fitted Armour',
+        effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed',
+        icon: '/TDG/portraits/skill-fitted-armour.webp',
+      },
+      c: {
+        id: 'tempered_blade', label: 'Tempered Blade',
+        effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack',
+        icon: '/TDG/portraits/skill-tempered-blade.webp',
+      },
+      d: {
+        id: 'tower_shield', label: 'Tower Shield',
+        effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health',
+        icon: '/TDG/portraits/skill-tower-shield.webp',
+      },
+      fin: {
+        id: 'champion_crest', label: 'Champion Crest',
+        effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD },
+        blurb: '+⅓× Attack, Health & Speed — base stats ×2',
+        icon: '/TDG/portraits/skill-champion-crest.webp',
+      },
+    }),
+
+    tank: mkStandardBranchTree({
+      a: { id: 'thick_hide', label: 'Thick Hide', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-thick-hide.webp' },
+      b: { id: 'pounding_gait', label: 'Pounding Gait', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-pounding-gait.webp' },
+      mid: { id: 'howdah_brace', label: 'Howdah Brace', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-howdah-brace.webp' },
+      c: { id: 'tusk_spikes', label: 'Tusk Spikes', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-tusk-spikes.webp' },
+      d: { id: 'iron_plating', label: 'Iron Plating', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-iron-plating.webp' },
+      fin: { id: 'war_mammoth', label: 'War Mammoth', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-war-mammoth.webp' },
+    }),
+
+    speed: mkStandardBranchTree({
+      a: { id: 'razor_fangs', label: 'Razor Fangs', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-razor-fangs.webp' },
+      b: { id: 'pack_lungs', label: 'Pack Lungs', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-pack-lungs.webp' },
+      mid: { id: 'lean_muscle', label: 'Lean Muscle', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-lean-muscle.webp' },
+      c: { id: 'hunter_instinct', label: 'Hunter Instinct', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-hunter-instinct.webp' },
+      d: { id: 'thick_fur', label: 'Thick Fur', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-thick-fur.webp' },
+      fin: { id: 'alpha_howl', label: 'Alpha Howl', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-alpha-howl.webp' },
+    }),
+
+    goblin: mkStandardBranchTree({
+      a: { id: 'sticky_fingers', label: 'Sticky Fingers', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Loot & Attack', icon: '/TDG/portraits/skill-sticky-fingers.webp' },
+      b: { id: 'flea_boots', label: 'Flea Boots', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-flea-boots.webp' },
+      mid: { id: 'sack_of_spoils', label: 'Sack of Spoils', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD }, blurb: '+⅓× Loot & Health', icon: '/TDG/portraits/skill-sack-of-spoils.webp' },
+      c: { id: 'crowbar', label: 'Crowbar', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Loot & Attack', icon: '/TDG/portraits/skill-crowbar.webp' },
+      d: { id: 'scrap_armor', label: 'Scrap Armor', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-scrap-armor.webp' },
+      fin: { id: 'kingpin', label: 'Kingpin', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Loot, Attack, Health & Speed — base ×2', icon: '/TDG/portraits/skill-kingpin.webp' },
+    }),
+
+    farmer: mkStandardBranchTree({
+      a: { id: 'pitchfork_tip', label: 'Pitchfork Tip', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-pitchfork-tip.webp' },
+      b: { id: 'work_boots', label: 'Work Boots', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-work-boots.webp' },
+      mid: { id: 'harvest_heart', label: 'Harvest Heart', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-harvest-heart.webp' },
+      c: { id: 'thresher', label: 'Thresher', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-thresher.webp' },
+      d: { id: 'barn_coat', label: 'Barn Coat', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-barn-coat.webp' },
+      fin: { id: 'field_marshal', label: 'Field Marshal', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-field-marshal.webp' },
+    }),
+
+    sniper: mkStandardBranchTree({
+      a: { id: 'hollow_points', label: 'Hollow Points', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-hollow-points.webp' },
+      b: { id: 'long_glass', label: 'Long Glass', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Range', icon: '/TDG/portraits/skill-long-glass.webp' },
+      mid: { id: 'steady_breath', label: 'Steady Breath', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Range', icon: '/TDG/portraits/skill-steady-breath.webp' },
+      c: { id: 'hot_loads', label: 'Hot Loads', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-hot-loads.webp' },
+      d: { id: 'ghillie', label: 'Ghillie', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-ghillie.webp' },
+      fin: { id: 'deadeye', label: 'Deadeye', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Range — base ×2', icon: '/TDG/portraits/skill-deadeye.webp' },
+    }),
+
+    bowman: mkStandardBranchTree({
+      a: { id: 'barbed_heads', label: 'Barbed Heads', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-barbed-heads.webp' },
+      b: { id: 'draw_strength', label: 'Draw Strength', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Range', icon: '/TDG/portraits/skill-draw-strength.webp' },
+      mid: { id: 'quiver_guard', label: 'Quiver Guard', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Range', icon: '/TDG/portraits/skill-quiver-guard.webp' },
+      c: { id: 'bodkin', label: 'Bodkin', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-bodkin.webp' },
+      d: { id: 'leather_brace', label: 'Leather Brace', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-leather-brace.webp' },
+      fin: { id: 'eagle_eye', label: 'Eagle Eye', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Range — base ×2', icon: '/TDG/portraits/skill-eagle-eye.webp' },
+    }),
+
+    swordsman: mkStandardBranchTree({
+      a: { id: 'honed_edge', label: 'Honed Edge', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-honed-edge.webp' },
+      b: { id: 'parade_step', label: 'Parade Step', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-parade-step.webp' },
+      mid: { id: 'polished_plate', label: 'Polished Plate', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-polished-plate.webp' },
+      c: { id: 'riposte', label: 'Riposte', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-riposte.webp' },
+      d: { id: 'mirror_shield', label: 'Mirror Shield', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-mirror-shield.webp' },
+      fin: { id: 'gallant_crest', label: 'Gallant Crest', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-gallant-crest.webp' },
+    }),
+
+    yeti: mkStandardBranchTree({
+      a: { id: 'frost_claws', label: 'Frost Claws', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-frost-claws.webp' },
+      b: { id: 'glacier_step', label: 'Glacier Step', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-glacier-step.webp' },
+      mid: { id: 'permafrost', label: 'Permafrost', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-permafrost.webp' },
+      c: { id: 'rime_fists', label: 'Rime Fists', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-rime-fists.webp' },
+      d: { id: 'ice_hide', label: 'Ice Hide', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-ice-hide.webp' },
+      fin: { id: 'blizzard_king', label: 'Blizzard King', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-blizzard-king.webp' },
+    }),
+
+    peka: mkStandardBranchTree({
+      a: { id: 'searing_jaws', label: 'Searing Jaws', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-searing-jaws.webp' },
+      b: { id: 'storm_wings', label: 'Storm Wings', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-storm-wings.webp' },
+      mid: { id: 'scaled_bulk', label: 'Scaled Bulk', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-scaled-bulk.webp' },
+      c: { id: 'molten_breath', label: 'Molten Breath', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-molten-breath.webp' },
+      d: { id: 'diamond_scales', label: 'Diamond Scales', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-diamond-scales.webp' },
+      fin: { id: 'ancient_wyrm', label: 'Ancient Wyrm', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-ancient-wyrm.webp' },
+    }),
+  };
+
+  // Back-compat aliases for Knight-only call sites.
+  const KNIGHT_SKILL_ORDER = UNIT_SKILL_TREES.striker.order;
+  const KNIGHT_SKILLS = UNIT_SKILL_TREES.striker.skills;
+
+  function ensureUnitSkills(rec) {
+    if (!rec.skills || typeof rec.skills !== 'object') rec.skills = {};
+    return rec.skills;
+  }
+
+  function unitUsesBranchTree(type) {
+    return !!(type && UNIT_SKILL_TREES[type]);
+  }
+
+  /** @deprecated Prefer unitUsesBranchTree — kept for old call sites. */
+  function unitUsesKnightTree(type) {
+    return unitUsesBranchTree(type);
+  }
+
+  function unitSkillTree(type) {
+    return UNIT_SKILL_TREES[type] || null;
+  }
+
+  function unitSkillDef(type, skillId) {
+    return UNIT_SKILL_TREES[type]?.skills?.[skillId] || null;
+  }
+
+  function unitSkillOrder(type) {
+    return UNIT_SKILL_TREES[type]?.order || [];
+  }
+
+  function unitHasSkill(rec, skillId) {
+    return !!(rec && ensureUnitSkills(rec)[skillId]);
+  }
+
+  function unitSkillReady(rec, type, skillId) {
+    const def = unitSkillDef(type, skillId);
+    if (!def || !rec?.unlocked) return false;
+    if (unitHasSkill(rec, skillId)) return false;
+    return def.requires.every((req) => unitHasSkill(rec, req));
+  }
+
+  function unitSkillCost(type, skillId) {
+    return unitSkillDef(type, skillId)?.cost ?? null;
+  }
+
+  function unitBranchMultipliers(rec, type) {
+    let damage = 1;
+    let health = 1;
+    let speed = 1;
+    const tree = UNIT_SKILL_TREES[type];
+    if (!tree) return { damage, health, speed };
+    const skills = ensureUnitSkills(rec || {});
+    for (const id of tree.order) {
+      if (!skills[id]) continue;
+      const e = tree.skills[id]?.effects || {};
+      if (e.damage) damage += e.damage;
+      if (e.health) health += e.health;
+      if (e.speed) speed += e.speed;
+    }
+    return { damage, health, speed };
+  }
+
+  function knightHasSkill(rec, skillId) {
+    return unitHasSkill(rec, skillId);
+  }
+
+  function knightSkillReady(rec, skillId) {
+    return unitSkillReady(rec, 'striker', skillId);
+  }
+
+  function knightSkillCost(skillId) {
+    return unitSkillCost('striker', skillId);
+  }
+
+  function knightSkillMultipliers(rec) {
+    return unitBranchMultipliers(rec, 'striker');
   }
 
   function freshBarracks() {
@@ -259,6 +499,7 @@ window.LIVE_ARMY = (function () {
     ensureLiveArmy(p);
     if (!p.liveArmy.barracks.units) p.liveArmy.barracks.units = {};
     if (!p.liveArmy.barracks.units[type]) p.liveArmy.barracks.units[type] = freshUnitRecord();
+    ensureUnitSkills(p.liveArmy.barracks.units[type]);
     return p.liveArmy.barracks.units[type];
   }
 
@@ -280,8 +521,9 @@ window.LIVE_ARMY = (function () {
     gameRules.towers.laser = true;
     gameRules.towers.spread = true;
     gameRules.towers.turret = true;
-    gameRules.towers.missile = true;
+    gameRules.towers.missile = false;
     gameRules.towers.archer = true;
+    gameRules.towers.catapult = true;
     gameRules.towers.mint = true;
     gameRules.towers.farm = true;
     gameRules.towers.barracks = true;
@@ -289,6 +531,9 @@ window.LIVE_ARMY = (function () {
     gameRules.towers.laboratory = true;
     gameRules.units.goblin = true;
     gameRules.units.yeti = true;
+    gameRules.units.farmer = true;
+    gameRules.units.bowman = true;
+    gameRules.units.swordsman = true;
     for (const p of players) {
       p.liveArmy = {
         barracks: freshBarracks(),
@@ -316,23 +561,22 @@ window.LIVE_ARMY = (function () {
   function syncBarracksPanelCopy() {
     const el = document.getElementById('barracks-upgrade-desc');
     if (!el) return;
-    el.textContent = pvpMode
-      ? 'Recruit troops from the list, then tap the tree on a recruited card. Opponent upgrades stay hidden.'
-      : 'Recruit troops from the list. After unlocking a unit, tap the tree on its card to upgrade Speed, Attack, and Health.';
+    el.textContent = '';
+    el.hidden = true;
   }
 
   function syncEngineersPanelCopy() {
     const el = document.getElementById('engineers-upgrade-desc');
     if (!el) return;
-    el.textContent = pvpMode
-      ? 'Unlock towers from the list, then tap the tree on a card. Opponent upgrades stay hidden.'
-      : 'Unlock towers from the list. After unlocking, tap the tree on a card to upgrade Damage, Range, Health, and more.';
+    el.textContent = '';
+    el.hidden = true;
   }
 
   function syncLaboratoryPanelCopy() {
     const el = document.getElementById('laboratory-upgrade-desc');
     if (!el) return;
-    el.textContent = 'Unlock spells from the list, then cast them from the hotbar.';
+    el.textContent = '';
+    el.hidden = true;
   }
 
   function syncEconomyPanelCopy() {
@@ -399,8 +643,15 @@ window.LIVE_ARMY = (function () {
     else if (type === 'turret') { d.size = TURRET_SIZE; d.hp = 140; d.damage = 24; d.name = 'Turret'; }
     else if (type === 'archer') {
       d.size = ARCHER_SIZE; d.name = 'Archer Tower'; d.style = 'archer';
-      d.range = 540; d.damage = 48; d.fireRate = 0.48; d.arrowCount = 3;
+      d.range = 540; d.damage = 25; d.fireRate = 0.48; d.arrowCount = 3;
       d.hp = 130; d.color = '#92400e'; d.accent = '#78350f';
+    }
+    else if (type === 'catapult') {
+      d.size = COMBAT_TOWER_SIZE + 6; d.name = 'Catapult'; d.style = 'catapult';
+      d.range = 1080; d.damage = 68; d.splashDamage = 20; d.splashRadius = 56;
+      d.knockback = 36; d.fireRate = 0.36; d.hp = 105;
+      d.maxMiss = 98;
+      d.color = '#92400e'; d.accent = '#57534e';
     }
 
     // Base cannons run on their own dedicated skill tree, so callers can request
@@ -429,6 +680,7 @@ window.LIVE_ARMY = (function () {
           const dmgMult = 1 + dmgLvl * ENG_DAMAGE_PER_LVL;
           d.damage = (d.damage || d.pelletDamage || 0) * dmgMult;
           if (d.pelletDamage) d.pelletDamage *= dmgMult;
+          if (d.splashDamage) d.splashDamage *= dmgMult;
           const rangePerLvl = type === 'laser' ? ENG_RAIL_RANGE_PER_LVL : ENG_RANGE_PER_LVL;
           d.range = (d.range || 160) * (1 + rngLvl * rangePerLvl);
           d.hp = (d.hp || 80) * (1 + hpLvl * ENG_HEALTH_PER_LVL);
@@ -446,17 +698,35 @@ window.LIVE_ARMY = (function () {
   function applyStatBonuses(u, type, pid) {
     const rec = playersRef?.[pid]?.liveArmy?.barracks?.units?.[type];
     if (!rec) return;
-    const spdLvl = Math.min(rec.speed || 0, STAT_MAX);
-    const dmgLvl = Math.min(rec.damage || 0, STAT_MAX);
-    const hpLvl = Math.min(rec.health || 0, STAT_MAX);
-    const dmgMult = UNIT_DAMAGE_MULT[dmgLvl] || 1;
-    const hpMult = UNIT_HEALTH_MULT[hpLvl] || 1;
-    const spdMult = UNIT_SPEED_MULT[spdLvl] || 1;
+
+    let dmgMult;
+    let hpMult;
+    let spdMult;
+    if (unitUsesBranchTree(type)) {
+      const m = unitBranchMultipliers(rec, type);
+      dmgMult = m.damage;
+      hpMult = m.health;
+      spdMult = m.speed;
+    } else {
+      const spdLvl = Math.min(rec.speed || 0, STAT_MAX);
+      const dmgLvl = Math.min(rec.damage || 0, STAT_MAX);
+      const hpLvl = Math.min(rec.health || 0, STAT_MAX);
+      dmgMult = UNIT_DAMAGE_MULT[dmgLvl] || 1;
+      hpMult = UNIT_HEALTH_MULT[hpLvl] || 1;
+      spdMult = UNIT_SPEED_MULT[spdLvl] || 1;
+    }
 
     if (type === 'striker') {
       u.name = 'Knight';
       u.behavior = 'knight';
       u.prefersUnits = true;
+    } else if (type === 'farmer') {
+      u.name = 'Farmer';
+      u.behavior = 'farmer';
+      u.prefersUnits = true;
+      u.targetsUnits = true;
+      u.targetsTowers = false;
+      u.targetsBase = false;
     } else if (type === 'goblin') {
       u.name = 'Goblin';
       u.behavior = 'goblin';
@@ -475,7 +745,7 @@ window.LIVE_ARMY = (function () {
     u.hp = Math.round(baseHp * hpMult);
     u.damage = Math.round(baseDmg * dmgMult);
     u.speed = Math.round(baseSpd * spdMult);
-    if (type === 'sniper' && u.range) {
+    if ((type === 'sniper' || type === 'bowman') && u.range) {
       u.range = Math.round(u.range * spdMult);
     }
   }
@@ -541,7 +811,7 @@ window.LIVE_ARMY = (function () {
     const lvl = Math.max(1, Math.min(SPELL_MAX_LEVEL, level || 1));
     if (spellId === 'fireball') {
       return {
-        radius: 110 + (lvl - 1) * 16,
+        radius: 55 + (lvl - 1) * 8,
         damage: 85 + (lvl - 1) * 30,
         knockback: 160 + (lvl - 1) * 35,
         dragonMult: 2.2 + (lvl - 1) * 0.4,
@@ -717,8 +987,13 @@ window.LIVE_ARMY = (function () {
   function harvestInterval(p, type) {
     const eco = economyRecord(p);
     const rec = type === 'farm' ? eco.farm : eco.mint;
-    if (!rec.unlocked) return HARVEST_BASE_INTERVAL;
-    return Math.max(1, HARVEST_BASE_INTERVAL - (rec.speed || 0));
+    if (!rec.unlocked) {
+      return type === 'farm' ? HARVEST_BASE_INTERVAL / 2 : HARVEST_BASE_INTERVAL;
+    }
+    const raw = Math.max(1, HARVEST_BASE_INTERVAL - (rec.speed || 0));
+    // Farms harvest twice as fast as the base calendar (all speed tiers included).
+    if (type === 'farm') return Math.max(0.5, raw / 2);
+    return raw;
   }
 
   function harvestAmount(p, type) {
@@ -838,6 +1113,12 @@ window.LIVE_ARMY = (function () {
 
   function goblinLootAmount(attacker, towerType) {
     const rec = playersRef?.[attacker.owner]?.liveArmy?.barracks?.units?.goblin;
+    if (unitUsesBranchTree('goblin') && rec) {
+      const mult = unitBranchMultipliers(rec, 'goblin').damage;
+      const base = towerType === 'mint' ? 10 : 4;
+      const mintBonus = towerType === 'mint' ? 2.8 : 1;
+      return Math.max(1, Math.floor(base * mult * mintBonus));
+    }
     const dmgTier = rec?.damage || 0;
     return goblinLootPreview(dmgTier, towerType);
   }
@@ -883,7 +1164,7 @@ window.LIVE_ARMY = (function () {
       const units = {};
       for (const ut of UNIT_ORDER) {
         const rec = ep.liveArmy.barracks.units?.[ut];
-        units[ut] = { unlocked: !!rec?.unlocked, speed: 0, damage: 0, health: 0 };
+        units[ut] = { unlocked: !!rec?.unlocked, speed: 0, damage: 0, health: 0, skills: {} };
       }
       ep.liveArmy.barracks = { built: !!ep.liveArmy.barracks.built, units };
     }
@@ -932,6 +1213,15 @@ window.LIVE_ARMY = (function () {
     if (stat === 'health') return UNIT_HEALTH_MULT[lvl] || 1;
     if (stat === 'speed') return UNIT_SPEED_MULT[lvl] || 1;
     return 1;
+  }
+
+  function unitEffectiveMultipliers(rec, type) {
+    if (unitUsesBranchTree(type)) return unitBranchMultipliers(rec, type);
+    return {
+      damage: unitStatMultiplier('damage', rec?.damage || 0),
+      health: unitStatMultiplier('health', rec?.health || 0),
+      speed: unitStatMultiplier('speed', rec?.speed || 0),
+    };
   }
 
   function syncBuildToolbar() {
@@ -1000,6 +1290,24 @@ window.LIVE_ARMY = (function () {
     harvestYieldTier,
     nextHarvestYield,
     unitStatMultiplier,
+    unitEffectiveMultipliers,
+    unitUsesKnightTree,
+    unitUsesBranchTree,
+    UNIT_SKILL_TREES,
+    unitSkillTree,
+    unitSkillDef,
+    unitSkillOrder,
+    unitHasSkill,
+    unitSkillReady,
+    unitSkillCost,
+    unitBranchMultipliers,
+    KNIGHT_SKILLS,
+    KNIGHT_SKILL_ORDER,
+    knightHasSkill,
+    knightSkillReady,
+    knightSkillCost,
+    knightSkillMultipliers,
+    ensureUnitSkills,
     ECON_BRANCH_MAX,
     FARM_YIELD_START,
     MINT_YIELD_START,
