@@ -10,7 +10,7 @@ window.LIVE_ARMY = (function () {
 
   const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'archer', 'catapult'];
   const ECON_TOWERS = ['farm', 'mint'];
-  const HERO_UNITS = ['wolf_hunter'];
+  const HERO_UNITS = ['wolf_hunter', 'yeti'];
   const UNIT_ORDER = ['wolf_hunter', 'tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
   const UNIT_LABELS = {
     wolf_hunter: 'Hunter',
@@ -18,7 +18,7 @@ window.LIVE_ARMY = (function () {
   };
   const UNIT_UNLOCK_COST = {
     wolf_hunter: 300,
-    tank: 100, speed: 150, striker: 50, swordsman: 100, farmer: 200, sniper: 250, bowman: 175, goblin: 125, yeti: 250, peka: 500,
+    tank: 100, speed: 150, striker: 100, swordsman: 50, farmer: 200, sniper: 250, bowman: 50, goblin: 125, yeti: 250, peka: 500,
   };
   function isHeroUnit(type) {
     return HERO_UNITS.includes(type);
@@ -273,7 +273,7 @@ window.LIVE_ARMY = (function () {
       a: { id: 'frost_claws', label: 'Frost Claws', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-frost-claws.webp' },
       b: { id: 'glacier_step', label: 'Glacier Step', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-glacier-step.webp' },
       mid: { id: 'permafrost', label: 'Permafrost', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-permafrost.webp' },
-      c: { id: 'rime_fists', label: 'Rime Fists', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-rime-fists.webp' },
+      c: { id: 'rime_fists', label: 'Rime Scratch', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-rime-fists.webp' },
       d: { id: 'ice_hide', label: 'Ice Hide', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-ice-hide.webp' },
       fin: { id: 'blizzard_king', label: 'Blizzard King', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-blizzard-king.webp' },
     }),
@@ -814,7 +814,7 @@ window.LIVE_ARMY = (function () {
   function spellCooldown(spellId, level) {
     const base = SPELL_COOLDOWN[spellId] ?? 10;
     const lvl = Math.max(1, level || 1);
-    return Math.max(4, base - (lvl - 1) * 1.5);
+    return Math.max(1, Math.max(4, base - (lvl - 1) * 1.5));
   }
 
   function spellStats(spellId, level) {

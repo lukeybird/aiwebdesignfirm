@@ -886,7 +886,25 @@
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
       line-height: 1;
       pointer-events: none;
-      z-index: 2;
+      z-index: 3;
+    }
+
+    /* Green radial sweep: remaining cooldown (Clash-style wipe). */
+    .hot-slot-cd {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0;
+      background: transparent;
+    }
+
+    .hot-slot.is-cooling .hot-slot-cd {
+      opacity: 1;
+    }
+
+    .hot-slot.is-empty .hot-slot-cd {
+      display: none;
     }
 
     .hot-slot.is-empty .hot-slot-cost,
@@ -6848,7 +6866,7 @@ const UNIT_TYPES = {
     behavior: 'sniper', prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: true,
   },
   swordsman: {
-    name: 'Swordsman', hp: 68, speed: 52, damage: 20, attackRate: 0.85, range: 32, cost: 25,
+    name: 'Swordsman', hp: 68, speed: 52, damage: 20, attackRate: 0.85, range: 32, cost: 20,
     color: '#e2e8f0', accent: '#94a3b8', size: 20,
     behavior: 'hunter', prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: true,
   },
@@ -6865,9 +6883,10 @@ const UNIT_TYPES = {
     targetsUnits: false, targetsTowers: true, targetsBase: false,
   },
   yeti: {
-    name: 'Yeti', hp: 390, speed: 48, damage: 16, attackRate: 0.55, range: 42, cost: 350,
-    color: '#9fd4ea', accent: '#e8f4fc', size: 28, behavior: 'wander',
+    name: 'Yeti', hp: 390, speed: 48, damage: 26, attackRate: 0.9, range: 44, cost: 350,
+    color: '#9fd4ea', accent: '#e8f4fc', size: 30, behavior: 'wander',
     targetsUnits: true, targetsTowers: false, targetsBase: false, prefersUnits: true,
+    unique: true, // hero — only one on the field per player
   },
 };
 
@@ -7610,6 +7629,7 @@ function initHotbar() {
       <img class="hot-slot-portrait" alt="" hidden decoding="async" />
       <canvas class="hot-slot-canvas" width="56" height="56" aria-hidden="true"></canvas>
       <span class="hot-slot-glyph" hidden></span>
+      <span class="hot-slot-cd" aria-hidden="true"></span>
       <span class="hot-slot-cost"></span>
     `;
     btn.addEventListener('click', () => {
@@ -8144,6 +8164,7 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
 
     if (!tool) {
       if (costEl) costEl.textContent = '';
+      setHotbarSlotCooldownSweep(btn, 0, 1);
       btn.disabled = false;
       btn.title = pendingHotbarAssign
         ? `Assign to slot ${hotbarSlotKeyLabel(i)}`
@@ -8154,23 +8175,28 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
     btn.title = toolHotbarLabel(tool);
 
     if (UNIT_TYPES[tool]) {
-      const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, getLocalPlayerId()) : UNIT_TYPES[tool];
+      const localPid = getLocalPlayerId();
+      const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, localPid) : UNIT_TYPES[tool];
       const unlocked = !LIVE_ARMY?.isActive() || LIVE_ARMY.canDeployUnit(p, tool);
-      const uniqueBusy = unitUniqueCapReached(getLocalPlayerId(), tool);
-      const heroCd = heroRespawnRemaining(getLocalPlayerId(), tool);
+      const uniqueBusy = unitUniqueCapReached(localPid, tool);
+      const cdInfo = unitHotbarCooldownInfo(localPid, tool);
       const canAfford = p.coins >= ut.cost;
       btn.disabled = LIVE_ARMY?.isActive() ? !unlocked : !isUnitEnabled(tool);
-      btn.classList.toggle('unaffordable', !btn.disabled && (!canAfford || uniqueBusy || heroCd > 0));
+      btn.classList.toggle('unaffordable', !btn.disabled && (!canAfford || uniqueBusy || cdInfo.rem > 0));
+      setHotbarSlotCooldownSweep(btn, cdInfo.rem, cdInfo.max);
       if (costEl) {
-        costEl.textContent = heroCd > 0 ? `${Math.ceil(heroCd)}s` : String(ut.cost);
+        costEl.textContent = cdInfo.rem > 0 ? `${Math.ceil(cdInfo.rem)}s` : String(ut.cost);
       }
+      const heroCd = heroRespawnRemaining(localPid, tool);
       btn.title = !unlocked
         ? 'Requires Barracks unlock'
         : (heroCd > 0
           ? `${ut.name} respawns in ${Math.ceil(heroCd)}s`
-          : (uniqueBusy
-            ? `Only one ${ut.name} on the field`
-            : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool))));
+          : (cdInfo.rem > 0
+            ? `${ut.name} ready in ${Math.ceil(cdInfo.rem)}s`
+            : (uniqueBusy
+              ? `Only one ${ut.name} on the field`
+              : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool))));
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
       if (costEl) costEl.textContent = String(price);
@@ -8181,6 +8207,7 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
         ? hubBlocked
         : !isTowerEnabled(tool);
       btn.classList.toggle('unaffordable', !btn.disabled && !canAfford);
+      setHotbarSlotCooldownSweep(btn, 0, 1);
       if (hubBlocked) {
         btn.title = tool === 'barracks'
           ? 'Barracks already built'
@@ -8192,13 +8219,54 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
       const lvl = LIVE_ARMY?.spellLevel(p, tool) || 0;
       const castCost = lvl > 0 ? LIVE_ARMY.spellCastCost(tool, lvl) : 0;
       const cd = p.liveArmy?.laboratory?.cds?.[tool] || 0;
+      const cdMax = lvl > 0 && LIVE_ARMY?.spellCooldown
+        ? Math.max(cd, LIVE_ARMY.spellCooldown(tool, lvl))
+        : Math.max(cd, 1);
       if (costEl) costEl.textContent = cd > 0 ? `${cd.toFixed(0)}s` : String(castCost);
       const canAfford = lvl > 0 && p.coins >= castCost;
       btn.disabled = lvl <= 0;
       btn.classList.toggle('unaffordable', lvl > 0 && (cd > 0 || !canAfford));
+      setHotbarSlotCooldownSweep(btn, cd, cdMax);
       btn.title = cd > 0
         ? `Cooldown ${cd.toFixed(1)}s`
         : (lvl > 0 ? (!canAfford ? `Need ${castCost}💵` : toolHotbarLabel(tool)) : "Unlock in Wizard's Nest");
+    } else {
+      setHotbarSlotCooldownSweep(btn, 0, 1);
+    }
+  });
+}
+
+/** Lightweight per-frame hotbar CD sweep (units + spells) without full HUD rebuild. */
+function refreshHotbarCooldowns() {
+  const bar = document.getElementById('hotbar');
+  if (!bar || bar.dataset.ready !== '1') return;
+  const pid = getLocalPlayerId();
+  const p = players[pid];
+  if (!p) return;
+  bar.querySelectorAll('.hot-slot').forEach((btn) => {
+    const tool = btn.dataset.tool || null;
+    if (!tool) {
+      setHotbarSlotCooldownSweep(btn, 0, 1);
+      return;
+    }
+    const costEl = btn.querySelector('.hot-slot-cost');
+    if (UNIT_TYPES[tool]) {
+      const ut = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() ? unitDef(tool, pid) : UNIT_TYPES[tool];
+      const cdInfo = unitHotbarCooldownInfo(pid, tool);
+      setHotbarSlotCooldownSweep(btn, cdInfo.rem, cdInfo.max);
+      if (costEl) costEl.textContent = cdInfo.rem > 0 ? `${Math.ceil(cdInfo.rem)}s` : String(ut.cost);
+      const uniqueBusy = unitUniqueCapReached(pid, tool);
+      btn.classList.toggle('unaffordable', !btn.disabled && (p.coins < ut.cost || uniqueBusy || cdInfo.rem > 0));
+    } else if (isSpellTool(tool)) {
+      const lvl = LIVE_ARMY?.spellLevel(p, tool) || 0;
+      const castCost = lvl > 0 ? LIVE_ARMY.spellCastCost(tool, lvl) : 0;
+      const cd = p.liveArmy?.laboratory?.cds?.[tool] || 0;
+      const cdMax = lvl > 0 && LIVE_ARMY?.spellCooldown
+        ? Math.max(cd, LIVE_ARMY.spellCooldown(tool, lvl))
+        : Math.max(cd, 1);
+      setHotbarSlotCooldownSweep(btn, cd, cdMax);
+      if (costEl) costEl.textContent = cd > 0 ? `${cd.toFixed(0)}s` : String(castCost);
+      btn.classList.toggle('unaffordable', lvl > 0 && (cd > 0 || p.coins < castCost));
     }
   });
 }
@@ -8373,7 +8441,7 @@ const UNIT_MANUAL = {
   bowman: 'Mobile archer. Fires arcing arrows like Archer Towers (2× Attack on hit). Long reach, low raw damage; Wolves shred them. Prioritizes Dragons.',
   swordsman: 'Polished plate footsoldier. Matches Archer pace, fights in the press with steel. Takes only half damage from arrows. Strong vs Wolves, softer into Elephant hide than Knights on horseback.',
   peka: 'Epic flying dragon. Hunts Goblins first, ignores Snipers. Weak to Turrets and Snipers. Fire breath stacks on the ground.',
-  yeti: 'Uncontrollable ice yeti. Wanders the area you drop it in and only fights enemies that get close — never marches on the base. Instantly extinguishes fire around it. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s; frozen take ×3 damage. Ice trail slows non-Yetis. Lasers and Rail Guns that hit it redirect toward the enemy field as the other player\'s beam at double damage.',
+  yeti: 'Hero ice giant. Only one on the field. A blizzard whirls around it — slight damage, half speed, and disoriented attacks for enemies inside. Scratches with frosty claws (area damage). Every 10s it leaps onto the nearest troop with a slam. Puts out nearby fire. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s.',
   bloop: 'Cheap jelly rush unit. Ignores fights and beelines for the enemy base. Splits into two mini-Bloops when killed. Killing enemy Bloops earns you coin bounties!',
 };
 
@@ -8676,6 +8744,8 @@ const PVP_FRAME_MS = PVP_FIXED_DT * 1000;
 const PVP_SYNC_MS = 280; // authority world publish cadence (smoother than hard 150ms snaps)
 const PVP_WORLD_APPLY_MIN_MS = 320; // guest: min time between hard corrections
 const PVP_DEPLOY_T = 1; // local put-down delay before troop can fight (per drop, not synced)
+/** Minimum hotbar re-deploy cooldown for every troop type (seconds). */
+const UNIT_HOTBAR_CD_MIN = 1;
 const PVP_MAX_STEPS_PER_TICK = 6;
 const PVP_RECENT_AIDS = 48;
 const PVP_HOST_DELAY_FLOOR_MS = 120;
@@ -9088,7 +9158,7 @@ function barracksUnlockMeta(ut) {
     sniper: `Unlock Snipers (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Long-range; prioritizes Dragons; extremely weak vs Wolves.`,
     bowman: `Unlock Archers (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Mid-range bowmen; prioritize Dragons; weak vs Wolves.`,
     swordsman: `Unlock Swordsmen (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Shiny plate footsoldiers — same pace as Archers, strong melee line.`,
-    yeti: `Unlock Yetis (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Uncontrollable wanderer — only attacks nearby units, never the base. Instantly puts out nearby fire. Ice trail slows non-Yetis 20%. Wolves that bite it freeze solid 5s then keep permanent frost. Death freezes nearby units/towers 3s; frozen take ×3 damage. Rail Guns / Lasers that hit it redirect into the enemy field as the other player's beam at 2× damage.`,
+    yeti: `Unlock Yeti hero (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Personal blizzard: slight damage, half move speed, and confused attack aim. Claw scratch hits in an area. Leaps onto the nearest troop every 10s. Puts out nearby fire. Wolves that bite it freeze solid 5s then keep permanent frost. Death freezes nearby 3s; frozen take ×3 damage.`,
     peka: `Unlock Dragons (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire; chases Goblins first; weak to Turrets & Snipers.`,
   };
   return {
@@ -9991,6 +10061,79 @@ function startHeroRespawnCooldown(pid, type) {
   if (!p) return;
   if (!p.heroRespawnCd) p.heroRespawnCd = {};
   p.heroRespawnCd[type] = HERO_RESPAWN_COOLDOWN;
+}
+
+function ensureHotbarDeployMaps(p) {
+  if (!p) return;
+  if (!p.hotbarDeployCd) p.hotbarDeployCd = {};
+  if (!p.hotbarDeployCdMax) p.hotbarDeployCdMax = {};
+}
+
+function unitDeployCdRemaining(pid, type) {
+  const p = players[pid];
+  if (!p?.hotbarDeployCd) return 0;
+  return Math.max(0, p.hotbarDeployCd[type] || 0);
+}
+
+function startUnitDeployCooldown(pid, type, seconds = UNIT_HOTBAR_CD_MIN) {
+  const p = players[pid];
+  if (!p || !type) return;
+  ensureHotbarDeployMaps(p);
+  const sec = Math.max(UNIT_HOTBAR_CD_MIN, Number(seconds) || UNIT_HOTBAR_CD_MIN);
+  p.hotbarDeployCd[type] = Math.max(p.hotbarDeployCd[type] || 0, sec);
+  p.hotbarDeployCdMax[type] = Math.max(p.hotbarDeployCdMax[type] || 0, sec);
+}
+
+function updateUnitDeployCooldowns(dt) {
+  for (const p of players) {
+    const map = p.hotbarDeployCd;
+    if (!map) continue;
+    for (const key of Object.keys(map)) {
+      map[key] -= dt;
+      if (map[key] <= 0) {
+        delete map[key];
+        if (p.hotbarDeployCdMax) delete p.hotbarDeployCdMax[key];
+      }
+    }
+  }
+}
+
+/** Combined troop hotbar lock (plant CD + hero respawn). */
+function unitHotbarCooldownInfo(pid, type) {
+  const hero = heroRespawnRemaining(pid, type);
+  const deploy = unitDeployCdRemaining(pid, type);
+  const rem = Math.max(hero, deploy);
+  if (rem <= 0) return { rem: 0, max: UNIT_HOTBAR_CD_MIN };
+  let max = UNIT_HOTBAR_CD_MIN;
+  if (deploy > 0) {
+    const p = players[pid];
+    max = Math.max(max, p?.hotbarDeployCdMax?.[type] || UNIT_HOTBAR_CD_MIN);
+  }
+  if (hero > 0) max = Math.max(max, HERO_RESPAWN_COOLDOWN);
+  return { rem, max: Math.max(max, rem) };
+}
+
+function setHotbarSlotCooldownSweep(btn, rem, max) {
+  if (!btn) return;
+  let el = btn.querySelector('.hot-slot-cd');
+  if (!(rem > 0) || !(max > 0)) {
+    btn.classList.remove('is-cooling');
+    if (el) {
+      el.style.opacity = '0';
+      el.style.background = 'transparent';
+    }
+    return;
+  }
+  if (!el) {
+    el = document.createElement('span');
+    el.className = 'hot-slot-cd';
+    el.setAttribute('aria-hidden', 'true');
+    btn.appendChild(el);
+  }
+  const pct = Math.max(0, Math.min(1, rem / max));
+  el.style.background = `conic-gradient(from -90deg, rgba(52, 211, 153, 0.78) ${pct * 360}deg, transparent 0)`;
+  el.style.opacity = '1';
+  btn.classList.add('is-cooling');
 }
 
 function updateHeroRespawnCooldowns(dt) {
@@ -15646,6 +15789,8 @@ function setupSurvivalLive() {
     p.baseRoofArcherCd = 0;
     p.commander = isSandboxMode() ? fullyUpgradedCommander() : freshCommander();
     p.heroRespawnCd = {};
+    p.hotbarDeployCd = {};
+    p.hotbarDeployCdMax = {};
   }
   commanderCount = 1;
   commanderFormation = 'front';
@@ -15739,6 +15884,8 @@ function setupSimulator() {
     p.baseRoofArcherCd = 0;
     p.commander = freshCommander();
     p.heroRespawnCd = {};
+    p.hotbarDeployCd = {};
+    p.hotbarDeployCdMax = {};
     p.isAI = true;
     p.name = i === 0 ? 'Red CPU' : 'Blue CPU';
     p.color = SIMULATOR_TEAM_COLORS[i];
@@ -15860,6 +16007,8 @@ function setupSurvivalLivePvp(opts) {
     p.baseRoofArcherCd = 0;
     p.commander = freshCommander();
     p.heroRespawnCd = {};
+    p.hotbarDeployCd = {};
+    p.hotbarDeployCdMax = {};
   }
   commanderCount = 1;
   commanderFormation = 'front';
@@ -15948,6 +16097,9 @@ function serializeUnit(u) {
     iceShards: u.iceShards ? u.iceShards.map((s) => ({ ...s })) : undefined,
     iceTrailCd: u.iceTrailCd,
     yetiFrostbite: !!u.yetiFrostbite,
+    yetiLeapCd: u.yetiLeapCd,
+    yetiLeap: u.yetiLeap ? { ...u.yetiLeap } : null,
+    _leapLift: u._leapLift,
     homeX: u.homeX,
     homeY: u.homeY,
     wanderGoal: u.wanderGoal ? { ...u.wanderGoal } : undefined,
@@ -16683,6 +16835,7 @@ function buildPvpActionFromClick(pos) {
     if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, selectedTool)) return null;
     if (unitUniqueCapReached(pid, selectedTool)) return null;
     if (heroRespawnRemaining(pid, selectedTool) > 0) return null;
+    if (unitDeployCdRemaining(pid, selectedTool) > 0) return null;
     const ut = unitDef(selectedTool, pid);
     if (p.coins < ut.cost) return null;
     if (!canPlaceUnit(pos.x, pos.y, pid, selectedTool)) return null;
@@ -16756,6 +16909,7 @@ function survivalLiveSpawnUnit(pid, type, x, y) {
   if (!isUnitEnabled(type) || p.coins < cost) return false;
   if (unitUniqueCapReached(pid, type)) return false;
   if (heroRespawnRemaining(pid, type) > 0) return false;
+  if (unitDeployCdRemaining(pid, type) > 0) return false;
   if (!canPlaceUnit(x, y, pid, type)) return false;
   const sz = UNIT_TYPES[type].size;
   for (const u of combatUnits) {
@@ -16767,6 +16921,7 @@ function survivalLiveSpawnUnit(pid, type, x, y) {
   // Local put-down only — not synced as server truth. Same 1s for a solo or batch drop.
   unit.deployT = PVP_DEPLOY_T;
   combatUnits.push(unit);
+  startUnitDeployCooldown(pid, type, UNIT_HOTBAR_CD_MIN);
   if (isSimulatorMode()) survivalRecordPlayerDeploy(type, pid);
   else if (pid === 0) survivalRecordPlayerDeploy(type);
   if (pid === 1 && !isSimulatorMode()) survivalResetBattleSpeedOnEnemyAttack();
@@ -16874,6 +17029,7 @@ function tickSurvivalFarmerIncome(dt) {
 function updateSurvivalLive(dt) {
   if (LIVE_ARMY?.isActive()) {
     for (let pid = 0; pid < 2; pid++) LIVE_ARMY.tickSpellCooldowns(players[pid], dt);
+    refreshHotbarCooldowns();
     let harvested = false;
     for (let pid = 0; pid < 2; pid++) {
       const p = players[pid];
@@ -20475,6 +20631,8 @@ function makeCombatUnit(d, ownerId) {
     u.homeY = d.y;
     u.wanderGoal = null;
     u.wanderCd = 0;
+    u.yetiLeapCd = YETI_LEAP_CD;
+    u.yetiLeap = null;
   }
   if (d.type === 'wolf_hunter' || ut.behavior === 'wolf_hunter') {
     initWolfHunterKit(u);
@@ -24746,13 +24904,13 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
   const w = sz * 1.7 * sc;
   const h = sz * 1.1 * sc;
 
-  if (type !== 'swordsman' && type !== 'wolf_hunter') {
+  if (type !== 'swordsman' && type !== 'wolf_hunter' && type !== 'yeti') {
     drawGroundShadow(x, cy, w * 0.5, h * 0.22);
   }
   ctx.save();
   ctx.translate(x, cy);
   const faceAng = facing || 0;
-  if (type === 'swordsman' || type === 'wolf_hunter' || type === 'bowman') {
+  if (type === 'swordsman' || type === 'wolf_hunter' || type === 'bowman' || type === 'yeti') {
     // Upright footsoldier / archer art — flip horizontally when facing left so the
     // head stays on top (a full π rotate would draw them upside-down).
     const faceLeft = Math.cos(faceAng) < 0;
@@ -25300,214 +25458,181 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
       ctx.stroke();
     }
   } else if (type === 'yeti') {
-    // Top-down vicious ice yeti — blue muscle, white spiked fur.
-    // Fists stay tucked until the punch (strike) frame.
+    // Standing ice yeti — bipedal upright silhouette (head up, feet down).
+    // Claw scratch animates on the leading arm during strike.
     const phase = opts.attackPhase || 'idle';
     const ap = clamp(opts.attackProgress || 0, 0, 1);
-    const ice = '#7eb8d4';
-    const iceDeep = '#4a8fb0';
-    const iceLite = '#b8e0f0';
+    const ice = '#8ec4de';
+    const iceDeep = '#4a87a8';
+    const iceLite = '#d7f0fa';
     const fur = '#f7fbff';
-    const furShade = '#d5e8f2';
-    const claw = '#141414';
+    const furShade = '#c9dce8';
+    const claw = '#1a1a1a';
     const maw = '#1a1010';
 
-    // Spiked white fur silhouette around the body
-    ctx.fillStyle = fur;
-    for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2 - 0.2;
-      // denser mane on shoulders / back (-x), thinner toward head
-      const along = Math.cos(a);
-      const len = w * (0.34 + (along < 0 ? 0.22 : 0.08) + (i % 3) * 0.03);
-      const base = w * 0.28;
+    drawGroundShadow(0, h * 0.52, w * 0.42, h * 0.12);
+
+    // Soft personal blizzard ring drawn from unit body (secondary draw in drawUnit).
+
+    // Legs (standing)
+    ctx.fillStyle = iceDeep;
+    for (const dir of [-1, 1]) {
       ctx.beginPath();
-      ctx.moveTo(Math.cos(a - 0.18) * base * 0.85, Math.sin(a - 0.18) * h * 0.42);
-      ctx.lineTo(Math.cos(a) * len, Math.sin(a) * h * 0.55);
-      ctx.lineTo(Math.cos(a + 0.18) * base * 0.85, Math.sin(a + 0.18) * h * 0.42);
-      ctx.closePath();
+      ctx.ellipse(dir * w * 0.11, h * 0.34, w * 0.1, h * 0.2, dir * 0.08, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    // Broad muscular torso (icy blue)
-    const bodyGrad = ctx.createRadialGradient(-w * 0.05, 0, 2, 0, 0, w * 0.42);
-    bodyGrad.addColorStop(0, iceLite);
-    bodyGrad.addColorStop(0.55, ice);
-    bodyGrad.addColorStop(1, iceDeep);
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, w * 0.36, h * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // White chest / shoulder fur clumps
-    ctx.fillStyle = fur;
-    ctx.beginPath();
-    ctx.ellipse(-w * 0.06, -h * 0.02, w * 0.22, h * 0.28, 0, 0, Math.PI * 2);
-    ctx.fill();
     ctx.fillStyle = furShade;
     for (const dir of [-1, 1]) {
       ctx.beginPath();
-      ctx.ellipse(-w * 0.02, dir * h * 0.22, w * 0.14, h * 0.16, dir * 0.4, 0, Math.PI * 2);
+      ctx.ellipse(dir * w * 0.11, h * 0.46, w * 0.09, h * 0.08, 0, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    // Hind legs / haunches (tucked)
-    ctx.fillStyle = ice;
-    for (const dir of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(-w * 0.28, dir * h * 0.22, w * 0.12, h * 0.14, dir * 0.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = fur;
-    for (const dir of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(-w * 0.34, dir * h * 0.26, w * 0.1, h * 0.12, dir * 0.35, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // Black claws on feet (subtle)
+    // Toe claws
     ctx.fillStyle = claw;
     for (const dir of [-1, 1]) {
       for (let c = -1; c <= 1; c++) {
         ctx.beginPath();
-        ctx.ellipse(-w * 0.42, dir * h * 0.26 + c * 2.2, 2.2, 1.2, 0, 0, Math.PI * 2);
+        ctx.moveTo(dir * w * 0.07 + c * 2.2, h * 0.52);
+        ctx.lineTo(dir * w * 0.07 + c * 2.4, h * 0.6);
+        ctx.lineTo(dir * w * 0.04 + c * 2.2, h * 0.52);
+        ctx.closePath();
         ctx.fill();
       }
     }
 
-    // Arms: tucked close at idle; huge clawed fist on punch
-    let punchReach = 0;
-    let fistScale = 0.55;
-    let armAlpha = 0.55;
-    if (phase === 'windup') {
-      punchReach = -w * (0.04 + ap * 0.08);
-      fistScale = 0.5;
-      armAlpha = 0.45;
-    } else if (phase === 'strike') {
-      punchReach = w * (0.42 + ap * 0.38);
-      fistScale = 1.05 + ap * 0.15;
-      armAlpha = 1;
-    } else if (phase === 'recovery') {
-      punchReach = w * (1 - ap) * 0.45;
-      fistScale = 0.7 + (1 - ap) * 0.25;
-      armAlpha = 0.55 + (1 - ap) * 0.35;
-    }
-
-    // Off-hand stays tucked under the shoulder (barely visible)
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = iceDeep;
+    // Broad torso
+    const bodyGrad = ctx.createLinearGradient(0, -h * 0.2, 0, h * 0.3);
+    bodyGrad.addColorStop(0, iceLite);
+    bodyGrad.addColorStop(0.45, ice);
+    bodyGrad.addColorStop(1, iceDeep);
+    ctx.fillStyle = bodyGrad;
     ctx.beginPath();
-    ctx.ellipse(w * 0.02, h * 0.28, w * 0.1, h * 0.1, 0.6, 0, Math.PI * 2);
+    ctx.ellipse(0, h * 0.02, w * 0.34, h * 0.34, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = 1;
 
-    // Punching arm — tucked blob when idle, full extension on strike
-    ctx.globalAlpha = armAlpha;
-    ctx.fillStyle = ice;
-    ctx.beginPath();
-    if (phase === 'strike' || (phase === 'recovery' && ap < 0.55) || phase === 'windup') {
-      // arm shaft toward +x (facing)
-      const ax0 = w * 0.08;
-      const ay0 = -h * 0.12;
-      const ax1 = Math.max(w * 0.12, punchReach);
-      ctx.beginPath();
-      ctx.moveTo(ax0, ay0 - h * 0.08);
-      ctx.quadraticCurveTo((ax0 + ax1) * 0.5, ay0 - h * 0.14, ax1, ay0 - h * 0.06 * fistScale);
-      ctx.lineTo(ax1, ay0 + h * 0.1 * fistScale);
-      ctx.quadraticCurveTo((ax0 + ax1) * 0.5, ay0 + h * 0.12, ax0, ay0 + h * 0.1);
-      ctx.closePath();
-      ctx.fill();
-
-      // Massive fist
-      const fx = punchReach + w * 0.06;
-      const fy = ay0;
-      const fr = w * 0.15 * fistScale;
-      const fistGrad = ctx.createRadialGradient(fx - 2, fy - 2, 1, fx, fy, fr);
-      fistGrad.addColorStop(0, iceLite);
-      fistGrad.addColorStop(0.6, ice);
-      fistGrad.addColorStop(1, iceDeep);
-      ctx.fillStyle = fistGrad;
-      ctx.beginPath();
-      ctx.ellipse(fx, fy, fr, fr * 0.85, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Black claws — only really read when the fist is out
-      if (phase === 'strike' || (phase === 'recovery' && ap < 0.4)) {
-        ctx.fillStyle = claw;
-        for (let c = -1; c <= 1; c++) {
-          ctx.beginPath();
-          ctx.moveTo(fx + fr * 0.55, fy + c * fr * 0.38);
-          ctx.lineTo(fx + fr * 1.35, fy + c * fr * 0.42);
-          ctx.lineTo(fx + fr * 0.55, fy + c * fr * 0.22);
-          ctx.closePath();
-          ctx.fill();
-        }
-        // Frost bloom on impact frame
-        if (phase === 'strike') {
-          ctx.globalAlpha = 0.35 + ap * 0.25;
-          ctx.fillStyle = '#e0f2fe';
-          ctx.beginPath();
-          ctx.arc(fx + fr * 0.4, fy, fr * 1.4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    } else {
-      // Idle: small tucked shoulder mass — no obvious fist
-      ctx.beginPath();
-      ctx.ellipse(w * 0.04, -h * 0.22, w * 0.11, h * 0.1, -0.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-
-    // Head — forward, snarling
-    ctx.fillStyle = ice;
-    ctx.beginPath();
-    ctx.ellipse(w * 0.28, 0, w * 0.2, h * 0.22, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // White facial mane / beard spikes
+    // Chest / belly fur
     ctx.fillStyle = fur;
-    for (let i = 0; i < 7; i++) {
-      const a = -0.9 + (i / 6) * 1.8;
-      const len = w * (0.18 + (i % 2) * 0.05);
+    ctx.beginPath();
+    ctx.ellipse(0, h * 0.04, w * 0.2, h * 0.26, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Shoulder mane spikes
+    ctx.fillStyle = fur;
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI * 0.85 + (i / 9) * Math.PI * 1.7;
+      const len = w * (0.22 + (i % 2) * 0.05);
       ctx.beginPath();
-      ctx.moveTo(w * 0.22 + Math.cos(a) * w * 0.06, Math.sin(a) * h * 0.12);
-      ctx.lineTo(w * 0.22 + Math.cos(a) * len, Math.sin(a) * len * 0.9);
-      ctx.lineTo(w * 0.22 + Math.cos(a + 0.25) * w * 0.06, Math.sin(a + 0.25) * h * 0.12);
+      ctx.moveTo(Math.cos(a) * w * 0.2, Math.sin(a) * h * 0.14 - h * 0.02);
+      ctx.lineTo(Math.cos(a) * (w * 0.2 + len), Math.sin(a) * (h * 0.14 + len * 0.35) - h * 0.02);
+      ctx.lineTo(Math.cos(a + 0.18) * w * 0.2, Math.sin(a + 0.18) * h * 0.14 - h * 0.02);
       ctx.closePath();
       ctx.fill();
     }
-    // Brow ridge
-    ctx.fillStyle = iceDeep;
+
+    // Rear arm (left of viewer)
+    ctx.fillStyle = ice;
     ctx.beginPath();
-    ctx.ellipse(w * 0.32, -h * 0.06, w * 0.14, h * 0.07, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.28, h * 0.02, w * 0.1, h * 0.18, -0.35, 0, Math.PI * 2);
     ctx.fill();
-    // Deep-set vicious eyes
+
+    // Scratch / leading arm
+    let armAng = 0.55;
+    let armReach = w * 0.28;
+    if (phase === 'windup') {
+      armAng = -0.55 - ap * 0.7;
+      armReach = w * (0.22 + ap * 0.06);
+    } else if (phase === 'strike') {
+      armAng = -0.9 + ap * 1.7;
+      armReach = w * (0.34 + ap * 0.22);
+    } else if (phase === 'recovery') {
+      armAng = 0.7 * (1 - ap) + 0.55 * ap;
+      armReach = w * (0.4 - ap * 0.12);
+    }
+    const ax = Math.cos(armAng) * armReach;
+    const ay = Math.sin(armAng) * armReach * 0.55 - h * 0.02;
+    ctx.strokeStyle = ice;
+    ctx.lineWidth = w * 0.14;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.12, -h * 0.05);
+    ctx.quadraticCurveTo(w * 0.22, ay * 0.4, ax, ay);
+    ctx.stroke();
+    // Clawed hand
+    const handR = w * (phase === 'strike' ? 0.13 : 0.1);
+    const hg = ctx.createRadialGradient(ax - 2, ay - 2, 1, ax, ay, handR);
+    hg.addColorStop(0, iceLite);
+    hg.addColorStop(1, iceDeep);
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.arc(ax, ay, handR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = claw;
+    for (let c = -1; c <= 1; c++) {
+      const ca = armAng + c * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(ax + Math.cos(armAng) * handR * 0.3, ay + Math.sin(armAng) * handR * 0.3);
+      ctx.lineTo(ax + Math.cos(ca) * handR * 1.55, ay + Math.sin(ca) * handR * 1.45);
+      ctx.lineTo(ax + Math.cos(armAng + c * 0.12) * handR * 0.35, ay + Math.sin(armAng + c * 0.12) * handR * 0.35);
+      ctx.closePath();
+      ctx.fill();
+    }
+    if (phase === 'strike') {
+      ctx.globalAlpha = 0.35 + ap * 0.3;
+      ctx.strokeStyle = '#e0f2fe';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(ax, ay, handR * 2.2, armAng - 0.8, armAng + 0.8);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Head (on top)
+    ctx.fillStyle = ice;
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.34, w * 0.22, h * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Face fur hood
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.38, w * 0.24, h * 0.18, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI + (i / 5) * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * w * 0.14, -h * 0.34 + Math.sin(a) * h * 0.08);
+      ctx.lineTo(Math.cos(a) * w * 0.28, -h * 0.34 + Math.sin(a) * h * 0.22);
+      ctx.lineTo(Math.cos(a + 0.22) * w * 0.14, -h * 0.34 + Math.sin(a + 0.22) * h * 0.08);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Eyes
     ctx.fillStyle = '#0b1220';
     ctx.beginPath();
-    ctx.ellipse(w * 0.34, -h * 0.04, 2.4, 1.8, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.34, h * 0.05, 2.4, 1.8, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.07, -h * 0.36, 2.6, 2.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.07, -h * 0.36, 2.6, 2.1, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#7dd3fc';
     ctx.beginPath();
-    ctx.arc(w * 0.35, -h * 0.04, 1.1, 0, Math.PI * 2);
-    ctx.arc(w * 0.35, h * 0.05, 1.1, 0, Math.PI * 2);
+    ctx.arc(-w * 0.065, -h * 0.36, 1.15, 0, Math.PI * 2);
+    ctx.arc(w * 0.065, -h * 0.36, 1.15, 0, Math.PI * 2);
     ctx.fill();
-    // Roaring maw with teeth
+    // Snarl
     ctx.fillStyle = maw;
     ctx.beginPath();
-    ctx.ellipse(w * 0.4, 0, w * 0.1, h * 0.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -h * 0.26, w * 0.1, h * 0.07, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#f8fafc';
     for (let t = -2; t <= 2; t++) {
       ctx.beginPath();
-      ctx.moveTo(w * 0.36, t * 2.4);
-      ctx.lineTo(w * 0.46, t * 2.6);
-      ctx.lineTo(w * 0.36, t * 2.4 + 1.8);
+      ctx.moveTo(t * 3.1, -h * 0.28);
+      ctx.lineTo(t * 3.3, -h * 0.2);
+      ctx.lineTo(t * 3.1 + 1.5, -h * 0.28);
       ctx.closePath();
       ctx.fill();
     }
     // Nose
     ctx.fillStyle = claw;
     ctx.beginPath();
-    ctx.ellipse(w * 0.38, 0, 2.2, 1.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -h * 0.3, 2.4, 1.7, 0, 0, Math.PI * 2);
     ctx.fill();
   } else if (type === 'sniper') {
     const sc2 = sc * 0.92;
@@ -26514,11 +26639,16 @@ function drawUnit(u) {
   const bob = Math.sin(animFrame * 0.15 + u.id.charCodeAt(0)) * 1.5;
   const shakeX = u._zombieShakeX || 0;
   const shakeY = u._zombieShakeY || 0;
+  const leapLift = u._leapLift || 0;
   const drawX = u.x + shakeX;
-  const drawY = u.y + bob + shakeY;
+  const drawY = u.y + bob + shakeY - leapLift;
   const inFree = phase === 'free' || gameMode === 'free';
   const frozenSolid = isUnitIceFrozen(u);
   const frostbiteTint = !!u.yetiFrostbite && !frozenSolid;
+
+  if (u.type === 'yeti' && u.hp > 0) {
+    drawYetiBlizzardAura(u.x, u.y, YETI_BLIZZARD_R);
+  }
 
   // Draw the unit itself icy-blue when frozen — no surrounding ice ball.
   ctx.save();
@@ -26538,7 +26668,7 @@ function drawUnit(u) {
     drawFreeEnemyTank(u);
   } else {
       const spriteType = isWerewolf ? 'speed' : u.type;
-      drawUnitSprite(spriteType, drawX, u.y + shakeY, u.facing, sz, {
+      drawUnitSprite(spriteType, drawX, u.y + shakeY - leapLift, u.facing, sz, {
         bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id, ownerId: u.owner,
         joustReady: u.joustReady,
         attackPhase: isWerewolf ? 'idle' : (u.attackPhase || 'idle'),
@@ -28668,7 +28798,8 @@ function sniperShotTargetPos(tgt) {
 }
 
 function fireSniperShot(unit, tgt) {
-  const tp = sniperShotTargetPos(tgt);
+  let tp = sniperShotTargetPos(tgt);
+  tp = blizzardWhiffAim(unit.x, unit.y, tp.x, tp.y, unit);
   unit.facing = Math.atan2(tp.y - unit.y, tp.x - unit.x);
   beams.push({
     x1: unit.x, y1: unit.y - 4,
@@ -28695,6 +28826,9 @@ function fireBowmanArrow(unit, tgt) {
     aimY = tp.y;
   }
   const aimDist = Math.hypot(aimX - unit.x, aimY - unit.y);
+  const whiff = blizzardWhiffAim(unit.x, unit.y, aimX, aimY, unit);
+  aimX = whiff.x;
+  aimY = whiff.y;
   unit.facing = Math.atan2(aimY - unit.y, aimX - unit.x);
   const angle = unit.facing;
   const muzzle = (ut.size || 20) * 0.55;
@@ -29055,12 +29189,34 @@ function drawUnitElectricArc(drawX, drawY, sz, shockLeft) {
   ctx.restore();
 }
 
-function unitIceTrailSpeedMult(unit) {
-  if (!unit || unit.type === 'yeti' || unitIsFlying(unit)) return 1;
-  const hitR = getUnitSize(unit) * 0.5;
-  for (const f of iceFields) {
-    if (dist(f, unit) <= f.r + hitR) return 0.8; // −20% while in Yeti ice trail
+function unitInEnemyYetiBlizzard(unit) {
+  if (!unit || unit.hp <= 0 || unit.type === 'yeti') return false;
+  for (const y of combatUnits) {
+    if (y.hp <= 0 || y.type !== 'yeti' || y.owner === unit.owner) continue;
+    if (dist(y, unit) <= YETI_BLIZZARD_R + getUnitSize(unit) * 0.4) return true;
   }
+  return false;
+}
+
+function facingTowardWithBlizzard(unit, tp) {
+  if (!tp) return unit.facing || 0;
+  let ang = Math.atan2(tp.y - unit.y, tp.x - unit.x);
+  if (unitInEnemyYetiBlizzard(unit)) ang += rand(-1.4, 1.4);
+  return ang;
+}
+
+function blizzardWhiffAim(fromX, fromY, toX, toY, unit) {
+  if (!unitInEnemyYetiBlizzard(unit)) return { x: toX, y: toY };
+  const base = Math.atan2(toY - fromY, toX - fromX);
+  const ang = base + rand(-1.35, 1.35);
+  const d = Math.max(40, Math.hypot(toX - fromX, toY - fromY));
+  return { x: fromX + Math.cos(ang) * d, y: fromY + Math.sin(ang) * d };
+}
+
+function unitIceTrailSpeedMult(unit) {
+  // Replaced ice-trail slow with the Yeti blizzard aura (half speed).
+  if (!unit || unit.type === 'yeti' || unitIsFlying(unit)) return 1;
+  if (unitInEnemyYetiBlizzard(unit)) return 0.5;
   return 1;
 }
 
@@ -29160,9 +29316,17 @@ const DRAGON_FIRE_PATCHES = 6;
 /** Trail fire left by burning units: contact DPS only, no ignite, no path avoidance. */
 const TRAIL_FIRE_DPS = 1.0;
 const TRAIL_FIRE_LIFE = DRAGON_FIRE_LIFE * 0.55;
-const YETI_ICE_TRAIL_LIFE = 5.2;
-const YETI_ICE_TRAIL_INTERVAL = 0.18;
+const YETI_ICE_TRAIL_LIFE = 5.2; // kept for older ice field radii
 const YETI_ICE_TRAIL_R = 15;
+/** Personal blizzard aura around the Yeti. */
+const YETI_BLIZZARD_R = 76;
+const YETI_BLIZZARD_DPS = 4;
+const YETI_SCRATCH_AOE = 54;
+const YETI_SCRATCH_SPLASH = 0.55; // splash portion of weapon damage
+const YETI_LEAP_CD = 10;
+const YETI_LEAP_RANGE = 240;
+const YETI_LEAP_AOE = 82;
+const YETI_LEAP_DMG = 1.85; // × weapon damage on slam
 /** Ice aura — any fire in this radius is snuffed out instantly. */
 const YETI_DOUSE_RADIUS = 78;
 const DRAGON_IGNITE_BURST = 1.65;
@@ -29177,7 +29341,7 @@ const UNIT_ATTACK_STANCE = {
   striker: { standoff: 32, windup: 0.22, recover: 0.16, joustWindup: 0.36 },
   farmer:  { standoff: 0, windup: 0.24, recover: 0.18 },
   goblin:  { standoff: 26, windup: 0.18, recover: 0.12 },
-  yeti:    { standoff: 36, windup: 0.32, recover: 0.22 },
+  yeti:    { standoff: 34, windup: 0.22, recover: 0.14, strike: 0.12 },
   sniper:  { standoff: 150, windup: 0.22, recover: 0.14 },
   bowman:  { standoff: 220, windup: 0.18, recover: 0.12 },
   swordsman: { standoff: 30, windup: 0.32, recover: 0.16, strike: 0.16 },
@@ -29257,7 +29421,7 @@ function beginUnitAttackWindup(u, tgt) {
   u.attackTargetId = attackTargetKey(tgt);
   u._attackStruck = false;
   const tp = attackTargetWorldPos(tgt);
-  if (tp) u.facing = Math.atan2(tp.y - u.y, tp.x - u.x);
+  if (tp) u.facing = facingTowardWithBlizzard(u, tp);
 }
 
 function executeUnitAttackStrike(u, tgt) {
@@ -29270,24 +29434,155 @@ function executeUnitAttackStrike(u, tgt) {
     fireBowmanArrow(u, tgt);
   } else {
     if (u.type === 'sniper') fireSniperShot(u, tgt);
-    applyDamageToTarget(u, { obj: tgt.obj, defenderType }, getUnitDamage(u));
+    const disoriented = unitInEnemyYetiBlizzard(u);
+    // Confused units often swing past the real fight and miss their main hit.
+    const whiff = disoriented && Math.random() < 0.55 && u.type !== 'yeti';
+    if (!whiff) applyDamageToTarget(u, { obj: tgt.obj, defenderType }, getUnitDamage(u));
     if (u.type === 'tank') tankStomp(u);
-    if (u.type === 'yeti') yetiFrostPunch(u, tgt);
+    if (u.type === 'yeti') yetiScratch(u, tgt);
   }
   const rate = ut.attackRate * unitAttackRateMult(u);
   u.attackCooldown = 1 / Math.max(0.05, rate);
 }
 
-function yetiFrostPunch(u, tgt) {
+function yetiScratch(u, tgt) {
   const tp = attackTargetWorldPos(tgt) || { x: u.x, y: u.y };
   const facing = u.facing ?? Math.atan2(tp.y - u.y, tp.x - u.x);
-  const fistX = u.x + Math.cos(facing) * 22;
-  const fistY = u.y + Math.sin(facing) * 22;
-  spawnParticles(fistX, fistY, '#bae6fd', 8);
-  spawnParticles(fistX, fistY, '#e0f2fe', 5);
-  if (tgt.type === 'unit' && tgt.obj && tgt.obj.hp > 0) {
-    applySpreadIce(tgt.obj);
+  const clawX = u.x + Math.cos(facing) * 26;
+  const clawY = u.y + Math.sin(facing) * 26;
+  spawnParticles(clawX, clawY, '#bae6fd', 10);
+  spawnParticles(clawX, clawY, '#e0f2fe', 6);
+  blasts.push({
+    x: clawX, y: clawY, maxR: YETI_SCRATCH_AOE, life: 0.22, maxLife: 0.22, color: '#9dd9f5',
+  });
+  const splash = getUnitDamage(u) * YETI_SCRATCH_SPLASH;
+  for (const other of combatUnits) {
+    if (other === u || other.owner === u.owner || other.hp <= 0) continue;
+    if (unitIsFlying(other)) continue;
+    if (Math.hypot(other.x - clawX, other.y - clawY) > YETI_SCRATCH_AOE + getUnitSize(other) * 0.35) continue;
+    // Primary target already took full weapon damage in executeUnitAttackStrike.
+    if (tgt.type === 'unit' && other === tgt.obj) {
+      applySpreadIce(other);
+      continue;
+    }
+    other.lastHitBy = u.owner;
+    applyHpLoss(other, splash);
+    trackDamageDealt(u.owner, splash, false);
+    applySpreadIce(other);
+    spawnParticles(other.x, other.y - 2, '#bae6fd', 3);
   }
+}
+
+function startYetiLeap(yeti, target) {
+  if (!yeti || !target || target.hp <= 0) return;
+  resetUnitAttackPhase(yeti);
+  yeti.yetiLeap = {
+    phase: 'rise',
+    t: 0,
+    fromX: yeti.x,
+    fromY: yeti.y,
+    toX: target.x,
+    toY: target.y,
+    targetId: target.id,
+  };
+  yeti.vx = 0;
+  yeti.vy = 0;
+  yeti.facing = Math.atan2(target.y - yeti.y, target.x - yeti.x);
+  spawnParticles(yeti.x, yeti.y, '#e0f2fe', 8);
+}
+
+function yetiLeapSlam(yeti) {
+  const cx = yeti.x;
+  const cy = yeti.y;
+  const dmg = getUnitDamage(yeti) * YETI_LEAP_DMG;
+  spawnParticles(cx, cy, '#bae6fd', 16);
+  spawnParticles(cx, cy, '#f8fafc', 10);
+  spawnFloatText(cx, cy - 30, 'LEAP!', '#bae6fd');
+  blasts.push({ x: cx, y: cy, maxR: YETI_LEAP_AOE, life: 0.38, maxLife: 0.38, color: '#7dd3fc' });
+  pulseBaseShake(players[yeti.owner], 0.18);
+  for (const other of combatUnits) {
+    if (other === yeti || other.owner === yeti.owner || other.hp <= 0) continue;
+    if (unitIsFlying(other)) continue;
+    if (Math.hypot(other.x - cx, other.y - cy) > YETI_LEAP_AOE + getUnitSize(other)) continue;
+    other.lastHitBy = yeti.owner;
+    applyHpLoss(other, dmg);
+    trackDamageDealt(yeti.owner, dmg, false);
+    applySpreadIce(other);
+    const ang = Math.atan2(other.y - cy, other.x - cx);
+    other.vx = (other.vx || 0) + Math.cos(ang) * 140;
+    other.vy = (other.vy || 0) + Math.sin(ang) * 140;
+    spawnParticles(other.x, other.y, '#bae6fd', 5);
+  }
+}
+
+/** Returns true while the Yeti is mid-leap (caller should skip normal AI). */
+function updateYetiLeap(yeti, dt) {
+  if (!yeti || yeti.hp <= 0 || yeti.type !== 'yeti') return false;
+  let leap = yeti.yetiLeap;
+  if (!leap) {
+    yeti.yetiLeapCd = (yeti.yetiLeapCd == null ? YETI_LEAP_CD : yeti.yetiLeapCd) - dt;
+    if (yeti.yetiLeapCd > 0) return false;
+    const near = nearestYetiAggroTarget(yeti, YETI_LEAP_RANGE);
+    if (!near) return false;
+    yeti.yetiLeapCd = YETI_LEAP_CD;
+    startYetiLeap(yeti, near.unit);
+    leap = yeti.yetiLeap;
+    if (!leap) return false;
+  }
+
+  leap.t += dt;
+  const tgt = combatUnits.find((o) => o.id === leap.targetId && o.hp > 0);
+  if (tgt && leap.phase !== 'slam' && leap.phase !== 'recover') {
+    leap.toX = tgt.x;
+    leap.toY = tgt.y;
+  }
+
+  if (leap.phase === 'rise') {
+    const p = clamp(leap.t / 0.28, 0, 1);
+    yeti._leapLift = p * 42;
+    yeti.vx = 0;
+    yeti.vy = 0;
+    if (leap.t >= 0.28) {
+      leap.phase = 'hang';
+      leap.t = 0;
+    }
+    return true;
+  }
+
+  if (leap.phase === 'hang') {
+    const p = clamp(leap.t / 0.2, 0, 1);
+    yeti.x = leap.fromX + (leap.toX - leap.fromX) * p;
+    yeti.y = leap.fromY + (leap.toY - leap.fromY) * p;
+    yeti._leapLift = 42 + Math.sin(p * Math.PI) * 18;
+    yeti.facing = Math.atan2(leap.toY - leap.fromY, leap.toX - leap.fromX);
+    if (leap.t >= 0.2) {
+      leap.phase = 'slam';
+      leap.t = 0;
+      yeti.x = leap.toX;
+      yeti.y = leap.toY;
+      yeti._leapLift = 0;
+      yetiLeapSlam(yeti);
+    }
+    return true;
+  }
+
+  if (leap.phase === 'slam' || leap.phase === 'recover') {
+    yeti._leapLift = 0;
+    yeti.vx = 0;
+    yeti.vy = 0;
+    if (leap.t >= 0.35) {
+      yeti.yetiLeap = null;
+      yeti._leapLift = 0;
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function yetiFrostPunch(u, tgt) {
+  // Legacy name kept for any external refs — redirects to scratch.
+  yetiScratch(u, tgt);
 }
 
 function getUnitAttackDrawPose(type, opts = {}) {
@@ -29365,14 +29660,14 @@ function getUnitAttackDrawPose(type, opts = {}) {
       x = (1 - p) * 3;
     }
   } else if (type === 'yeti') {
-    // Body coils back; the fist pop is drawn in the sprite itself.
+    // Scratches: coil the leading shoulder, then rake forward.
     if (phase === 'windup') {
-      x = -3 - p * 5;
-      sx = 0.94;
-      sy = 1.06;
+      x = -2 - p * 3;
+      sx = 0.96;
+      sy = 1.05;
     } else if (phase === 'strike') {
-      x = 2 + p * 3;
-      sx = 1.06;
+      x = 3 + p * 5;
+      sx = 1.08;
       sy = 0.94;
     } else {
       x = (1 - p) * 2;
@@ -29669,28 +29964,32 @@ function updateFireFields(dt) {
 }
 
 function spawnYetiIceTrail(u) {
-  iceFields.push({
-    x: u.x + rand(-5, 5),
-    y: u.y + rand(-3, 3) + 4,
-    r: YETI_ICE_TRAIL_R + rand(-2, 3),
-    owner: u.owner,
-    life: YETI_ICE_TRAIL_LIFE,
-    maxLife: YETI_ICE_TRAIL_LIFE,
-    phase: rand(0, Math.PI * 2),
-    seed: rand(0, 100),
-    source: 'yeti',
-  });
+  // Ice trail removed — Yeti now projects a personal blizzard aura instead.
 }
 
 function updateYetiIceTrails(dt) {
-  for (const u of combatUnits) {
-    if (u.hp <= 0 || u.type !== 'yeti') continue;
-    const moving = Math.hypot(u.vx || 0, u.vy || 0) > 6;
-    if (!moving) continue;
-    u.iceTrailCd = (u.iceTrailCd || 0) - dt;
-    if (u.iceTrailCd > 0) continue;
-    u.iceTrailCd = YETI_ICE_TRAIL_INTERVAL;
-    spawnYetiIceTrail(u);
+  // Legacy no-op (trail removed). Blizzard ticks in updateYetiBlizzards.
+}
+
+function updateYetiBlizzards(dt) {
+  for (const yeti of combatUnits) {
+    if (yeti.hp <= 0 || yeti.type !== 'yeti') continue;
+    for (const u of combatUnits) {
+      if (u.owner === yeti.owner || u.hp <= 0 || u.type === 'yeti') continue;
+      if (unitIsFlying(u)) continue;
+      if (dist(yeti, u) > YETI_BLIZZARD_R + getUnitSize(u) * 0.4) continue;
+      u._blizzardDmgAcc = (u._blizzardDmgAcc || 0) + YETI_BLIZZARD_DPS * dt;
+      if (u._blizzardDmgAcc >= 1) {
+        const n = Math.floor(u._blizzardDmgAcc);
+        u._blizzardDmgAcc -= n;
+        u.lastHitBy = yeti.owner;
+        applyHpLoss(u, n);
+        trackDamageDealt(yeti.owner, n, false);
+      }
+      // Continuous facing drift — attacks lose a clear aiming direction.
+      u.facing = (u.facing || 0) + rand(-2.8, 2.8) * dt;
+      u._blizzardConfuse = 0.2;
+    }
   }
 }
 
@@ -29737,6 +30036,37 @@ function updateIceFields(dt) {
     // Soft settle — frost stays put more than fire.
     f.r = Math.max(10, (f.r || YETI_ICE_TRAIL_R) * (1 - dt * 0.04));
   }
+}
+
+function drawYetiBlizzardAura(x, y, r) {
+  const pulse = 0.78 + 0.22 * Math.sin(animFrame * 0.18);
+  const rr = r * pulse;
+  ctx.save();
+  const g = ctx.createRadialGradient(x, y, rr * 0.15, x, y, rr);
+  g.addColorStop(0, 'rgba(186, 230, 253, 0.22)');
+  g.addColorStop(0.55, 'rgba(125, 211, 252, 0.14)');
+  g.addColorStop(1, 'rgba(125, 211, 252, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, rr, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(224, 242, 254, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 7]);
+  ctx.beginPath();
+  ctx.arc(x, y, rr * 0.92, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Drifting snow flecks
+  ctx.fillStyle = 'rgba(248, 250, 252, 0.55)';
+  for (let i = 0; i < 10; i++) {
+    const a = animFrame * 0.07 + i * 0.85;
+    const d = rr * (0.25 + (i % 5) * 0.12);
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(a) * d, y + Math.sin(a * 1.3) * d * 0.75, 1.4 + (i % 3) * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawIceFields() {
@@ -31645,6 +31975,7 @@ function updateCombat(dt) {
     if (u.type === 'yeti') {
       u._douseSplashCd = Math.max(0, (u._douseSplashCd || 0) - dt);
       yetiExtinguishNearbyFire(u);
+      if (updateYetiLeap(u, dt)) continue;
     }
 
     // Speared wolves panic/bleed elsewhere — skip normal AI. Other speared units keep fighting.
@@ -31717,7 +32048,7 @@ function updateCombat(dt) {
     }
 
     const tp = attackTargetWorldPos(tgt);
-    if (tp) u.facing = Math.atan2(tp.y - u.y, tp.x - u.x);
+    if (tp) u.facing = facingTowardWithBlizzard(u, tp);
 
     let windupDur = stance.windup;
     if (u.joustReady && ut.behavior === 'knight') windupDur = stance.joustWindup || stance.windup;
@@ -31765,12 +32096,15 @@ function updateCombat(dt) {
   updateSpearBleedWolves(dt);
   updateWolfHunterProjectiles(dt);
   updateHeroRespawnCooldowns(dt);
+  updateUnitDeployCooldowns(dt);
+  refreshHotbarCooldowns();
   updatePellets(dt);
   updateArcherArrows(dt);
   updateGroundArrows(dt);
   updateCatapultRocks(dt);
   updateUnitIgnites(dt);
   updateYetiIceTrails(dt);
+  updateYetiBlizzards(dt);
   updateFireFields(dt);
   updateIceFields(dt);
   updateGroundIceChunks(dt);
@@ -31994,6 +32328,7 @@ function commanderValidateBatch(pid, type, positions) {
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive() && !LIVE_ARMY.canDeployUnit(p, type)) return false;
   if (unitUniqueCapReached(pid, type)) return false;
   if (heroRespawnRemaining(pid, type) > 0) return false;
+  if (unitDeployCdRemaining(pid, type) > 0) return false;
   const n = positions.length;
   if (n === 0) return false;
   // Unique units (heroes) can never batch-deploy more than one.
@@ -32025,6 +32360,7 @@ function commanderPlaceBatch(pid, type, positions) {
     combatUnits.push(unit);
     if (pid === 0) survivalRecordPlayerDeploy(type);
   }
+  startUnitDeployCooldown(pid, type, UNIT_HOTBAR_CD_MIN);
   if (pid === 1) survivalResetBattleSpeedOnEnemyAttack();
   return true;
 }
@@ -32036,6 +32372,10 @@ function commanderPlaceFailReason(pid, type, positions) {
   const heroCd = heroRespawnRemaining(pid, type);
   if (heroCd > 0) {
     return `${ut.name} respawns in ${Math.ceil(heroCd)}s.`;
+  }
+  const deployCd = unitDeployCdRemaining(pid, type);
+  if (deployCd > 0) {
+    return `${ut.name} ready in ${Math.ceil(deployCd)}s.`;
   }
   if (unitUniqueCapReached(pid, type) || (UNIT_TYPES[type]?.unique && n > 1)) {
     return `Only one ${ut.name} can be on the field at a time.`;
