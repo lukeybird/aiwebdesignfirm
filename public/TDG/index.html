@@ -8242,7 +8242,7 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
             ? `${ut.name} ready in ${Math.ceil(cdInfo.rem)}s`
             : (uniqueBusy
               ? `Only one ${ut.name} on the field`
-              : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool))));
+              : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool)))));
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
       if (costEl) costEl.textContent = String(price);
