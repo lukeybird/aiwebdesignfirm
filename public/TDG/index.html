@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Block Fortress — Tower Defense War</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@600;700&display=swap');
@@ -359,9 +361,14 @@
     }
 
     #game-stage:fullscreen,
-    #game-stage:-webkit-full-screen {
+    #game-stage:-webkit-full-screen,
+    html.immersive-fs #game-stage {
       width: 100vw !important;
+      width: 100dvw !important;
       height: 100vh !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      max-height: none !important;
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -370,9 +377,37 @@
       border-radius: 0;
     }
     #game-stage:fullscreen #game-wrapper,
-    #game-stage:-webkit-full-screen #game-wrapper {
+    #game-stage:-webkit-full-screen #game-wrapper,
+    html.immersive-fs #game-stage #game-wrapper {
       border-radius: 0;
       box-shadow: none;
+    }
+
+    /* Mobile / iOS fallback when native Fullscreen API is unavailable */
+    html.immersive-fs,
+    html.immersive-fs body {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
+      touch-action: none;
+      background: #0a0e0a;
+    }
+    html.immersive-fs body > h1,
+    html.immersive-fs body > .subtitle {
+      display: none !important;
+    }
+    html.immersive-fs #game-stage {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 10000;
+      margin: 0 !important;
+    }
+    html.immersive-fs #fullscreen-btn {
+      z-index: 10001;
     }
 
     #bottom-panel {
@@ -6182,11 +6217,13 @@
     }
 
     body.mobile-device #fullscreen-btn {
-      right: 12px;
-      width: 26px;
-      height: 26px;
-      font-size: 0.85rem;
-      border-radius: 4px;
+      right: 10px;
+      width: 36px;
+      height: 36px;
+      font-size: 1rem;
+      border-radius: 6px;
+      /* Bigger tap target without shifting layout */
+      box-shadow: 0 0 0 6px transparent;
     }
 
     body.mobile-device #bottom-panel {
@@ -6332,10 +6369,10 @@
       }
 
       body.mobile-device #fullscreen-btn {
-        width: 22px;
-        height: 22px;
-        font-size: 0.75rem;
-        right: 10px;
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+        right: 8px;
       }
     }
 
@@ -6660,20 +6697,20 @@
         <div class="rulebook-panel survival-diff-panel">
           <div class="rulebook-header">
             <h2>⚔️ Local Game</h2>
-            <p>Choose a difficulty. Same strategic AI on every mode — harder enemies earn more from their base each income tick.</p>
+            <p>Choose a difficulty. Harder modes make the enemy earn more from HQ / farms / mints and strike sooner with bigger waves.</p>
           </div>
           <div class="survival-diff-options">
             <button class="banner-btn survival-diff-btn" type="button" data-survival-diff="easy">
               Easy Mode
-              <span class="survival-diff-detail">Enemy base +30 income</span>
+              <span class="survival-diff-detail">Enemy HQ +30 / cycle · slower waves</span>
             </button>
             <button class="banner-btn survival-diff-btn" type="button" data-survival-diff="medium">
               Medium Mode
-              <span class="survival-diff-detail">Enemy base +40 income</span>
+              <span class="survival-diff-detail">Enemy HQ +40 / cycle · faster economy</span>
             </button>
             <button class="banner-btn survival-diff-btn" type="button" data-survival-diff="hard">
               Hard Mode
-              <span class="survival-diff-detail">Enemy base +50 income</span>
+              <span class="survival-diff-detail">Enemy HQ +50 / cycle · aggressive economy</span>
             </button>
           </div>
           <div class="rulebook-actions">
@@ -6887,6 +6924,14 @@ const UNIT_TYPES = {
     color: '#9fd4ea', accent: '#e8f4fc', size: 30, behavior: 'wander',
     targetsUnits: true, targetsTowers: false, targetsBase: false, prefersUnits: true,
     unique: true, // hero — only one on the field per player
+  },
+  /** Hero — aerial holy archer, then lands to duel with a sword. Unlock + deploy 150. */
+  angel: {
+    name: 'Angel', hp: 135, speed: 66, damage: 22, attackRate: 0.95, range: 34, cost: 150,
+    color: '#f8fafc', accent: '#fbbf24', size: 22, behavior: 'angel',
+    flying: true, airRange: 255,
+    prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: true,
+    unique: true,
   },
 };
 
@@ -7213,7 +7258,7 @@ const DEFAULT_GAME_RULES = {
   mintIncome: 42,
   bloopBounty: true,
   achievements: true,
-  units: { tank: true, speed: true, striker: true, farmer: false, sniper: true, bowman: true, swordsman: true, bloop: true, peka: true, goblin: false, yeti: false },
+  units: { tank: true, speed: true, striker: true, farmer: false, sniper: true, bowman: true, swordsman: true, bloop: true, peka: true, goblin: false, yeti: false, angel: true, wolf_hunter: true },
   towers: { turret: true, laser: true, spread: true, missile: false, archer: true, catapult: true, mint: true, farm: true, barracks: false, engineers: false, laboratory: false },
 };
 
@@ -7264,7 +7309,7 @@ const HOTBAR_GAME_START = [
 const HOTBAR_FILL_ORDER = [
   'barracks', 'engineers', 'laboratory',
   'farm', 'mint',
-  'wolf_hunter', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
+  'wolf_hunter', 'angel', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
   'turret', 'laser', 'spread', 'archer', 'catapult',
   'fireball', 'slime', 'heal',
 ];
@@ -7310,6 +7355,7 @@ const HOTBAR_GLYPHS = {
   tank: '🐘',
   speed: '🐺',
   wolf_hunter: '🔱',
+  angel: '👼',
   striker: '🐴',
   swordsman: '⚔️',
   farmer: '👨‍🌾',
@@ -7336,7 +7382,7 @@ const HOTBAR_GLYPHS = {
 };
 
 const HOTBAR_PORTRAIT_IDS = new Set([
-  'wolf_hunter', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
+  'wolf_hunter', 'angel', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
   'turret', 'laser', 'spread', 'archer', 'catapult',
   'fireball', 'slime', 'heal',
   'farm', 'mint', 'barracks', 'engineers', 'laboratory', 'commander',
@@ -8196,7 +8242,7 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
             ? `${ut.name} ready in ${Math.ceil(cdInfo.rem)}s`
             : (uniqueBusy
               ? `Only one ${ut.name} on the field`
-              : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool)))));
+              : (!canAfford ? `Need ${ut.cost}💵` : toolHotbarLabel(tool))));
     } else if (TOWER_TYPES[tool]) {
       const price = towerCost(p, tool);
       if (costEl) costEl.textContent = String(price);
@@ -8442,6 +8488,7 @@ const UNIT_MANUAL = {
   swordsman: 'Polished plate footsoldier. Matches Archer pace, fights in the press with steel. Takes only half damage from arrows. Strong vs Wolves, softer into Elephant hide than Knights on horseback.',
   peka: 'Epic flying dragon. Hunts Goblins first, ignores Snipers. Weak to Turrets and Snipers. Fire breath stacks on the ground.',
   yeti: 'Hero ice giant. Only one on the field. A blizzard whirls around it — slight damage, half speed, and disoriented attacks for enemies inside. Scratches with frosty claws (area damage). Every 10s it leaps onto the nearest troop with a slam. Puts out nearby fire. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s.',
+  angel: 'Hero of light. Only one on the field. Opens from the sky with a 3-arrow holy volley at different targets, then swoops down to duel on the ground with a sword. Flying during the volley (Turrets and Snipers can reach it); becomes a ground unit after landing.',
   bloop: 'Cheap jelly rush unit. Ignores fights and beelines for the enemy base. Splits into two mini-Bloops when killed. Killing enemy Bloops earns you coin bounties!',
 };
 
@@ -8625,13 +8672,20 @@ const SURVIVAL_AI_INCOME_MULT = {
   medium: 3,
   hard: 5,
 };
-// Flat HQ income edge for the CPU each base tick, by Local Game difficulty.
+// Flat HQ income for the CPU each base tick, by Local Game difficulty.
+// These match the Local Game menu labels (enemy HQ payout per 3s cycle).
 const SURVIVAL_AI_BASE_INCOME_EDGE = {
   easy: 30,
   medium: 40,
   hard: 50,
 };
 const SURVIVAL_AI_BASE_INCOME_EDGE_PER_UPGRADE = 5;
+
+function normalizeSurvivalDifficulty(value) {
+  const key = String(value || '').toLowerCase();
+  if (key === 'easy' || key === 'medium' || key === 'hard') return key;
+  return 'easy';
+}
 
 function survivalAiBaseIncomeBonus(pid) {
   const isCpu = gameMode === 'simulator' || (pid === 1 && gameMode === 'survival');
@@ -8642,7 +8696,7 @@ function survivalAiBaseIncomeBonus(pid) {
   const incomeUpgrades = eco
     ? (eco.base.income || 0)
     : Math.max(0, incomeUpgradeLevel(pid, 'base') - 1);
-  const edge = SURVIVAL_AI_BASE_INCOME_EDGE[survivalDifficulty]
+  const edge = SURVIVAL_AI_BASE_INCOME_EDGE[normalizeSurvivalDifficulty(survivalDifficulty)]
     ?? SURVIVAL_AI_BASE_INCOME_EDGE.easy;
   return edge + incomeUpgrades * SURVIVAL_AI_BASE_INCOME_EDGE_PER_UPGRADE;
 }
@@ -9049,7 +9103,7 @@ function tieredStatIcon(glyph, tier) {
 }
 
 const UNIT_THEME_MAP = {
-  tank: 'tank', speed: 'speed', goblin: 'goblin', striker: 'knight', swordsman: 'knight', farmer: 'farm', sniper: 'sniper', bowman: 'sniper', yeti: 'yeti', peka: 'peka',
+  tank: 'tank', speed: 'speed', goblin: 'goblin', striker: 'knight', swordsman: 'knight', farmer: 'farm', sniper: 'sniper', bowman: 'sniper', yeti: 'yeti', peka: 'peka', angel: 'peka',
 };
 const STAT_THEME_MAP = { speed: 'spd', damage: 'atk', health: 'hp' };
 const ENG_THEME_MAP = { damage: 'eng-dmg', range: 'eng-rng', health: 'eng-hp', knockback: 'eng-push', firerate: 'eng-rate' };
@@ -9142,7 +9196,7 @@ function econRoofArcherArrowMeta(tier) {
   };
 }
 
-const UNIT_SKILL_ICONS = { tank: '🐘', speed: '🐺', goblin: '👺', striker: '🐴', swordsman: '⚔️', farmer: '👨‍🌾', sniper: '🎯', bowman: '🏹', yeti: '❄️', peka: '🐉' };
+const UNIT_SKILL_ICONS = { tank: '🐘', speed: '🐺', goblin: '👺', striker: '🐴', swordsman: '⚔️', farmer: '👨‍🌾', sniper: '🎯', bowman: '🏹', yeti: '❄️', peka: '🐉', angel: '👼' };
 const STAT_SKILL_ICONS = { speed: '⚡', damage: '⚔️', health: '❤️' };
 
 function barracksUnlockMeta(ut) {
@@ -9159,6 +9213,7 @@ function barracksUnlockMeta(ut) {
     bowman: `Unlock Archers (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Mid-range bowmen; prioritize Dragons; weak vs Wolves.`,
     swordsman: `Unlock Swordsmen (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Shiny plate footsoldiers — same pace as Archers, strong melee line.`,
     yeti: `Unlock Yeti hero (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Personal blizzard: slight damage, half move speed, and confused attack aim. Claw scratch hits in an area. Leaps onto the nearest troop every 10s. Puts out nearby fire. Wolves that bite it freeze solid 5s then keep permanent frost. Death freezes nearby 3s; frozen take ×3 damage.`,
+    angel: `Unlock Angel hero (${cost}💵). Deploy ${base.cost}💵. Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Fires 3 holy arrows at different targets from the air, then swoops down to fight with a sword as a ground unit.`,
     peka: `Unlock Dragons (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire; chases Goblins first; weak to Turrets & Snipers.`,
   };
   return {
@@ -9625,11 +9680,12 @@ function survivalIncomeAmountAtLevel(type, lvl) {
 }
 
 function survivalAiIncomeMult() {
-  return SURVIVAL_AI_INCOME_MULT[survivalDifficulty] || SURVIVAL_AI_INCOME_MULT.easy;
+  return SURVIVAL_AI_INCOME_MULT[normalizeSurvivalDifficulty(survivalDifficulty)]
+    || SURVIVAL_AI_INCOME_MULT.easy;
 }
 
 function survivalDifficultyLabel() {
-  return { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[survivalDifficulty] || 'Easy';
+  return { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[normalizeSurvivalDifficulty(survivalDifficulty)] || 'Easy';
 }
 
 function survivalDifficultyModeLabel() {
@@ -9637,7 +9693,7 @@ function survivalDifficultyModeLabel() {
 }
 
 function survivalAiBaseIncomeEdge() {
-  return SURVIVAL_AI_BASE_INCOME_EDGE[survivalDifficulty]
+  return SURVIVAL_AI_BASE_INCOME_EDGE[normalizeSurvivalDifficulty(survivalDifficulty)]
     ?? SURVIVAL_AI_BASE_INCOME_EDGE.easy;
 }
 
@@ -9646,7 +9702,11 @@ function survivalIncomeAmount(pid, type) {
     if (type === 'base') {
       const eco = LIVE_ARMY.economyRecord(players[pid]);
       const lvl = 1 + (eco.base.income || 0);
-      return survivalIncomeAmountAtLevel('base', lvl) + survivalAiBaseIncomeBonus(pid);
+      const isCpu = gameMode === 'simulator' || (pid === 1 && gameMode === 'survival');
+      // CPU HQ payout matches the Local Game menu numbers (+30 / +40 / +50),
+      // plus further HQ income upgrades. Player keeps the normal base yield.
+      if (isCpu) return survivalAiBaseIncomeBonus(pid);
+      return survivalIncomeAmountAtLevel('base', lvl);
     }
     if (type === 'farm' || type === 'mint') {
       let amt = LIVE_ARMY.harvestAmount(players[pid], type);
@@ -9657,10 +9717,11 @@ function survivalIncomeAmount(pid, type) {
   }
   const lvl = incomeUpgradeLevel(pid, type);
   if (lvl < 1) return 0;
+  const isCpu = gameMode === 'simulator' || (pid === 1 && gameMode === 'survival');
+  if (type === 'base' && isCpu) return survivalAiBaseIncomeBonus(pid);
   let amt = survivalIncomeAmountAtLevel(type, lvl);
-  if (pid === 1 && gameMode === 'survival') {
-    if (type === 'base') amt += survivalAiBaseIncomeBonus(pid);
-    else amt *= survivalAiIncomeMult();
+  if (pid === 1 && gameMode === 'survival' && type !== 'base') {
+    amt *= survivalAiIncomeMult();
   }
   return amt;
 }
@@ -9878,7 +9939,9 @@ function barracksStatBarPct(value, max) {
 
 /** Fill bar for tempo stats (attacks/sec, fire rate). Higher rate = fuller bar. */
 function barracksTempoBarPct(ratePerSec, maxRatePerSec) {
-  return barracksStatBarPct(ratePerSec, maxRatePerSec);
+  const rate = Math.max(0, Number(ratePerSec) || 0);
+  const max = Math.max(0.01, Number(maxRatePerSec) || 0.01);
+  return Math.max(0, Math.min(100, Math.round((rate / max) * 100)));
 }
 
 /** Fill bar for cooldown/interval stats. Shorter time = faster = fuller bar. */
@@ -9887,6 +9950,23 @@ function barracksCooldownBarPct(seconds, bestSeconds) {
   const t = Math.max(0.01, Number(seconds) || 0.01);
   const best = Math.max(0.01, Number(bestSeconds) || 0.01);
   return barracksStatBarPct(1 / t, 1 / best);
+}
+
+/**
+ * Attack Speed: combat uses attacks/sec; the card shows seconds between attacks.
+ * Lower seconds = faster = fuller bar (same fill ratio as rate/max rate).
+ */
+function barracksAttackSpeedBar(attacksPerSec, maxAttacksPerSec) {
+  const rate = Math.max(0.01, Number(attacksPerSec) || 0.01);
+  const maxRate = Math.max(0.01, Number(maxAttacksPerSec) || 0.01);
+  const interval = 1 / rate;
+  const bestInterval = 1 / maxRate;
+  return {
+    rate,
+    interval,
+    display: formatBarracksStatNum(interval),
+    pct: barracksCooldownBarPct(interval, bestInterval),
+  };
 }
 
 /** @param {'base'|'max'} scale  base = roster list; max = skill tree page */
@@ -9901,8 +9981,9 @@ function barracksUnitCardStatsHtml(ut, pid, scale = 'base') {
 
   const hp = Math.round(live.hp || 0);
   const dmg = Math.round(live.damage || 0);
-  const atkSpdVal = Number(live.attackRate || 0);
-  const atkSpd = formatBarracksStatNum(atkSpdVal);
+  const asBar = barracksAttackSpeedBar(live.attackRate || 0, caps.maxAtkSpd);
+  const asPot = pot ? barracksAttackSpeedBar(pot.atkSpd, caps.maxAtkSpd) : null;
+  const atkSpd = asBar.display;
   const spd = Math.round(live.speed || 0);
   const rng = Math.round(live.range || 0);
 
@@ -9922,11 +10003,11 @@ function barracksUnitCardStatsHtml(ut, pid, scale = 'base') {
       display: String(dmg),
     },
     {
-      key: 'as', cls: 'is-as', label: 'AS', title: `Attack Speed ${atkSpd}/s`,
-      pct: barracksTempoBarPct(atkSpdVal, caps.maxAtkSpd),
-      potPct: pot ? barracksTempoBarPct(pot.atkSpd, caps.maxAtkSpd) : 0,
-      cur: atkSpdVal,
-      display: atkSpd,
+      key: 'as', cls: 'is-as', label: 'AS', title: `Attack Speed ${atkSpd}s`,
+      pct: asBar.pct,
+      potPct: asPot ? asPot.pct : 0,
+      cur: asBar.interval,
+      display: `${atkSpd}s`,
     },
     {
       key: 'spd', cls: 'is-spd', label: 'SPD', title: `Speed ${spd}`,
@@ -9944,7 +10025,7 @@ function barracksUnitCardStatsHtml(ut, pid, scale = 'base') {
     },
   ];
 
-  let html = `<div class="brk-troop-stats${useMax ? ' is-skill-stats' : ''}" data-brk-unit="${escapeHtml(ut)}" aria-label="Health ${hp}, Attack Damage ${dmg}, Attack Speed ${atkSpd}, Speed ${spd}, Range ${rng}">`;
+  let html = `<div class="brk-troop-stats${useMax ? ' is-skill-stats' : ''}" data-brk-unit="${escapeHtml(ut)}" aria-label="Health ${hp}, Attack Damage ${dmg}, Attack Speed ${atkSpd}s, Speed ${spd}, Range ${rng}">`;
   for (const row of rows) {
     html += `<div class="brk-stat-bar ${row.cls}${useMax ? ' has-over-bar-value' : ''}" data-brk-stat="${row.key}" data-brk-cur="${row.cur}" data-brk-fill-pct="${row.pct}" title="${escapeHtml(row.title)}">`;
     html += `<span class="brk-stat-bar-label">${row.label}</span>`;
@@ -10463,7 +10544,8 @@ function engineersTowerCardStatsHtml(tt) {
   const hp = Math.round(base.hp || 0);
   const dmg = Math.round(engineersTowerDamage(base));
   const atkSpdVal = engineersTowerFireRate(base);
-  const atkSpd = formatBarracksStatNum(atkSpdVal);
+  const asBar = barracksAttackSpeedBar(atkSpdVal, caps.maxAtkSpd);
+  const atkSpd = asBar.display;
   const rngRaw = engineersTowerRange(base);
   const rngDisplay = base.fullBoard ? 'ALL' : String(Math.round(rngRaw));
 
@@ -10481,10 +10563,10 @@ function engineersTowerCardStatsHtml(tt) {
       display: String(dmg),
     },
     {
-      key: 'as', cls: 'is-as', label: 'AS', title: `Fire Rate ${atkSpd}/s`,
-      pct: barracksTempoBarPct(atkSpdVal, caps.maxAtkSpd),
-      cur: atkSpdVal,
-      display: atkSpd,
+      key: 'as', cls: 'is-as', label: 'AS', title: `Attack Speed ${atkSpd}s`,
+      pct: asBar.pct,
+      cur: asBar.interval,
+      display: `${atkSpd}s`,
     },
     {
       key: 'rng', cls: 'is-rng', label: 'RNG', title: base.fullBoard ? 'Full board range' : `Range ${rngDisplay}`,
@@ -10494,7 +10576,7 @@ function engineersTowerCardStatsHtml(tt) {
     },
   ];
 
-  let html = `<div class="brk-troop-stats" data-eng-tower="${escapeHtml(tt)}" aria-label="Health ${hp}, Attack Damage ${dmg}, Fire Rate ${atkSpd}, Range ${rngDisplay}">`;
+  let html = `<div class="brk-troop-stats" data-eng-tower="${escapeHtml(tt)}" aria-label="Health ${hp}, Attack Damage ${dmg}, Attack Speed ${atkSpd}s, Range ${rngDisplay}">`;
   for (const row of rows) {
     html += `<div class="brk-stat-bar ${row.cls}" data-brk-stat="${row.key}" data-brk-cur="${row.cur}" data-brk-fill-pct="${row.pct}" title="${escapeHtml(row.title)}">`;
     html += `<span class="brk-stat-bar-label">${row.label}</span>`;
@@ -12890,7 +12972,7 @@ const CPU_PLAN_LABELS = {
 function freshSurvivalAiBrain() {
   return {
     phase: 'observe',
-    phaseUntil: SURVIVAL_AI_OBSERVE_TIME[survivalDifficulty] || SURVIVAL_AI_OBSERVE_TIME.easy,
+    phaseUntil: SURVIVAL_AI_OBSERVE_TIME[normalizeSurvivalDifficulty(survivalDifficulty)] || SURVIVAL_AI_OBSERVE_TIME.easy,
     plan: null,
     strikeQueue: [],
     strikeComposition: null,
@@ -13037,16 +13119,16 @@ function survivalAiTickStrategyPath(brain, ai, ctx) {
 }
 
 function survivalAiRollPrepTime() {
-  return survivalAiRandRange(SURVIVAL_AI_PREP_TIME[survivalDifficulty] || SURVIVAL_AI_PREP_TIME.easy)
+  return survivalAiRandRange(SURVIVAL_AI_PREP_TIME[normalizeSurvivalDifficulty(survivalDifficulty)] || SURVIVAL_AI_PREP_TIME.easy)
     * SURVIVAL_AI_FORREST_TEMPO;
 }
 
 function survivalAiRollRecoverTime() {
-  return survivalAiRandRange(SURVIVAL_AI_RECOVER_TIME[survivalDifficulty] || SURVIVAL_AI_RECOVER_TIME.easy);
+  return survivalAiRandRange(SURVIVAL_AI_RECOVER_TIME[normalizeSurvivalDifficulty(survivalDifficulty)] || SURVIVAL_AI_RECOVER_TIME.easy);
 }
 
 function survivalAiRollStrikeSize() {
-  const [lo, hi] = SURVIVAL_AI_STRIKE_SIZE[survivalDifficulty] || SURVIVAL_AI_STRIKE_SIZE.easy;
+  const [lo, hi] = SURVIVAL_AI_STRIKE_SIZE[normalizeSurvivalDifficulty(survivalDifficulty)] || SURVIVAL_AI_STRIKE_SIZE.easy;
   return Math.round(lo + Math.random() * (hi - lo));
 }
 
@@ -15560,7 +15642,7 @@ function survivalAiTickPlanner(ai, brain) {
     if (survivalAiInvestSurplus(ai, brain, intel, ctx)) return true;
     if (combatTime >= brain.phaseUntil) {
       brain.phase = 'observe';
-      brain.phaseUntil = combatTime + (SURVIVAL_AI_OBSERVE_TIME[survivalDifficulty] || 12) * (0.35 + rand(0, 0.35));
+      brain.phaseUntil = combatTime + (SURVIVAL_AI_OBSERVE_TIME[normalizeSurvivalDifficulty(survivalDifficulty)] || 12) * (0.35 + rand(0, 0.35));
     }
     return false;
   }
@@ -16847,9 +16929,9 @@ function buildPvpActionFromClick(pos) {
 function tickSurvivalHarvest(pid, type) {
   const p = players[pid];
   if (p.baseHp <= 0) return;
-  let amt = LIVE_ARMY?.isActive()
-    ? LIVE_ARMY.harvestAmount(p, type)
-    : survivalIncomeAmount(pid, type);
+  // Always go through survivalIncomeAmount so Local Game difficulty scales
+  // farm/mint payouts (LIVE_ARMY.harvestAmount alone ignores the AI mult).
+  let amt = survivalIncomeAmount(pid, type);
   if (amt <= 0) return;
   const color = type === 'farm'
     ? (pid === 0 ? '#86efac' : '#4ade80')
@@ -17143,36 +17225,37 @@ function endSurvivalLive() {
 // Counter multipliers: attacker type -> defender type
 const COUNTERS = {
   // Elephant: strong vs Spreaders (immune to shock/knockback), extremely weak vs Wolves.
-  tank:    { tank: 1.0, speed: 0.45, wolf_hunter: 0.85, striker: 1.2,  swordsman: 1.15, farmer: 1.15, sniper: 0.85, bowman: 0.9,  yeti: 0.9,  peka: 0.85, bloop: 1.05, goblin: 1.1,  turret: 1.15, laser: 1.2,  spread: 1.45, missile: 0.95, archer: 1.25, catapult: 1.2,  mint: 1.1,  farm: 1.1,  base: 0.95 },
+  tank:    { tank: 1.0, speed: 0.45, wolf_hunter: 0.85, angel: 1.0, striker: 1.2,  swordsman: 1.15, farmer: 1.15, sniper: 0.85, bowman: 0.9,  yeti: 0.9,  peka: 0.85, bloop: 1.05, goblin: 1.1,  turret: 1.15, laser: 1.2,  spread: 1.45, missile: 0.95, archer: 1.25, catapult: 1.2,  mint: 1.1,  farm: 1.1,  base: 0.95 },
   // Wolf: pack devours Elephants; double damage to Snipers (who can't track them); strong vs most towers.
-  speed:   { tank: 1.45, speed: 1.0, wolf_hunter: 0.35, striker: 1.3,  swordsman: 1.25, farmer: 1.35, sniper: 2.0,  bowman: 1.85, yeti: 1.15, peka: 0.6,  bloop: 1.05, goblin: 1.1,  turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  archer: 0.75, catapult: 1.15, mint: 1.15, farm: 1.15, base: 1.25 },
+  speed:   { tank: 1.45, speed: 1.0, wolf_hunter: 0.35, angel: 1.2, striker: 1.3,  swordsman: 1.25, farmer: 1.35, sniper: 2.0,  bowman: 1.85, yeti: 1.15, peka: 0.6,  bloop: 1.05, goblin: 1.1,  turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  archer: 0.75, catapult: 1.15, mint: 1.15, farm: 1.15, base: 1.25 },
   // Wolf Hunter: assassin specialized to cull wolves; soft into every other fight.
-  wolf_hunter: { tank: 1.35, speed: 2.2, wolf_hunter: 1.0, striker: 0.55, swordsman: 0.6, farmer: 0.7, sniper: 0.55, bowman: 0.6, yeti: 0.45, peka: 0.3, bloop: 0.7, goblin: 0.65, turret: 0.4, laser: 0.35, spread: 0.4, missile: 0.4, archer: 0.4, catapult: 0.4, mint: 0.5, farm: 0.5, base: 0.35 },
+  wolf_hunter: { tank: 1.35, speed: 2.2, wolf_hunter: 1.0, angel: 1.0, striker: 0.55, swordsman: 0.6, farmer: 0.7, sniper: 0.55, bowman: 0.6, yeti: 0.45, peka: 0.3, bloop: 0.7, goblin: 0.65, turret: 0.4, laser: 0.35, spread: 0.4, missile: 0.4, archer: 0.4, catapult: 0.4, mint: 0.5, farm: 0.5, base: 0.35 },
   // Knight: strong vs Wolves and almost every unit/tower; does only 1/4 damage to Elephants; weak vs Sniper and Dragons.
-  striker: { tank: 0.25, speed: 1.35, wolf_hunter: 1.1, striker: 1.0,  swordsman: 1.05, farmer: 1.1,  sniper: 1.2,  bowman: 1.15, yeti: 1.05, peka: 0.65, bloop: 1.15, goblin: 1.2,  turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.2,  farm: 1.2,  base: 1.2 },
+  striker: { tank: 0.25, speed: 1.35, wolf_hunter: 1.1, angel: 1.0, striker: 1.0,  swordsman: 1.05, farmer: 1.1,  sniper: 1.2,  bowman: 1.15, yeti: 1.05, peka: 0.65, bloop: 1.15, goblin: 1.2,  turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.2,  farm: 1.2,  base: 1.2 },
   // Swordsman: polished footsoldier — strong vs Wolves; plate shrugs off arrows (see archer/bowman rows); struggles into Elephant hide.
-  swordsman: { tank: 0.45, speed: 1.3,  wolf_hunter: 1.05, striker: 0.95, swordsman: 1.0, farmer: 1.1,  sniper: 1.15, bowman: 1.2,  yeti: 1.05, peka: 0.7,  bloop: 1.15, goblin: 1.2,  turret: 1.25, laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.15, farm: 1.15, base: 1.15 },
+  swordsman: { tank: 0.45, speed: 1.3,  wolf_hunter: 1.05, angel: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.1,  sniper: 1.15, bowman: 1.2,  yeti: 1.05, peka: 0.7,  bloop: 1.15, goblin: 1.2,  turret: 1.25, laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.15, farm: 1.15, base: 1.15 },
   // Farmer: half-Knight scrap stats — same matchups, a bit softer presence.
-  farmer:  { tank: 0.25, speed: 1.35, wolf_hunter: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.0,  sniper: 1.15, bowman: 1.1,  yeti: 1.0,  peka: 0.6,  bloop: 1.1,  goblin: 2.3, turret: 1.25, laser: 1.0,  spread: 1.05, missile: 0.95, archer: 1.1,  catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.15 },
+  farmer:  { tank: 0.25, speed: 1.35, wolf_hunter: 1.0, angel: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.0,  sniper: 1.15, bowman: 1.1,  yeti: 1.0,  peka: 0.6,  bloop: 1.1,  goblin: 2.3, turret: 1.25, laser: 1.0,  spread: 1.05, missile: 0.95, archer: 1.1,  catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.15 },
   // Sniper: strong with a frontline tank; extremely weak vs Wolves (their hard counter).
-  sniper:  { tank: 1.05, speed: 0.4,  wolf_hunter: 0.95, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.0,  bowman: 1.0,  yeti: 1.25, peka: 1.35, bloop: 0.95, goblin: 0.9,  turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, archer: 0.9,  catapult: 0.95, mint: 1.2,  farm: 1.2,  base: 1.1 },
+  sniper:  { tank: 1.05, speed: 0.4,  wolf_hunter: 0.95, angel: 1.3, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.0,  bowman: 1.0,  yeti: 1.25, peka: 1.35, bloop: 0.95, goblin: 0.9,  turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, archer: 0.9,  catapult: 0.95, mint: 1.2,  farm: 1.2,  base: 1.1 },
   // Archer (troop): mid-range bowmen — softer than Snipers, still fragile to Wolves; arrows deal 1/2 vs Swordsmen plate.
-  bowman:  { tank: 1.1,  speed: 0.45, wolf_hunter: 0.95, striker: 1.2,  swordsman: 0.5, farmer: 1.25, sniper: 0.95, bowman: 1.0,  yeti: 1.2,  peka: 1.25, bloop: 1.0,  goblin: 1.0,  turret: 1.2,  laser: 0.8,  spread: 0.75, missile: 0.9,  archer: 0.95, catapult: 1.0,  mint: 1.15, farm: 1.15, base: 1.05 },
+  bowman:  { tank: 1.1,  speed: 0.45, wolf_hunter: 0.95, angel: 1.2, striker: 1.2,  swordsman: 0.5, farmer: 1.25, sniper: 0.95, bowman: 1.0,  yeti: 1.2,  peka: 1.25, bloop: 1.0,  goblin: 1.0,  turret: 1.2,  laser: 0.8,  spread: 0.75, missile: 0.9,  archer: 0.95, catapult: 1.0,  mint: 1.15, farm: 1.15, base: 1.05 },
   // Yeti: freezing punches punish packs; struggles vs long range and dragons.
-  yeti:    { tank: 1.1,  speed: 1.25, wolf_hunter: 1.05, striker: 1.05, swordsman: 1.05, farmer: 1.1,  sniper: 0.85, bowman: 0.9,  yeti: 1.0,  peka: 0.7,  bloop: 1.1,  goblin: 1.15, turret: 1.15, laser: 0.9,  spread: 1.2,  missile: 1.0,  archer: 0.85, catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.1 },
+  yeti:    { tank: 1.1,  speed: 1.25, wolf_hunter: 1.05, angel: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1,  sniper: 0.85, bowman: 0.9,  yeti: 1.0,  peka: 0.7,  bloop: 1.1,  goblin: 1.15, turret: 1.15, laser: 0.9,  spread: 1.2,  missile: 1.0,  archer: 0.85, catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.1 },
+  angel:    { tank: 1.05, speed: 1.15, wolf_hunter: 0.85, angel: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1, sniper: 0.95, bowman: 1.0, yeti: 1.0, peka: 1.2, bloop: 1.1, goblin: 1.2, turret: 1.15, laser: 0.95, spread: 1.05, missile: 0.95, archer: 0.9, catapult: 1.0, mint: 1.1, farm: 1.1, base: 1.1 },
   // Dragon: weak to Turrets & Snipers; hates Goblins (chases them first). Archer volleys also threaten them.
-  peka:    { tank: 1.15, speed: 0.5,  wolf_hunter: 0.7, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 1.2,  bowman: 1.15, yeti: 1.15, peka: 1.0,  bloop: 0.9,  goblin: 1.5,  turret: 1.35, laser: 1.3,  spread: 0.95, missile: 1.15, archer: 1.2,  catapult: 0.7,  mint: 1.25, farm: 1.25, base: 1.15 },
-  bloop:   { tank: 0.9,  speed: 1.0,  wolf_hunter: 0.85, striker: 0.8,  swordsman: 0.85, farmer: 0.85, sniper: 0.8,  bowman: 0.85, yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 0.95, turret: 1.0,  laser: 0.85, spread: 1.05, missile: 1.05, archer: 1.05, catapult: 1.05, mint: 1.05, farm: 1.05, base: 1.0 },
-  goblin:  { tank: 0.85, speed: 0.9,  wolf_hunter: 0.75, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 0.7,  bowman: 0.75, yeti: 0.8,  peka: 0.55, bloop: 1.0,  goblin: 1.0,  turret: 1.35, laser: 0,    spread: 1.1,  missile: 0.9,  archer: 1.05, catapult: 1.1,  mint: 1.4,  farm: 1.4,  base: 0.4 },
-  turret:  { tank: 0.9,  speed: 0.7,  wolf_hunter: 0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.15, bowman: 1.1,  yeti: 1.05, peka: 1.1,  bloop: 0.85, goblin: 1.1,  turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
-  laser:   { tank: 1.15, speed: 0.5,  wolf_hunter: 0, striker: 0.85, swordsman: 0.88, farmer: 0.9,  sniper: 1.35, bowman: 1.25, yeti: 1.1,  peka: 1.2,  bloop: 1.0,  goblin: 0,    turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
-  spread:  { tank: 0.55, speed: 1.1,  wolf_hunter: 0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.25, bowman: 1.2,  yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 1.15, turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  peka:    { tank: 1.15, speed: 0.5,  wolf_hunter: 0.7, angel: 1.0, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 1.2,  bowman: 1.15, yeti: 1.15, peka: 1.0,  bloop: 0.9,  goblin: 1.5,  turret: 1.35, laser: 1.3,  spread: 0.95, missile: 1.15, archer: 1.2,  catapult: 0.7,  mint: 1.25, farm: 1.25, base: 1.15 },
+  bloop:   { tank: 0.9,  speed: 1.0,  wolf_hunter: 0.85, angel: 1.0, striker: 0.8,  swordsman: 0.85, farmer: 0.85, sniper: 0.8,  bowman: 0.85, yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 0.95, turret: 1.0,  laser: 0.85, spread: 1.05, missile: 1.05, archer: 1.05, catapult: 1.05, mint: 1.05, farm: 1.05, base: 1.0 },
+  goblin:  { tank: 0.85, speed: 0.9,  wolf_hunter: 0.75, angel: 1.0, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 0.7,  bowman: 0.75, yeti: 0.8,  peka: 0.55, bloop: 1.0,  goblin: 1.0,  turret: 1.35, laser: 0,    spread: 1.1,  missile: 0.9,  archer: 1.05, catapult: 1.1,  mint: 1.4,  farm: 1.4,  base: 0.4 },
+  turret:  { tank: 0.9,  speed: 0.7,  wolf_hunter: 0, angel: 1.25, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.15, bowman: 1.1,  yeti: 1.05, peka: 1.1,  bloop: 0.85, goblin: 1.1,  turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  laser:   { tank: 1.15, speed: 0.5,  wolf_hunter: 0, angel: 1.0, striker: 0.85, swordsman: 0.88, farmer: 0.9,  sniper: 1.35, bowman: 1.25, yeti: 1.1,  peka: 1.2,  bloop: 1.0,  goblin: 0,    turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  spread:  { tank: 0.55, speed: 1.1,  wolf_hunter: 0, angel: 1.0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.25, bowman: 1.2,  yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 1.15, turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
   // Missile: targets Dragons first when they are on the field.
-  missile: { tank: 0.85, speed: 1.15, wolf_hunter: 0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.1,  bowman: 1.05, yeti: 1.05, peka: 1.35, bloop: 1.1,  goblin: 1.0,  turret: 0.8,  laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 0.9,  farm: 0.9,  base: 0.4 },
+  missile: { tank: 0.85, speed: 1.15, wolf_hunter: 0, angel: 1.25, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.1,  bowman: 1.05, yeti: 1.05, peka: 1.35, bloop: 1.1,  goblin: 1.0,  turret: 0.8,  laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 0.9,  farm: 0.9,  base: 0.4 },
   // Archer tower: heavy vs ground; 1/2 vs Swordsmen plate; half vs dragons baked in combat.
-  archer:  { tank: 1.35, speed: 1.2,  wolf_hunter: 0, striker: 1.25, swordsman: 0.5, farmer: 1.3,  sniper: 1.15, bowman: 1.2,  yeti: 1.2,  peka: 1.0,  bloop: 1.15, goblin: 1.2,  turret: 0.7,  laser: 0.75, spread: 0.8,  missile: 0.7,  archer: 1.0, catapult: 1.0, mint: 1.0,  farm: 1.0,  base: 0.35 },
+  archer:  { tank: 1.35, speed: 1.2,  wolf_hunter: 0, angel: 1.15, striker: 1.25, swordsman: 0.5, farmer: 1.3,  sniper: 1.15, bowman: 1.2,  yeti: 1.2,  peka: 1.0,  bloop: 1.15, goblin: 1.2,  turret: 0.7,  laser: 0.75, spread: 0.8,  missile: 0.7,  archer: 1.0, catapult: 1.0, mint: 1.0,  farm: 1.0,  base: 0.35 },
   // Catapult: siege vs high-HP ground (elephants/yetis); weak vs fliers/wolves.
-  catapult:{ tank: 1.45, speed: 0.75, wolf_hunter: 0, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.1,  bowman: 1.05, yeti: 1.35, peka: 0.55, bloop: 1.05, goblin: 1.0,  turret: 0.85, laser: 0.9,  spread: 0.9,  missile: 0.85, archer: 0.9,  catapult: 1.0, mint: 1.05, farm: 1.05, base: 0.45 },
+  catapult:{ tank: 1.45, speed: 0.75, wolf_hunter: 0, angel: 0.7, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.1,  bowman: 1.05, yeti: 1.35, peka: 0.55, bloop: 1.05, goblin: 1.0,  turret: 0.85, laser: 0.9,  spread: 0.9,  missile: 0.85, archer: 0.9,  catapult: 1.0, mint: 1.05, farm: 1.05, base: 0.45 },
 };
 
 const BLOOP_BOUNTY_FULL = 1.0; // full bloop cost to killer
@@ -20637,6 +20720,9 @@ function makeCombatUnit(d, ownerId) {
   if (d.type === 'wolf_hunter' || ut.behavior === 'wolf_hunter') {
     initWolfHunterKit(u);
   }
+  if (d.type === 'angel' || ut.behavior === 'angel') {
+    initAngelKit(u);
+  }
   return u;
 }
 
@@ -21494,8 +21580,8 @@ function playerIncomePerSecond(pid) {
   }
   if (isSurvivalLive() && LIVE_ARMY?.isActive()) {
     let rate = survivalIncomeAmount(pid, 'base') / SURVIVAL_INCOME_INTERVAL;
-    rate += countLivingFarms(p) * (LIVE_ARMY.harvestAmount(p, 'farm') / LIVE_ARMY.harvestInterval(p, 'farm'));
-    rate += countLivingMints(p) * (LIVE_ARMY.harvestAmount(p, 'mint') / LIVE_ARMY.harvestInterval(p, 'mint'));
+    rate += countLivingFarms(p) * (survivalIncomeAmount(pid, 'farm') / LIVE_ARMY.harvestInterval(p, 'farm'));
+    rate += countLivingMints(p) * (survivalIncomeAmount(pid, 'mint') / LIVE_ARMY.harvestInterval(p, 'mint'));
     return rate + farmerRate;
   }
   if (isSurvivalLive()) {
@@ -24904,13 +24990,13 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
   const w = sz * 1.7 * sc;
   const h = sz * 1.1 * sc;
 
-  if (type !== 'swordsman' && type !== 'wolf_hunter' && type !== 'yeti') {
+  if (type !== 'swordsman' && type !== 'wolf_hunter' && type !== 'yeti' && type !== 'angel') {
     drawGroundShadow(x, cy, w * 0.5, h * 0.22);
   }
   ctx.save();
   ctx.translate(x, cy);
   const faceAng = facing || 0;
-  if (type === 'swordsman' || type === 'wolf_hunter' || type === 'bowman' || type === 'yeti') {
+  if (type === 'swordsman' || type === 'wolf_hunter' || type === 'bowman' || type === 'yeti' || type === 'angel') {
     // Upright footsoldier / archer art — flip horizontally when facing left so the
     // head stays on top (a full π rotate would draw them upside-down).
     const faceLeft = Math.cos(faceAng) < 0;
@@ -25959,6 +26045,151 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
 
     ctx.restore();
 
+  } else if (type === 'angel') {
+    // Heavenly warrior — wings while airborne; sword chop when grounded.
+    const sc2 = sc * 1.14;
+    const phase = opts.attackPhase || 'idle';
+    const ap = clamp(opts.attackProgress || 0, 0, 1);
+    const airborne = opts.angelAirborne !== false;
+    const wingFlap = Math.sin((opts.wingT || 0) * 10) * (airborne ? 0.22 : 0.06);
+    const robe = '#f8fafc';
+    const robeShade = '#e2e8f0';
+    const gold = '#fbbf24';
+    const goldDeep = '#b45309';
+    const skin = '#f5d0a9';
+    const wing = '#fffbeb';
+    const wingEdge = '#fde68a';
+
+    drawGroundShadow(0, h * 0.48 * sc2, w * (airborne ? 0.28 : 0.38), h * 0.1 * sc2);
+
+    // Wings (behind body)
+    for (const dir of [-1, 1]) {
+      ctx.save();
+      ctx.translate(dir * w * 0.02 * sc2, -h * 0.06 * sc2);
+      ctx.rotate(dir * (0.35 + wingFlap));
+      ctx.fillStyle = wing;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(dir * w * 0.55 * sc2, -h * 0.35 * sc2, dir * w * 0.62 * sc2, h * 0.08 * sc2);
+      ctx.quadraticCurveTo(dir * w * 0.4 * sc2, h * 0.05 * sc2, 0, h * 0.12 * sc2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = wingEdge;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(dir * w * 0.08 * sc2, -h * 0.02 * sc2);
+      ctx.quadraticCurveTo(dir * w * 0.35 * sc2, -h * 0.18 * sc2, dir * w * 0.48 * sc2, h * 0.02 * sc2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Legs
+    ctx.fillStyle = robeShade;
+    for (const dir of [-1, 1]) {
+      roundRect(dir * w * 0.06 * sc2 - w * 0.05 * sc2, h * 0.22 * sc2, w * 0.1 * sc2, h * 0.22 * sc2, 3);
+      ctx.fill();
+    }
+    // Robe torso
+    const robeGrad = ctx.createLinearGradient(0, -h * 0.2 * sc2, 0, h * 0.3 * sc2);
+    robeGrad.addColorStop(0, '#ffffff');
+    robeGrad.addColorStop(0.5, robe);
+    robeGrad.addColorStop(1, robeShade);
+    ctx.fillStyle = robeGrad;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.16 * sc2, h * 0.28 * sc2);
+    ctx.lineTo(-w * 0.2 * sc2, -h * 0.05 * sc2);
+    ctx.quadraticCurveTo(0, -h * 0.12 * sc2, w * 0.2 * sc2, -h * 0.05 * sc2);
+    ctx.lineTo(w * 0.16 * sc2, h * 0.28 * sc2);
+    ctx.closePath();
+    ctx.fill();
+    // Gold sash
+    ctx.fillStyle = gold;
+    roundRect(-w * 0.18 * sc2, h * 0.04 * sc2, w * 0.36 * sc2, h * 0.06 * sc2, 2);
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(0, -h * 0.22 * sc2, w * 0.13 * sc2, 0, Math.PI * 2);
+    ctx.fill();
+    // Hair
+    ctx.fillStyle = '#fcd34d';
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.28 * sc2, w * 0.14 * sc2, h * 0.09 * sc2, 0, Math.PI, 0);
+    ctx.fill();
+    // Halo
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.38 * sc2, w * 0.16 * sc2, h * 0.05 * sc2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.45)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Eyes
+    ctx.fillStyle = '#1e3a5f';
+    ctx.beginPath();
+    ctx.arc(-w * 0.04 * sc2, -h * 0.22 * sc2, 1.4, 0, Math.PI * 2);
+    ctx.arc(w * 0.04 * sc2, -h * 0.22 * sc2, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (airborne) {
+      // Bow held while flying
+      ctx.strokeStyle = goldDeep;
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(w * 0.22 * sc2, 0, w * 0.32 * sc2, -1.1, 1.1);
+      ctx.stroke();
+      ctx.strokeStyle = '#fef3c7';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      const br = w * 0.32 * sc2;
+      const bx = w * 0.22 * sc2;
+      ctx.moveTo(bx + Math.cos(-1.1) * br, Math.sin(-1.1) * br);
+      ctx.lineTo(bx + Math.cos(1.1) * br, Math.sin(1.1) * br);
+      ctx.stroke();
+      if (phase === 'strike' || phase === 'windup') {
+        ctx.strokeStyle = gold;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(bx - 2, 0);
+        ctx.lineTo(bx + br * 0.75, 0);
+        ctx.stroke();
+      }
+    } else {
+      // Ground sword — same chop cadence as swordsman
+      const restAng = 0.2;
+      const raisedAng = -1.4;
+      const choppedAng = 1.12;
+      let swordAng = restAng;
+      if (phase === 'windup') swordAng = restAng + (raisedAng - restAng) * ap;
+      else if (phase === 'strike') swordAng = raisedAng + (choppedAng - raisedAng) * ap;
+      else if (phase === 'recovery') swordAng = choppedAng + (restAng - choppedAng) * ap;
+      ctx.save();
+      ctx.translate(w * 0.12 * sc2, h * 0.02 * sc2);
+      ctx.rotate(swordAng);
+      const bladeLen = w * 0.55 * sc2;
+      ctx.fillStyle = goldDeep;
+      roundRect(-2, -bladeLen * 0.08, 5, bladeLen * 0.16, 1);
+      ctx.fill();
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.moveTo(0, -bladeLen * 0.06);
+      ctx.lineTo(bladeLen, 0);
+      ctx.lineTo(0, bladeLen * 0.06);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(bladeLen * 0.1, 0);
+      ctx.lineTo(bladeLen * 0.9, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+
   } else if (type === 'wolf_hunter') {
     // Upright wolf assassin — wolf-pelt helm with open jaws framing a bearded face
     // (matches portraits/wolf_hunter.webp: grey hide, amber eyes, fang frame, cloak).
@@ -26640,8 +26871,9 @@ function drawUnit(u) {
   const shakeX = u._zombieShakeX || 0;
   const shakeY = u._zombieShakeY || 0;
   const leapLift = u._leapLift || 0;
+  const angelLift = isAngel(u) && unitIsFlying(u) ? 14 + (u.angelAltitude || 1) * 10 : 0;
   const drawX = u.x + shakeX;
-  const drawY = u.y + bob + shakeY - leapLift;
+  const drawY = u.y + bob + shakeY - leapLift - angelLift;
   const inFree = phase === 'free' || gameMode === 'free';
   const frozenSolid = isUnitIceFrozen(u);
   const frostbiteTint = !!u.yetiFrostbite && !frozenSolid;
@@ -26668,13 +26900,15 @@ function drawUnit(u) {
     drawFreeEnemyTank(u);
   } else {
       const spriteType = isWerewolf ? 'speed' : u.type;
-      drawUnitSprite(spriteType, drawX, u.y + shakeY - leapLift, u.facing, sz, {
+      drawUnitSprite(spriteType, drawX, u.y + shakeY - leapLift - angelLift, u.facing, sz, {
         bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id, ownerId: u.owner,
         joustReady: u.joustReady,
         attackPhase: isWerewolf ? 'idle' : (u.attackPhase || 'idle'),
         attackProgress: isWerewolf ? 0 : unitAttackPhaseProgress(u),
         breathAnim: u.breathAnim || 0,
         wolfBreedOverride: isWerewolf ? WOLF_HUNTER_WEREWOLF_BREED : undefined,
+        angelAirborne: isAngel(u) ? unitIsFlying(u) : undefined,
+        wingT: u._wingT || 0,
       });
     }
   }
@@ -26884,9 +27118,284 @@ function sniperIgnoresUnitType(unitType) {
   return unitType === 'speed'; // Wolves move too fast — snipers don't track them.
 }
 
-// Flying dragons soar overhead — only Turrets (and turret pellets) can reach them.
+// Flying units soar overhead — only Turrets (and turret pellets) + snipers/archers can reach them.
+// Angels set u.flying = false after landing to fight as ground troops.
 function unitIsFlying(u) {
-  return (u?.type === 'peka') || (UNIT_TYPES[u?.type]?.flying === true);
+  if (!u) return false;
+  if (u.type === 'angel' || UNIT_TYPES[u.type]?.behavior === 'angel') {
+    return u.flying !== false && u.angelPhase !== 'ground';
+  }
+  if (u.flying === false) return false;
+  if (u.flying === true) return true;
+  return (u.type === 'peka') || (UNIT_TYPES[u?.type]?.flying === true);
+}
+
+function isAngel(u) {
+  return !!u && (u.type === 'angel' || unitDef(u.type, u.owner)?.behavior === 'angel');
+}
+
+const ANGEL_VOLLEY_GAP = 0.38;
+const ANGEL_SWOOP_TIME = 0.55;
+const ANGEL_ARROW_DMG_MULT = 1.35;
+
+function initAngelKit(u) {
+  u.flying = true;
+  u.angelPhase = 'volley'; // volley → swoop → ground
+  u.angelArrowsLeft = 3;
+  u.angelVolleyCd = 0.2;
+  u.angelShotKeys = [];
+  u.angelSwoopT = 0;
+  u.angelAltitude = 1;
+  u.angelSwoopTarget = null;
+}
+
+function angelTargetKey(tgt) {
+  return attackTargetKey(tgt);
+}
+
+/** Prefer units not yet shot, then turrets, then base — all within air range. */
+function findAngelVolleyTarget(angel) {
+  const ut = unitDef(angel.type, angel.owner);
+  const airRange = ut.airRange || 255;
+  const enemy = enemyId(angel.owner);
+  const shot = new Set(angel.angelShotKeys || []);
+  let best = null;
+  let bestScore = -Infinity;
+
+  for (const u of combatUnits) {
+    if (u.owner !== enemy || u.hp <= 0) continue;
+    // Can shoot other flyers (dragons) from the air.
+    const d = dist(angel, u);
+    if (d > airRange) continue;
+    const key = `u:${u.id}`;
+    const already = shot.has(key) ? 1 : 0;
+    const score = (already ? -4000 : 0) + getCounter('angel', u.type) * 100 - d + (unitIsFlying(u) ? 200 : 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = { type: 'unit', obj: u, dist: d };
+    }
+  }
+  const ep = players[enemy];
+  if (ep) {
+    for (const t of ep.turrets) {
+      if (t.hp <= 0) continue;
+      const d = dist(angel, t);
+      if (d > airRange) continue;
+      const key = `t:${t.id}`;
+      const already = shot.has(key) ? 1 : 0;
+      const score = (already ? -4000 : 0) + getCounter('angel', t.towerType) * 80 - d - 80;
+      if (score > bestScore) {
+        bestScore = score;
+        best = { type: 'turret', obj: t, dist: d };
+      }
+    }
+    const bp = basePos(enemy);
+    const bd = dist(angel, bp);
+    if (bd <= airRange + BASE_SIZE / 2) {
+      const key = `b:${enemy}`;
+      const already = shot.has(key) ? 1 : 0;
+      const score = (already ? -4000 : 0) + 40 - bd;
+      if (score > bestScore) {
+        bestScore = score;
+        best = { type: 'base', obj: ep, dist: bd };
+      }
+    }
+  }
+  return best;
+}
+
+function fireAngelArrow(angel, tgt) {
+  const ut = unitDef(angel.type, angel.owner) || UNIT_TYPES.angel;
+  const range = ut.airRange || 255;
+  const maxMiss = 36;
+  let aimX;
+  let aimY;
+  if (tgt.type === 'unit' && tgt.obj && tgt.obj.hp > 0) {
+    const predicted = predictUnitIntercept(angel.x, angel.y - 10, tgt.obj, archerFlightTime);
+    aimX = predicted.x;
+    aimY = predicted.y;
+  } else {
+    const tp = sniperShotTargetPos(tgt);
+    aimX = tp.x;
+    aimY = tp.y;
+  }
+  const aimDist = Math.hypot(aimX - angel.x, aimY - angel.y);
+  const whiff = blizzardWhiffAim(angel.x, angel.y, aimX, aimY, angel);
+  aimX = whiff.x;
+  aimY = whiff.y;
+  angel.facing = Math.atan2(aimY - angel.y, aimX - angel.x);
+  const angle = angel.facing;
+  const muzzle = (ut.size || 22) * 0.55;
+  const ox = angel.x + Math.cos(angle) * muzzle;
+  const oy = angel.y + Math.sin(angle) * muzzle - 10;
+  const rangeFrac = clamp(aimDist / range, 0, 1);
+  const missR = rangeFrac * rangeFrac * maxMiss;
+  const pathWander = rangeFrac * rangeFrac * 0.7;
+  const landX = aimX + rand(-missR, missR);
+  const landY = aimY + rand(-missR, missR);
+  const flightDist = Math.hypot(landX - ox, landY - oy);
+  const maxLife = archerFlightTime(flightDist) * (0.94 + rand(0, 0.08));
+  const perpX = -Math.sin(angle);
+  const perpY = Math.cos(angle);
+  const along = rand(-0.05, 0.05) * flightDist * (0.2 + pathWander);
+  const lateral = rand(-1, 1) * (3 + pathWander * 16);
+  const apex = Math.min(140, 42 + flightDist * (0.26 + pathWander * 0.08));
+  const midX = (ox + landX) * 0.5 + perpX * lateral + Math.cos(angle) * along;
+  const midY = (oy + landY) * 0.5 - apex + perpY * lateral * 0.35;
+  archerArrows.push({
+    id: uid(),
+    sx: ox, sy: oy,
+    cx: midX, cy: midY,
+    tx: landX, ty: landY,
+    x: ox, y: oy,
+    prevX: ox, prevY: oy,
+    life: maxLife,
+    maxLife,
+    ownerId: angel.owner,
+    damage: getUnitDamage(angel) * ANGEL_ARROW_DMG_MULT,
+    counterKey: 'angel',
+    hitStructures: true,
+    color: '#fef9c3',
+    tip: '#fbbf24',
+    elements: [],
+    hangBias: 0.48 + rand(-0.04, 0.05),
+    trail: [],
+    canHitFlyers: true,
+  });
+  spawnParticles(ox, oy, '#fde68a', 4);
+  spawnParticles(ox, oy, '#fffbeb', 3);
+}
+
+function beginAngelSwoop(angel) {
+  angel.angelPhase = 'swoop';
+  angel.angelSwoopT = 0;
+  // Dive toward the densest nearby threat / nearest unit
+  const enemy = enemyId(angel.owner);
+  let best = null;
+  let bestD = Infinity;
+  for (const u of combatUnits) {
+    if (u.owner !== enemy || u.hp <= 0 || unitIsFlying(u)) continue;
+    const d = dist(angel, u);
+    if (d < bestD) {
+      bestD = d;
+      best = u;
+    }
+  }
+  if (best) {
+    angel.angelSwoopTarget = { x: best.x, y: best.y };
+    angel.facing = Math.atan2(best.y - angel.y, best.x - angel.x);
+  } else {
+    const bp = basePos(enemy);
+    angel.angelSwoopTarget = { x: bp.x, y: bp.y };
+    angel.facing = Math.atan2(bp.y - angel.y, bp.x - angel.x);
+  }
+  spawnParticles(angel.x, angel.y, '#fbbf24', 10);
+  spawnFloatText(angel.x, angel.y - 28, '⚔️', '#fde68a');
+}
+
+function landAngel(angel) {
+  angel.angelPhase = 'ground';
+  angel.flying = false;
+  angel.angelAltitude = 0;
+  angel.angelSwoopTarget = null;
+  resetUnitAttackPhase(angel);
+  angel.attackCooldown = 0.15;
+  // Switch to melee reach for ground sword fights.
+  spawnParticles(angel.x, angel.y, '#fef3c7', 12);
+  spawnParticles(angel.x, angel.y, '#fbbf24', 8);
+}
+
+function updateAngelAir(angel, dt) {
+  if (isUnitFullyParalyzed(angel)) {
+    angel.vx *= 0.85;
+    angel.vy *= 0.85;
+    return;
+  }
+
+  const ut = unitDef(angel.type, angel.owner);
+  const airRange = ut.airRange || 255;
+
+  if (angel.angelPhase === 'volley') {
+    angel.angelVolleyCd = Math.max(0, (angel.angelVolleyCd || 0) - dt);
+    angel.angelAirTime = (angel.angelAirTime || 0) + dt;
+
+    // Loiter toward the front line while preparing shots.
+    const tgt = findAngelVolleyTarget(angel);
+    if (tgt) {
+      const tp = attackTargetWorldPos(tgt);
+      if (tp) {
+        const dx = tp.x - angel.x;
+        const dy = tp.y - angel.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const hold = Math.max(110, airRange * 0.55);
+        let spd = (ut.speed || 66) * (d > hold ? 1 : (d < hold * 0.7 ? -0.35 : 0.15));
+        // Slow flying glide
+        spd *= 0.85;
+        angel.vx = (dx / d) * spd;
+        angel.vy = (dy / d) * spd;
+        angel.facing = Math.atan2(dy, dx);
+      }
+    } else {
+      // Advance toward enemy base if nothing in range yet.
+      const bp = basePos(enemyId(angel.owner));
+      const dx = bp.x - angel.x;
+      const dy = bp.y - angel.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const spd = (ut.speed || 66) * 0.9;
+      angel.vx = (dx / d) * spd;
+      angel.vy = (dy / d) * spd;
+      angel.facing = Math.atan2(dy, dx);
+    }
+
+    angel.x = clamp(angel.x + angel.vx * dt, 24, W - 24);
+    angel.y = clamp(angel.y + angel.vy * dt, LAND_TOP + 20, LAND_BOTTOM - 20);
+    angel._wingT = (angel._wingT || 0) + dt;
+    angel.angelAltitude = 0.85 + 0.15 * Math.sin((angel._wingT || 0) * 6);
+
+    if (angel.angelVolleyCd <= 0 && (angel.angelArrowsLeft || 0) > 0) {
+      const shotTgt = findAngelVolleyTarget(angel);
+      if (shotTgt) {
+        const key = angelTargetKey(shotTgt);
+        fireAngelArrow(angel, shotTgt);
+        if (key) angel.angelShotKeys.push(key);
+        angel.angelArrowsLeft -= 1;
+        angel.angelVolleyCd = ANGEL_VOLLEY_GAP;
+        angel.attackPhase = 'strike';
+        angel.attackT = 0;
+      } else if ((angel.angelArrowsLeft || 0) < 3) {
+        // Fired at least once and no more distinct targets — swoop early.
+        beginAngelSwoop(angel);
+      }
+      // else keep flying until a target appears
+    }
+
+    if ((angel.angelArrowsLeft || 0) <= 0) {
+      beginAngelSwoop(angel);
+    } else if ((angel.angelAirTime || 0) > 8) {
+      // No more targets / stall — descend and fight.
+      beginAngelSwoop(angel);
+    }
+    return;
+  }
+
+  if (angel.angelPhase === 'swoop') {
+    angel.angelSwoopT = (angel.angelSwoopT || 0) + dt;
+    const t = clamp(angel.angelSwoopT / ANGEL_SWOOP_TIME, 0, 1);
+    angel.angelAltitude = 1 - t;
+    const dest = angel.angelSwoopTarget || basePos(enemyId(angel.owner));
+    const dx = dest.x - angel.x;
+    const dy = dest.y - angel.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const spd = (ut.speed || 66) * (1.6 + t * 1.4);
+    angel.vx = (dx / d) * spd;
+    angel.vy = (dy / d) * spd;
+    angel.facing = Math.atan2(dy, dx);
+    angel.x = clamp(angel.x + angel.vx * dt, 24, W - 24);
+    angel.y = clamp(angel.y + angel.vy * dt, LAND_TOP + 20, LAND_BOTTOM - 20);
+    if (t >= 1 || d < 28) {
+      landAngel(angel);
+    }
+  }
 }
 
 // Dragons are fireproof — immune to all fire (their own and other dragons').
@@ -28332,14 +28841,14 @@ function findTarget(unit) {
       if (wolfHunterShouldSkipAsUnitTarget(unit, u)) continue;
       // Wolves ignore farmers unless pack-hunting one (handled earlier).
       if (behavior === 'flank' && u.type === 'farmer') continue;
-      // Snipers are the dedicated anti-dragon unit; other ground troops can't hit flyers.
-      if (unitIsFlying(u) && !(behavior === 'sniper' && u.type === 'peka')) continue;
+      // Snipers / Archers are the dedicated anti-air — other ground troops can't hit flyers.
+      if (unitIsFlying(u) && behavior !== 'sniper') continue;
       if (behavior === 'sniper' && sniperIgnoresUnitType(u.type)) continue;
       const d = dist(unit, u);
       if (d <= ut.range) {
         const counter = getCounter(unit.type, u.type);
         let score = counter * 100 - d + (prefersUnits ? 800 : 0);
-        if (behavior === 'sniper' && u.type === 'peka') score += 2500;
+        if (behavior === 'sniper' && unitIsFlying(u)) score += 2500;
         if (score > bestScore) { bestScore = score; best = { type: 'unit', obj: u, dist: d }; }
       }
     }
@@ -29345,6 +29854,7 @@ const UNIT_ATTACK_STANCE = {
   sniper:  { standoff: 150, windup: 0.22, recover: 0.14 },
   bowman:  { standoff: 220, windup: 0.18, recover: 0.12 },
   swordsman: { standoff: 30, windup: 0.32, recover: 0.16, strike: 0.16 },
+  angel:    { standoff: 30, windup: 0.28, recover: 0.14, strike: 0.14 },
   peka:    { standoff: DRAGON_STANDOFF, windup: 0.2, recover: 0.15 },
   bloop:   { standoff: 22, windup: 0.2, recover: 0.14 },
 };
@@ -29694,6 +30204,18 @@ function getUnitAttackDrawPose(type, opts = {}) {
       sy = 0.92;
     } else {
       x = (1 - p) * 3;
+    }
+  } else if (type === 'angel') {
+    if (phase === 'windup') {
+      x = -2 - p * 3;
+      sx = 0.96;
+      sy = 1.04;
+    } else if (phase === 'strike') {
+      x = 3 + p * 6;
+      sx = 1.08;
+      sy = 0.94;
+    } else {
+      x = (1 - p) * 2;
     }
   } else if (type === 'bloop') {
     if (phase === 'windup') {
@@ -31989,6 +32511,12 @@ function updateCombat(dt) {
       continue;
     }
 
+    // Angel — aerial 3-arrow volley, then land and fight with a sword.
+    if (isAngel(u) && u.angelPhase !== 'ground') {
+      updateAngelAir(u, dt);
+      continue;
+    }
+
     // Dragons breathe fire at the closest enemy.
     if (unitDef(u.type, u.owner).behavior === 'dragon' && !isZombieUnit(u)) {
       u.breathCd = (u.breathCd == null ? DRAGON_BREATH_INTERVAL : u.breathCd) - dt;
@@ -32959,7 +33487,7 @@ function barracksClearStatPreviews(root) {
     if (valueEl && bar.dataset.brkCur != null) {
       const label = bar.querySelector('.brk-stat-bar-label')?.textContent || '';
       const cur = Number(bar.dataset.brkCur) || 0;
-      valueEl.textContent = label === 'AS' ? formatBarracksStatNum(cur) : String(Math.round(cur));
+      valueEl.textContent = label === 'AS' ? `${formatBarracksStatNum(cur)}s` : String(Math.round(cur));
     }
   });
 }
@@ -32969,7 +33497,7 @@ function barracksResetStatBarTitles(root) {
     const label = bar.querySelector('.brk-stat-bar-label')?.textContent || '';
     const cur = bar.dataset.brkCur;
     const names = { HP: 'Health', ATK: 'Attack Damage', AS: 'Attack Speed', SPD: 'Speed', RNG: 'Range' };
-    bar.title = `${names[label] || label} ${cur}${label === 'AS' ? '/s' : ''}`;
+    bar.title = `${names[label] || label} ${cur}${label === 'AS' ? 's' : ''}`;
   });
 }
 
@@ -32991,11 +33519,11 @@ function barracksPaintStatPreviewTargets(root, targets) {
     const label = bar.querySelector('.brk-stat-bar-label')?.textContent || t.key;
     if (valueEl) {
       valueEl.textContent = label === 'AS'
-        ? formatBarracksStatNum(t.val)
+        ? `${formatBarracksStatNum(t.val)}s`
         : String(Math.round(t.val));
     }
     if (t.val > cur) {
-      bar.title = `${label} ${label === 'AS' ? formatBarracksStatNum(cur) : Math.round(cur)} → ${label === 'AS' ? formatBarracksStatNum(t.val) : Math.round(t.val)}`;
+      bar.title = `${label} ${label === 'AS' ? `${formatBarracksStatNum(cur)}s` : Math.round(cur)} → ${label === 'AS' ? `${formatBarracksStatNum(t.val)}s` : Math.round(t.val)}`;
     }
   }
 }
@@ -33390,16 +33918,19 @@ function startSurvivalLive(difficulty) {
   survivalSpeed = 1;
   setSurvivalSpeed(1);
   round = 1;
+  // Set difficulty before setup so AI brain / income read the right mode.
+  survivalDifficulty = normalizeSurvivalDifficulty(difficulty);
   resetGame();
-  // Must set after resetGame — reset clears combat state and would wipe this.
-  survivalDifficulty = difficulty || 'easy';
+  // resetGame does not clear difficulty; keep the chosen mode pinned.
+  survivalDifficulty = normalizeSurvivalDifficulty(difficulty);
   setupSurvivalLive();
   closeSurvivalDifficultyScreen();
   document.getElementById('menu-screen').classList.add('hidden');
   const edge = survivalAiBaseIncomeEdge();
+  addLog(`⚔️ Local Game — ${survivalDifficultyModeLabel()} (enemy HQ +${edge}/cycle)`);
   showBanner(
     `Live Battle — ${survivalDifficultyModeLabel()}`,
-      `Faster economy — build quick!\n\n💰 Open Economy to unlock Farm & Mint skill trees\n🏛 Upgrade HQ income, health, and defense guns\n🏕 Build Barracks to unlock units\n\nEnemy base earns +${edge} income on ${survivalDifficultyModeLabel()}.`,
+      `Faster economy — build quick!\n\n💰 Open Economy to unlock Farm & Mint skill trees\n🏛 Upgrade HQ income, health, and defense guns\n🏕 Build Barracks to unlock units\n\nEnemy HQ earns +${edge} each income cycle on ${survivalDifficultyModeLabel()}.`,
     'Fight!'
   );
   } catch (err) {
@@ -33412,12 +33943,13 @@ function startSurvivalLive(difficulty) {
 
 document.getElementById('btn-survival').addEventListener('click', openSurvivalDifficultyScreen);
 document.getElementById('btn-survival-diff-back').addEventListener('click', closeSurvivalDifficultyScreen);
-document.getElementById('survival-difficulty-screen').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-survival-diff]');
-  if (!btn) return;
-  e.preventDefault();
-  e.stopPropagation();
-  startSurvivalLive(btn.dataset.survivalDiff);
+document.querySelectorAll('[data-survival-diff]').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const diff = btn.getAttribute('data-survival-diff');
+    startSurvivalLive(diff);
+  });
 });
 
 document.querySelectorAll('.surv-speed-btn[data-speed]').forEach(btn => {
@@ -34119,10 +34651,37 @@ function resize() {
   syncFullscreenButton();
 }
 
-function isGameFullscreen() {
+function isNativeGameFullscreen() {
   const stage = document.getElementById('game-stage');
   const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
-  return !!(fsEl && (fsEl === stage || stage?.contains(fsEl)));
+  return !!(fsEl && (fsEl === stage || stage?.contains(fsEl) || fsEl === document.documentElement));
+}
+
+function isCssImmersiveFullscreen() {
+  return document.documentElement.classList.contains('immersive-fs');
+}
+
+function isGameFullscreen() {
+  return isNativeGameFullscreen() || isCssImmersiveFullscreen();
+}
+
+function enterCssImmersiveFullscreen() {
+  document.documentElement.classList.add('immersive-fs');
+  document.body.classList.add('immersive-fs');
+  // Nudge mobile browsers to collapse the URL / toolbar chrome.
+  try {
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 1);
+      setTimeout(() => window.scrollTo(0, 0), 50);
+    });
+  } catch (_) { /* ignore */ }
+  if (isMobileLikeViewport()) tryLandscapeOrientationLock();
+}
+
+function exitCssImmersiveFullscreen() {
+  document.documentElement.classList.remove('immersive-fs');
+  document.body.classList.remove('immersive-fs');
 }
 
 function syncFullscreenButton() {
@@ -34135,36 +34694,100 @@ function syncFullscreenButton() {
   btn.classList.toggle('is-fullscreen', on);
 }
 
+async function requestNativeFullscreen(el) {
+  const opts = { navigationUI: 'hide' };
+  if (el.requestFullscreen) return el.requestFullscreen(opts);
+  if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen(opts);
+  if (el.webkitRequestFullScreen) return el.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT || 0);
+  return Promise.reject(new Error('fullscreen unsupported'));
+}
+
+async function exitNativeFullscreen() {
+  if (document.exitFullscreen) return document.exitFullscreen();
+  if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  if (document.webkitCancelFullScreen) return document.webkitCancelFullScreen();
+}
+
 async function toggleGameFullscreen() {
   const stage = document.getElementById('game-stage');
   if (!stage) return;
+  const now = Date.now();
+  if (now - (toggleGameFullscreen._lastAt || 0) < 450) return;
+  toggleGameFullscreen._lastAt = now;
+
   try {
-    if (isGameFullscreen()) {
-      if (document.exitFullscreen) await document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    } else if (stage.requestFullscreen) {
-      await stage.requestFullscreen();
-    } else if (stage.webkitRequestFullscreen) {
-      stage.webkitRequestFullscreen();
+    if (isNativeGameFullscreen()) {
+      await exitNativeFullscreen();
+      exitCssImmersiveFullscreen();
+    } else if (isCssImmersiveFullscreen()) {
+      exitCssImmersiveFullscreen();
+    } else {
+      let entered = false;
+      try {
+        // Prefer the game stage; fall back to the document element.
+        await requestNativeFullscreen(stage);
+        entered = isNativeGameFullscreen();
+        if (!entered) {
+          await requestNativeFullscreen(document.documentElement);
+          entered = isNativeGameFullscreen();
+        }
+      } catch (_) {
+        entered = false;
+      }
+      // iOS Safari / some mobile browsers reject Element fullscreen — use CSS cover.
+      if (!entered) enterCssImmersiveFullscreen();
     }
-  } catch (e) {
-    /* user denied or unsupported */
+  } catch (_) {
+    if (!isGameFullscreen()) enterCssImmersiveFullscreen();
+    else {
+      exitCssImmersiveFullscreen();
+      try { await exitNativeFullscreen(); } catch (_) { /* ignore */ }
+    }
   }
+
   syncFullscreenButton();
-  resize();
+  // Layout after bars expand/collapse (esp. mobile chrome).
+  requestAnimationFrame(() => {
+    resize();
+    setTimeout(resize, 180);
+    setTimeout(resize, 480);
+  });
 }
 
 document.getElementById('fullscreen-btn')?.addEventListener('click', (e) => {
+  e.preventDefault();
   e.stopPropagation();
   toggleGameFullscreen();
 });
+// Prefer touchend on phones so the user-gesture stays alive for fullscreen APIs.
+let _fsTouchArmed = false;
+document.getElementById('fullscreen-btn')?.addEventListener('touchstart', () => {
+  _fsTouchArmed = true;
+}, { passive: true });
+document.getElementById('fullscreen-btn')?.addEventListener('touchend', (e) => {
+  if (!_fsTouchArmed) return;
+  _fsTouchArmed = false;
+  e.preventDefault();
+  e.stopPropagation();
+  toggleGameFullscreen();
+}, { passive: false });
+
 document.addEventListener('fullscreenchange', () => {
+  if (isNativeGameFullscreen()) exitCssImmersiveFullscreen();
   syncFullscreenButton();
   resize();
 });
 document.addEventListener('webkitfullscreenchange', () => {
+  if (isNativeGameFullscreen()) exitCssImmersiveFullscreen();
   syncFullscreenButton();
   resize();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isCssImmersiveFullscreen()) {
+    exitCssImmersiveFullscreen();
+    syncFullscreenButton();
+    resize();
+  }
 });
 
 window.addEventListener('resize', resize);

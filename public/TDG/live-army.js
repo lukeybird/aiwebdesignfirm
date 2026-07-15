@@ -10,14 +10,16 @@ window.LIVE_ARMY = (function () {
 
   const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'archer', 'catapult'];
   const ECON_TOWERS = ['farm', 'mint'];
-  const HERO_UNITS = ['wolf_hunter', 'yeti'];
-  const UNIT_ORDER = ['wolf_hunter', 'tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
+  const HERO_UNITS = ['wolf_hunter', 'angel', 'yeti'];
+  const UNIT_ORDER = ['wolf_hunter', 'angel', 'tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
   const UNIT_LABELS = {
     wolf_hunter: 'Hunter',
+    angel: 'Angel',
     tank: 'Elephant', speed: 'Wolf', striker: 'Knight', swordsman: 'Swordsman', farmer: 'Farmer', sniper: 'Sniper', bowman: 'Archer', goblin: 'Goblin', yeti: 'Yeti', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
     wolf_hunter: 300,
+    angel: 150,
     tank: 100, speed: 150, striker: 100, swordsman: 50, farmer: 200, sniper: 250, bowman: 50, goblin: 125, yeti: 250, peka: 500,
   };
   function isHeroUnit(type) {
@@ -276,6 +278,15 @@ window.LIVE_ARMY = (function () {
       c: { id: 'rime_fists', label: 'Rime Scratch', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-rime-fists.webp' },
       d: { id: 'ice_hide', label: 'Ice Hide', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-ice-hide.webp' },
       fin: { id: 'blizzard_king', label: 'Blizzard King', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-blizzard-king.webp' },
+    }),
+
+    angel: mkStandardBranchTree({
+      a: { id: 'holy_bow', label: 'Holy Bow', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-draw-strength.webp' },
+      b: { id: 'swift_pinions', label: 'Swift Pinions', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-storm-wings.webp' },
+      mid: { id: 'halo_guard', label: 'Halo Guard', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-champion-crest.webp' },
+      c: { id: 'judgement', label: 'Judgement', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-tempered-blade.webp' },
+      d: { id: 'aegis_light', label: 'Aegis Light', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-mirror-shield.webp' },
+      fin: { id: 'seraphim', label: 'Seraphim', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-gallant-crest.webp' },
     }),
 
     peka: mkStandardBranchTree({
@@ -577,6 +588,7 @@ window.LIVE_ARMY = (function () {
     gameRules.towers.laboratory = true;
     gameRules.units.goblin = true;
     gameRules.units.yeti = true;
+    gameRules.units.angel = true;
     gameRules.units.farmer = true;
     gameRules.units.bowman = true;
     gameRules.units.swordsman = true;
