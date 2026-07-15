@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureTdgPvpTables, verifyRoomPlayer } from '@/lib/tdg-pvp';
 import { completeMatch, type TdgMatchEndReason } from '@/lib/tdg-pvp-activity';
+import { verifyWebhookSecret } from '@/lib/tdg-join-ticket';
 
 const VALID_REASONS = new Set<TdgMatchEndReason>(['base_destroyed', 'forfeit', 'disconnect', 'draw']);
 
@@ -11,7 +12,15 @@ export async function POST(request: NextRequest) {
       sessionToken?: string;
       winnerSlot?: number | null;
       endReason?: string;
+      source?: string;
     };
+
+    if (body.source === 'tdg-game-server') {
+      const secret = request.headers.get('x-tdg-webhook-secret');
+      if (!verifyWebhookSecret(secret)) {
+        return NextResponse.json({ error: 'Unauthorized webhook.' }, { status: 401 });
+      }
+    }
 
     const roomId = typeof body.roomId === 'string' ? body.roomId.trim() : '';
     const sessionToken =

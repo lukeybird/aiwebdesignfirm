@@ -15792,6 +15792,7 @@ function setupSurvivalLivePvp(opts) {
   pvpOnline = {
     playerId: myPlayerId,
     isHost: !!isHost || myPlayerId === 0,
+    serverAuth: !!opts.serverAuth,
     roomId,
     sessionToken,
     opponentName,
@@ -16188,7 +16189,13 @@ function applyPvpSnapshot(state) {
 }
 
 function pvpIsHost() {
+  // Under server authority neither client is the source of truth.
+  if (pvpOnline?.serverAuth) return false;
   return !!(isSurvivalPvp() && pvpOnline?.isHost);
+}
+
+function pvpUsesServerAuth() {
+  return !!(isSurvivalPvp() && pvpOnline?.serverAuth);
 }
 
 function pvpRememberAid(aid) {
@@ -16238,6 +16245,7 @@ function pvpFlushHostDelayedActions() {
 }
 
 function pvpBroadcastAuthState(force = false) {
+  if (pvpUsesServerAuth()) return;
   if (!pvpIsHost() || !pvpLock || !pvpOnline) return;
   const now = Date.now();
   if (!force && now - (pvpLock.lastSyncAt || 0) < PVP_SYNC_MS) return;
@@ -16295,6 +16303,15 @@ function pvpSendLocalAction(action) {
 
   if (!pvpRememberAid(aid)) return false;
 
+  if (pvpUsesServerAuth()) {
+    // Predict locally; server tick confirms (duplicate aids are skipped).
+    applyPvpAction(pid, action);
+    pvpLock.pendingLocal.push({ aid, action, t: Date.now(), frame: pvpLock.frame });
+    if (pvpLock.pendingLocal.length > 24) pvpLock.pendingLocal.shift();
+    window.TDG_PVP?.sendAction?.(payload);
+    return true;
+  }
+
   if (pvpIsHost()) {
     // Equalize with guest lag: queue locally, send now so the guest applies on arrival.
     if (!pvpLock.delayedHost) pvpLock.delayedHost = [];
@@ -16319,6 +16336,8 @@ function pvpSendLocalAction(action) {
 
 function pvpTick(rawDt) {
   if (!pvpLock || phase !== 'combat') return;
+  // Server owns the clock — clients only advance on applyServerTick.
+  if (pvpUsesServerAuth()) return;
   pvpFlushHostDelayedActions();
   pvpLock.acc = (pvpLock.acc || 0) + Math.min(rawDt, 0.1);
   let steps = 0;
@@ -16330,6 +16349,56 @@ function pvpTick(rawDt) {
     steps++;
   }
   if (pvpIsHost()) pvpBroadcastAuthState(false);
+}
+
+/**
+ * Authoritative tick from Render game server: ordered inputs + fixed sim step.
+ */
+function applyServerTick(msg) {
+  if (!pvpUsesServerAuth() || !pvpLock || !msg) return;
+  if (msg.phase === 'countdown') return;
+
+  const inputs = Array.isArray(msg.inputs) ? msg.inputs : [];
+  for (const item of inputs) {
+    if (!item || !item.action) continue;
+    const aid = item.aid;
+    const slot = item.slot;
+    if (slot !== 0 && slot !== 1) continue;
+
+    // Already predicted locally — mark confirmed and skip re-apply.
+    if (aid && pvpLock.seenActionIds.has(aid)) {
+      if (pvpLock.pendingLocal?.length) {
+        pvpLock.pendingLocal = pvpLock.pendingLocal.filter((p) => p.aid !== aid);
+      }
+      continue;
+    }
+    if (aid) pvpRememberAid(aid);
+    applyPvpAction(slot, item.action);
+  }
+
+  if (msg.phase === 'combat' || (msg.phase === 'gameover' && phase === 'combat')) {
+    updateSurvivalLive(PVP_FIXED_DT);
+    updateCombat(PVP_FIXED_DT);
+  }
+
+  if (Number.isFinite(msg.frame)) {
+    pvpLock.frame = Math.max(pvpLock.frame, msg.frame);
+  }
+
+  if (msg.matchOver && phase !== 'gameover') {
+    const winnerSlot = msg.matchOver.winnerSlot;
+    if (winnerSlot === 0 || winnerSlot === 1) {
+      const loser = winnerSlot === 0 ? 1 : 0;
+      if (players[loser]) players[loser].baseHp = 0;
+    }
+    endSurvivalLive();
+    if (window.TDG_PVP?.notifyGameOver) {
+      window.TDG_PVP.notifyGameOver({
+        winnerSlot: msg.matchOver.winnerSlot,
+        endReason: msg.matchOver.endReason || 'base_destroyed',
+      });
+    }
+  }
 }
 
 function applyPvpAction(fromPlayerId, action) {
@@ -33610,6 +33679,7 @@ window.__TDG = {
   applyPvpSnapshot,
   applyAuthoritativeState,
   applyPvpRemoteAction,
+  applyServerTick,
   isSurvivalPvp,
 };
 

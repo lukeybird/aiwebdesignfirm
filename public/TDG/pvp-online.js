@@ -4,10 +4,15 @@
   let pusher = null;
   let playerChannel = null;
   let roomChannel = null;
+  let gameSocket = null;
   let session = null;
   let heartbeatTimer = null;
   let disconnecting = false;
+  let gameWsUrl = null;
+  let serverAuthEnabled = false;
+  let socketReady = false;
   const HEARTBEAT_INTERVAL_MS = 10000;
+  const pendingSocketMessages = [];
 
   function $(id) {
     return document.getElementById(id);
@@ -90,6 +95,7 @@
     if (disconnecting) return;
     stopHeartbeat();
     disconnectChannels();
+    closeGameSocket();
     clearSession();
     hideOnlineScreens();
     show($('menu-screen'));
@@ -124,6 +130,8 @@
     if (pusher) return pusher;
     const config = await fetchJson('/api/tdg-pvp/config');
     if (!window.Pusher) throw new Error('Pusher failed to load');
+    gameWsUrl = config.gameWsUrl || null;
+    serverAuthEnabled = Boolean(config.serverAuth && config.gameWsUrl);
     pusher = new window.Pusher(config.key, { cluster: config.cluster });
     return pusher;
   }
@@ -139,6 +147,142 @@
       pusher?.unsubscribe(roomChannel.name);
       roomChannel = null;
     }
+  }
+
+  function closeGameSocket() {
+    socketReady = false;
+    pendingSocketMessages.length = 0;
+    if (gameSocket) {
+      try {
+        gameSocket.onopen = null;
+        gameSocket.onmessage = null;
+        gameSocket.onclose = null;
+        gameSocket.onerror = null;
+        if (gameSocket.readyState === WebSocket.OPEN || gameSocket.readyState === WebSocket.CONNECTING) {
+          gameSocket.close();
+        }
+      } catch {
+        // ignore
+      }
+      gameSocket = null;
+    }
+  }
+
+  function socketSend(obj) {
+    if (!gameSocket || gameSocket.readyState !== WebSocket.OPEN) {
+      pendingSocketMessages.push(obj);
+      return;
+    }
+    gameSocket.send(JSON.stringify(obj));
+  }
+
+  function flushPendingSocketMessages() {
+    while (pendingSocketMessages.length && gameSocket?.readyState === WebSocket.OPEN) {
+      const msg = pendingSocketMessages.shift();
+      gameSocket.send(JSON.stringify(msg));
+    }
+  }
+
+  function handleGameSocketMessage(msg) {
+    if (!msg || typeof msg !== 'object') return;
+
+    if (msg.type === 'joined') {
+      socketReady = true;
+      return;
+    }
+
+    if (msg.type === 'match_ready') {
+      // Countdown already scheduled from matchmaking; sync startsAt if provided.
+      if (session && msg.startsAt) {
+        session.startsAt = msg.startsAt;
+        saveSession(session);
+      }
+      return;
+    }
+
+    if (msg.type === 'tick') {
+      window.__TDG?.applyServerTick?.(msg);
+      return;
+    }
+
+    if (msg.type === 'forfeit') {
+      if (!window.__TDG?.isSurvivalPvp?.()) return;
+      const snap = window.__TDG.getPvpSnapshot?.();
+      const loser = msg.from;
+      if (snap?.players?.[loser]) snap.players[loser].baseHp = 0;
+      if (snap) window.__TDG.applyPvpSnapshot?.(snap);
+      return;
+    }
+
+    if (msg.type === 'peer_disconnect') {
+      // Soft notice; server grace timer handles forfeit.
+      return;
+    }
+
+    if (msg.type === 'error') {
+      console.warn('TDG game server error:', msg.error);
+    }
+  }
+
+  function connectGameSocket(match) {
+    closeGameSocket();
+    if (!gameWsUrl) return Promise.reject(new Error('Game server URL not configured'));
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const ws = new WebSocket(gameWsUrl);
+      gameSocket = ws;
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error('Game server connection timed out'));
+        closeGameSocket();
+      }, 12000);
+
+      ws.onopen = () => {
+        socketSend({
+          type: 'join',
+          ticket: match.joinTicket || undefined,
+          roomId: match.roomId,
+          sessionToken: match.sessionToken,
+        });
+        flushPendingSocketMessages();
+      };
+
+      ws.onmessage = (ev) => {
+        const msg = (() => {
+          try {
+            return JSON.parse(ev.data);
+          } catch {
+            return null;
+          }
+        })();
+        if (msg?.type === 'joined' && !settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve();
+        }
+        handleGameSocketMessage(msg);
+      };
+
+      ws.onerror = () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          reject(new Error('Game server connection failed'));
+        }
+      };
+
+      ws.onclose = () => {
+        socketReady = false;
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          reject(new Error('Game server disconnected'));
+        }
+      };
+    });
   }
 
   function showNameScreen() {
@@ -219,10 +363,10 @@
   }
 
   function subscribeToRoomChannel(roomId) {
+    // Legacy Pusher room path (fallback when game WS is not configured).
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
       if (!window.__TDG?.isSurvivalPvp?.()) return;
-      // Host is the single source of truth — clients snap to this state.
       if (session?.isHost || session?.playerId === 0) return;
       window.__TDG.applyAuthoritativeState?.(payload.state);
     });
@@ -239,15 +383,26 @@
     });
   }
 
-  function startOnlineMatch(match) {
+  async function startOnlineMatch(match) {
     const myId = match.playerId;
     const p0 = myId === 0 ? match.playerName : match.opponentName;
     const p1 = myId === 1 ? match.playerName : match.opponentName;
+    const useServerAuth = Boolean(match.serverAuth && match.joinTicket && gameWsUrl);
 
     hideOnlineScreens();
     hide($('menu-screen'));
 
-    subscribeToRoomChannel(match.roomId);
+    if (useServerAuth) {
+      try {
+        await connectGameSocket(match);
+      } catch (err) {
+        console.warn('Game WS failed, falling back to Pusher room sync', err);
+        subscribeToRoomChannel(match.roomId);
+        match.serverAuth = false;
+      }
+    } else {
+      subscribeToRoomChannel(match.roomId);
+    }
 
     const startsAt = match.startsAt || Date.now() + 4000;
     runCountdown(startsAt, () => {
@@ -260,6 +415,7 @@
         sessionToken: match.sessionToken,
         opponentName: match.opponentName,
         startsAt,
+        serverAuth: Boolean(match.serverAuth && gameSocket),
       });
     });
   }
@@ -274,6 +430,8 @@
       isHost: data.isHost,
       playerName: session?.playerName || data.playerName,
       startsAt: data.startsAt || Date.now() + 4000,
+      joinTicket: data.joinTicket || session?.joinTicket || null,
+      serverAuth: data.serverAuth ?? Boolean(data.joinTicket),
     };
     saveSession(match);
     showMatchScreen(match.playerName, match.opponentName);
@@ -300,6 +458,8 @@
       isHost: result.isHost,
       status: result.status,
       startsAt: result.startsAt,
+      joinTicket: result.joinTicket || null,
+      serverAuth: result.serverAuth || false,
     });
 
     await ensurePusher();
@@ -339,6 +499,20 @@
 
   async function sendAction(action) {
     if (!session?.roomId || !session?.sessionToken) return;
+
+    // Preferred path: authoritative game WebSocket
+    if (gameSocket && (socketReady || gameSocket.readyState === WebSocket.OPEN)) {
+      const aid = action?.aid;
+      const nested = action?.action && action.action.type ? action.action : action;
+      socketSend({
+        type: 'input',
+        aid: aid || nested?.__aid || `${session.playerId}-${Date.now()}`,
+        action: nested?.type ? nested : action,
+      });
+      return;
+    }
+
+    // Legacy HTTP → Pusher path
     const body = JSON.stringify({
       roomId: session.roomId,
       sessionToken: session.sessionToken,
@@ -357,6 +531,8 @@
   }
 
   async function sendState(state) {
+    // Host snapshots are unused under server authority.
+    if (session?.serverAuth && gameSocket) return;
     if (!session?.roomId || !session?.sessionToken) return;
     if (!(session.isHost || session.playerId === 0)) return;
     const body = JSON.stringify({
@@ -386,6 +562,18 @@
     const endReason =
       outcome?.endReason === 'draw' || winnerSlot === null ? 'draw' : 'base_destroyed';
 
+    if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
+      socketSend({
+        type: 'checksum',
+        report: {
+          phase: 'gameover',
+          winnerSlot,
+          endReason,
+          baseHp: outcome?.baseHp,
+        },
+      });
+    }
+
     try {
       await fetchJson('/api/tdg-pvp/match-complete', {
         method: 'POST',
@@ -413,6 +601,7 @@
       }).catch(() => {});
     }
     disconnectChannels();
+    closeGameSocket();
     clearSession();
     pusher?.disconnect();
     pusher = null;
@@ -420,6 +609,9 @@
 
   async function forfeitMatch() {
     if (!session?.roomId || !session?.sessionToken) return;
+    if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
+      socketSend({ type: 'forfeit' });
+    }
     try {
       await fetchJson('/api/tdg-pvp/forfeit', {
         method: 'POST',
@@ -477,6 +669,7 @@
     cleanup,
     leaveQueue,
     forfeitMatch,
+    usesServerAuth: () => Boolean(session?.serverAuth && gameSocket),
   };
 
   bindUi();

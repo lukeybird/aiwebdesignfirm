@@ -10,6 +10,7 @@ import {
   touchQueueSession,
 } from '@/lib/tdg-pvp';
 import { recordMatchStart } from '@/lib/tdg-pvp-activity';
+import { mintTdgJoinTicket } from '@/lib/tdg-join-ticket';
 import { sql } from '@/lib/db';
 
 function makeToken() {
@@ -51,6 +52,19 @@ async function tryResumeExistingSession(existingToken: string) {
     await touchQueueSession(existingToken);
     if (opponent?.session_token) await touchQueueSession(opponent.session_token);
 
+    const startsAt = Date.now() + 4500;
+    const joinTicket =
+      row.room_id && (row.player_slot === 0 || row.player_slot === 1)
+        ? mintTdgJoinTicket({
+            roomId: row.room_id,
+            sessionToken: row.session_token,
+            playerSlot: row.player_slot as 0 | 1,
+            playerName: row.player_name,
+            opponentName: row.opponent_name || undefined,
+            startsAt,
+          })
+        : null;
+
     return NextResponse.json({
       status: 'matched',
       sessionToken: row.session_token,
@@ -59,6 +73,9 @@ async function tryResumeExistingSession(existingToken: string) {
       opponentName: row.opponent_name,
       isHost: row.player_slot === 0,
       playerName: row.player_name,
+      startsAt,
+      joinTicket,
+      serverAuth: Boolean(joinTicket),
     });
   }
 
@@ -138,18 +155,39 @@ export async function POST(request: NextRequest) {
           startsAt: Date.now() + 4500,
         };
 
+        const hostTicket = mintTdgJoinTicket({
+          roomId,
+          sessionToken: partner.session_token,
+          playerSlot: 0,
+          playerName: partner.player_name,
+          opponentName: name,
+          startsAt: matchPayload.startsAt,
+        });
+        const guestTicket = mintTdgJoinTicket({
+          roomId,
+          sessionToken,
+          playerSlot: 1,
+          playerName: name,
+          opponentName: partner.player_name,
+          startsAt: matchPayload.startsAt,
+        });
+
         await Promise.all([
           safeTrigger(`tdg-player-${partner.session_token}`, 'match_found', {
             ...matchPayload,
             playerId: 0,
             opponentName: name,
             isHost: true,
+            joinTicket: hostTicket,
+            serverAuth: Boolean(hostTicket),
           }),
           safeTrigger(`tdg-player-${sessionToken}`, 'match_found', {
             ...matchPayload,
             playerId: 1,
             opponentName: partner.player_name,
             isHost: false,
+            joinTicket: guestTicket,
+            serverAuth: Boolean(guestTicket),
           }),
         ]);
 
@@ -162,6 +200,8 @@ export async function POST(request: NextRequest) {
           isHost: false,
           playerName: name,
           startsAt: matchPayload.startsAt,
+          joinTicket: guestTicket,
+          serverAuth: Boolean(guestTicket),
         });
       }
     }

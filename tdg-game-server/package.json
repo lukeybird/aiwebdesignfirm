@@ -1,0 +1,18 @@
+{
+  "name": "tdg-game-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Authoritative WebSocket game server for TDG online PvP",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.16.0",
+    "ws": "^8.18.3"
+  }
+}
