@@ -173,6 +173,7 @@ async function handleMessage(ws, msg) {
           playerName: claims.playerName,
           startsAt: room.match.startsAt,
           serverAuth: true,
+          authoritySlot: room.match.authoritySlot,
         }),
       );
 
@@ -183,6 +184,7 @@ async function handleMessage(ws, msg) {
           startsAt: room.match.startsAt,
           players: room.match.players.map((p) => ({ name: p.name })),
           serverAuth: true,
+          authoritySlot: room.match.authoritySlot,
         });
         room.startTicking((r, result) => {
           void postMatchComplete(r, result);
@@ -206,6 +208,27 @@ async function handleMessage(ws, msg) {
       return;
     }
 
+    case 'state': {
+      const room = rooms.get(ws.__tdgRoomId);
+      if (!room) {
+        ws.send(JSON.stringify({ type: 'error', error: 'Not in a room' }));
+        return;
+      }
+      const result = room.match.acceptWorldState(ws.__tdgSlot, msg.state);
+      if (!result.ok) {
+        if (!result.soft) {
+          ws.send(JSON.stringify({ type: 'error', error: result.error }));
+        }
+        return;
+      }
+      room.broadcast(result.world);
+      if (result.world.matchOver && !room.matchCompletePosted) {
+        room.matchCompletePosted = true;
+        void postMatchComplete(room, result.world.matchOver);
+      }
+      return;
+    }
+
     case 'forfeit': {
       const room = rooms.get(ws.__tdgRoomId);
       if (!room) return;
@@ -218,7 +241,6 @@ async function handleMessage(ws, msg) {
           endReason: result.endReason,
           t: Date.now(),
         });
-        // Next tick will emit matchOver; force a step message immediately.
         const tick = room.match.step();
         room.broadcast(tick);
         if (tick.matchOver && !room.matchCompletePosted) {
@@ -232,7 +254,23 @@ async function handleMessage(ws, msg) {
     case 'checksum': {
       const room = rooms.get(ws.__tdgRoomId);
       if (!room) return;
-      room.match.reportChecksum(ws.__tdgSlot, msg.report || msg);
+      const ended = room.match.reportChecksum(ws.__tdgSlot, msg.report || msg);
+      if (ended) {
+        room.broadcast({
+          type: 'tick',
+          roomId: room.roomId,
+          frame: room.match.frame,
+          phase: 'gameover',
+          dt: 0,
+          inputs: [],
+          matchOver: ended,
+          t: Date.now(),
+        });
+        if (!room.matchCompletePosted) {
+          room.matchCompletePosted = true;
+          void postMatchComplete(room, ended);
+        }
+      }
       return;
     }
 

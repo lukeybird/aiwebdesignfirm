@@ -188,6 +188,10 @@
 
     if (msg.type === 'joined') {
       socketReady = true;
+      if (session && (msg.authoritySlot === 0 || msg.authoritySlot === 1)) {
+        session.authoritySlot = msg.authoritySlot;
+        saveSession(session);
+      }
       return;
     }
 
@@ -195,6 +199,9 @@
       // Countdown already scheduled from matchmaking; sync startsAt if provided.
       if (session && msg.startsAt) {
         session.startsAt = msg.startsAt;
+        if (msg.authoritySlot === 0 || msg.authoritySlot === 1) {
+          session.authoritySlot = msg.authoritySlot;
+        }
         saveSession(session);
       }
       return;
@@ -202,6 +209,11 @@
 
     if (msg.type === 'tick') {
       window.__TDG?.applyServerTick?.(msg);
+      return;
+    }
+
+    if (msg.type === 'world') {
+      window.__TDG?.applyServerWorld?.(msg);
       return;
     }
 
@@ -416,6 +428,7 @@
         opponentName: match.opponentName,
         startsAt,
         serverAuth: Boolean(match.serverAuth && gameSocket),
+        authoritySlot: match.authoritySlot === 1 ? 1 : 0,
       });
     });
   }
@@ -432,6 +445,7 @@
       startsAt: data.startsAt || Date.now() + 4000,
       joinTicket: data.joinTicket || session?.joinTicket || null,
       serverAuth: data.serverAuth ?? Boolean(data.joinTicket),
+      authoritySlot: data.authoritySlot === 1 ? 1 : 0,
     };
     saveSession(match);
     showMatchScreen(match.playerName, match.opponentName);
@@ -460,6 +474,7 @@
       startsAt: result.startsAt,
       joinTicket: result.joinTicket || null,
       serverAuth: result.serverAuth || false,
+      authoritySlot: result.authoritySlot === 1 ? 1 : 0,
     });
 
     await ensurePusher();
@@ -531,9 +546,16 @@
   }
 
   async function sendState(state) {
-    // Host snapshots are unused under server authority.
-    if (session?.serverAuth && gameSocket) return;
     if (!session?.roomId || !session?.sessionToken) return;
+
+    // Server-auth: designated authority publishes full world via WebSocket.
+    if (session.serverAuth && gameSocket) {
+      const authSlot = session.authoritySlot === 1 ? 1 : 0;
+      if (session.playerId !== authSlot) return;
+      socketSend({ type: 'state', state });
+      return;
+    }
+
     if (!(session.isHost || session.playerId === 0)) return;
     const body = JSON.stringify({
       roomId: session.roomId,

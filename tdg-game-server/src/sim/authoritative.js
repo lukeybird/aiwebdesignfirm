@@ -18,7 +18,9 @@ const MAX_INPUT_QUEUE = 64;
 const SNAPSHOT_EVERY_TICKS = 3;
 const DISCONNECT_GRACE_MS = 12_000;
 const INPUT_RATE_WINDOW_MS = 1000;
-const INPUT_RATE_LIMIT = 40;
+const INPUT_RATE_LIMIT = 60;
+const WORLD_MIN_INTERVAL_MS = 120;
+const AUTHORITY_SLOT = 0;
 
 function freshPlayer(name) {
   return {
@@ -49,6 +51,59 @@ class AuthoritativeMatch {
     this.inputRates = [{ ts: [], }, { ts: [], }];
     this.disconnectDeadlines = [null, null];
     this.connected = [false, false];
+    this.authoritySlot = AUTHORITY_SLOT;
+    this.lastWorldAt = 0;
+    this.lastWorldState = null;
+  }
+
+  /**
+   * Accept a full world snapshot from the designated authority client.
+   * Relay becomes absolute truth for both browsers.
+   */
+  acceptWorldState(slot, state) {
+    if (this.phase === 'gameover') return { ok: false, error: 'Match over' };
+    if (slot !== this.authoritySlot) return { ok: false, error: 'Not authority' };
+    if (!state || typeof state !== 'object' || !Array.isArray(state.players)) {
+      return { ok: false, error: 'Invalid world state' };
+    }
+    const now = Date.now();
+    if (now - this.lastWorldAt < WORLD_MIN_INTERVAL_MS) {
+      return { ok: false, error: 'World rate limited', soft: true };
+    }
+    this.lastWorldAt = now;
+    this.lastWorldState = state;
+
+    // Mirror HP for match-end detection on the server.
+    for (let i = 0; i < 2; i++) {
+      const src = state.players[i];
+      if (!src) continue;
+      if (Number.isFinite(src.baseHp)) this.players[i].baseHp = src.baseHp;
+      if (Number.isFinite(src.baseMaxHp)) this.players[i].baseMaxHp = src.baseMaxHp;
+      if (Number.isFinite(src.coins)) this.players[i].coins = src.coins;
+    }
+
+    const hp0 = this.players[0].baseHp;
+    const hp1 = this.players[1].baseHp;
+    if (this.phase === 'combat' && (hp0 <= 0 || hp1 <= 0)) {
+      if (hp0 <= 0 && hp1 <= 0) this.endMatch(null, 'draw');
+      else if (hp0 <= 0) this.endMatch(1, 'base_destroyed');
+      else this.endMatch(0, 'base_destroyed');
+    }
+
+    return {
+      ok: true,
+      world: {
+        type: 'world',
+        roomId: this.roomId,
+        frame: Number.isFinite(state.frame) ? state.frame : this.frame,
+        from: slot,
+        state,
+        matchOver: this.phase === 'gameover'
+          ? { winnerSlot: this.winnerSlot, endReason: this.endReason }
+          : undefined,
+        t: now,
+      },
+    };
   }
 
   setConnected(slot, connected) {
@@ -177,12 +232,6 @@ class AuthoritativeMatch {
 
     this.lastTickAt = now;
 
-    const includeSnapshot =
-      this.phase !== 'countdown' &&
-      (this.frame % SNAPSHOT_EVERY_TICKS === 0 ||
-        this.phase === 'gameover' ||
-        batch.length > 0);
-
     const msg = {
       type: 'tick',
       roomId: this.roomId,
@@ -190,10 +239,15 @@ class AuthoritativeMatch {
       phase: this.phase,
       dt: FIXED_DT,
       inputs: batch,
+      authoritySlot: this.authoritySlot,
       t: now,
     };
 
-    if (includeSnapshot) {
+    // Lightweight HP snapshot (not full world — clients get full world from authority).
+    if (
+      this.phase === 'combat' &&
+      (this.frame % SNAPSHOT_EVERY_TICKS === 0 || batch.length > 0)
+    ) {
       msg.snapshot = this.getSnapshot();
     }
 
@@ -214,6 +268,7 @@ class AuthoritativeMatch {
       confirmedAids: this.recentAids.slice(-24),
       hostSentAt: Date.now(),
       serverAuth: true,
+      authoritySlot: this.authoritySlot,
       players: this.players.map((p) => ({
         name: p.name,
         coins: p.coins,
@@ -225,21 +280,23 @@ class AuthoritativeMatch {
     };
   }
 
-  /** Clients report local visual baseHp for soft server awareness (non-authoritative). */
+  /** Clients report match outcomes; authority world already handles baseHp. */
   reportChecksum(slot, report) {
-    if (slot !== 0 && slot !== 1) return;
-    if (!report || typeof report !== 'object') return;
-    if (Number.isFinite(report.baseHp)) {
-      // Only accept decreases toward 0 from clients if both agree — skip; outcomes via forfeit/disconnect.
-    }
+    if (slot !== 0 && slot !== 1) return null;
+    if (!report || typeof report !== 'object') return null;
     if (report.phase === 'gameover' && (report.winnerSlot === 0 || report.winnerSlot === 1 || report.winnerSlot === null)) {
       if (this.phase !== 'gameover') {
         this.endMatch(
           report.winnerSlot === 0 || report.winnerSlot === 1 ? report.winnerSlot : null,
           report.endReason === 'draw' ? 'draw' : 'base_destroyed',
         );
+        return {
+          winnerSlot: this.winnerSlot,
+          endReason: this.endReason,
+        };
       }
     }
+    return null;
   }
 }
 
@@ -248,4 +305,5 @@ module.exports = {
   FIXED_DT,
   TICK_MS,
   DISCONNECT_GRACE_MS,
+  AUTHORITY_SLOT,
 };

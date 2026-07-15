@@ -8673,7 +8673,7 @@ let pvpOnline = null;
 // get an instant-reaction advantage over the guest's network lag.
 const PVP_FIXED_DT = 1 / 15;
 const PVP_FRAME_MS = PVP_FIXED_DT * 1000;
-const PVP_SYNC_MS = 180; // host → clients authoritative correction cadence
+const PVP_SYNC_MS = 150; // authority → server → peers full-world correction
 const PVP_MAX_STEPS_PER_TICK = 6;
 const PVP_RECENT_AIDS = 48;
 const PVP_HOST_DELAY_FLOOR_MS = 120;
@@ -15793,6 +15793,7 @@ function setupSurvivalLivePvp(opts) {
     playerId: myPlayerId,
     isHost: !!isHost || myPlayerId === 0,
     serverAuth: !!opts.serverAuth,
+    authoritySlot: opts.authoritySlot === 1 ? 1 : 0,
     roomId,
     sessionToken,
     opponentName,
@@ -16189,13 +16190,77 @@ function applyPvpSnapshot(state) {
 }
 
 function pvpIsHost() {
-  // Under server authority neither client is the source of truth.
+  // Under server authority neither client is the old peer-host.
   if (pvpOnline?.serverAuth) return false;
   return !!(isSurvivalPvp() && pvpOnline?.isHost);
 }
 
 function pvpUsesServerAuth() {
   return !!(isSurvivalPvp() && pvpOnline?.serverAuth);
+}
+
+/** Designated sim publisher (usually slot 0) — world snapshots are absolute truth. */
+function pvpIsStateAuthority() {
+  if (!pvpUsesServerAuth() || !pvpOnline) return false;
+  const auth = pvpOnline.authoritySlot === 1 ? 1 : 0;
+  return getLocalPlayerId() === auth;
+}
+
+function pvpCheckMatchEndFromHp() {
+  if (!isSurvivalPvp() || phase === 'gameover') return false;
+  const hp0 = players[0]?.baseHp ?? 1;
+  const hp1 = players[1]?.baseHp ?? 1;
+  if (hp0 > 0 && hp1 > 0) return false;
+
+  let winnerSlot = null;
+  let endReason = 'draw';
+  if (hp0 <= 0 && hp1 <= 0) {
+    winnerSlot = null;
+    endReason = 'draw';
+  } else if (hp0 <= 0) {
+    winnerSlot = 1;
+    endReason = 'base_destroyed';
+  } else {
+    winnerSlot = 0;
+    endReason = 'base_destroyed';
+  }
+
+  // Push final world so the peer snaps to the same dead base before end UI.
+  if (pvpIsStateAuthority()) pvpPublishWorldState(true);
+
+  endSurvivalLive();
+  if (window.TDG_PVP?.notifyGameOver) {
+    window.TDG_PVP.notifyGameOver({ winnerSlot, endReason });
+  }
+  return true;
+}
+
+function pvpApplyMatchOver(matchOver) {
+  if (!matchOver || phase === 'gameover') return;
+  const winnerSlot = matchOver.winnerSlot;
+  if (winnerSlot === 0 || winnerSlot === 1) {
+    const loser = winnerSlot === 0 ? 1 : 0;
+    if (players[loser]) players[loser].baseHp = 0;
+  } else if (matchOver.endReason === 'draw') {
+    if (players[0]) players[0].baseHp = 0;
+    if (players[1]) players[1].baseHp = 0;
+  }
+  endSurvivalLive();
+  if (window.TDG_PVP?.notifyGameOver) {
+    window.TDG_PVP.notifyGameOver({
+      winnerSlot: matchOver.winnerSlot,
+      endReason: matchOver.endReason || 'base_destroyed',
+    });
+  }
+}
+
+function pvpPublishWorldState(force = false) {
+  if (!pvpIsStateAuthority() || !pvpLock || phase === 'gameover') return;
+  const now = Date.now();
+  if (!force && now - (pvpLock.lastSyncAt || 0) < PVP_SYNC_MS) return;
+  pvpLock.lastSyncAt = now;
+  const state = getPvpNetworkState();
+  window.TDG_PVP?.sendState?.(state);
 }
 
 function pvpRememberAid(aid) {
@@ -16304,8 +16369,8 @@ function pvpSendLocalAction(action) {
   if (!pvpRememberAid(aid)) return false;
 
   if (pvpUsesServerAuth()) {
-    // Predict locally; server tick confirms (duplicate aids are skipped).
-    applyPvpAction(pid, action);
+    // No local ghost spawn — unit appears when the server tick confirms the aid.
+    // Feels like a short deploy delay (Clash-style) and prevents 6-vs-2 desync.
     pvpLock.pendingLocal.push({ aid, action, t: Date.now(), frame: pvpLock.frame });
     if (pvpLock.pendingLocal.length > 24) pvpLock.pendingLocal.shift();
     window.TDG_PVP?.sendAction?.(payload);
@@ -16313,7 +16378,6 @@ function pvpSendLocalAction(action) {
   }
 
   if (pvpIsHost()) {
-    // Equalize with guest lag: queue locally, send now so the guest applies on arrival.
     if (!pvpLock.delayedHost) pvpLock.delayedHost = [];
     pvpLock.delayedHost.push({
       aid,
@@ -16326,7 +16390,6 @@ function pvpSendLocalAction(action) {
     return true;
   }
 
-  // Guest: predict instantly, reconcile from host snapshots.
   applyPvpAction(pid, action);
   pvpLock.pendingLocal.push({ aid, action, t: Date.now(), frame: pvpLock.frame });
   if (pvpLock.pendingLocal.length > 24) pvpLock.pendingLocal.shift();
@@ -16336,7 +16399,7 @@ function pvpSendLocalAction(action) {
 
 function pvpTick(rawDt) {
   if (!pvpLock || phase !== 'combat') return;
-  // Server owns the clock — clients only advance on applyServerTick.
+  // Server owns the clock — clients only advance on applyServerTick / world.
   if (pvpUsesServerAuth()) return;
   pvpFlushHostDelayedActions();
   pvpLock.acc = (pvpLock.acc || 0) + Math.min(rawDt, 0.1);
@@ -16352,11 +16415,16 @@ function pvpTick(rawDt) {
 }
 
 /**
- * Authoritative tick from Render game server: ordered inputs + fixed sim step.
+ * Authoritative tick from Render: ordered inputs for everyone.
+ * Only the state authority runs the heavy combat sim; peers get corrected by `world`.
  */
 function applyServerTick(msg) {
   if (!pvpUsesServerAuth() || !pvpLock || !msg) return;
   if (msg.phase === 'countdown') return;
+
+  if (msg.authoritySlot === 0 || msg.authoritySlot === 1) {
+    pvpOnline.authoritySlot = msg.authoritySlot;
+  }
 
   const inputs = Array.isArray(msg.inputs) ? msg.inputs : [];
   for (const item of inputs) {
@@ -16365,17 +16433,25 @@ function applyServerTick(msg) {
     const slot = item.slot;
     if (slot !== 0 && slot !== 1) continue;
 
-    // Already predicted locally — mark confirmed and skip re-apply.
-    if (aid && pvpLock.seenActionIds.has(aid)) {
-      if (pvpLock.pendingLocal?.length) {
-        pvpLock.pendingLocal = pvpLock.pendingLocal.filter((p) => p.aid !== aid);
-      }
-      continue;
-    }
-    if (aid) pvpRememberAid(aid);
+    const pendingIdx = aid && pvpLock.pendingLocal
+      ? pvpLock.pendingLocal.findIndex((p) => p.aid === aid)
+      : -1;
+    const wasPending = pendingIdx >= 0;
+    if (wasPending) pvpLock.pendingLocal.splice(pendingIdx, 1);
+
+    // Already applied from an earlier tick — never double-apply.
+    if (aid && pvpLock.seenActionIds.has(aid) && !wasPending) continue;
+
+    // Local click reserved the aid without applying; clear so we can consume it now.
+    if (aid && wasPending) pvpLock.seenActionIds.delete(aid);
+
+    if (aid && !pvpRememberAid(aid) && !wasPending) continue;
+    if (aid && wasPending) pvpRememberAid(aid);
     applyPvpAction(slot, item.action);
   }
 
+  // Authority (and temporarily both until world arrives) step the sim.
+  // Peers also step so the match feels live; world snapshots hard-correct drift.
   if (msg.phase === 'combat' || (msg.phase === 'gameover' && phase === 'combat')) {
     updateSurvivalLive(PVP_FIXED_DT);
     updateCombat(PVP_FIXED_DT);
@@ -16385,20 +16461,41 @@ function applyServerTick(msg) {
     pvpLock.frame = Math.max(pvpLock.frame, msg.frame);
   }
 
-  if (msg.matchOver && phase !== 'gameover') {
-    const winnerSlot = msg.matchOver.winnerSlot;
-    if (winnerSlot === 0 || winnerSlot === 1) {
-      const loser = winnerSlot === 0 ? 1 : 0;
-      if (players[loser]) players[loser].baseHp = 0;
-    }
-    endSurvivalLive();
-    if (window.TDG_PVP?.notifyGameOver) {
-      window.TDG_PVP.notifyGameOver({
-        winnerSlot: msg.matchOver.winnerSlot,
-        endReason: msg.matchOver.endReason || 'base_destroyed',
-      });
-    }
+  if (pvpIsStateAuthority() && msg.phase === 'combat') {
+    pvpPublishWorldState(false);
   }
+
+  if (msg.matchOver) {
+    pvpApplyMatchOver(msg.matchOver);
+    return;
+  }
+
+  pvpCheckMatchEndFromHp();
+}
+
+/** Full battlefield snapshot from state authority via Render — absolute truth. */
+function applyServerWorld(msg) {
+  if (!pvpUsesServerAuth() || !pvpLock || !msg?.state) return;
+  if (phase === 'gameover') return;
+
+  // Authority already has this world — still apply so both stay identical.
+  applyPvpSnapshot(msg.state);
+  if (Number.isFinite(msg.frame)) {
+    pvpLock.frame = Math.max(pvpLock.frame, msg.frame);
+  }
+  for (const aid of msg.state.confirmedAids || []) {
+    if (aid) pvpRememberAid(aid);
+  }
+  if (pvpLock.pendingLocal?.length) {
+    const confirmed = new Set(msg.state.confirmedAids || []);
+    pvpLock.pendingLocal = pvpLock.pendingLocal.filter((p) => p.aid && !confirmed.has(p.aid));
+  }
+
+  if (msg.matchOver) {
+    pvpApplyMatchOver(msg.matchOver);
+    return;
+  }
+  pvpCheckMatchEndFromHp();
 }
 
 function applyPvpAction(fromPlayerId, action) {
@@ -33680,6 +33777,7 @@ window.__TDG = {
   applyAuthoritativeState,
   applyPvpRemoteAction,
   applyServerTick,
+  applyServerWorld,
   isSurvivalPvp,
 };
 
