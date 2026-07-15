@@ -6944,9 +6944,9 @@ const CANNON_YELLOW_PELLET = '#FFD400';
 // stats (index 0 = ×1) and climb these two-tier branches. cost[L] is the price
 // to advance from level L to L+1.
 const BASE_CANNON_SKILL = {
-  firerate: { label: 'Fire Rate', mults: [1, 2, 3], costs: [300, 600] },
-  damage:   { label: 'Attack Damage', mults: [1, 2, 3], costs: [300, 600] },
-  range:    { label: 'Range', mults: [1, 1.3, 1.7], costs: [300, 600] },
+  firerate: { label: 'Fire Rate', mults: [1, 2, 3], costs: [150, 300] },
+  damage:   { label: 'Attack Damage', mults: [1, 2, 3], costs: [100, 200] },
+  range:    { label: 'Range', mults: [1, 1.3, 1.7], costs: [75, 150] },
 };
 const BASE_CANNON_SKILL_MAX = 2;
 
@@ -8623,7 +8623,7 @@ const INCOME_UPGRADE_MAX = 8;
 const INCOME_UPGRADE_DEFS = {
   base: { name: 'Base Income', icon: '🏛', baseYield: SURVIVAL_BASE_INCOME, upgradeStep: 5, baseCost: 110, intervalLabel: '3s' },
   mint: { name: 'Mint Yield', icon: '💰', baseYield: SURVIVAL_MINT_INCOME, upgradeStep: 3, baseCost: 165, intervalLabel: '3s' },
-  farm: { name: 'Farm Yield', icon: '🌾', baseYield: SURVIVAL_FARM_INCOME, upgradeStep: 2, baseCost: 90, intervalLabel: '1s' },
+  farm: { name: 'Farm Yield', icon: '🌾', baseYield: SURVIVAL_FARM_INCOME, upgradeStep: 2, baseCost: 90, intervalLabel: '4s' },
 };
 
 // ─── Survival mode (live RTS) ──────────────────────────────────────────────────
@@ -8675,7 +8675,7 @@ const PVP_FIXED_DT = 1 / 15;
 const PVP_FRAME_MS = PVP_FIXED_DT * 1000;
 const PVP_SYNC_MS = 280; // authority world publish cadence (smoother than hard 150ms snaps)
 const PVP_WORLD_APPLY_MIN_MS = 320; // guest: min time between hard corrections
-const PVP_DEPLOY_T = 0.45; // put-down delay before troop can fight
+const PVP_DEPLOY_T = 1; // local put-down delay before troop can fight (per drop, not synced)
 const PVP_MAX_STEPS_PER_TICK = 6;
 const PVP_RECENT_AIDS = 48;
 const PVP_HOST_DELAY_FLOOR_MS = 120;
@@ -9000,10 +9000,8 @@ function formatPctFromMult(mult) {
 }
 
 function econHarvestSpeedMeta(type, tier) {
-  const raw = Math.max(1, 4 - tier);
-  const interval = type === 'farm' ? Math.max(0.5, raw / 2) : raw;
-  const prevRaw = raw + 1;
-  const prev = type === 'farm' ? Math.max(0.5, prevRaw / 2) : prevRaw;
+  const interval = Math.max(1, 4 - tier);
+  const prev = interval + 1;
   const label = type === 'farm' ? 'Farm Speed' : 'Mint Speed';
   const costs = [300, 900, 3200];
   return {
@@ -12438,7 +12436,7 @@ function updateIncomeUpgradeUI(force) {
     side += '</div>';
 
     const cur = unlocked ? LIVE_ARMY.harvestAmount(p, type) : 0;
-    const interval = unlocked ? LIVE_ARMY.harvestInterval(p, type) : (type === 'farm' ? 2 : 4);
+    const interval = unlocked ? LIVE_ARMY.harvestInterval(p, type) : 4;
     side += `<p class="st-footnote">${unlocked ? `${cur}💵 every ${interval}s per building` : 'Unlock to build on the map'}</p>`;
     side += '</div>';
     return side;
@@ -15954,7 +15952,7 @@ function serializeUnit(u) {
     homeY: u.homeY,
     wanderGoal: u.wanderGoal ? { ...u.wanderGoal } : undefined,
     wanderCd: u.wanderCd,
-    deployT: u.deployT || 0,
+    // deployT is local-only (not part of network truth)
     spreadShock: u.spreadShock,
     spreadShockCd: u.spreadShockCd,
     dodgeCd: u.dodgeCd,
@@ -16134,9 +16132,15 @@ function applyPvpSnapshot(state) {
 
   syncLiveArmyStructures();
 
+  // Preserve local-only plant timers across world corrections.
+  const prevDeployById = new Map(combatUnits.map((u) => [u.id, u.deployT || 0]));
   combatUnits = (state.combatUnits || []).map((u) => {
     const copy = { ...u };
+    delete copy.deployT;
     if (copy.whRetaliateTypes) copy.whRetaliateTypes = new Set(copy.whRetaliateTypes);
+    const prevT = prevDeployById.get(copy.id);
+    if (prevT > 0) copy.deployT = prevT;
+    else if (!prevDeployById.has(copy.id) && isSurvivalPvp()) copy.deployT = PVP_DEPLOY_T;
     return copy;
   });
   if (Object.prototype.hasOwnProperty.call(state, 'wolfHunterLoot')) {
@@ -16760,8 +16764,8 @@ function survivalLiveSpawnUnit(pid, type, x, y) {
   }
   p.coins -= cost;
   const unit = makeCombatUnit({ type, x, y }, pid);
-  // Clash-style put-down: visible immediately, can't fight until deploy finishes.
-  if (pvpUsesServerAuth()) unit.deployT = PVP_DEPLOY_T;
+  // Local put-down only — not synced as server truth. Same 1s for a solo or batch drop.
+  unit.deployT = PVP_DEPLOY_T;
   combatUnits.push(unit);
   if (isSimulatorMode()) survivalRecordPlayerDeploy(type, pid);
   else if (pid === 0) survivalRecordPlayerDeploy(type);
@@ -32014,8 +32018,11 @@ function commanderPlaceBatch(pid, type, positions) {
   if (!commanderValidateBatch(pid, type, positions)) return false;
   const p = players[pid];
   p.coins -= commanderBatchCost(pid, type, positions.length);
+  // One drop = one shared local plant timer (6 troops still only wait 1s total).
   for (const q of positions) {
-    combatUnits.push(makeCombatUnit({ type, x: q.x, y: q.y }, pid));
+    const unit = makeCombatUnit({ type, x: q.x, y: q.y }, pid);
+    unit.deployT = PVP_DEPLOY_T;
+    combatUnits.push(unit);
     if (pid === 0) survivalRecordPlayerDeploy(type);
   }
   if (pid === 1) survivalResetBattleSpeedOnEnemyAttack();

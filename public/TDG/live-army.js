@@ -998,12 +998,10 @@ window.LIVE_ARMY = (function () {
     const eco = economyRecord(p);
     const rec = type === 'farm' ? eco.farm : eco.mint;
     if (!rec.unlocked) {
-      return type === 'farm' ? HARVEST_BASE_INTERVAL / 2 : HARVEST_BASE_INTERVAL;
+      return HARVEST_BASE_INTERVAL;
     }
-    const raw = Math.max(1, HARVEST_BASE_INTERVAL - (rec.speed || 0));
-    // Farms harvest twice as fast as the base calendar (all speed tiers included).
-    if (type === 'farm') return Math.max(0.5, raw / 2);
-    return raw;
+    // Farms and mints share the same harvest calendar (base 4s, faster with speed upgrades).
+    return Math.max(1, HARVEST_BASE_INTERVAL - (rec.speed || 0));
   }
 
   function harvestAmount(p, type) {
