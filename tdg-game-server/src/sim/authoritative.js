@@ -19,7 +19,7 @@ const SNAPSHOT_EVERY_TICKS = 3;
 const DISCONNECT_GRACE_MS = 12_000;
 const INPUT_RATE_WINDOW_MS = 1000;
 const INPUT_RATE_LIMIT = 60;
-const WORLD_MIN_INTERVAL_MS = 120;
+const WORLD_MIN_INTERVAL_MS = 250;
 const AUTHORITY_SLOT = 0;
 
 function freshPlayer(name) {

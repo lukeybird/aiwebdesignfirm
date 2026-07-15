@@ -8673,7 +8673,9 @@ let pvpOnline = null;
 // get an instant-reaction advantage over the guest's network lag.
 const PVP_FIXED_DT = 1 / 15;
 const PVP_FRAME_MS = PVP_FIXED_DT * 1000;
-const PVP_SYNC_MS = 150; // authority → server → peers full-world correction
+const PVP_SYNC_MS = 280; // authority world publish cadence (smoother than hard 150ms snaps)
+const PVP_WORLD_APPLY_MIN_MS = 320; // guest: min time between hard corrections
+const PVP_DEPLOY_T = 0.45; // put-down delay before troop can fight
 const PVP_MAX_STEPS_PER_TICK = 6;
 const PVP_RECENT_AIDS = 48;
 const PVP_HOST_DELAY_FLOOR_MS = 120;
@@ -15952,6 +15954,7 @@ function serializeUnit(u) {
     homeY: u.homeY,
     wanderGoal: u.wanderGoal ? { ...u.wanderGoal } : undefined,
     wanderCd: u.wanderCd,
+    deployT: u.deployT || 0,
     spreadShock: u.spreadShock,
     spreadShockCd: u.spreadShockCd,
     dodgeCd: u.dodgeCd,
@@ -16369,9 +16372,11 @@ function pvpSendLocalAction(action) {
   if (!pvpRememberAid(aid)) return false;
 
   if (pvpUsesServerAuth()) {
-    // No local ghost spawn — unit appears when the server tick confirms the aid.
-    // Feels like a short deploy delay (Clash-style) and prevents 6-vs-2 desync.
-    pvpLock.pendingLocal.push({ aid, action, t: Date.now(), frame: pvpLock.frame });
+    // Instant local feel (coins / buy / spawn), then server confirms.
+    // Own actions are not re-applied on tick; peers see them ~1 tick later.
+    applyPvpAction(pid, action);
+    updateUI();
+    pvpLock.pendingLocal.push({ aid, action, t: Date.now(), frame: pvpLock.frame, predicted: true });
     if (pvpLock.pendingLocal.length > 24) pvpLock.pendingLocal.shift();
     window.TDG_PVP?.sendAction?.(payload);
     return true;
@@ -16436,17 +16441,15 @@ function applyServerTick(msg) {
     const pendingIdx = aid && pvpLock.pendingLocal
       ? pvpLock.pendingLocal.findIndex((p) => p.aid === aid)
       : -1;
-    const wasPending = pendingIdx >= 0;
-    if (wasPending) pvpLock.pendingLocal.splice(pendingIdx, 1);
+    const wasPredicted = pendingIdx >= 0 && pvpLock.pendingLocal[pendingIdx].predicted;
+    if (pendingIdx >= 0) pvpLock.pendingLocal.splice(pendingIdx, 1);
 
-    // Already applied from an earlier tick — never double-apply.
-    if (aid && pvpLock.seenActionIds.has(aid) && !wasPending) continue;
+    // Local optimistic action — already applied; just mark confirmed.
+    if (wasPredicted) continue;
 
-    // Local click reserved the aid without applying; clear so we can consume it now.
-    if (aid && wasPending) pvpLock.seenActionIds.delete(aid);
-
-    if (aid && !pvpRememberAid(aid) && !wasPending) continue;
-    if (aid && wasPending) pvpRememberAid(aid);
+    // Already applied from an earlier confirmed tick.
+    if (aid && pvpLock.seenActionIds.has(aid)) continue;
+    if (aid && !pvpRememberAid(aid)) continue;
     applyPvpAction(slot, item.action);
   }
 
@@ -16473,23 +16476,59 @@ function applyServerTick(msg) {
   pvpCheckMatchEndFromHp();
 }
 
-/** Full battlefield snapshot from state authority via Render — absolute truth. */
+/** Full battlefield snapshot from state authority via Render — soft correction for peers. */
 function applyServerWorld(msg) {
   if (!pvpUsesServerAuth() || !pvpLock || !msg?.state) return;
   if (phase === 'gameover') return;
 
-  // Authority already has this world — still apply so both stay identical.
-  applyPvpSnapshot(msg.state);
+  // Never hard-snap the authority onto their own publish — that causes constant seizure.
+  if (pvpIsStateAuthority()) {
+    if (msg.matchOver) pvpApplyMatchOver(msg.matchOver);
+    return;
+  }
+
+  const state = msg.state;
+  const now = Date.now();
+  const hp0 = state.players?.[0]?.baseHp;
+  const hp1 = state.players?.[1]?.baseHp;
+  const force =
+    !!msg.matchOver ||
+    (Number.isFinite(hp0) && hp0 <= 0) ||
+    (Number.isFinite(hp1) && hp1 <= 0);
+
+  const remoteUnits = Array.isArray(state.combatUnits) ? state.combatUnits.length : 0;
+  const localUnits = combatUnits.length;
+  const drifted =
+    Math.abs(remoteUnits - localUnits) > 1 ||
+    (Number.isFinite(hp0) && Math.abs(hp0 - (players[0]?.baseHp || 0)) > 40) ||
+    (Number.isFinite(hp1) && Math.abs(hp1 - (players[1]?.baseHp || 0)) > 40) ||
+    (Number.isFinite(state.players?.[0]?.coins) &&
+      Math.abs(state.players[0].coins - (players[0]?.coins || 0)) > 80) ||
+    (Number.isFinite(state.players?.[1]?.coins) &&
+      Math.abs(state.players[1].coins - (players[1]?.coins || 0)) > 80);
+
+  if (!force && !drifted && now - (pvpLock.lastWorldApplyAt || 0) < PVP_WORLD_APPLY_MIN_MS) {
+    // Light economy sync without teleports.
+    for (let i = 0; i < 2; i++) {
+      const src = state.players?.[i];
+      if (!src || !players[i]) continue;
+      if (Number.isFinite(src.coins)) players[i].coins = src.coins;
+      if (Number.isFinite(src.baseHp)) players[i].baseHp = src.baseHp;
+    }
+    updateUI();
+    return;
+  }
+
+  pvpLock.lastWorldApplyAt = now;
+  applyPvpSnapshot(state);
   if (Number.isFinite(msg.frame)) {
     pvpLock.frame = Math.max(pvpLock.frame, msg.frame);
   }
-  for (const aid of msg.state.confirmedAids || []) {
+  for (const aid of state.confirmedAids || []) {
     if (aid) pvpRememberAid(aid);
   }
-  if (pvpLock.pendingLocal?.length) {
-    const confirmed = new Set(msg.state.confirmedAids || []);
-    pvpLock.pendingLocal = pvpLock.pendingLocal.filter((p) => p.aid && !confirmed.has(p.aid));
-  }
+  // Re-apply unconfirmed local predictions so your latest clicks stay instant after a correction.
+  reconcilePredictedActions({ confirmedAids: state.confirmedAids || [] });
 
   if (msg.matchOver) {
     pvpApplyMatchOver(msg.matchOver);
@@ -16720,7 +16759,10 @@ function survivalLiveSpawnUnit(pid, type, x, y) {
     if (dist(u, { x, y }) < getUnitSize(u) + sz + 4) return false;
   }
   p.coins -= cost;
-  combatUnits.push(makeCombatUnit({ type, x, y }, pid));
+  const unit = makeCombatUnit({ type, x, y }, pid);
+  // Clash-style put-down: visible immediately, can't fight until deploy finishes.
+  if (pvpUsesServerAuth()) unit.deployT = PVP_DEPLOY_T;
+  combatUnits.push(unit);
   if (isSimulatorMode()) survivalRecordPlayerDeploy(type, pid);
   else if (pid === 0) survivalRecordPlayerDeploy(type);
   if (pid === 1 && !isSimulatorMode()) survivalResetBattleSpeedOnEnemyAttack();
@@ -31561,6 +31603,15 @@ function updateCombat(dt) {
     if (u.paralyze > 0) u.paralyze = Math.max(0, u.paralyze - dt);
     if ((u.spreadShock || 0) > 0) u.spreadShock = Math.max(0, u.spreadShock - dt);
     if ((u.spreadShockCd || 0) > 0) u.spreadShockCd = Math.max(0, u.spreadShockCd - dt);
+    if ((u.deployT || 0) > 0) {
+      u.deployT = Math.max(0, u.deployT - dt);
+      // Planting — frozen in place until ready (same delay for both players).
+      if (u.deployT > 0) {
+        u.vx = 0;
+        u.vy = 0;
+        continue;
+      }
+    }
     if (u.iceChill) {
       if ((u.iceChill.freezeLeft || 0) > 0) {
         u.iceChill.freezeLeft = Math.max(0, u.iceChill.freezeLeft - dt);
