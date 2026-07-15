@@ -6927,9 +6927,9 @@ const UNIT_TYPES = {
   },
   /** Hero — aerial holy archer, then lands to duel with a sword. Unlock + deploy 150. */
   angel: {
-    name: 'Angel', hp: 135, speed: 66, damage: 22, attackRate: 0.95, range: 34, cost: 150,
-    color: '#f8fafc', accent: '#fbbf24', size: 22, behavior: 'angel',
-    flying: true, airRange: 255,
+    name: 'Angel', hp: 135, speed: 66, damage: 22, attackRate: 0.95, groundAttackRate: 3.2, range: 34, cost: 150,
+    color: '#1c1917', accent: '#facc15', size: 23, behavior: 'angel',
+    flying: true, airRange: 255, landBlastR: 98,
     prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: true,
     unique: true,
   },
@@ -8488,7 +8488,7 @@ const UNIT_MANUAL = {
   swordsman: 'Polished plate footsoldier. Matches Archer pace, fights in the press with steel. Takes only half damage from arrows. Strong vs Wolves, softer into Elephant hide than Knights on horseback.',
   peka: 'Epic flying dragon. Hunts Goblins first, ignores Snipers. Weak to Turrets and Snipers. Fire breath stacks on the ground.',
   yeti: 'Hero ice giant. Only one on the field. A blizzard whirls around it — slight damage, half speed, and disoriented attacks for enemies inside. Scratches with frosty claws (area damage). Every 10s it leaps onto the nearest troop with a slam. Puts out nearby fire. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s.',
-  angel: 'Hero of light. Only one on the field. Opens from the sky with a 3-arrow holy volley at different targets, then swoops down to duel on the ground with a sword. Flying during the volley (Turrets and Snipers can reach it); becomes a ground unit after landing.',
+  angel: 'Hero of wrath. Only one on the field. From the sky it looses 3 holy arrows — one living target each — then swoops down with an electric landing blast (0.5s stun). On the ground it cuts ferociously until it fells a unit, then rises and backs off for another volley. While flying, its wings can block up to 3 projectiles and hurl them back at enemy troops.',
   bloop: 'Cheap jelly rush unit. Ignores fights and beelines for the enemy base. Splits into two mini-Bloops when killed. Killing enemy Bloops earns you coin bounties!',
 };
 
@@ -9213,7 +9213,7 @@ function barracksUnlockMeta(ut) {
     bowman: `Unlock Archers (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Mid-range bowmen; prioritize Dragons; weak vs Wolves.`,
     swordsman: `Unlock Swordsmen (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Shiny plate footsoldiers — same pace as Archers, strong melee line.`,
     yeti: `Unlock Yeti hero (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Personal blizzard: slight damage, half move speed, and confused attack aim. Claw scratch hits in an area. Leaps onto the nearest troop every 10s. Puts out nearby fire. Wolves that bite it freeze solid 5s then keep permanent frost. Death freezes nearby 3s; frozen take ×3 damage.`,
-    angel: `Unlock Angel hero (${cost}💵). Deploy ${base.cost}💵. Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Fires 3 holy arrows at different targets from the air, then swoops down to fight with a sword as a ground unit.`,
+    angel: `Unlock Angel hero (${cost}💵). Deploy ${base.cost}💵. Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Three aerial arrows (one target each), electric landing stun (0.5s), blistering sword strikes until a kill — rises again for another volley. Wings block & return up to 3 projectiles per flight.`,
     peka: `Unlock Dragons (${cost}💵). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire; chases Goblins first; weak to Turrets & Snipers.`,
   };
   return {
@@ -26046,147 +26046,260 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
     ctx.restore();
 
   } else if (type === 'angel') {
-    // Heavenly warrior — wings while airborne; sword chop when grounded.
-    const sc2 = sc * 1.14;
+    // Wrathful war-angel — dark plate, storm wings, no soft “holy pretty” look.
+    const sc2 = sc * 1.18;
     const phase = opts.attackPhase || 'idle';
     const ap = clamp(opts.attackProgress || 0, 0, 1);
     const airborne = opts.angelAirborne !== false;
-    const wingFlap = Math.sin((opts.wingT || 0) * 10) * (airborne ? 0.22 : 0.06);
-    const robe = '#f8fafc';
-    const robeShade = '#e2e8f0';
-    const gold = '#fbbf24';
-    const goldDeep = '#b45309';
-    const skin = '#f5d0a9';
-    const wing = '#fffbeb';
-    const wingEdge = '#fde68a';
+    const wingFlap = Math.sin((opts.wingT || 0) * 11) * (airborne ? 0.28 : 0.08);
+    const plate = '#1c1917';
+    const plateLite = '#44403c';
+    const gold = '#eab308';
+    const goldDeep = '#a16207';
+    const skin = '#a1624a';
+    const wing = '#292524';
+    const wingEdge = '#57534e';
+    const storm = '#38bdf8';
 
-    drawGroundShadow(0, h * 0.48 * sc2, w * (airborne ? 0.28 : 0.38), h * 0.1 * sc2);
+    drawGroundShadow(0, h * 0.48 * sc2, w * (airborne ? 0.3 : 0.4), h * 0.1 * sc2);
 
-    // Wings (behind body)
+    // Jagged storm wings
     for (const dir of [-1, 1]) {
       ctx.save();
-      ctx.translate(dir * w * 0.02 * sc2, -h * 0.06 * sc2);
-      ctx.rotate(dir * (0.35 + wingFlap));
-      ctx.fillStyle = wing;
+      ctx.translate(dir * w * 0.02 * sc2, -h * 0.05 * sc2);
+      ctx.rotate(dir * (0.42 + wingFlap));
+      const wingGrad = ctx.createLinearGradient(0, -h * 0.2 * sc2, dir * w * 0.7 * sc2, h * 0.15 * sc2);
+      wingGrad.addColorStop(0, '#44403c');
+      wingGrad.addColorStop(0.55, wing);
+      wingGrad.addColorStop(1, '#0c0a09');
+      ctx.fillStyle = wingGrad;
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(dir * w * 0.55 * sc2, -h * 0.35 * sc2, dir * w * 0.62 * sc2, h * 0.08 * sc2);
-      ctx.quadraticCurveTo(dir * w * 0.4 * sc2, h * 0.05 * sc2, 0, h * 0.12 * sc2);
+      ctx.lineTo(dir * w * 0.22 * sc2, -h * 0.28 * sc2);
+      ctx.lineTo(dir * w * 0.38 * sc2, -h * 0.12 * sc2);
+      ctx.lineTo(dir * w * 0.58 * sc2, -h * 0.32 * sc2);
+      ctx.lineTo(dir * w * 0.72 * sc2, h * 0.02 * sc2);
+      ctx.lineTo(dir * w * 0.48 * sc2, h * 0.1 * sc2);
+      ctx.lineTo(dir * w * 0.28 * sc2, h * 0.04 * sc2);
+      ctx.lineTo(0, h * 0.14 * sc2);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = wingEdge;
-      ctx.lineWidth = 1.4;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(dir * w * 0.08 * sc2, -h * 0.02 * sc2);
-      ctx.quadraticCurveTo(dir * w * 0.35 * sc2, -h * 0.18 * sc2, dir * w * 0.48 * sc2, h * 0.02 * sc2);
+      ctx.moveTo(dir * w * 0.1 * sc2, -h * 0.04 * sc2);
+      ctx.lineTo(dir * w * 0.4 * sc2, -h * 0.18 * sc2);
+      ctx.lineTo(dir * w * 0.55 * sc2, h * 0.02 * sc2);
       ctx.stroke();
+      // Electric veins while airborne (flare on wing-block)
+      if (airborne) {
+        const flash = clamp(opts.angelWingFlash || 0, 0, 0.3) / 0.3;
+        ctx.strokeStyle = storm;
+        ctx.globalAlpha = 0.55 + 0.25 * Math.sin((opts.wingT || 0) * 14) + flash * 0.45;
+        ctx.lineWidth = 1.2 + flash * 1.4;
+        ctx.beginPath();
+        ctx.moveTo(dir * w * 0.08 * sc2, 0);
+        ctx.lineTo(dir * w * 0.32 * sc2, -h * 0.14 * sc2);
+        ctx.lineTo(dir * w * 0.52 * sc2, -h * 0.02 * sc2);
+        ctx.stroke();
+        if (flash > 0.2) {
+          ctx.strokeStyle = '#fef08a';
+          ctx.globalAlpha = flash * 0.85;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(dir * w * 0.05 * sc2, h * 0.02 * sc2);
+          ctx.lineTo(dir * w * 0.45 * sc2, -h * 0.2 * sc2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
       ctx.restore();
     }
 
-    // Legs
-    ctx.fillStyle = robeShade;
+    // Armored legs
+    ctx.fillStyle = plate;
     for (const dir of [-1, 1]) {
-      roundRect(dir * w * 0.06 * sc2 - w * 0.05 * sc2, h * 0.22 * sc2, w * 0.1 * sc2, h * 0.22 * sc2, 3);
+      roundRect(dir * w * 0.07 * sc2 - w * 0.055 * sc2, h * 0.2 * sc2, w * 0.11 * sc2, h * 0.26 * sc2, 2);
       ctx.fill();
+      ctx.fillStyle = plateLite;
+      roundRect(dir * w * 0.07 * sc2 - w * 0.05 * sc2, h * 0.38 * sc2, w * 0.1 * sc2, h * 0.07 * sc2, 1);
+      ctx.fill();
+      ctx.fillStyle = plate;
     }
-    // Robe torso
-    const robeGrad = ctx.createLinearGradient(0, -h * 0.2 * sc2, 0, h * 0.3 * sc2);
-    robeGrad.addColorStop(0, '#ffffff');
-    robeGrad.addColorStop(0.5, robe);
-    robeGrad.addColorStop(1, robeShade);
-    ctx.fillStyle = robeGrad;
+
+    // Heavy torso plate
+    const plateGrad = ctx.createLinearGradient(0, -h * 0.18 * sc2, 0, h * 0.32 * sc2);
+    plateGrad.addColorStop(0, '#57534e');
+    plateGrad.addColorStop(0.35, plateLite);
+    plateGrad.addColorStop(1, '#0c0a09');
+    ctx.fillStyle = plateGrad;
     ctx.beginPath();
-    ctx.moveTo(-w * 0.16 * sc2, h * 0.28 * sc2);
-    ctx.lineTo(-w * 0.2 * sc2, -h * 0.05 * sc2);
-    ctx.quadraticCurveTo(0, -h * 0.12 * sc2, w * 0.2 * sc2, -h * 0.05 * sc2);
-    ctx.lineTo(w * 0.16 * sc2, h * 0.28 * sc2);
+    ctx.moveTo(-w * 0.18 * sc2, h * 0.3 * sc2);
+    ctx.lineTo(-w * 0.22 * sc2, -h * 0.02 * sc2);
+    ctx.lineTo(-w * 0.1 * sc2, -h * 0.12 * sc2);
+    ctx.lineTo(w * 0.1 * sc2, -h * 0.12 * sc2);
+    ctx.lineTo(w * 0.22 * sc2, -h * 0.02 * sc2);
+    ctx.lineTo(w * 0.18 * sc2, h * 0.3 * sc2);
     ctx.closePath();
     ctx.fill();
-    // Gold sash
+    // Sternum ridge + gold trim
+    ctx.strokeStyle = goldDeep;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -h * 0.08 * sc2);
+    ctx.lineTo(0, h * 0.22 * sc2);
+    ctx.stroke();
     ctx.fillStyle = gold;
-    roundRect(-w * 0.18 * sc2, h * 0.04 * sc2, w * 0.36 * sc2, h * 0.06 * sc2, 2);
+    ctx.beginPath();
+    ctx.moveTo(0, -h * 0.1 * sc2);
+    ctx.lineTo(-w * 0.06 * sc2, h * 0.02 * sc2);
+    ctx.lineTo(0, h * 0.06 * sc2);
+    ctx.lineTo(w * 0.06 * sc2, h * 0.02 * sc2);
+    ctx.closePath();
     ctx.fill();
 
-    // Head
+    // Broad shoulders / spaulders
+    ctx.fillStyle = '#0c0a09';
+    for (const dir of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(dir * w * 0.2 * sc2, -h * 0.02 * sc2, w * 0.1 * sc2, h * 0.08 * sc2, dir * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = goldDeep;
+      ctx.beginPath();
+      ctx.moveTo(dir * w * 0.14 * sc2, -h * 0.08 * sc2);
+      ctx.lineTo(dir * w * 0.28 * sc2, -h * 0.14 * sc2);
+      ctx.lineTo(dir * w * 0.24 * sc2, -h * 0.02 * sc2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#0c0a09';
+    }
+
+    // Fierce head
     ctx.fillStyle = skin;
     ctx.beginPath();
-    ctx.arc(0, -h * 0.22 * sc2, w * 0.13 * sc2, 0, Math.PI * 2);
+    ctx.arc(0, -h * 0.22 * sc2, w * 0.125 * sc2, 0, Math.PI * 2);
     ctx.fill();
-    // Hair
-    ctx.fillStyle = '#fcd34d';
+    // Harsh brow / scarred face
+    ctx.fillStyle = '#7c2d12';
     ctx.beginPath();
-    ctx.ellipse(0, -h * 0.28 * sc2, w * 0.14 * sc2, h * 0.09 * sc2, 0, Math.PI, 0);
+    ctx.moveTo(-w * 0.09 * sc2, -h * 0.26 * sc2);
+    ctx.lineTo(w * 0.09 * sc2, -h * 0.26 * sc2);
+    ctx.lineTo(w * 0.07 * sc2, -h * 0.22 * sc2);
+    ctx.lineTo(-w * 0.07 * sc2, -h * 0.22 * sc2);
+    ctx.closePath();
     ctx.fill();
-    // Halo
-    ctx.strokeStyle = gold;
-    ctx.lineWidth = 2.2;
+    // Wild dark hair
+    ctx.fillStyle = '#0c0a09';
     ctx.beginPath();
-    ctx.ellipse(0, -h * 0.38 * sc2, w * 0.16 * sc2, h * 0.05 * sc2, 0, 0, Math.PI * 2);
+    ctx.moveTo(-w * 0.14 * sc2, -h * 0.24 * sc2);
+    ctx.quadraticCurveTo(-w * 0.18 * sc2, -h * 0.4 * sc2, -w * 0.04 * sc2, -h * 0.36 * sc2);
+    ctx.quadraticCurveTo(0, -h * 0.44 * sc2, w * 0.04 * sc2, -h * 0.36 * sc2);
+    ctx.quadraticCurveTo(w * 0.18 * sc2, -h * 0.4 * sc2, w * 0.14 * sc2, -h * 0.24 * sc2);
+    ctx.lineTo(w * 0.1 * sc2, -h * 0.2 * sc2);
+    ctx.lineTo(-w * 0.1 * sc2, -h * 0.2 * sc2);
+    ctx.closePath();
+    ctx.fill();
+    // Broken iron halo (angled, cracked)
+    ctx.save();
+    ctx.translate(0, -h * 0.38 * sc2);
+    ctx.rotate(-0.35);
+    ctx.strokeStyle = goldDeep;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.15 * sc2, h * 0.045 * sc2, 0, 0.15, Math.PI * 1.7);
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(253, 224, 71, 0.45)';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = storm;
+    ctx.globalAlpha = 0.7;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.12 * sc2, -2);
+    ctx.lineTo(w * 0.2 * sc2, 4);
+    ctx.lineTo(w * 0.1 * sc2, 6);
     ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.restore();
 
-    // Eyes
-    ctx.fillStyle = '#1e3a5f';
+    // Glowing predatory eyes
+    ctx.fillStyle = storm;
     ctx.beginPath();
-    ctx.arc(-w * 0.04 * sc2, -h * 0.22 * sc2, 1.4, 0, Math.PI * 2);
-    ctx.arc(w * 0.04 * sc2, -h * 0.22 * sc2, 1.4, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.045 * sc2, -h * 0.215 * sc2, 2.2, 1.3, -0.15, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.045 * sc2, -h * 0.215 * sc2, 2.2, 1.3, 0.15, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#0c0a09';
+    ctx.beginPath();
+    ctx.arc(-w * 0.045 * sc2, -h * 0.215 * sc2, 0.7, 0, Math.PI * 2);
+    ctx.arc(w * 0.045 * sc2, -h * 0.215 * sc2, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    // Snarl mouth
+    ctx.strokeStyle = '#450a0a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.04 * sc2, -h * 0.17 * sc2);
+    ctx.quadraticCurveTo(0, -h * 0.145 * sc2, w * 0.04 * sc2, -h * 0.17 * sc2);
+    ctx.stroke();
 
     if (airborne) {
-      // Bow held while flying
-      ctx.strokeStyle = goldDeep;
-      ctx.lineWidth = 2.4;
+      // War bow
+      ctx.strokeStyle = '#0c0a09';
+      ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.arc(w * 0.22 * sc2, 0, w * 0.32 * sc2, -1.1, 1.1);
+      ctx.arc(w * 0.2 * sc2, 0, w * 0.34 * sc2, -1.15, 1.15);
       ctx.stroke();
-      ctx.strokeStyle = '#fef3c7';
-      ctx.lineWidth = 1.3;
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      const br = w * 0.32 * sc2;
-      const bx = w * 0.22 * sc2;
-      ctx.moveTo(bx + Math.cos(-1.1) * br, Math.sin(-1.1) * br);
-      ctx.lineTo(bx + Math.cos(1.1) * br, Math.sin(1.1) * br);
+      const br = w * 0.34 * sc2;
+      const bx = w * 0.2 * sc2;
+      ctx.moveTo(bx + Math.cos(-1.15) * br, Math.sin(-1.15) * br);
+      ctx.lineTo(bx + Math.cos(1.15) * br, Math.sin(1.15) * br);
       ctx.stroke();
       if (phase === 'strike' || phase === 'windup') {
-        ctx.strokeStyle = gold;
-        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = storm;
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(bx - 2, 0);
-        ctx.lineTo(bx + br * 0.75, 0);
+        ctx.lineTo(bx + br * 0.78, 0);
         ctx.stroke();
       }
     } else {
-      // Ground sword — same chop cadence as swordsman
-      const restAng = 0.2;
-      const raisedAng = -1.4;
-      const choppedAng = 1.12;
+      // Greatsword — brutal chop
+      const restAng = 0.35;
+      const raisedAng = -1.55;
+      const choppedAng = 1.25;
       let swordAng = restAng;
       if (phase === 'windup') swordAng = restAng + (raisedAng - restAng) * ap;
       else if (phase === 'strike') swordAng = raisedAng + (choppedAng - raisedAng) * ap;
       else if (phase === 'recovery') swordAng = choppedAng + (restAng - choppedAng) * ap;
       ctx.save();
-      ctx.translate(w * 0.12 * sc2, h * 0.02 * sc2);
+      ctx.translate(w * 0.14 * sc2, h * 0.02 * sc2);
       ctx.rotate(swordAng);
-      const bladeLen = w * 0.55 * sc2;
-      ctx.fillStyle = goldDeep;
-      roundRect(-2, -bladeLen * 0.08, 5, bladeLen * 0.16, 1);
+      const bladeLen = w * 0.62 * sc2;
+      ctx.fillStyle = '#292524';
+      roundRect(-2.5, -bladeLen * 0.1, 6, bladeLen * 0.18, 1);
       ctx.fill();
-      ctx.fillStyle = '#f8fafc';
+      ctx.fillStyle = goldDeep;
+      roundRect(-4, -bladeLen * 0.02, 9, bladeLen * 0.05, 1);
+      ctx.fill();
+      const bladeGrad = ctx.createLinearGradient(0, 0, bladeLen, 0);
+      bladeGrad.addColorStop(0, '#a8a29e');
+      bladeGrad.addColorStop(0.5, '#e7e5e4');
+      bladeGrad.addColorStop(1, storm);
+      ctx.fillStyle = bladeGrad;
       ctx.beginPath();
-      ctx.moveTo(0, -bladeLen * 0.06);
+      ctx.moveTo(0, -bladeLen * 0.08);
       ctx.lineTo(bladeLen, 0);
-      ctx.lineTo(0, bladeLen * 0.06);
+      ctx.lineTo(0, bladeLen * 0.08);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = gold;
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = storm;
+      ctx.globalAlpha = phase === 'strike' ? 0.9 : 0.35;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.moveTo(bladeLen * 0.1, 0);
-      ctx.lineTo(bladeLen * 0.9, 0);
+      ctx.moveTo(bladeLen * 0.15, 0);
+      ctx.lineTo(bladeLen * 0.92, 0);
       ctx.stroke();
+      ctx.globalAlpha = 1;
       ctx.restore();
     }
 
@@ -26718,6 +26831,19 @@ function updateMissiles(dt) {
         m.ty = bp.y;
       }
     }
+    // Angel wing intercept while airborne
+    let bounced = false;
+    for (const u of combatUnits) {
+      if (u.owner === m.ownerId || u.hp <= 0) continue;
+      if (!angelCanWingBlock(u)) continue;
+      if (Math.hypot(m.x - u.x, m.y - u.y) > getUnitSize(u) + 18) continue;
+      if (tryAngelWingReflectMissile(m, u)) {
+        bounced = true;
+        break;
+      }
+    }
+    if (bounced) continue;
+
     const dx = m.tx - m.x, dy = m.ty - m.y;
     const d = Math.hypot(dx, dy);
     if (d < 14) {
@@ -26909,6 +27035,7 @@ function drawUnit(u) {
         wolfBreedOverride: isWerewolf ? WOLF_HUNTER_WEREWOLF_BREED : undefined,
         angelAirborne: isAngel(u) ? unitIsFlying(u) : undefined,
         wingT: u._wingT || 0,
+        angelWingFlash: isAngel(u) ? (u.angelWingFlash || 0) : 0,
       });
     }
   }
@@ -27134,26 +27261,211 @@ function isAngel(u) {
   return !!u && (u.type === 'angel' || unitDef(u.type, u.owner)?.behavior === 'angel');
 }
 
-const ANGEL_VOLLEY_GAP = 0.38;
-const ANGEL_SWOOP_TIME = 0.55;
+const ANGEL_VOLLEY_GAP = 0.34;
+const ANGEL_SWOOP_TIME = 0.5;
+const ANGEL_ASCEND_TIME = 0.55;
 const ANGEL_ARROW_DMG_MULT = 1.35;
+const ANGEL_LAND_STUN = 0.5;
+const ANGEL_WING_BLOCKS = 3;
 
 function initAngelKit(u) {
   u.flying = true;
-  u.angelPhase = 'volley'; // volley → swoop → ground
+  u.angelPhase = 'volley'; // volley → swoop → ground → ascend → volley…
   u.angelArrowsLeft = 3;
   u.angelVolleyCd = 0.2;
   u.angelShotKeys = [];
   u.angelSwoopT = 0;
+  u.angelAscendT = 0;
   u.angelAltitude = 1;
   u.angelSwoopTarget = null;
+  u.angelRetreatAng = null;
+  u.angelWingBlocks = ANGEL_WING_BLOCKS;
+  u.angelWingFlash = 0;
+}
+
+function resetAngelWingBlocks(angel) {
+  angel.angelWingBlocks = ANGEL_WING_BLOCKS;
+  angel.angelWingFlash = 0;
+}
+
+function angelCanWingBlock(u) {
+  return !!u && isAngel(u) && unitIsFlying(u) && (u.angelWingBlocks || 0) > 0;
+}
+
+/** Nearest living enemy troop to bounce a blocked shot into. */
+function findAngelReflectTarget(angel) {
+  const enemy = enemyId(angel.owner);
+  let best = null;
+  let bestD = Infinity;
+  for (const u of combatUnits) {
+    if (u.owner !== enemy || u.hp <= 0) continue;
+    const d = dist(angel, u);
+    if (d < bestD) {
+      bestD = d;
+      best = u;
+    }
+  }
+  return best;
+}
+
+function angelReflectAim(angel) {
+  const prey = findAngelReflectTarget(angel);
+  if (prey) return { ang: Math.atan2(prey.y - angel.y, prey.x - angel.x), prey };
+  const bp = basePos(enemyId(angel.owner));
+  return { ang: Math.atan2(bp.y - angel.y, bp.x - angel.x), prey: null };
+}
+
+function consumeAngelWingBlock(angel) {
+  angel.angelWingBlocks = Math.max(0, (angel.angelWingBlocks || 0) - 1);
+  angel.angelWingFlash = 0.3;
+  spawnParticles(angel.x, angel.y - 14, '#38bdf8', 12);
+  spawnParticles(angel.x, angel.y - 10, '#facc15', 7);
+  spawnFloatText(angel.x, angel.y - 40, '⚡ BLOCK', '#e0f2fe');
+}
+
+/**
+ * Reflect a tower/cannon pellet back at enemy troops.
+ * Returns true if blocked (caller should keep the pellet alive).
+ */
+function tryAngelWingReflectPellet(p, angel) {
+  if (!p || !angelCanWingBlock(angel)) return false;
+  if (p.ownerId === angel.owner || p.reflectedByAngel) return false;
+  consumeAngelWingBlock(angel);
+  const { ang } = angelReflectAim(angel);
+  const spd = Math.max(340, Math.hypot(p.vx, p.vy) || 380);
+  const push = getUnitSize(angel) + (p.size || 4) + 12;
+  p.ownerId = angel.owner;
+  p.vx = Math.cos(ang) * spd * 1.08;
+  p.vy = Math.sin(ang) * spd * 1.08;
+  p.x = angel.x + Math.cos(ang) * push;
+  p.y = angel.y + Math.sin(ang) * push;
+  p.life = Math.max(p.life || 0, 1.15);
+  p.traveled = 0;
+  p.maxRange = Math.max(p.maxRange || 0, 440);
+  p.reflectedByAngel = true;
+  p.spawnX = p.x;
+  p.spawnY = p.y;
+  p.color = p.color || '#38bdf8';
+  beams.push({
+    x1: angel.x, y1: angel.y - 10,
+    x2: p.x, y2: p.y,
+    color: '#38bdf8', core: '#fef08a',
+    life: 0.12, maxLife: 0.12, style: 'sniper', width: 2.5,
+  });
+  return true;
+}
+
+/**
+ * Reflect an arcing arrow — retargets one enemy troop.
+ * Returns true if blocked (caller should keep the arrow).
+ */
+function tryAngelWingReflectArrow(a, angel) {
+  if (!a || !angelCanWingBlock(angel)) return false;
+  if (a.ownerId === angel.owner || a.reflectedByAngel) return false;
+  consumeAngelWingBlock(angel);
+  const { ang, prey } = angelReflectAim(angel);
+  const ox = angel.x + Math.cos(ang) * 10;
+  const oy = angel.y - 10 + Math.sin(ang) * 6;
+  const tx = prey ? prey.x : ox + Math.cos(ang) * 180;
+  const ty = prey ? prey.y : oy + Math.sin(ang) * 180;
+  const flightDist = Math.hypot(tx - ox, ty - oy) || 1;
+  const maxLife = archerFlightTime(flightDist) * 0.88;
+  a.ownerId = angel.owner;
+  a.sx = ox; a.sy = oy;
+  a.x = ox; a.y = oy;
+  a.prevX = ox; a.prevY = oy;
+  a.tx = tx; a.ty = ty;
+  a.cx = (ox + tx) * 0.5;
+  a.cy = (oy + ty) * 0.5 - Math.min(70, 24 + flightDist * 0.16);
+  a.life = maxLife;
+  a.maxLife = maxLife;
+  a.lockUnitId = prey ? prey.id : null;
+  a.hitStructures = false;
+  a.canHitFlyers = !!prey && unitIsFlying(prey);
+  a.reflectedByAngel = true;
+  a.color = '#e0f2fe';
+  a.tip = '#facc15';
+  return true;
+}
+
+/** Block a sniper hit and spit a return pellet at the nearest enemy troop. */
+function tryAngelWingReflectSniper(angel, rawDmg) {
+  if (!angelCanWingBlock(angel)) return false;
+  consumeAngelWingBlock(angel);
+  const { ang, prey } = angelReflectAim(angel);
+  const spd = 520;
+  const muzzle = getUnitSize(angel) + 10;
+  pellets.push({
+    id: uid(),
+    x: angel.x + Math.cos(ang) * muzzle,
+    y: angel.y + Math.sin(ang) * muzzle - 8,
+    vx: Math.cos(ang) * spd,
+    vy: Math.sin(ang) * spd,
+    life: 1.2,
+    traveled: 0,
+    maxRange: 480,
+    size: 3.5,
+    ownerId: angel.owner,
+    towerType: 'turret',
+    color: '#fef08a',
+    damageMult: 1,
+    baseDamage: Math.max(1, rawDmg),
+    reflectedByAngel: true,
+    spawnX: angel.x,
+    spawnY: angel.y,
+  });
+  beams.push({
+    x1: angel.x, y1: angel.y - 8,
+    x2: prey ? prey.x : angel.x + Math.cos(ang) * 80,
+    y2: prey ? prey.y : angel.y + Math.sin(ang) * 80,
+    color: '#fff4c2', life: 0.12, maxLife: 0.12, style: 'sniper', width: 2,
+  });
+  return true;
+}
+
+/**
+ * Bounce a missile off the wings toward an enemy troop.
+ * Returns true if blocked (caller should keep updating the missile).
+ */
+function tryAngelWingReflectMissile(m, angel) {
+  if (!m || !angelCanWingBlock(angel)) return false;
+  if (m.ownerId === angel.owner || m.reflectedByAngel) return false;
+  consumeAngelWingBlock(angel);
+  const prey = findAngelReflectTarget(angel);
+  m.ownerId = angel.owner;
+  m.reflectedByAngel = true;
+  if (prey) {
+    m.targetRef = prey;
+    m.targetType = 'unit';
+    m.tx = prey.x;
+    m.ty = prey.y;
+  } else {
+    const bp = basePos(enemyId(angel.owner));
+    m.targetRef = players[enemyId(angel.owner)];
+    m.targetType = 'base';
+    m.tx = bp.x;
+    m.ty = bp.y;
+  }
+  const ang = Math.atan2(m.ty - angel.y, m.tx - angel.x);
+  const push = getUnitSize(angel) + 16;
+  m.x = angel.x + Math.cos(ang) * push;
+  m.y = angel.y + Math.sin(ang) * push;
+  m.speed = Math.max(m.speed || 220, 260);
+  return true;
 }
 
 function angelTargetKey(tgt) {
   return attackTargetKey(tgt);
 }
 
-/** Prefer units not yet shot, then turrets, then base — all within air range. */
+function angelEffectiveAttackRate(u, ut) {
+  if (isAngel(u) && u.angelPhase === 'ground' && ut.groundAttackRate) {
+    return ut.groundAttackRate;
+  }
+  return ut.attackRate;
+}
+
+/** Distinct living enemy units only — each volley arrow locks one person. */
 function findAngelVolleyTarget(angel) {
   const ut = unitDef(angel.type, angel.owner);
   const airRange = ut.airRange || 255;
@@ -27164,41 +27476,14 @@ function findAngelVolleyTarget(angel) {
 
   for (const u of combatUnits) {
     if (u.owner !== enemy || u.hp <= 0) continue;
-    // Can shoot other flyers (dragons) from the air.
+    const key = `u:${u.id}`;
+    if (shot.has(key)) continue;
     const d = dist(angel, u);
     if (d > airRange) continue;
-    const key = `u:${u.id}`;
-    const already = shot.has(key) ? 1 : 0;
-    const score = (already ? -4000 : 0) + getCounter('angel', u.type) * 100 - d + (unitIsFlying(u) ? 200 : 0);
+    const score = getCounter('angel', u.type) * 100 - d + (unitIsFlying(u) ? 180 : 0);
     if (score > bestScore) {
       bestScore = score;
       best = { type: 'unit', obj: u, dist: d };
-    }
-  }
-  const ep = players[enemy];
-  if (ep) {
-    for (const t of ep.turrets) {
-      if (t.hp <= 0) continue;
-      const d = dist(angel, t);
-      if (d > airRange) continue;
-      const key = `t:${t.id}`;
-      const already = shot.has(key) ? 1 : 0;
-      const score = (already ? -4000 : 0) + getCounter('angel', t.towerType) * 80 - d - 80;
-      if (score > bestScore) {
-        bestScore = score;
-        best = { type: 'turret', obj: t, dist: d };
-      }
-    }
-    const bp = basePos(enemy);
-    const bd = dist(angel, bp);
-    if (bd <= airRange + BASE_SIZE / 2) {
-      const key = `b:${enemy}`;
-      const already = shot.has(key) ? 1 : 0;
-      const score = (already ? -4000 : 0) + 40 - bd;
-      if (score > bestScore) {
-        bestScore = score;
-        best = { type: 'base', obj: ep, dist: bd };
-      }
     }
   }
   return best;
@@ -27206,20 +27491,11 @@ function findAngelVolleyTarget(angel) {
 
 function fireAngelArrow(angel, tgt) {
   const ut = unitDef(angel.type, angel.owner) || UNIT_TYPES.angel;
-  const range = ut.airRange || 255;
-  const maxMiss = 36;
-  let aimX;
-  let aimY;
-  if (tgt.type === 'unit' && tgt.obj && tgt.obj.hp > 0) {
-    const predicted = predictUnitIntercept(angel.x, angel.y - 10, tgt.obj, archerFlightTime);
-    aimX = predicted.x;
-    aimY = predicted.y;
-  } else {
-    const tp = sniperShotTargetPos(tgt);
-    aimX = tp.x;
-    aimY = tp.y;
-  }
-  const aimDist = Math.hypot(aimX - angel.x, aimY - angel.y);
+  if (!tgt || tgt.type !== 'unit' || !tgt.obj || tgt.obj.hp <= 0) return;
+  const prey = tgt.obj;
+  const predicted = predictUnitIntercept(angel.x, angel.y - 10, prey, archerFlightTime);
+  let aimX = predicted.x;
+  let aimY = predicted.y;
   const whiff = blizzardWhiffAim(angel.x, angel.y, aimX, aimY, angel);
   aimX = whiff.x;
   aimY = whiff.y;
@@ -27227,26 +27503,18 @@ function fireAngelArrow(angel, tgt) {
   const angle = angel.facing;
   const muzzle = (ut.size || 22) * 0.55;
   const ox = angel.x + Math.cos(angle) * muzzle;
-  const oy = angel.y + Math.sin(angle) * muzzle - 10;
-  const rangeFrac = clamp(aimDist / range, 0, 1);
-  const missR = rangeFrac * rangeFrac * maxMiss;
-  const pathWander = rangeFrac * rangeFrac * 0.7;
-  const landX = aimX + rand(-missR, missR);
-  const landY = aimY + rand(-missR, missR);
-  const flightDist = Math.hypot(landX - ox, landY - oy);
-  const maxLife = archerFlightTime(flightDist) * (0.94 + rand(0, 0.08));
+  const oy = angel.y + Math.sin(angle) * muzzle - 12;
+  const flightDist = Math.hypot(aimX - ox, aimY - oy) || 1;
+  const maxLife = archerFlightTime(flightDist) * 0.88;
   const perpX = -Math.sin(angle);
-  const perpY = Math.cos(angle);
-  const along = rand(-0.05, 0.05) * flightDist * (0.2 + pathWander);
-  const lateral = rand(-1, 1) * (3 + pathWander * 16);
-  const apex = Math.min(140, 42 + flightDist * (0.26 + pathWander * 0.08));
-  const midX = (ox + landX) * 0.5 + perpX * lateral + Math.cos(angle) * along;
-  const midY = (oy + landY) * 0.5 - apex + perpY * lateral * 0.35;
+  const apex = Math.min(90, 28 + flightDist * 0.18);
+  const midX = (ox + aimX) * 0.5 + perpX * rand(-8, 8);
+  const midY = (oy + aimY) * 0.5 - apex;
   archerArrows.push({
     id: uid(),
     sx: ox, sy: oy,
     cx: midX, cy: midY,
-    tx: landX, ty: landY,
+    tx: aimX, ty: aimY,
     x: ox, y: oy,
     prevX: ox, prevY: oy,
     life: maxLife,
@@ -27254,22 +27522,23 @@ function fireAngelArrow(angel, tgt) {
     ownerId: angel.owner,
     damage: getUnitDamage(angel) * ANGEL_ARROW_DMG_MULT,
     counterKey: 'angel',
-    hitStructures: true,
-    color: '#fef9c3',
-    tip: '#fbbf24',
+    hitStructures: false,
+    color: '#e0f2fe',
+    tip: '#facc15',
     elements: [],
-    hangBias: 0.48 + rand(-0.04, 0.05),
+    hangBias: 0.4 + rand(-0.03, 0.04),
     trail: [],
     canHitFlyers: true,
+    lockUnitId: prey.id,
+    angelBolt: true,
   });
-  spawnParticles(ox, oy, '#fde68a', 4);
-  spawnParticles(ox, oy, '#fffbeb', 3);
+  spawnParticles(ox, oy, '#38bdf8', 5);
+  spawnParticles(ox, oy, '#facc15', 3);
 }
 
 function beginAngelSwoop(angel) {
   angel.angelPhase = 'swoop';
   angel.angelSwoopT = 0;
-  // Dive toward the densest nearby threat / nearest unit
   const enemy = enemyId(angel.owner);
   let best = null;
   let bestD = Infinity;
@@ -27289,8 +27558,39 @@ function beginAngelSwoop(angel) {
     angel.angelSwoopTarget = { x: bp.x, y: bp.y };
     angel.facing = Math.atan2(bp.y - angel.y, bp.x - angel.x);
   }
-  spawnParticles(angel.x, angel.y, '#fbbf24', 10);
-  spawnFloatText(angel.x, angel.y - 28, '⚔️', '#fde68a');
+  spawnParticles(angel.x, angel.y, '#facc15', 10);
+  spawnFloatText(angel.x, angel.y - 28, '⚔️', '#fef08a');
+}
+
+/** After landing: electric AoE that stuns enemy units for 0.5s. */
+function angelLandingBlast(angel) {
+  const ut = unitDef(angel.type, angel.owner) || UNIT_TYPES.angel;
+  const r = ut.landBlastR || 98;
+  const cx = angel.x;
+  const cy = angel.y;
+  blasts.push({ x: cx, y: cy, maxR: r, life: 0.42, maxLife: 0.42, color: '#38bdf8' });
+  blasts.push({ x: cx, y: cy, maxR: r * 0.55, life: 0.28, maxLife: 0.28, color: '#facc15' });
+  spawnParticles(cx, cy, '#7dd3fc', 20);
+  spawnParticles(cx, cy, '#facc15', 12);
+  spawnFloatText(cx, cy - 30, '⚡ STUN', '#38bdf8');
+  pulseBaseShake(players[angel.owner], 0.16);
+  for (let i = 0; i < 6; i++) {
+    const ang = (Math.PI * 2 * i) / 6 + rand(-0.2, 0.2);
+    beams.push({
+      x1: cx, y1: cy,
+      x2: cx + Math.cos(ang) * r * 0.85,
+      y2: cy + Math.sin(ang) * r * 0.85,
+      color: '#38bdf8', core: '#fef08a',
+      life: 0.22, maxLife: 0.22, style: 'lightning', width: 3,
+    });
+  }
+  for (const other of combatUnits) {
+    if (other === angel || other.owner === angel.owner || other.hp <= 0) continue;
+    if (Math.hypot(other.x - cx, other.y - cy) > r + getUnitSize(other) * 0.4) continue;
+    other.paralyze = Math.max(other.paralyze || 0, ANGEL_LAND_STUN);
+    other.spreadShock = Math.max(other.spreadShock || 0, 0.45);
+    spawnParticles(other.x, other.y - 2, '#38bdf8', 5);
+  }
 }
 
 function landAngel(angel) {
@@ -27299,10 +27599,30 @@ function landAngel(angel) {
   angel.angelAltitude = 0;
   angel.angelSwoopTarget = null;
   resetUnitAttackPhase(angel);
-  angel.attackCooldown = 0.15;
-  // Switch to melee reach for ground sword fights.
-  spawnParticles(angel.x, angel.y, '#fef3c7', 12);
-  spawnParticles(angel.x, angel.y, '#fbbf24', 8);
+  angel.attackCooldown = 0.05;
+  angelLandingBlast(angel);
+}
+
+/** Kill on the ground → rise, back off, and reload a fresh 3-arrow volley. */
+function beginAngelAscend(angel) {
+  if (!isAngel(angel) || angel.hp <= 0) return;
+  angel.angelPhase = 'ascend';
+  angel.flying = true;
+  angel.angelAscendT = 0;
+  angel.angelAltitude = 0.12;
+  angel.angelArrowsLeft = 3;
+  angel.angelShotKeys = [];
+  angel.angelVolleyCd = 0.35;
+  angel.angelAirTime = 0;
+  angel.angelSwoopTarget = null;
+  resetAngelWingBlocks(angel);
+  resetUnitAttackPhase(angel);
+  const enemy = enemyId(angel.owner);
+  const bp = basePos(enemy);
+  angel.angelRetreatAng = Math.atan2(angel.y - bp.y, angel.x - bp.x);
+  spawnParticles(angel.x, angel.y, '#38bdf8', 14);
+  spawnParticles(angel.x, angel.y, '#facc15', 8);
+  spawnFloatText(angel.x, angel.y - 28, '↑', '#fef08a');
 }
 
 function updateAngelAir(angel, dt) {
@@ -27315,11 +27635,31 @@ function updateAngelAir(angel, dt) {
   const ut = unitDef(angel.type, angel.owner);
   const airRange = ut.airRange || 255;
 
+  if (angel.angelPhase === 'ascend') {
+    angel.angelAscendT = (angel.angelAscendT || 0) + dt;
+    const t = clamp(angel.angelAscendT / ANGEL_ASCEND_TIME, 0, 1);
+    angel.angelAltitude = 0.12 + t * 0.88;
+    angel._wingT = (angel._wingT || 0) + dt;
+    const retreat = angel.angelRetreatAng != null
+      ? angel.angelRetreatAng
+      : (angel.owner === 0 ? Math.PI : 0);
+    const spd = (ut.speed || 66) * (1.15 + t * 0.35);
+    angel.vx = Math.cos(retreat) * spd;
+    angel.vy = Math.sin(retreat) * spd;
+    angel.facing = retreat + Math.PI;
+    angel.x = clamp(angel.x + angel.vx * dt, 24, W - 24);
+    angel.y = clamp(angel.y + angel.vy * dt, LAND_TOP + 20, LAND_BOTTOM - 20);
+    if (t >= 1) {
+      angel.angelPhase = 'volley';
+      angel.angelVolleyCd = 0.2;
+    }
+    return;
+  }
+
   if (angel.angelPhase === 'volley') {
     angel.angelVolleyCd = Math.max(0, (angel.angelVolleyCd || 0) - dt);
     angel.angelAirTime = (angel.angelAirTime || 0) + dt;
 
-    // Loiter toward the front line while preparing shots.
     const tgt = findAngelVolleyTarget(angel);
     if (tgt) {
       const tp = attackTargetWorldPos(tgt);
@@ -27327,21 +27667,19 @@ function updateAngelAir(angel, dt) {
         const dx = tp.x - angel.x;
         const dy = tp.y - angel.y;
         const d = Math.hypot(dx, dy) || 1;
-        const hold = Math.max(110, airRange * 0.55);
-        let spd = (ut.speed || 66) * (d > hold ? 1 : (d < hold * 0.7 ? -0.35 : 0.15));
-        // Slow flying glide
-        spd *= 0.85;
+        const hold = Math.max(120, airRange * 0.58);
+        let spd = (ut.speed || 66) * (d > hold ? 1 : (d < hold * 0.72 ? -0.55 : 0.12));
+        spd *= 0.9;
         angel.vx = (dx / d) * spd;
         angel.vy = (dy / d) * spd;
         angel.facing = Math.atan2(dy, dx);
       }
     } else {
-      // Advance toward enemy base if nothing in range yet.
       const bp = basePos(enemyId(angel.owner));
       const dx = bp.x - angel.x;
       const dy = bp.y - angel.y;
       const d = Math.hypot(dx, dy) || 1;
-      const spd = (ut.speed || 66) * 0.9;
+      const spd = (ut.speed || 66) * 0.95;
       angel.vx = (dx / d) * spd;
       angel.vy = (dy / d) * spd;
       angel.facing = Math.atan2(dy, dx);
@@ -27363,16 +27701,13 @@ function updateAngelAir(angel, dt) {
         angel.attackPhase = 'strike';
         angel.attackT = 0;
       } else if ((angel.angelArrowsLeft || 0) < 3) {
-        // Fired at least once and no more distinct targets — swoop early.
         beginAngelSwoop(angel);
       }
-      // else keep flying until a target appears
     }
 
     if ((angel.angelArrowsLeft || 0) <= 0) {
       beginAngelSwoop(angel);
-    } else if ((angel.angelAirTime || 0) > 8) {
-      // No more targets / stall — descend and fight.
+    } else if ((angel.angelAirTime || 0) > 7.5) {
       beginAngelSwoop(angel);
     }
     return;
@@ -27386,7 +27721,7 @@ function updateAngelAir(angel, dt) {
     const dx = dest.x - angel.x;
     const dy = dest.y - angel.y;
     const d = Math.hypot(dx, dy) || 1;
-    const spd = (ut.speed || 66) * (1.6 + t * 1.4);
+    const spd = (ut.speed || 66) * (1.7 + t * 1.5);
     angel.vx = (dx / d) * spd;
     angel.vy = (dy / d) * spd;
     angel.facing = Math.atan2(dy, dx);
@@ -29014,6 +29349,10 @@ function applyDamageToTarget(attacker, target, rawDamage) {
 
   // unit
   const u = target.obj;
+  // Flying Angel wings slap sniper bolts back at enemy troops (3/flight).
+  if (attacker.type === 'sniper' && tryAngelWingReflectSniper(u, dmg)) {
+    return 0;
+  }
   const hpBefore = u.hp;
   u.lastHitBy = attacker.owner;
   const dealt = applyHpLoss(u, dmg);
@@ -29854,7 +30193,7 @@ const UNIT_ATTACK_STANCE = {
   sniper:  { standoff: 150, windup: 0.22, recover: 0.14 },
   bowman:  { standoff: 220, windup: 0.18, recover: 0.12 },
   swordsman: { standoff: 30, windup: 0.32, recover: 0.16, strike: 0.16 },
-  angel:    { standoff: 30, windup: 0.28, recover: 0.14, strike: 0.14 },
+  angel:    { standoff: 28, windup: 0.07, recover: 0.05, strike: 0.05 },
   peka:    { standoff: DRAGON_STANDOFF, windup: 0.2, recover: 0.15 },
   bloop:   { standoff: 22, windup: 0.2, recover: 0.14 },
 };
@@ -29951,8 +30290,12 @@ function executeUnitAttackStrike(u, tgt) {
     if (u.type === 'tank') tankStomp(u);
     if (u.type === 'yeti') yetiScratch(u, tgt);
   }
-  const rate = ut.attackRate * unitAttackRateMult(u);
+  const rate = angelEffectiveAttackRate(u, ut) * unitAttackRateMult(u);
   u.attackCooldown = 1 / Math.max(0.05, rate);
+  // Angel: destroying a unit on the ground ends the duel — rise and reload arrows.
+  if (isAngel(u) && u.angelPhase === 'ground' && tgt.type === 'unit' && tgt.obj && tgt.obj.hp <= 0) {
+    beginAngelAscend(u);
+  }
 }
 
 function yetiScratch(u, tgt) {
@@ -30762,18 +31105,25 @@ function updatePellets(dt) {
     }
     const enemy = enemyId(p.ownerId);
     let hit = false;
+    let reflected = false;
     for (const u of combatUnits) {
       if (u.owner !== enemy || u.hp <= 0) continue;
       if (wolfHunterUntargetableByTowers(u)) continue;
-      if (unitIsFlying(u) && p.towerType !== 'turret') continue; // only cannon pellets reach flying dragons
+      if (unitIsFlying(u) && p.towerType !== 'turret' && !p.reflectedByAngel) continue; // only cannon pellets reach flying dragons
       const hitR = getUnitSize(u) + p.size;
       if (dist(p, u) <= hitR) {
+        if (tryAngelWingReflectPellet(p, u)) {
+          reflected = true;
+          break;
+        }
         applyPelletHit(p, u);
         hit = true;
         break;
       }
     }
     if (hit) pellets.splice(i, 1);
+    // reflected pellets stay in play with new owner/aim
+    if (reflected) continue;
   }
 
   for (let i = spreadTracks.length - 1; i >= 0; i--) {
@@ -31805,6 +32155,43 @@ function updateArcherArrows(dt) {
     a.prevX = a.x;
     a.prevY = a.y;
     a.life -= dt;
+
+    // Angel bolts: home on one locked living target and never splash others.
+    if (a.lockUnitId) {
+      const locked = combatUnits.find((u) => u.id === a.lockUnitId && u.hp > 0 && u.owner !== a.ownerId);
+      if (!locked) {
+        spawnParticles(a.x, a.y, '#38bdf8', 3);
+        archerArrows.splice(i, 1);
+        continue;
+      }
+      a.tx = locked.x;
+      a.ty = locked.y;
+      const t = clamp(1 - Math.max(0, a.life) / a.maxLife, 0, 1);
+      const hang = clamp(a.hangBias != null ? a.hangBias : 0.4, 0.35, 0.55);
+      const eased = t < hang
+        ? (t / hang) * 0.4
+        : 0.4 + ((t - hang) / Math.max(0.001, 1 - hang)) * 0.6;
+      // Blend bezier path toward the moving prey so the bolt keeps tracking.
+      const bez = fireballBezier(a, eased);
+      const home = clamp((t - 0.2) / 0.8, 0, 1);
+      a.x = bez.x + (locked.x - bez.x) * home * 0.85;
+      a.y = bez.y + (locked.y - bez.y) * home * 0.85;
+      if (!a.trail) a.trail = [];
+      a.trail.push({ x: a.x, y: a.y, a: 1 });
+      if (a.trail.length > 10) a.trail.shift();
+      for (const p of a.trail) p.a *= 0.86;
+      const hitR = getUnitSize(locked) * 0.7 + 10;
+      if (pointSegmentDist(locked.x, locked.y, a.prevX, a.prevY, a.x, a.y) <= hitR || a.life <= 0) {
+        if (tryAngelWingReflectArrow(a, locked)) {
+          continue;
+        }
+        applyArcherArrowHit(a, locked);
+        spawnParticles(locked.x, locked.y, '#facc15', 5);
+        archerArrows.splice(i, 1);
+      }
+      continue;
+    }
+
     const t = clamp(1 - Math.max(0, a.life) / a.maxLife, 0, 1);
     // Ease so they hang high early then dive — hangBias varies per arrow path.
     const hang = clamp(a.hangBias != null ? a.hangBias : 0.55, 0.42, 0.66);
@@ -31819,18 +32206,24 @@ function updateArcherArrows(dt) {
     if (a.trail.length > 10) a.trail.shift();
     for (const p of a.trail) p.a *= 0.86;
 
-    // Mid-flight: if the path crosses a dragon, clip it (half damage).
+    // Mid-flight: if the path crosses a flyer, clip it (Angel may wing-block).
     let clipped = false;
+    let wingBounced = false;
     for (const u of combatUnits) {
       if (u.owner === a.ownerId || u.hp <= 0) continue;
       if (!(u.type === 'peka' || unitIsFlying(u))) continue;
       const hitR = getUnitSize(u) * 0.85 + 6;
       if (pointSegmentDist(u.x, u.y, a.prevX, a.prevY, a.x, a.y) <= hitR) {
+        if (tryAngelWingReflectArrow(a, u)) {
+          wingBounced = true;
+          break;
+        }
         applyArcherArrowHit(a, u);
         clipped = true;
         break;
       }
     }
+    if (wingBounced) continue;
     if (clipped) {
       archerArrows.splice(i, 1);
       continue;
@@ -32512,9 +32905,14 @@ function updateCombat(dt) {
     }
 
     // Angel — aerial 3-arrow volley, then land and fight with a sword.
-    if (isAngel(u) && u.angelPhase !== 'ground') {
-      updateAngelAir(u, dt);
-      continue;
+    if (isAngel(u)) {
+      if ((u.angelWingFlash || 0) > 0) {
+        u.angelWingFlash = Math.max(0, u.angelWingFlash - dt);
+      }
+      if (u.angelPhase !== 'ground') {
+        updateAngelAir(u, dt);
+        continue;
+      }
     }
 
     // Dragons breathe fire at the closest enemy.
@@ -32599,6 +32997,11 @@ function updateCombat(dt) {
       if (!u._attackStruck) {
         u._attackStruck = true;
         executeUnitAttackStrike(u, tgt);
+      }
+      // Angel may have ascended after a kill — hand off this frame.
+      if (isAngel(u) && u.angelPhase !== 'ground') {
+        updateAngelAir(u, dt);
+        continue;
       }
       if (u.attackT >= strikeDur) {
         u.attackPhase = 'recovery';
