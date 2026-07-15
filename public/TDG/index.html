@@ -26518,6 +26518,9 @@ function drawUnit(u) {
 
   // Draw the unit itself icy-blue when frozen — no surrounding ice ball.
   ctx.save();
+  if ((u.deployT || 0) > 0) {
+    ctx.globalAlpha = 0.55 + 0.25 * Math.sin(animFrame * 0.35 + u.id.charCodeAt(0));
+  }
   {
     let filt = '';
     if (isSimulatorMode()) filt += SIMULATOR_TEAM_COLORS[u.owner]?.hue || '';
