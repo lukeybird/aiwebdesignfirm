@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import twilio from 'twilio';
 import {
   closeBabyRoom,
   createBabyRoom,
@@ -15,6 +16,64 @@ function cleanToken(value: unknown) {
   return typeof value === 'string' ? value.trim().slice(0, 64) : '';
 }
 
+type IceServerConfig = {
+  urls: string | string[];
+  username?: string;
+  credential?: string;
+};
+
+async function babyIceServers(): Promise<IceServerConfig[]> {
+  const fallback: IceServerConfig[] = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:global.stun.twilio.com:3478' },
+    { urls: 'stun:openrelay.metered.ca:80' },
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp',
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+  ];
+  const customUrls = process.env.BABY_TURN_URLS;
+  const customUsername = process.env.BABY_TURN_USERNAME;
+  const customCredential = process.env.BABY_TURN_CREDENTIAL;
+  if (customUrls && customUsername && customCredential) {
+    return [
+      ...fallback,
+      {
+        urls: customUrls.split(',').map((url) => url.trim()).filter(Boolean),
+        username: customUsername,
+        credential: customCredential,
+      },
+    ];
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!accountSid || !authToken) return fallback;
+
+  try {
+    const networkToken = await twilio(accountSid, authToken).tokens.create();
+    const relays: IceServerConfig[] = [];
+    for (const server of networkToken.iceServers || []) {
+      const urls = server.urls || server.url;
+      if (!urls) continue;
+      relays.push({
+        urls,
+        ...(server.username ? { username: server.username } : {}),
+        ...(server.credential ? { credential: server.credential } : {}),
+      });
+    }
+    return relays.length ? relays : fallback;
+  } catch (error) {
+    console.error('baby monitor TURN credentials failed:', error);
+    return fallback;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
@@ -25,7 +84,8 @@ export async function POST(request: NextRequest) {
       if (!validPin(pin)) {
         return NextResponse.json({ error: 'Use a 4–8 digit viewer PIN.' }, { status: 400 });
       }
-      return NextResponse.json(await createBabyRoom(pin));
+      const room = await createBabyRoom(pin);
+      return NextResponse.json({ ...room, iceServers: await babyIceServers() });
     }
 
     if (action === 'join') {
@@ -38,7 +98,7 @@ export async function POST(request: NextRequest) {
       if ('error' in result) {
         return NextResponse.json({ error: result.error }, { status: result.status });
       }
-      return NextResponse.json(result);
+      return NextResponse.json({ ...result, iceServers: await babyIceServers() });
     }
 
     const token = cleanToken(body.token);

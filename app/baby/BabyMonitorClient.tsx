@@ -12,6 +12,7 @@ type MonitorSession = {
   token: string;
   clientId: string;
   role: Role;
+  iceServers?: RTCIceServer[];
 };
 
 type SignalMessage = {
@@ -44,7 +45,9 @@ export default function BabyMonitorClient() {
   const [viewerCount, setViewerCount] = useState(0);
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
-  const [viewerMuted, setViewerMuted] = useState(false);
+  // Start muted so mobile Safari/Chrome will autoplay the incoming camera.
+  // The viewer can enable sound with a direct tap once video is visible.
+  const [viewerMuted, setViewerMuted] = useState(true);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [copied, setCopied] = useState(false);
 
@@ -109,10 +112,24 @@ export default function BabyMonitorClient() {
       const active = sessionRef.current;
       const stream = localStreamRef.current;
       if (!active || active.role !== 'host' || !stream) return;
+      const existing = hostPeersRef.current.get(viewerId);
+      if (
+        existing &&
+        (existing.connectionState === 'new' ||
+          existing.connectionState === 'connecting' ||
+          existing.connectionState === 'connected')
+      ) {
+        if (existing.connectionState !== 'connected' && existing.localDescription) {
+          await sendSignal('offer', viewerId, existing.localDescription.toJSON());
+        }
+        return;
+      }
       closePeer(viewerId);
 
       const peer = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: active.iceServers?.length
+          ? active.iceServers
+          : [{ urls: 'stun:stun.l.google.com:19302' }],
       });
       hostPeersRef.current.set(viewerId, peer);
       setViewerCount(hostPeersRef.current.size);
@@ -174,7 +191,9 @@ export default function BabyMonitorClient() {
       if (message.type === 'offer' && message.payload) {
         viewerPeerRef.current?.close();
         const peer = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+          iceServers: active.iceServers?.length
+            ? active.iceServers
+            : [{ urls: 'stun:stun.l.google.com:19302' }],
         });
         viewerPeerRef.current = peer;
         peer.onicecandidate = (event) => {
@@ -193,7 +212,7 @@ export default function BabyMonitorClient() {
         };
         peer.onconnectionstatechange = () => {
           if (peer.connectionState === 'connected') setStatus('Live');
-          if (peer.connectionState === 'failed') {
+          if (peer.connectionState === 'failed' || peer.connectionState === 'disconnected') {
             setStatus('Reconnecting…');
             void sendSignal('viewer-ready', null).catch(() => {});
           }
@@ -415,9 +434,9 @@ export default function BabyMonitorClient() {
     return (
       <main className="baby-shell">
         <section className="baby-hero">
-          <span className="baby-eyebrow">Private local video</span>
+          <span className="baby-eyebrow">Private live video</span>
           <h1>Baby monitor</h1>
-          <p>Turn one phone, tablet, or computer into a camera and watch it from another device on the same Wi-Fi.</p>
+          <p>Turn one phone, tablet, or computer into a camera and watch it securely from another device anywhere.</p>
           <div className="baby-role-grid">
             <button className="baby-role-card baby-role-primary" onClick={() => setMode('host-setup')}>
               <span className="baby-role-icon">●</span>
@@ -431,7 +450,7 @@ export default function BabyMonitorClient() {
             </button>
           </div>
           <div className="baby-privacy-note">
-            Video and audio travel directly between your devices. They are not recorded or stored.
+            Video and audio are encrypted in transit, sent peer-to-peer when possible, and securely relayed when required. They are not recorded or stored.
           </div>
           <p className="baby-safety">This convenience monitor is not a medical device and is not a substitute for direct adult supervision.</p>
         </section>
@@ -510,7 +529,7 @@ export default function BabyMonitorClient() {
               <div className="baby-video-waiting">
                 <span className="baby-spinner" />
                 <strong>{status}</strong>
-                <small>Keep both devices on this page and connected to the same Wi-Fi.</small>
+                <small>Keep the camera device on this page and connected to the internet.</small>
               </div>
             )}
           </>

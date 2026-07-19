@@ -4,7 +4,7 @@ import './baby.css';
 
 export const metadata: Metadata = {
   title: 'Private Baby Monitor',
-  description: 'A private, same-Wi-Fi baby camera and viewer.',
+  description: 'A private baby camera you can securely view from anywhere.',
 };
 
 export default function BabyMonitorPage() {
