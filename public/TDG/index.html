@@ -23348,16 +23348,6 @@ function overlapsDeployment(x, y, playerId, margin = 0) {
   return false;
 }
 
-function pointInLiveFire(x, y, radius = 0) {
-  for (const f of fireFields) {
-    if (!f || f.life <= 0) continue;
-    // Trail embers don't block placement — only dragon/spreader ground fire does.
-    if (f.source === 'trail') continue;
-    if (dist({ x, y }, f) <= f.r + radius) return true;
-  }
-  return false;
-}
-
 function isHazardFireField(f) {
   return !!(f && f.source !== 'trail');
 }
@@ -23399,17 +23389,13 @@ function canPlaceUnit(x, y, pid, unitType) {
   if (!inZone(x, pid)) return false;
   if (!onLand(y)) return false;
   if (overlapsRubble(x, y, players[pid])) return false;
-  // Troops may stand on your own castle / cannon pads / towers.
-  // Still blocked by the enemy castle if a spot somehow reaches it.
-  const unitSz = unitType ? (UNIT_TYPES[unitType]?.size || 12) : 12;
-  if (overlapsEnemyHomeBase(x, y, pid, 4, unitSz)) return false;
-  // Ignore own towers; only enemy towers block (farms already okay for everyone via ownership skip).
-  if (overlapsTurret(x, y, null, 4, 0, null, false, pid)) return false;
+  // Every troop type may deploy directly over any live building, castle, tower,
+  // cannon pad, or active fire field. These remain dangerous/interactive after
+  // deployment, but they never invalidate the chosen drop point.
   if (overlapsDeployment(x, y, pid, 4)) return false;
   const ut = unitType ? UNIT_TYPES[unitType] : null;
   if (isSurvivalLive() && phase === 'combat') {
     const sz = ut?.size || 18;
-    if (pointInLiveFire(x, y, Math.max(8, sz * 0.65))) return false;
     for (const u of combatUnits) {
       if (u.owner !== pid || u.hp <= 0) continue;
       if (dist(u, { x, y }) < getUnitSize(u) + sz + 4) return false;
