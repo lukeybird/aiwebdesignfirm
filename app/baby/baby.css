@@ -1,0 +1,487 @@
+.baby-shell,
+.baby-monitor {
+  --baby-bg: #07110f;
+  --baby-panel: rgba(16, 34, 29, 0.92);
+  --baby-line: rgba(193, 232, 210, 0.16);
+  --baby-mint: #83e1b1;
+  --baby-cream: #f5f1e8;
+  min-height: 100dvh;
+  color: var(--baby-cream);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(58, 133, 101, 0.25), transparent 32rem),
+    radial-gradient(circle at 88% 92%, rgba(111, 80, 142, 0.2), transparent 34rem),
+    var(--baby-bg);
+}
+
+body:has(.baby-monitor) {
+  overflow: hidden;
+}
+
+body:has(.baby-shell) [data-site-ai-chat="true"],
+body:has(.baby-monitor) [data-site-ai-chat="true"] {
+  display: none;
+}
+
+.baby-shell {
+  display: grid;
+  place-items: center;
+  padding: clamp(1.25rem, 4vw, 4rem);
+}
+
+.baby-hero,
+.baby-setup-card {
+  width: min(100%, 52rem);
+  padding: clamp(1.5rem, 5vw, 4.5rem);
+  border: 1px solid var(--baby-line);
+  border-radius: 2rem;
+  background: linear-gradient(145deg, rgba(20, 44, 37, 0.95), rgba(8, 20, 17, 0.96));
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.35);
+}
+
+.baby-hero h1,
+.baby-setup-card h1 {
+  margin: 0.45rem 0 0.8rem;
+  font-family: var(--font-heading), sans-serif;
+  font-size: clamp(2.8rem, 8vw, 5.6rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+}
+
+.baby-setup-card h1 {
+  font-size: clamp(2.25rem, 6vw, 4.2rem);
+}
+
+.baby-hero > p,
+.baby-setup-card > p {
+  max-width: 43rem;
+  margin: 0;
+  color: rgba(245, 241, 232, 0.7);
+  font-size: clamp(1rem, 2.4vw, 1.24rem);
+  line-height: 1.6;
+}
+
+.baby-eyebrow {
+  color: var(--baby-mint);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.baby-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2.25rem;
+}
+
+.baby-role-card {
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  color: var(--baby-cream);
+  text-align: left;
+  border: 1px solid var(--baby-line);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.baby-role-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(131, 225, 177, 0.55);
+  background: rgba(131, 225, 177, 0.08);
+}
+
+.baby-role-card strong {
+  margin-top: auto;
+  font-family: var(--font-heading), sans-serif;
+  font-size: 1.55rem;
+}
+
+.baby-role-card small {
+  margin-top: 0.35rem;
+  color: rgba(245, 241, 232, 0.58);
+  font-size: 0.88rem;
+}
+
+.baby-role-primary {
+  color: #07110f;
+  border-color: transparent;
+  background: linear-gradient(135deg, #a9ecc8, #6dcc9a);
+}
+
+.baby-role-primary small {
+  color: rgba(7, 17, 15, 0.65);
+}
+
+.baby-role-icon {
+  display: grid;
+  width: 2.9rem;
+  height: 2.9rem;
+  margin-bottom: 2rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 1.25rem;
+}
+
+.baby-privacy-note,
+.baby-safety {
+  margin-top: 1.5rem;
+  padding: 1rem 1.15rem;
+  border-radius: 0.85rem;
+  background: rgba(131, 225, 177, 0.07);
+  color: rgba(245, 241, 232, 0.75);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.baby-hero .baby-safety {
+  margin-top: 0.75rem;
+  padding: 0;
+  color: rgba(245, 241, 232, 0.4);
+  background: none;
+  font-size: 0.72rem;
+}
+
+.baby-back {
+  margin: -1rem 0 2rem -0.5rem;
+  padding: 0.5rem;
+  color: rgba(245, 241, 232, 0.65);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.baby-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.baby-form label {
+  display: grid;
+  gap: 0.55rem;
+  color: rgba(245, 241, 232, 0.7);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.baby-form input {
+  width: 100%;
+  padding: 1rem 1.1rem;
+  color: var(--baby-cream);
+  border: 1px solid var(--baby-line);
+  border-radius: 0.85rem;
+  outline: none;
+  background: rgba(1, 8, 6, 0.65);
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+.baby-form input:focus {
+  border-color: var(--baby-mint);
+  box-shadow: 0 0 0 3px rgba(131, 225, 177, 0.12);
+}
+
+.baby-action,
+.baby-invite button {
+  padding: 1rem 1.25rem;
+  color: #07110f;
+  border: 0;
+  border-radius: 0.85rem;
+  background: var(--baby-mint);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.baby-action:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+.baby-error {
+  padding: 0.85rem 1rem;
+  color: #ffd9d4;
+  border: 1px solid rgba(255, 116, 102, 0.25);
+  border-radius: 0.75rem;
+  background: rgba(127, 28, 23, 0.25);
+  font-size: 0.9rem;
+}
+
+.baby-monitor {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.baby-monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.25rem;
+  padding: 0.7rem clamp(1rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--baby-line);
+  background: rgba(5, 15, 12, 0.92);
+}
+
+.baby-monitor-header > div {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.baby-live-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: #d99a55;
+  box-shadow: 0 0 0 5px rgba(217, 154, 85, 0.1);
+}
+
+.baby-live-dot.is-live {
+  background: #67e19f;
+  box-shadow: 0 0 0 5px rgba(103, 225, 159, 0.1), 0 0 1rem rgba(103, 225, 159, 0.7);
+}
+
+.baby-room-badge {
+  color: rgba(245, 241, 232, 0.55);
+  font-size: 0.85rem;
+}
+
+.baby-room-badge b {
+  color: var(--baby-cream);
+  letter-spacing: 0.11em;
+}
+
+.baby-video-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: #020403;
+}
+
+.baby-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #020403;
+}
+
+.baby-video-waiting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: rgba(245, 241, 232, 0.75);
+  text-align: center;
+  background: radial-gradient(circle, rgba(35, 74, 61, 0.6), rgba(2, 4, 3, 0.96));
+}
+
+.baby-video-waiting small {
+  max-width: 28rem;
+  color: rgba(245, 241, 232, 0.45);
+  line-height: 1.5;
+}
+
+.baby-spinner {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 3px solid rgba(131, 225, 177, 0.15);
+  border-top-color: var(--baby-mint);
+  border-radius: 50%;
+  animation: baby-spin 0.8s linear infinite;
+}
+
+@keyframes baby-spin {
+  to { transform: rotate(360deg); }
+}
+
+.baby-video-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  left: 1rem;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.baby-video-overlay span,
+.baby-video-overlay time {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(8px);
+  font-size: 0.78rem;
+}
+
+.baby-monitor-error {
+  margin: 0.7rem 1rem 0;
+}
+
+.baby-invite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--baby-line);
+  background: rgba(11, 27, 22, 0.94);
+}
+
+.baby-invite div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.baby-invite small {
+  color: rgba(245, 241, 232, 0.45);
+}
+
+.baby-invite strong {
+  color: var(--baby-mint);
+  font-size: 1.35rem;
+  letter-spacing: 0.13em;
+}
+
+.baby-invite button {
+  padding: 0.7rem 0.95rem;
+  font-size: 0.82rem;
+}
+
+.baby-controls {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.85rem max(0.8rem, env(safe-area-inset-right)) max(0.85rem, env(safe-area-inset-bottom)) max(0.8rem, env(safe-area-inset-left));
+  border-top: 1px solid var(--baby-line);
+  background: #07110f;
+}
+
+.baby-controls button {
+  min-width: 7.25rem;
+  padding: 0.8rem 1rem;
+  color: var(--baby-cream);
+  border: 1px solid var(--baby-line);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.baby-controls button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.baby-controls button.is-off {
+  color: rgba(245, 241, 232, 0.5);
+  background: rgba(102, 48, 45, 0.35);
+}
+
+.baby-controls .baby-end {
+  color: #ffd4cf;
+  border-color: rgba(255, 107, 91, 0.25);
+  background: rgba(139, 38, 29, 0.35);
+}
+
+@media (max-width: 650px) {
+  .baby-shell {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .baby-hero,
+  .baby-setup-card {
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    padding: 2rem 1.15rem max(2rem, env(safe-area-inset-bottom));
+  }
+
+  .baby-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .baby-role-card {
+    min-height: 9.5rem;
+  }
+
+  .baby-role-icon {
+    margin-bottom: 1rem;
+  }
+
+  .baby-monitor-header {
+    min-height: 3.5rem;
+    font-size: 0.8rem;
+  }
+
+  .baby-invite {
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .baby-invite div {
+    display: grid;
+    gap: 0;
+  }
+
+  .baby-controls {
+    gap: 0.4rem;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .baby-controls button {
+    min-width: max-content;
+    flex: 1 0 auto;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .baby-monitor {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .baby-monitor-header {
+    grid-column: 1 / 3;
+  }
+
+  .baby-video-stage {
+    grid-column: 1;
+    grid-row: 2 / 4;
+  }
+
+  .baby-invite,
+  .baby-monitor-error {
+    display: none;
+  }
+
+  .baby-controls {
+    grid-column: 2;
+    grid-row: 2 / 4;
+    width: 8.5rem;
+    flex-direction: column;
+    overflow: visible;
+  }
+}

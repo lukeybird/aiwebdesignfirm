@@ -1564,7 +1564,7 @@
       width: min(740px, 100%);
       min-height: 170px;
       display: grid;
-      grid-template-columns: 46px minmax(0, 1fr);
+      grid-template-columns: 104px minmax(0, 1fr);
       grid-template-rows: 1fr auto;
       align-items: center;
       gap: 8px 10px;
@@ -1603,13 +1603,21 @@
     }
 
     .enemy-action-subject {
-      width: 44px;
-      height: 44px;
+      width: 100px;
+      height: 100px;
       object-fit: cover;
       border-radius: 50%;
-      border: 2px solid #74451d;
+      border: 4px solid #74451d;
       background: rgba(255, 248, 218, 0.58);
-      box-shadow: 0 2px 6px rgba(61, 35, 12, 0.34);
+      box-shadow:
+        0 3px 10px rgba(61, 35, 12, 0.48),
+        0 0 0 4px rgba(255, 225, 126, 0.46),
+        0 0 18px rgba(255, 203, 72, 0.72);
+      animation: enemy-action-subject-pulse 1.15s ease-in-out infinite alternate;
+    }
+    @keyframes enemy-action-subject-pulse {
+      from { transform: scale(0.96); filter: brightness(1); }
+      to { transform: scale(1.05); filter: brightness(1.2); }
     }
 
     .enemy-action-copy { min-width: 0; line-height: 1.15; }
@@ -1665,7 +1673,7 @@
       #enemy-action-feed.side-p1 { left: 4px; right: auto; }
       .enemy-action-toast {
         min-height: 130px;
-        grid-template-columns: 32px minmax(0, 1fr);
+        grid-template-columns: 68px minmax(0, 1fr);
         gap: 6px;
         padding: 7px 10px 7px 158px;
       }
@@ -1679,7 +1687,11 @@
         object-position: left bottom;
         clip-path: none;
       }
-      .enemy-action-subject { width: 30px; height: 30px; }
+      .enemy-action-subject {
+        width: 64px;
+        height: 64px;
+        border-width: 3px;
+      }
       .enemy-action-title { font-size: 0.82rem; }
       .enemy-action-detail { font-size: 0.82rem; }
       .enemy-action-controls button {
