@@ -22093,6 +22093,49 @@ function canSellTower(tw) {
   return true;
 }
 
+function quickSellTowerAt(pos, pid = getLocalPlayerId()) {
+  if (!pos || !canPlayerBuildNow()) return null;
+  const tw = findAnyOwnInteractiveTowerAt(pos, pid);
+  return canSellTower(tw) ? tw : null;
+}
+
+function drawQuickSellHover() {
+  if (!mousePos || !canvas.matches(':hover')) return;
+  const pid = getLocalPlayerId();
+  const tw = quickSellTowerAt(mousePos, pid);
+  if (!tw) return;
+  const size = towerDef(tw.towerType, pid)?.size || 20;
+  const refund = towerSellValue(tw);
+  const label = refund > 0 ? `S · QUICK SELL +${refund} GOLD` : 'S · QUICK SELL';
+
+  ctx.save();
+  ctx.strokeStyle = '#f87171';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.arc(tw.x, tw.y, size + 11, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.font = '800 12px Orbitron, Rajdhani, sans-serif';
+  const textW = ctx.measureText(label).width;
+  const boxW = textW + 18;
+  const boxH = 24;
+  const boxX = clamp(tw.x - boxW / 2, 4, W - boxW - 4);
+  const boxY = Math.max(4, tw.y - size - 39);
+  ctx.fillStyle = 'rgba(69, 10, 10, 0.92)';
+  ctx.strokeStyle = '#f87171';
+  ctx.lineWidth = 1;
+  roundRect(boxX, boxY, boxW, boxH, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#fee2e2';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, boxX + boxW / 2, boxY + boxH / 2 + 0.5);
+  ctx.restore();
+}
+
 function towerSellButtonHtml(tw) {
   if (!canSellTower(tw)) return '';
   const refund = towerSellValue(tw);
@@ -36744,6 +36787,17 @@ document.addEventListener('keydown', (e) => {
   const loadoutOpen = !!loadoutPanel && !loadoutPanel.classList.contains('hidden');
   const freeMovementMode = phase === 'free' || phase === 'free2p';
 
+  // Hover an owned sellable tower and press S for an immediate quick sale.
+  if (!freeMovementMode && !e.repeat && (lowerKey === 's' || code === 'KeyS')
+      && mousePos && canvas.matches(':hover')) {
+    const tw = quickSellTowerAt(mousePos);
+    if (tw) {
+      e.preventDefault();
+      requestSellTower(tw.id);
+      return;
+    }
+  }
+
   // Inventory and one-of-a-kind structure shortcuts.
   if (!freeMovementMode && (lowerKey === 'i' || code === 'KeyI') && (hotbarVisible || loadoutOpen)) {
     e.preventDefault();
@@ -37443,6 +37497,7 @@ function renderFrame(time) {
     }
   }
 
+  drawQuickSellHover();
   drawParticles(dt);
   updateFloatTexts(dt);
   drawFloatTexts();
@@ -37470,6 +37525,7 @@ function renderFrame(time) {
 
 let mousePos = null;
 canvas.addEventListener('mousemove', (e) => { mousePos = canvasPos(e); });
+canvas.addEventListener('mouseleave', () => { mousePos = null; });
 
 let landscapeLockAttempted = false;
 
