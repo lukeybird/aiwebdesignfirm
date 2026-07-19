@@ -280,14 +280,49 @@ window.LIVE_ARMY = (function () {
       fin: { id: 'blizzard_king', label: 'Blizzard King', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-blizzard-king.webp' },
     }),
 
-    angel: mkStandardBranchTree({
-      a: { id: 'holy_bow', label: 'Holy Bow', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-draw-strength.webp' },
-      b: { id: 'swift_pinions', label: 'Swift Pinions', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', icon: '/TDG/portraits/skill-storm-wings.webp' },
-      mid: { id: 'halo_guard', label: 'Halo Guard', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', icon: '/TDG/portraits/skill-champion-crest.webp' },
-      c: { id: 'judgement', label: 'Judgement', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-tempered-blade.webp' },
-      d: { id: 'aegis_light', label: 'Aegis Light', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', icon: '/TDG/portraits/skill-mirror-shield.webp' },
-      fin: { id: 'seraphim', label: 'Seraphim', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-gallant-crest.webp' },
-    }),
+    // Angel — bazaar arrow path (forking like Archer Tower).
+    // T1: Fire (terminal, quiver 3) OR More Arrows (quiver 6).
+    // T2 after More: Electric (terminal, quiver 6) OR Max Quiver (quiver 9).
+    angel: (() => {
+      const mk = (id, label, cost, icon, blurb, opts = {}) => ({
+        id, label, cost, icon, blurb,
+        requires: opts.requires || [],
+        excludes: opts.excludes || [],
+        effects: opts.effects || {},
+      });
+      const fire = mk(
+        'fire_arrows', 'Fire Arrows', 180, '/TDG/portraits/skill-archer-fire.webp',
+        'Holy bolts ignite on hit. Seals the quiver path — max 3 arrows per flight.',
+        { excludes: ['more_arrows', 'electric_arrows', 'max_quiver'], effects: { element: 'fire' } },
+      );
+      const more = mk(
+        'more_arrows', 'More Arrows', 180, '/TDG/portraits/skill-archer-double.webp',
+        'Quiver 6 — shoot six targets from the sky before diving. Opens the next fork.',
+        { excludes: ['fire_arrows'] },
+      );
+      const electric = mk(
+        'electric_arrows', 'Electric Arrows', 320, '/TDG/portraits/skill-archer-electric.webp',
+        'Bolts shock and stun. Seals further quiver growth — stays at 6.',
+        { requires: ['more_arrows'], excludes: ['max_quiver', 'fire_arrows'], effects: { element: 'electric' } },
+      );
+      const maxQ = mk(
+        'max_quiver', 'Max Quiver', 320, '/TDG/portraits/skill-archer-triple.webp',
+        'Quiver 9 — nine shots per flight (max). Cannot take Electric Arrows.',
+        { requires: ['more_arrows'], excludes: ['electric_arrows', 'fire_arrows'] },
+      );
+      const order = [fire.id, more.id, electric.id, maxQ.id];
+      return {
+        style: 'bazaar',
+        order,
+        skills: {
+          [fire.id]: fire,
+          [more.id]: more,
+          [electric.id]: electric,
+          [maxQ.id]: maxQ,
+        },
+        layout: { bazaar: order },
+      };
+    })(),
 
     peka: mkStandardBranchTree({
       a: { id: 'searing_jaws', label: 'Searing Jaws', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', icon: '/TDG/portraits/skill-searing-jaws.webp' },
@@ -306,11 +341,11 @@ window.LIVE_ARMY = (function () {
       const iconFor = (id) => `/TDG/portraits/skill-${id.replace(/_/g, '-')}.webp`;
       const werewolf = mk(
         'werewolf', 'Werewolf', 350, iconFor('werewolf'),
-        'Sprint as a wolf to close long gaps on wolves/elephants, then turn back and attack. With no prey left, stay a wolf — fake-fight allies, steal +2💵/sec from farms (visible only to you).',
+        'Sprint as a wolf to close long gaps on wolves/elephants, then turn back and attack. With no prey left, stay a wolf — fake-fight allies, steal +2 gold/sec from farms (visible only to you).',
       );
       const ravenous = mk(
         'ravenous', 'Ravenous', 500, iconFor('ravenous'),
-        'Werewolf farm theft becomes +5💵/sec.',
+        'Werewolf farm theft becomes +5 gold/sec.',
         ['werewolf'],
       );
       const twinSpears = mk(
@@ -379,7 +414,25 @@ window.LIVE_ARMY = (function () {
     const def = unitSkillDef(type, skillId);
     if (!def || !rec?.unlocked) return false;
     if (unitHasSkill(rec, skillId)) return false;
-    return def.requires.every((req) => unitHasSkill(rec, req));
+    if (!def.requires.every((req) => unitHasSkill(rec, req))) return false;
+    // Mutual-exclusion forks (Angel Fire vs More, Electric vs Max Quiver, etc.).
+    if (Array.isArray(def.excludes) && def.excludes.some((id) => unitHasSkill(rec, id))) return false;
+    return true;
+  }
+
+  /** Angel aerial quiver size: 3 base, 6 with More Arrows, 9 with Max Quiver. */
+  function angelQuiverSize(rec) {
+    if (unitHasSkill(rec, 'max_quiver')) return 9;
+    if (unitHasSkill(rec, 'more_arrows')) return 6;
+    return 3;
+  }
+
+  /** Angel bolt elements from bazaar picks (fire and/or electric). */
+  function angelArrowElements(rec) {
+    const els = [];
+    if (unitHasSkill(rec, 'fire_arrows')) els.push('fire');
+    if (unitHasSkill(rec, 'electric_arrows')) els.push('electric');
+    return els;
   }
 
   function unitSkillCost(type, skillId) {
@@ -431,23 +484,27 @@ window.LIVE_ARMY = (function () {
     return { built: false, towers };
   }
 
-  const SPELL_IDS = ['fireball', 'slime', 'heal'];
+  const SPELL_IDS = ['fireball', 'slime', 'heal', 'slow', 'rage'];
   const SPELL_LABELS = {
     fireball: 'Fireball',
     slime: 'Zombie Slime',
     heal: 'Yellow Potion',
+    slow: 'Slow Potion',
+    rage: 'Rage Potion',
   };
   const SPELL_ICONS = {
     fireball: '☄️',
     slime: '🧟',
     heal: '🧴',
+    slow: '❄️',
+    rage: '🔥',
   };
   // Spells are unlock-only — no Power skill tree.
   const SPELL_MAX_LEVEL = 1;
-  const SPELL_UNLOCK_COST = { fireball: 180, slime: 220, heal: 160 };
+  const SPELL_UNLOCK_COST = { fireball: 180, slime: 220, heal: 160, slow: 200, rage: 200 };
   const SPELL_UPGRADE_COSTS = [];
-  const SPELL_CAST_COST = { fireball: 45, slime: 55, heal: 40 };
-  const SPELL_COOLDOWN = { fireball: 8, slime: 12, heal: 10 };
+  const SPELL_CAST_COST = { fireball: 45, slime: 55, heal: 40, slow: 50, rage: 50 };
+  const SPELL_COOLDOWN = { fireball: 8, slime: 12, heal: 10, slow: 15, rage: 15 };
 
   function freshSpellRecord() {
     return { level: 0 };
@@ -459,7 +516,7 @@ window.LIVE_ARMY = (function () {
     return {
       built: false,
       spells,
-      cds: { fireball: 0, slime: 0, heal: 0 },
+      cds: { fireball: 0, slime: 0, heal: 0, slow: 0, rage: 0 },
     };
   }
 
@@ -467,7 +524,7 @@ window.LIVE_ARMY = (function () {
     if (!lab) return freshLaboratory();
     lab.built = !!lab.built;
     if (!lab.spells) lab.spells = {};
-    if (!lab.cds) lab.cds = { fireball: 0, slime: 0, heal: 0 };
+    if (!lab.cds) lab.cds = { fireball: 0, slime: 0, heal: 0, slow: 0, rage: 0 };
     for (const id of SPELL_IDS) {
       if (!lab.spells[id]) lab.spells[id] = freshSpellRecord();
       lab.spells[id].level = lab.spells[id].level || 0;
@@ -518,7 +575,7 @@ window.LIVE_ARMY = (function () {
   const BASE_INCOME_UPGRADE_COSTS = [150, 300, 450];
   const BASE_BRANCHES = ['income', 'health', 'defense'];
   const BASE_BRANCH_LABELS = { income: 'Income', health: 'Health', defense: 'Guns' };
-  const BASE_BRANCH_ICONS = { income: '💵', health: '❤️', defense: '🔫' };
+  const BASE_BRANCH_ICONS = { income: '🪙', health: '❤️', defense: '🔫' };
 
   function freshMissileUpgrades() {
     return { rate: 1, damage: 1, radius: 1 };
@@ -845,6 +902,21 @@ window.LIVE_ARMY = (function () {
         duration: 3, // active zombie attack window
         transformTime: 1,
         wearoffTime: 1,
+      };
+    }
+    if (spellId === 'slow') {
+      return {
+        radius: 90,
+        duration: 7,
+        speedMult: 0.45,
+      };
+    }
+    if (spellId === 'rage') {
+      return {
+        radius: 90,
+        duration: 5,
+        moveMult: 1.35,
+        attackMult: 1.5,
       };
     }
     // heal: yellow potion — +30 HP/s base = +10 HP every 1/3s (units + towers + base)
@@ -1202,7 +1274,7 @@ window.LIVE_ARMY = (function () {
       ep.liveArmy.laboratory = {
         built: !!ep.liveArmy.laboratory.built,
         spells,
-        cds: { fireball: 0, slime: 0, heal: 0 },
+        cds: { fireball: 0, slime: 0, heal: 0, slow: 0, rage: 0 },
       };
     }
     if (ep.turrets) {
@@ -1308,6 +1380,8 @@ window.LIVE_ARMY = (function () {
     unitHasSkill,
     unitSkillReady,
     unitSkillCost,
+    angelQuiverSize,
+    angelArrowElements,
     unitBranchMultipliers,
     KNIGHT_SKILLS,
     KNIGHT_SKILL_ORDER,
