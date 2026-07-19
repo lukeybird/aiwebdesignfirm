@@ -277,7 +277,8 @@
     }
 
     #sandbox-side-pill,
-    #sandbox-money-pill {
+    #sandbox-money-pill,
+    #enemy-warning-toggle-pill {
       pointer-events: auto;
       gap: 4px;
       padding: 4px 6px;
@@ -334,6 +335,26 @@
       border-color: #a3b86a;
     }
     #sandbox-money-btn.hidden { display: none; }
+
+    #enemy-warning-toggle-btn {
+      pointer-events: auto;
+      min-width: 0;
+      padding: 4px 10px;
+      border: 1px solid rgba(196, 164, 108, 0.35);
+      border-radius: 5px;
+      background: linear-gradient(180deg, #5c6b3a, #3a4424);
+      color: #f4f1e0;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #enemy-warning-toggle-btn.is-muted {
+      background: linear-gradient(180deg, #6b3a3a, #442424);
+      color: #ffd7d7;
+      border-color: #b86a6a;
+    }
 
     #fullscreen-btn {
       position: absolute;
@@ -1451,6 +1472,67 @@
 
     .hidden { display: none !important; }
 
+    body,
+    body * {
+      cursor: url('/TDG/ui/ink-feather-cursor-32.png') 29 30, default !important;
+    }
+    button:not(:disabled),
+    [role="button"],
+    [data-loadout-tool],
+    [data-tool] {
+      cursor: url('/TDG/ui/ink-feather-cursor-32.png') 29 30, pointer !important;
+    }
+    [draggable="true"],
+    .hl-catalog-cell,
+    .hl-slot-cell {
+      cursor: url('/TDG/ui/ink-feather-cursor-32.png') 29 30, grab !important;
+    }
+    body.is-feather-grabbing,
+    body.is-feather-grabbing * {
+      cursor: url('/TDG/ui/ink-feather-cursor-32.png') 29 30, grabbing !important;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      cursor: text !important;
+    }
+    body.feather-cursor-enabled,
+    body.feather-cursor-enabled * {
+      cursor: none !important;
+    }
+    #live-feather-cursor {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      pointer-events: none;
+      z-index: 100000;
+      transform-origin: 29px 30px;
+      will-change: left, top, transform;
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+    }
+    #live-feather-tip-glow {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      background: radial-gradient(circle, #fffbd1 0 12%, #7dd3fc 25%, rgba(56, 189, 248, 0.28) 52%, transparent 72%);
+      box-shadow: 0 0 5px #fff8b5, 0 0 11px rgba(56, 189, 248, 0.9);
+      animation: feather-tip-pulse 0.75s ease-in-out infinite alternate;
+      will-change: left, top, transform;
+    }
+    @keyframes feather-tip-pulse {
+      from { transform: scale(0.72); opacity: 0.72; }
+      to { transform: scale(1.18); opacity: 1; }
+    }
+
     #log-feed {
       position: absolute;
       left: 12px;
@@ -1463,6 +1545,148 @@
     }
 
     .log-line { margin-bottom: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+
+    #enemy-action-feed {
+      position: absolute;
+      bottom: 8px;
+      z-index: 30;
+      width: min(760px, calc(100% - 16px));
+      pointer-events: none;
+    }
+
+    #enemy-action-feed.side-p0,
+    #enemy-action-feed.side-p1 {
+      left: 8px;
+      right: auto;
+    }
+
+    .enemy-action-toast {
+      width: min(740px, 100%);
+      min-height: 170px;
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr);
+      grid-template-rows: 1fr auto;
+      align-items: center;
+      gap: 8px 10px;
+      padding: 10px 18px 10px 350px;
+      color: #301c0d;
+      background:
+        linear-gradient(90deg, rgba(112, 67, 25, 0.15), transparent 8%, transparent 92%, rgba(112, 67, 25, 0.17)),
+        repeating-linear-gradient(0deg, rgba(111, 74, 29, 0.035) 0 1px, transparent 1px 4px),
+        linear-gradient(180deg, #f6dfad, #e8c982 58%, #d9b66c);
+      border: 3px solid #7b4a20;
+      border-radius: 18px 8px 18px 8px;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.58), inset 0 0 0 2px rgba(255, 246, 205, 0.6);
+      overflow: visible;
+      pointer-events: auto;
+      position: relative;
+      opacity: 0;
+      transform: translateY(28px) scale(0.96);
+      transition: opacity 0.24s ease, transform 0.32s cubic-bezier(0.2, 0.85, 0.25, 1.18);
+    }
+
+    .enemy-action-toast.show { opacity: 1; transform: translateY(0) scale(1); }
+    .enemy-action-toast.hide { opacity: 0; transform: translateY(14px) scale(0.98); }
+
+    .enemy-action-angel {
+      position: absolute;
+      left: 0;
+      top: auto;
+      bottom: -4px;
+      width: 340px;
+      height: auto;
+      object-fit: contain;
+      object-position: left bottom;
+      clip-path: none;
+      filter: drop-shadow(0 3px 5px rgba(38, 87, 120, 0.34));
+      pointer-events: none;
+    }
+
+    .enemy-action-subject {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #74451d;
+      background: rgba(255, 248, 218, 0.58);
+      box-shadow: 0 2px 6px rgba(61, 35, 12, 0.34);
+    }
+
+    .enemy-action-copy { min-width: 0; line-height: 1.15; }
+    .enemy-action-kicker {
+      color: #6b3e18;
+      font: 800 0.64rem Orbitron, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .enemy-action-title {
+      color: #2c1708;
+      font: 900 1.05rem Georgia, serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .enemy-action-detail {
+      color: #5d3515;
+      font: 700 1.05rem Georgia, serif;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    .enemy-action-controls {
+      grid-column: 1 / 3;
+      display: flex;
+      justify-content: flex-end;
+      gap: 7px;
+    }
+    .enemy-action-controls button {
+      border: 1px solid #6f4019;
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #fff4cf;
+      background: linear-gradient(#8a5726, #56300f);
+      font: 800 0.9rem Rajdhani, sans-serif;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .enemy-action-controls button:disabled { opacity: 0.42; cursor: default; }
+    .enemy-action-quill {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    @media (max-width: 700px) {
+      #enemy-action-feed { bottom: 5px; width: calc(100% - 8px); }
+      #enemy-action-feed.side-p0,
+      #enemy-action-feed.side-p1 { left: 4px; right: auto; }
+      .enemy-action-toast {
+        min-height: 130px;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 6px;
+        padding: 7px 10px 7px 158px;
+      }
+      .enemy-action-angel {
+        left: 0;
+        top: auto;
+        bottom: -2px;
+        width: 150px;
+        height: auto;
+        object-fit: contain;
+        object-position: left bottom;
+        clip-path: none;
+      }
+      .enemy-action-subject { width: 30px; height: 30px; }
+      .enemy-action-title { font-size: 0.82rem; }
+      .enemy-action-detail { font-size: 0.82rem; }
+      .enemy-action-controls button {
+        padding: 6px 10px;
+        font-size: 0.76rem;
+      }
+    }
 
     #achievement-feed-p0,
     #achievement-feed-p1 {
@@ -6470,11 +6694,15 @@
         <div class="stat-pill hidden" id="sandbox-money-pill" title="Sandbox gold mode">
           <button id="sandbox-money-btn" type="button" title="Toggle infinite gold for both sides">∞ ON</button>
         </div>
+        <div class="stat-pill" id="enemy-warning-toggle-pill">
+          <button id="enemy-warning-toggle-btn" type="button" aria-pressed="false">🔔 Angel On</button>
+        </div>
       </div>
       <button id="fullscreen-btn" type="button" title="Fullscreen" aria-label="Toggle fullscreen">⛶</button>
     </div>
   </div>
   <div id="game-play">
+  <div id="enemy-action-feed" class="side-p0" aria-live="polite" aria-label="Enemy activity warnings"></div>
   <div id="game-wrapper">
     <canvas id="game" width="1280" height="720"></canvas>
     <div id="ui-overlay">
@@ -6800,7 +7028,7 @@
       <div id="bottom-panel" class="hidden">
         <div class="mc-hotbar-row">
           <div class="hot-cursor-wrap">
-            <button id="hotbar-cursor" class="hot-slot" type="button" title="Staff (A / V)" data-tool="move">
+            <button id="hotbar-cursor" class="hot-slot" type="button" title="Ink Feather (A / V)" data-tool="move">
               <span class="hot-slot-key">A</span>
               <img class="hot-slot-portrait" alt="" hidden decoding="async" />
               <canvas class="hot-slot-canvas" width="56" height="56" aria-hidden="true"></canvas>
@@ -7167,7 +7395,7 @@ function buyCommanderUpgrade(pid, tier) {
   c.tier = tier;
   addLog(`🎖️ ${p.name}: Commander → up to ${commanderCap(p)} units`);
   if (tier === 1 && pid === getLocalPlayerId()) {
-    addLog('🎖️ Arrow orders: ←/→ move toward that side · ↑ attack · ↓ hold position');
+    addLog('🎖️ Arrow orders: ←/→ move · ↑ attack · ↓ hold · Shift+↑/↓ or </> changes troop count');
   }
   if (pid === getLocalPlayerId()) {
     commanderCount = Math.min(commanderCount, commanderCap(p));
@@ -7175,6 +7403,7 @@ function buyCommanderUpgrade(pid, tier) {
   }
   updateIncomeUpgradeUI(true);
   updateUI();
+  notifyEnemyAction(pid, 'commander', 'Commander upgraded', `Enemy deployment capacity increased to ${commanderCap(p)} troops.`);
   return true;
 }
 
@@ -7192,6 +7421,7 @@ function buyCommanderSpecialCommands(pid) {
   if (pid === getLocalPlayerId()) updateCommanderPanelUI();
   updateIncomeUpgradeUI(true);
   updateUI();
+  notifyEnemyAction(pid, 'commander', 'Special Commands unlocked', 'The opponent can now order troops to attack, retreat, or hold.');
   return true;
 }
 
@@ -7232,7 +7462,11 @@ function commanderStanceForArrow(code, pid) {
 }
 
 function handleCommanderArrowKey(e) {
-  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.code)) return false;
+  const isArrow = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.code);
+  const countDelta = (e.shiftKey && e.code === 'ArrowUp') || e.key === '>'
+    ? 1
+    : ((e.shiftKey && e.code === 'ArrowDown') || e.key === '<' ? -1 : 0);
+  if (!isArrow && countDelta === 0) return false;
   if (e.repeat || phase !== 'combat' || !isSurvivalLive()) return false;
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return false;
   if (e.metaKey || e.ctrlKey || e.altKey) return false;
@@ -7240,6 +7474,11 @@ function handleCommanderArrowKey(e) {
 
   const pid = getLocalPlayerId();
   if (!commanderUnlocked(players[pid])) return false;
+  if (countDelta !== 0) {
+    e.preventDefault();
+    commanderAdjustCount(countDelta);
+    return true;
+  }
   const stance = commanderStanceForArrow(e.code, pid);
   if (!stance) return false;
 
@@ -8170,7 +8409,7 @@ function drawArcherTowerWithCrew(t, def, sz, ownerColor, angle) {
   const back = combatSprite('archer-back') || combatSprite('archer');
   const front = combatSprite('archer-front');
   if (!back || !unitSpriteKitReady('bowman')) return false;
-  const s = sz * 2.55;
+  const s = sz * 2.35;
   const x = -s * 0.5;
   const y = -s * 0.58;
   drawCombatSpriteShadow(back, x, y, s, s, { sideView: true, flying: false });
@@ -8544,6 +8783,7 @@ function initLoadoutPanelEvents() {
     const slotCell = e.target.closest('.hl-slot-cell[data-loadout-tool]');
     loadoutDragMoved = false;
     if (catalogBtn) {
+      document.body.classList.add('is-feather-grabbing');
       hotbarDragPayload = { tool: catalogBtn.dataset.loadoutTool, fromSlot: null };
       e.dataTransfer.setData('text/plain', catalogBtn.dataset.loadoutTool);
       e.dataTransfer.effectAllowed = 'move';
@@ -8552,6 +8792,7 @@ function initLoadoutPanelEvents() {
       return;
     }
     if (slotCell) {
+      document.body.classList.add('is-feather-grabbing');
       hotbarDragPayload = { tool: slotCell.dataset.loadoutTool, fromSlot: Number(slotCell.dataset.slotIndex) };
       e.dataTransfer.setData('text/plain', slotCell.dataset.loadoutTool);
       e.dataTransfer.effectAllowed = 'move';
@@ -8566,6 +8807,7 @@ function initLoadoutPanelEvents() {
 
   panel.addEventListener('dragend', (e) => {
     hotbarDragPayload = null;
+    document.body.classList.remove('is-feather-grabbing');
     panel.querySelectorAll('.dragging, .drag-over').forEach((el) => {
       el.classList.remove('dragging', 'drag-over');
     });
@@ -8644,7 +8886,7 @@ function toggleHotbarLoadoutPanel(show) {
 }
 
 function toolHotbarLabel(tool) {
-  if (tool === 'move') return 'Staff';
+  if (tool === 'move') return 'Ink Feather';
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) {
     if (tool === 'striker') return 'Knight';
     if (tool === 'laser') return 'Rail Gun';
@@ -8759,7 +9001,7 @@ function paintHotbarIcon(slotEl, tool) {
   if (tool === 'move' && portrait) {
     canvas.hidden = true;
     glyph.hidden = true;
-    if (portrait.getAttribute('src') !== '/TDG/ui/cursor-staff.png') portrait.src = '/TDG/ui/cursor-staff.png';
+    if (portrait.getAttribute('src') !== '/TDG/ui/ink-feather-cursor.png') portrait.src = '/TDG/ui/ink-feather-cursor.png';
     portrait.hidden = false;
     return;
   }
@@ -8809,7 +9051,7 @@ function syncHotbarUI(p, canUseTools, alwaysSelectableTools) {
   if (cursorBtn) {
     cursorBtn.classList.toggle('active', selectedTool === 'move' && selectedHotbarIndex === -1);
     cursorBtn.disabled = alwaysSelectableTools ? false : !canUseTools;
-    cursorBtn.title = 'Staff (A / V)';
+    cursorBtn.title = 'Ink Feather (A / V)';
   }
 
   buttons.forEach((btn, i) => {
@@ -9002,7 +9244,8 @@ function toolPlacementCost(pid, tool) {
   const p = players[pid];
   if (!p || !tool || tool === 'move') return null;
   if (UNIT_TYPES[tool]) {
-    if (isSurvivalLive() && phase === 'combat' && commanderUnlocked(p) && commanderCount > 1) {
+    if (isSurvivalLive() && phase === 'combat' && commanderUnlocked(p)
+        && commanderCount > 1 && !isHeroDeployType(tool)) {
       return commanderBatchCost(pid, tool, Math.min(commanderCount, commanderCap(p)));
     }
     const ut = LIVE_ARMY?.isActive() ? unitDef(tool, pid) : UNIT_TYPES[tool];
@@ -9163,8 +9406,8 @@ const TOWER_MANUAL = {
   laser: 'Fires a piercing beam straight across the battlefield. Hits every enemy in the line. Great against clustered units.',
   spread: 'Castle tower — fires a wide volley of wind blasts. Long range, knockback on hit, and briefly paralyzes enemies. Click to open its skill tree and pick Fire, Ice, or Electricity (one only). Weak vs Elephants (immune to base shock).',
   missile: 'Launches explosive missiles that deal area damage on impact. Expensive but devastating against groups and structures.',
-  catapult: 'Siege engine that lobs boulders. Prefers high-HP troops (including Dragons) but will still shell closer soft targets like Farmers. Direct hits deal most of the damage; the splash hurts nearby enemies for less and shoves them lightly. Upgrade Oil (500 gold) for flaming shots that ignite targets and splash wild ground fire (slightly slower fire rate).',
-  archer: 'Huge watchtower with three archers. Each archer picks its own target (random in range, favoring mid-range). Fires long arcing volleys — arrows only hurt when they land. Deadly up close, wildly inaccurate at max range. Can clip Dragons mid-flight (half damage). Click for a branching skill tree: at each tier pick Fire/Ice/Electric arrows or Double/Triple/Quadruple volleys — one choice per pair.',
+  catapult: 'Siege engine that lobs boulders. Ignores Farmers and prefers high-HP troops (including Dragons). Direct hits deal most of the damage; the splash hurts nearby enemies for less and shoves them lightly. Upgrade Oil (500 gold) for flaming shots that ignite targets and splash wild ground fire (slightly slower fire rate).',
+  archer: 'Huge watchtower with three archers perched along the top. Every arrow launches directly from its visible archer, and each archer picks its own target (random in range, favoring mid-range). Multishot adds arrows to each archer instead of adding crew. Arrows only hurt when they land. Deadly up close, wildly inaccurate at max range. Can clip Dragons mid-flight (half damage).',
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus gold every round. Protect them!',
   farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests gold on a timer. Upgrade harvest speed and yield in the Economy tree.',
   laboratory: "Spell keep for your army. Build one Wizard's Nest to unlock Fireball, Zombie Slime, and Yellow Potion, then cast them from the bottom bar.",
@@ -10071,7 +10314,7 @@ function engineersTowerUnlockMeta(tt) {
     spread: `Unlock Spreaders (${cost} gold). Castle tower with wind blasts, knockback/paralyze. Each Spreader picks one enchantment — Fire, Ice, or Electricity (250 gold) — with no further upgrades on that tower. Base range ${TOWER_TYPES.spread.range}, ${TOWER_TYPES.spread.pelletCount} blasts. Weak vs Elephants (immune to base shock).`,
     missile: `Unlock Missile Bases (${cost} gold). Slow long-range area blasts. Expensive structure with its own upgrade panel.`,
     catapult: `Unlock Catapults (${cost} gold). Lobs boulders at the highest-HP troop in range (including Dragons). Direct hit does most damage; splash deals less with mild pushback. Base: ${TOWER_TYPES.catapult.damage} dmg, splash ${TOWER_TYPES.catapult.splashDamage}, range ${TOWER_TYPES.catapult.range}.`,
-    archer: `Unlock Archer Towers (${cost} gold). Huge 3-archer watchtower — each archer aims independently (mid-range bias). Long arcing volleys (3 arrows). Skill tree pairs: Fire vs Double → Ice vs Triple → Electric vs Quadruple (one pick per pair). Accurate up close, wild at range. Mid-air dragon clips deal half damage.`,
+    archer: `Unlock Archer Towers (${cost} gold). Three archers perch at the top and fire from their own positions. Each aims independently. Multishot increases arrows per archer: 2 each, then 3 each, then 4 each. Accurate up close, wild at range. Mid-air dragon clips deal half damage.`,
   };
   return {
     title: `Unlock ${label}`,
@@ -10258,6 +10501,8 @@ function buyEconomyUpgrade(pid, kind, target) {
   const p = players[pid];
   if (!LIVE_ARMY?.isActive()) return buyIncomeUpgradeLegacy(pid, target);
   const eco = LIVE_ARMY.economyRecord(p);
+  let warningTitle = '';
+  let warningDetail = '';
 
   if (kind === 'unlock') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
@@ -10269,6 +10514,8 @@ function buyEconomyUpgrade(pid, kind, target) {
     rec.yieldCoinAmount = true;
     addLog(`💰 ${p.name}: Unlocked ${target === 'farm' ? 'Farm' : 'Mint'} building (+${rec.yield} per harvest)`);
     tryAutoAssignHotbarTool(target, pid);
+    warningTitle = `${target === 'farm' ? 'Farm' : 'Mint'} unlocked`;
+    warningDetail = 'The opponent expanded their economy.';
   } else if (kind === 'speed') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
     if (!rec.unlocked || rec.speed >= LIVE_ARMY.speedMax()) return false;
@@ -10279,6 +10526,8 @@ function buyEconomyUpgrade(pid, kind, target) {
     const label = target === 'farm' ? 'Farm' : 'Mint';
     const interval = LIVE_ARMY.harvestInterval(p, target);
     addLog(`💰 ${p.name}: ${label} harvest speed T${rec.speed} (every ${interval}s)`);
+    warningTitle = `${label} speed upgraded`;
+    warningDetail = `Enemy harvest interval is now ${interval}s.`;
   } else if (kind === 'yield') {
     const rec = target === 'farm' ? eco.farm : eco.mint;
     const nextYield = LIVE_ARMY.nextHarvestYield(target, rec.yield);
@@ -10290,6 +10539,8 @@ function buyEconomyUpgrade(pid, kind, target) {
     const amt = LIVE_ARMY.harvestAmount(p, target);
     const label = target === 'farm' ? 'Farm' : 'Mint';
     addLog(`💰 ${p.name}: ${label} harvest yield → ${amt} per harvest`);
+    warningTitle = `${label} yield upgraded`;
+    warningDetail = `Enemy harvests now produce ${amt} gold.`;
   } else if (kind === 'base') {
     const branch = target;
     const lvl = eco.base[branch] || 0;
@@ -10302,6 +10553,8 @@ function buyEconomyUpgrade(pid, kind, target) {
     if (branch === 'defense') syncBaseDefenseTurrets(pid);
     const labels = { income: 'HQ income', health: 'HQ health', defense: 'HQ guns' };
     addLog(`💰 ${p.name}: ${labels[branch] || branch} T${eco.base[branch]}`);
+    warningTitle = `${labels[branch] || branch} upgraded`;
+    warningDetail = `The enemy HQ reached tier ${eco.base[branch]}.`;
   } else {
     return false;
   }
@@ -10409,6 +10662,9 @@ function buyBarracksUpgrade(pid, kind, unitType, stat, skillId) {
   const p = players[pid];
   if (!p.liveArmy?.barracks?.built) return false;
   const rec = LIVE_ARMY.unitRecord(p, unitType);
+  const unitLabel = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
+  let warningTitle = '';
+  let warningDetail = '';
   if (kind === 'unlock') {
     const cost = LIVE_ARMY.unitUnlockCost(unitType);
     if (rec.unlocked || p.coins < cost) return false;
@@ -10416,6 +10672,8 @@ function buyBarracksUpgrade(pid, kind, unitType, stat, skillId) {
     rec.unlocked = true;
     addLog(`🏕 ${p.name}: Unlocked ${LIVE_ARMY.UNIT_LABELS[unitType] || unitType}`);
     tryAutoAssignHotbarTool(unitType, pid);
+    warningTitle = `${unitLabel} unlocked`;
+    warningDetail = 'The opponent added a new troop to their army.';
   } else if (kind === 'skill' && skillId) {
     if (!LIVE_ARMY.unitUsesBranchTree?.(unitType) && !LIVE_ARMY.unitUsesKnightTree?.(unitType)) return false;
     if (!(LIVE_ARMY.unitSkillReady?.(rec, unitType, skillId) ?? LIVE_ARMY.knightSkillReady(rec, skillId))) return false;
@@ -10431,6 +10689,8 @@ function buyBarracksUpgrade(pid, kind, unitType, stat, skillId) {
     const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
     const skillLabel = (LIVE_ARMY.unitSkillDef?.(unitType, skillId) || LIVE_ARMY.KNIGHT_SKILLS[skillId])?.label || skillId;
     addLog(`🏕 ${p.name}: ${label} — ${skillLabel}`);
+    warningTitle = `${label}: ${skillLabel}`;
+    warningDetail = 'The opponent purchased a troop skill.';
   } else if (kind === 'stat' && stat) {
     if (LIVE_ARMY.unitUsesBranchTree?.(unitType) || LIVE_ARMY.unitUsesKnightTree?.(unitType)) return false;
     if (!rec.unlocked || (rec[stat] || 0) >= LIVE_ARMY.STAT_MAX) return false;
@@ -10441,11 +10701,14 @@ function buyBarracksUpgrade(pid, kind, unitType, stat, skillId) {
     const label = LIVE_ARMY.UNIT_LABELS[unitType] || unitType;
     const statLabel = barracksStatBranchLabel(unitType, stat).toLowerCase();
     addLog(`🏕 ${p.name}: ${label} ${statLabel} Lv${rec[stat]}`);
+    warningTitle = `${label} upgraded`;
+    warningDetail = `${barracksStatBranchLabel(unitType, stat)} reached level ${rec[stat]}.`;
   } else {
     return false;
   }
   updateBarracksUpgradeUI();
   updateUI();
+  notifyEnemyAction(pid, unitType, warningTitle, warningDetail);
   return true;
 }
 
@@ -10468,6 +10731,7 @@ function buyEngineersUpgrade(pid, kind, towerType, branch) {
   invalidateSkillListCache('engineers-upgrade-list');
   updateEngineersUpgradeUI(true);
   updateUI();
+  notifyEnemyAction(pid, towerType, `${label} unlocked`, 'The opponent can now construct this tower.');
   return true;
 }
 
@@ -10496,6 +10760,7 @@ function buyMissileUpgrade(pid, towerId, branch) {
   tw.paidCost = (tw.paidCost || 0) + cost;
   addLog(`🚀 ${p.name}: Missile ${branch} Lv${tw.missileUpgrades[branch]}`);
   updateUI();
+  notifyEnemyAction(pid, 'missile', 'Missile Base upgraded', `${branch} reached level ${tw.missileUpgrades[branch]}.`);
   return true;
 }
 
@@ -11675,6 +11940,8 @@ function buyLaboratorySpell(pid, spellId) {
   }
   updateLaboratoryUI(true);
   updateUI();
+  const spellLabel = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
+  notifyEnemyAction(pid, spellId, `${spellLabel} unlocked`, 'The opponent prepared a new spell.');
   return true;
 }
 
@@ -12503,6 +12770,7 @@ function buySpreadSkill(pid, towerId, skillId) {
   addLog(`🏰 ${p.name}: Spreader — ${def.label}`);
   updateSpreadUpgradeUI();
   updateUI();
+  notifyEnemyAction(pid, 'spread', `Spreader: ${def.label}`, 'The opponent enchanted a tower.');
   return true;
 }
 
@@ -12766,6 +13034,7 @@ function buyBaseCannonUpgrade(pid, branch) {
   addLog(`🎯 ${p.name}: Turret ${BASE_CANNON_SKILL[branch].label} Lv${skills[branch]}`);
   updateIncomeUpgradeUI(true);
   updateUI();
+  notifyEnemyAction(pid, 'turret', `Base Turret upgraded`, `${BASE_CANNON_SKILL[branch].label} reached level ${skills[branch]}.`);
   return true;
 }
 
@@ -12781,6 +13050,7 @@ function buyBaseRoofArcherCount(pid) {
   addLog(`🏹 ${p.name}: Roof Archer ${skills.count} stationed`);
   updateIncomeUpgradeUI(true);
   updateUI();
+  notifyEnemyAction(pid, 'archer', 'Roof Archer stationed', `The enemy base now has ${skills.count} roof archer${skills.count === 1 ? '' : 's'}.`);
   return true;
 }
 
@@ -12797,6 +13067,7 @@ function buyBaseRoofArcherArrows(pid) {
   addLog(`🏹 ${p.name}: Roof Archers fire ${skills.arrows} arrows each`);
   updateIncomeUpgradeUI(true);
   updateUI();
+  notifyEnemyAction(pid, 'archer', 'Roof Archers upgraded', `Each volley now fires ${skills.arrows} arrows.`);
   return true;
 }
 
@@ -12904,18 +13175,24 @@ function syncCommanderControlsUI() {
   const p = players[pid];
   const cap = commanderCap(p);
   commanderCount = clamp(commanderCount, 1, Math.max(1, cap));
+  const heroSelected = isHeroDeployType(selectedTool);
+  const countLabel = heroSelected ? 'H' : String(commanderCount);
 
   const countEl = document.getElementById('cmd-count');
-  if (countEl) countEl.textContent = commanderCount;
+  if (countEl) countEl.textContent = countLabel;
   const fabNum = document.getElementById('cmd-count-fab-num');
-  if (fabNum) fabNum.textContent = commanderCount;
+  if (fabNum) fabNum.textContent = countLabel;
   const countFab = document.getElementById('cmd-count-fab');
-  if (countFab) countFab.title = `Deploy ${commanderCount} unit${commanderCount === 1 ? '' : 's'} — tap to cycle`;
+  if (countFab) {
+    countFab.title = heroSelected
+      ? 'Hero — deploys one at a time'
+      : `Deploy ${commanderCount} unit${commanderCount === 1 ? '' : 's'} — Shift+↑/↓ or </> to adjust`;
+  }
 
   const minus = document.getElementById('cmd-minus');
-  if (minus) minus.disabled = commanderCount <= 1;
+  if (minus) minus.disabled = heroSelected || commanderCount <= 1;
   const plus = document.getElementById('cmd-plus');
-  if (plus) plus.disabled = commanderCount >= cap;
+  if (plus) plus.disabled = heroSelected || commanderCount >= cap;
 
   document.querySelectorAll('#cmd-formations .cmd-form-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.formation === commanderFormation);
@@ -12925,6 +13202,10 @@ function syncCommanderControlsUI() {
 }
 
 function commanderCycleCount() {
+  if (isHeroDeployType(selectedTool)) {
+    syncCommanderControlsUI();
+    return;
+  }
   const cap = commanderCap(players[getLocalPlayerId()]);
   commanderCount = commanderCount >= cap ? 1 : commanderCount + 1;
   syncCommanderControlsUI();
@@ -13088,7 +13369,9 @@ function drawCommanderPreview() {
   g.fillText('ENEMY', W2 - 118, ay + 3);
 
   const cap = commanderCap(players[getLocalPlayerId()]);
-  const count = clamp(commanderCount, 1, Math.max(1, cap));
+  const count = isHeroDeployType(selectedTool)
+    ? 1
+    : clamp(commanderCount, 1, Math.max(1, cap));
   const spacing = 22;
   const offs = commanderFormationOffsets(count, commanderFormation, spacing);
   const cx = W2 / 2, cy = H2 / 2 + 8;
@@ -21828,7 +22111,7 @@ const ARCHER_SKILLS = {
   },
   double_arrows: {
     id: 'double_arrows', tier: 1, cost: 160, pair: 'a', terminal: false,
-    label: 'Double Arrows', blurb: '×2 volley (6 arrows). Keeps the tree open.',
+    label: 'Double Arrows', blurb: 'Each of the 3 archers fires 2 arrows (6 total). Keeps the tree open.',
     icon: '/TDG/portraits/skill-archer-double.webp',
     effects: { volleyMult: 2 },
   },
@@ -21840,7 +22123,7 @@ const ARCHER_SKILLS = {
   },
   triple_arrows: {
     id: 'triple_arrows', tier: 2, cost: 320, pair: 'b', terminal: false,
-    label: 'Triple Arrows', blurb: '×3 volley (9 arrows). Keeps the tree open.',
+    label: 'Triple Arrows', blurb: 'Each of the 3 archers fires 3 arrows (9 total). Keeps the tree open.',
     icon: '/TDG/portraits/skill-archer-triple.webp',
     effects: { volleyMult: 3 },
   },
@@ -21852,7 +22135,7 @@ const ARCHER_SKILLS = {
   },
   quadruple_arrows: {
     id: 'quadruple_arrows', tier: 3, cost: 560, pair: 'c', terminal: true,
-    label: 'Quadruple Arrows', blurb: '×4 volley (12 arrows). Ends this tower’s skill tree.',
+    label: 'Quadruple Arrows', blurb: 'Each of the 3 archers fires 4 arrows (12 total). Ends this tower’s skill tree.',
     icon: '/TDG/portraits/skill-archer-quad.webp',
     effects: { volleyMult: 4 },
   },
@@ -21949,6 +22232,7 @@ function buyArcherSkill(pid, towerId, skillId) {
   addLog(`🏹 ${p.name}: Archer Tower — ${def.label} (${archerArrowCount(tw, towerDef('archer', pid))} arrows)`);
   updateTowerManageUI();
   updateUI();
+  notifyEnemyAction(pid, 'archer', `Archer Tower: ${def.label}`, `${archerArrowCount(tw, towerDef('archer', pid))} arrows per volley.`);
   return true;
 }
 
@@ -22002,6 +22286,7 @@ function buyCatapultOil(pid, towerId) {
   addLog(`🪨 ${p.name}: Catapult — Oil (flaming boulders)`);
   updateTowerManageUI();
   updateUI();
+  notifyEnemyAction(pid, 'catapult', 'Catapult Oil equipped', 'Enemy catapult shots now ignite the battlefield.');
   return true;
 }
 
@@ -22219,10 +22504,11 @@ function towerManageBodyHtml(tw, pid) {
     }
     if (type === 'archer') {
       const arrows = archerArrowCount(tw, def);
+      const perArcher = archerVolleyMult(tw);
       bars += towerManageStatBarHtml(
         'is-spd',
         'VOL',
-        `Volley ×${archerVolleyMult(tw)} · ${arrows} arrows`,
+        `3 archers · ${perArcher} each · ${arrows} total`,
         barracksStatBarPct(arrows, 12),
         String(arrows),
       );
@@ -22516,6 +22802,131 @@ function addLog(msg) {
   if (el) el.innerHTML = logs.map(l => `<div class="log-line">${l}</div>`).join('');
 }
 
+const ENEMY_WARNING_ANGEL_SRC = '/TDG/ui/enemy-warning-angel.png?v=4';
+const ENEMY_WARNING_MUTE_KEY = 'tdg-enemy-warning-muted';
+let enemyActionQueue = [];
+let enemyActionCurrent = null;
+let enemyActionMuted = (() => {
+  try {
+    return localStorage.getItem(ENEMY_WARNING_MUTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+})();
+
+function clearEnemyActionWarnings() {
+  enemyActionQueue = [];
+  enemyActionCurrent = null;
+  const feed = document.getElementById('enemy-action-feed');
+  if (feed) feed.replaceChildren();
+}
+
+function syncEnemyWarningMuteUI() {
+  const button = document.getElementById('enemy-warning-toggle-btn');
+  if (!button) return;
+  button.classList.toggle('is-muted', enemyActionMuted);
+  button.setAttribute('aria-pressed', enemyActionMuted ? 'true' : 'false');
+  button.textContent = enemyActionMuted ? '🔕 Angel Muted' : '🔔 Angel On';
+  button.title = enemyActionMuted ? 'Enable offensive upgrade alerts' : 'Mute offensive upgrade alerts';
+}
+
+function setEnemyActionMuted(muted) {
+  enemyActionMuted = !!muted;
+  try {
+    localStorage.setItem(ENEMY_WARNING_MUTE_KEY, enemyActionMuted ? '1' : '0');
+  } catch {}
+  if (enemyActionMuted) clearEnemyActionWarnings();
+  syncEnemyWarningMuteUI();
+}
+
+function renderEnemyActionWarning() {
+  const feed = document.getElementById('enemy-action-feed');
+  if (!feed) return;
+  feed.replaceChildren();
+  if (!enemyActionCurrent) {
+    enemyActionCurrent = enemyActionQueue.shift() || null;
+  }
+  if (!enemyActionCurrent) return;
+
+  const { actorPid, subjectId, title, detail, localPid } = enemyActionCurrent;
+
+  feed.classList.remove('side-p0', 'side-p1');
+  feed.classList.add(`side-p${localPid}`);
+
+  const toast = document.createElement('div');
+  toast.className = 'enemy-action-toast';
+
+  const angel = document.createElement('img');
+  angel.className = 'enemy-action-angel';
+  angel.src = ENEMY_WARNING_ANGEL_SRC;
+  angel.alt = 'Guardian angel';
+  angel.addEventListener('error', () => {
+    if (!angel.src.endsWith('/TDG/portraits/angel.webp')) angel.src = '/TDG/portraits/angel.webp';
+  });
+
+  const subject = document.createElement('img');
+  subject.className = 'enemy-action-subject';
+  subject.src = menuPortraitSrc(subjectId);
+  subject.alt = '';
+  subject.addEventListener('error', () => { subject.style.visibility = 'hidden'; });
+
+  const copy = document.createElement('div');
+  copy.className = 'enemy-action-copy';
+  const body = document.createElement('div');
+  body.className = 'enemy-action-detail';
+  const action = String(title || 'Enemy upgrade').replace(/[.!?]+$/, '');
+  const explanation = String(detail || '').trim();
+  body.textContent = `${players[actorPid]?.name || 'Opponent'}: ${action}.${explanation ? ` ${explanation}` : ''}`;
+  copy.append(body);
+
+  const controls = document.createElement('div');
+  controls.className = 'enemy-action-controls';
+  const dismiss = document.createElement('button');
+  dismiss.type = 'button';
+  dismiss.textContent = 'Dismiss';
+  dismiss.addEventListener('click', () => clearEnemyActionWarnings());
+  const next = document.createElement('button');
+  next.type = 'button';
+  next.className = 'enemy-action-next';
+  next.textContent = enemyActionQueue.length ? `Next (${enemyActionQueue.length})` : 'Next';
+  next.disabled = enemyActionQueue.length === 0;
+  next.addEventListener('click', () => {
+    enemyActionCurrent = enemyActionQueue.shift() || null;
+    renderEnemyActionWarning();
+  });
+  const mute = document.createElement('button');
+  mute.type = 'button';
+  mute.textContent = 'Mute Angel';
+  mute.addEventListener('click', () => setEnemyActionMuted(true));
+  controls.append(dismiss, next, mute);
+
+  toast.append(angel, subject, copy, controls);
+  feed.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+}
+
+function notifyEnemyAction(actorPid, subjectId, title, detail = '') {
+  if (enemyActionMuted) return;
+  if (!isSurvivalLive() || phase !== 'combat' || isSimulatorMode() || isSandboxMode()) return;
+  const localPid = isSurvivalPvp() ? getLocalPlayerId() : 0;
+  if (actorPid !== enemyId(localPid)) return;
+  enemyActionQueue.push({ actorPid, subjectId, title, detail, localPid });
+  if (!enemyActionCurrent) {
+    renderEnemyActionWarning();
+  } else {
+    const next = document.querySelector('#enemy-action-feed .enemy-action-next');
+    if (next) {
+      next.disabled = false;
+      next.textContent = `Next (${enemyActionQueue.length})`;
+    }
+  }
+}
+
+document.getElementById('enemy-warning-toggle-btn')?.addEventListener('click', () => {
+  setEnemyActionMuted(!enemyActionMuted);
+});
+syncEnemyWarningMuteUI();
+
 function freshCombatStats() {
   return {
     kills: 0, towerKills: 0, baseDmgDealt: 0, totalDmgDealt: 0,
@@ -22531,6 +22942,7 @@ function getAchievementFeed(playerId) {
 function resetCombatTracking() {
   combatAchEarned = [new Set(), new Set()];
   combatStats = [freshCombatStats(), freshCombatStats()];
+  clearEnemyActionWarnings();
   document.getElementById('achievement-feed-p0').innerHTML = '';
   document.getElementById('achievement-feed-p1').innerHTML = '';
   for (const p of players) {
@@ -25545,8 +25957,8 @@ function drawTower(t, ownerColor, alpha = 1) {
     ctx.fill();
   } else if (def.style === 'archer') {
     // Large timber watchtower with three archers on the battlements.
-    const tw = sz * 0.92;
-    const th = sz * 1.15;
+    const tw = sz * 0.85;
+    const th = sz * 1.06;
     const face = angle || 0;
 
     // Stone/wood keep
@@ -26065,7 +26477,7 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
       : type === 'angel' ? 1.08
       : type === 'speed' ? 1.024 // 20% smaller visually; preserve gameplay collision/stats.
       : type === 'sniper' ? 1.1 // Match the Swordsman's apparent body size.
-      : type === 'goblin' ? 1.15
+      : type === 'goblin' ? 1.08
       : type === 'farmer' ? 1.12
       : type === 'bloop' ? 1.2
       : 1;
@@ -33395,7 +33807,7 @@ function findArcherTarget(t, ownerId) {
   return pickArcherTarget(t, ownerId);
 }
 
-/** Catapult: siege priority on high max-HP, but proximity matters so nearby soft targets (e.g. farmers) aren't ignored for a far tank. */
+/** Catapult: ignores Farmers and prioritizes high max-HP troops, with proximity still affecting target choice. */
 function findCatapultTarget(t, ownerId) {
   const def = towerDefFor(t, ownerId);
   const range = def.range || 1020;
@@ -33404,11 +33816,11 @@ function findCatapultTarget(t, ownerId) {
   let bestScore = -Infinity;
   for (const u of combatUnits) {
     if (u.owner !== enemy || u.hp <= 0) continue;
+    if (u.type === 'farmer') continue;
     if (wolfHunterUntargetableByTowers(u)) continue;
     const d = dist(t, u);
     if (d > range) continue;
-    // All troops eligible (farmers, goblins, dragons, …). Weight HP for siege feel,
-    // subtract distance so a close farmer outranks a far elephant.
+    // Weight HP for siege feel, then subtract distance so closer valid threats matter.
     const score = (u.maxHp || u.hp) * 2 + u.hp - d * 0.28;
     if (score > bestScore) {
       bestScore = score;
@@ -33898,11 +34310,13 @@ function fireArcherVolley(t, p, def) {
   if (!enemiesInRange(t, p.id).length) return false;
 
   const crew = ARCHER_TOWER_CREW;
-  const totalArrows = archerArrowCount(t, def);
-  const per = Math.floor(totalArrows / crew);
-  const rem = totalArrows % crew;
-  const muzzle = (def.size || 44) * 0.35;
-  const crewSpread = (def.size || 44) * 0.22;
+  // One permanent three-archer crew. Multishot increases arrows per archer;
+  // it never creates extra invisible archers.
+  const arrowsPerArcher = archerVolleyMult(t);
+  // Match drawArcherTowerWithCrew's actual deck and three visible perch slots.
+  const towerSpriteSize = (def.size || 44) * 2.35;
+  const deckY = -towerSpriteSize * 0.365;
+  const perchSlots = [-towerSpriteSize * 0.11, 0, towerSpriteSize * 0.11];
   const range = def.range || 520;
   const maxMiss = def.maxMiss || 118;
   const dmg = def.damage || 44;
@@ -33918,19 +34332,13 @@ function fireArcherVolley(t, p, def) {
   let aimN = 0;
 
   for (let a = 0; a < crew; a++) {
-    const n = per + (a < rem ? 1 : 0);
-    if (n <= 0) continue;
     const target = pickArcherTarget(t, p.id);
     if (!target) continue;
 
-    const sideOff = (a - (crew - 1) / 2) * crewSpread;
-    let ang = Math.atan2(target.y - t.y, target.x - t.x) || 0;
-    const predOx = t.x + Math.cos(ang) * muzzle - Math.sin(ang) * sideOff;
-    const predOy = t.y + Math.sin(ang) * muzzle + Math.cos(ang) * sideOff - 8;
-    const predicted = predictUnitIntercept(predOx, predOy, target, archerFlightTime);
-    ang = Math.atan2(predicted.y - t.y, predicted.x - t.x) || 0;
-    const ox = t.x + Math.cos(ang) * muzzle - Math.sin(ang) * sideOff;
-    const oy = t.y + Math.sin(ang) * muzzle + Math.cos(ang) * sideOff - 8;
+    const ox = t.x + perchSlots[a];
+    const oy = t.y + deckY;
+    const predicted = predictUnitIntercept(ox, oy, target, archerFlightTime);
+    const ang = Math.atan2(predicted.y - oy, predicted.x - ox) || 0;
 
     t.archerFaces[a] = ang;
     avgX += Math.cos(ang);
@@ -33942,7 +34350,7 @@ function fireArcherVolley(t, p, def) {
       aimX: predicted.x,
       aimY: predicted.y,
       angle: ang,
-      count: n,
+      count: arrowsPerArcher,
       damage: dmg,
       ownerId: p.id,
       range,
@@ -34551,7 +34959,7 @@ function updateTowers(dt) {
           && elapsed >= releaseT
         ) {
           const locked = t.catapultLockId != null
-            ? combatUnits.find((u) => u.id === t.catapultLockId)
+            ? combatUnits.find((u) => u.id === t.catapultLockId && u.hp > 0 && u.type !== 'farmer')
             : null;
           fireCatapult(t, p, def, locked || aim);
           t.catapultArmed = false;
@@ -35359,8 +35767,8 @@ function commanderValidateBatch(pid, type, positions) {
   if (unitDeployCdRemaining(pid, type) > 0) return false;
   const n = positions.length;
   if (n === 0) return false;
-  // Unique units (heroes) can never batch-deploy more than one.
-  if (UNIT_TYPES[type]?.unique && n > 1) return false;
+  // Heroes can never batch-deploy more than one.
+  if (isHeroDeployType(type) && n > 1) return false;
   if (p.coins < commanderBatchCost(pid, type, n)) return false;
   const sz = UNIT_TYPES[type].size;
   for (let i = 0; i < n; i++) {
@@ -35405,7 +35813,7 @@ function commanderPlaceFailReason(pid, type, positions) {
   if (deployCd > 0) {
     return `${ut.name} ready in ${Math.ceil(deployCd)}s.`;
   }
-  if (unitUniqueCapReached(pid, type) || (UNIT_TYPES[type]?.unique && n > 1)) {
+  if (unitUniqueCapReached(pid, type) || (isHeroDeployType(type) && n > 1)) {
     return `Only one ${ut.name} can be on the field at a time.`;
   }
   const total = commanderBatchCost(pid, type, n);
@@ -35416,7 +35824,7 @@ function commanderPlaceFailReason(pid, type, positions) {
 function commanderDeploy(pos, pid) {
   const type = selectedTool;
   let count = Math.min(commanderCount, commanderCap(players[pid]));
-  if (UNIT_TYPES[type]?.unique) count = 1;
+  if (isHeroDeployType(type)) count = 1;
   const positions = commanderDeployPositions(pos, pid, type, count, commanderFormation);
   if (!commanderValidateBatch(pid, type, positions)) {
     addLog(commanderPlaceFailReason(pid, type, positions));
@@ -35466,7 +35874,8 @@ function handleClick(pos) {
 
   // Commander: one click drops a whole formation of the selected unit.
   if (isSurvivalLive() && phase === 'combat' && UNIT_TYPES[selectedTool]
-      && commanderUnlocked(players[pid]) && commanderCount > 1) {
+      && commanderUnlocked(players[pid]) && commanderCount > 1
+      && !isHeroDeployType(selectedTool)) {
     commanderDeploy(pos, pid);
     return;
   }
@@ -35550,6 +35959,7 @@ canvas.addEventListener('mousedown', (e) => {
       const sz = towerDef(t.towerType).size;
       if (dist(pos, t) < sz + 10) {
         dragging = { turret: t, offsetX: pos.x - t.x, offsetY: pos.y - t.y, playerId: pid };
+        document.body.classList.add('is-feather-grabbing');
         return;
       }
     }
@@ -35579,7 +35989,9 @@ canvas.addEventListener('mouseup', () => {
     });
   }
   dragging = null;
+  document.body.classList.remove('is-feather-grabbing');
 });
+window.addEventListener('mouseup', () => document.body.classList.remove('is-feather-grabbing'));
 canvas.addEventListener('click', (e) => {
   if (dragging) return;
   handleClick(canvasPos(e));
@@ -36257,6 +36669,11 @@ document.getElementById('commander-panel').addEventListener('click', (e) => {
   if (e.target.id === 'commander-panel') toggleCommanderPanel(false);
 });
 function commanderAdjustCount(delta) {
+  if (isHeroDeployType(selectedTool)) {
+    syncCommanderControlsUI();
+    drawCommanderPreview();
+    return;
+  }
   const cap = commanderCap(players[getLocalPlayerId()]);
   commanderCount = clamp(commanderCount + delta, 1, Math.max(1, cap));
   syncCommanderControlsUI();
@@ -36964,7 +37381,8 @@ function renderFrame(time) {
     } else if (UNIT_TYPES[selectedTool]) {
       const ut = UNIT_TYPES[selectedTool];
       const commanderMulti = isSurvivalLive() && phase === 'combat'
-        && commanderUnlocked(p) && commanderCount > 1;
+        && commanderUnlocked(p) && commanderCount > 1
+        && !isHeroDeployType(selectedTool);
       if (commanderMulti) {
         // Ghost the whole formation. Green only if ALL of them can be placed.
         const count = Math.min(commanderCount, commanderCap(p));
@@ -37307,9 +37725,100 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+function initLiveFeatherCursor() {
+  if (window.matchMedia?.('(pointer: coarse)').matches) return;
+  const feather = document.createElement('img');
+  feather.id = 'live-feather-cursor';
+  feather.alt = '';
+  feather.src = '/TDG/ui/ink-feather-cursor-32.png';
+  feather.style.display = 'none';
+  document.body.appendChild(feather);
+  const tipGlow = document.createElement('div');
+  tipGlow.id = 'live-feather-tip-glow';
+  tipGlow.style.display = 'none';
+  document.body.appendChild(tipGlow);
+  document.body.classList.add('feather-cursor-enabled');
+
+  let x = -100;
+  let y = -100;
+  let lastX = x;
+  let lastY = y;
+  let rotation = 0;
+  let targetRotation = 0;
+  let motion = 0;
+  let lastMoveAt = 0;
+  let hoverTarget = null;
+  let cursorState = 'normal';
+
+  function setCursorState(next) {
+    if (next === cursorState) return;
+    cursorState = next;
+    feather.src = '/TDG/ui/ink-feather-cursor-32.png';
+  }
+
+  function updateCursorState() {
+    if (document.body.classList.contains('is-feather-grabbing')) {
+      setCursorState('grabbing');
+      return;
+    }
+    const clickable = hoverTarget?.closest?.(
+      'button:not(:disabled), [role="button"], [data-loadout-tool], [data-tool], a[href]',
+    );
+    setCursorState(clickable ? 'clickable' : 'normal');
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = x = e.clientX;
+    lastY = y = e.clientY;
+    hoverTarget = e.target;
+    motion = Math.min(1, Math.hypot(dx, dy) / 18);
+    targetRotation = clamp(dx * 1.12 - dy * 0.42, -38, 38);
+    lastMoveAt = performance.now();
+    feather.style.left = `${x - 29}px`;
+    feather.style.top = `${y - 30}px`;
+    tipGlow.style.left = `${x}px`;
+    tipGlow.style.top = `${y}px`;
+    feather.style.display = 'block';
+    tipGlow.style.display = 'block';
+    updateCursorState();
+  }, { passive: true });
+
+  window.addEventListener('pointerdown', updateCursorState, { passive: true });
+  window.addEventListener('pointerup', updateCursorState, { passive: true });
+  document.addEventListener('mouseleave', () => {
+    feather.style.display = 'none';
+    tipGlow.style.display = 'none';
+  });
+  document.addEventListener('mouseenter', () => {
+    if (x >= 0 && y >= 0) {
+      feather.style.display = 'block';
+      tipGlow.style.display = 'block';
+    }
+  });
+
+  function animateFeatherCursor(now) {
+    const idleFor = now - lastMoveAt;
+    if (idleFor > 55) {
+      targetRotation *= 0.9;
+      motion *= 0.92;
+    }
+    const sway = Math.sin(now * 0.026) * 5.8 * Math.max(0.22, motion);
+    rotation += (targetRotation + sway - rotation) * 0.24;
+    const flutterScale = 1 + Math.sin(now * 0.019) * 0.035 * motion;
+    feather.style.transform = `rotate(${rotation.toFixed(2)}deg) scale(${flutterScale.toFixed(3)})`;
+    updateCursorState();
+    requestAnimationFrame(animateFeatherCursor);
+  }
+  requestAnimationFrame(animateFeatherCursor);
+}
+
 window.addEventListener('resize', resize);
 setupViewportHandling();
 loadCombatSprites();
+initLiveFeatherCursor();
 resize();
 
 window.__TDG = {
