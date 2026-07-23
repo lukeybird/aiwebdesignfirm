@@ -7147,7 +7147,7 @@ const UNIT_TYPES = {
     throwRange: 195, lungeRange: 170, spearRange: 210,
     unique: true, // only one on the field per player
   },
-  striker: { name: 'Striker', hp: 75,  speed: 74,  damage: 24, attackRate: 0.68, range: 30, cost: 30, color: '#FF6B6B', accent: '#E63946', size: 19, behavior: 'hunter', prefersUnits: true },
+  striker: { name: 'Striker', hp: 75,  speed: 74,  damage: 24, attackRate: 0.68, range: 30, cost: 50, color: '#FF6B6B', accent: '#E63946', size: 19, behavior: 'hunter', prefersUnits: true },
   // Half-knight stats in a scrap; unlock/cost set for Live Army economy workers.
   farmer: {
     name: 'Farmer', hp: 38, speed: 37, damage: 12, attackRate: 0.68, range: 30, cost: 100,
@@ -9432,7 +9432,7 @@ const TOWER_MANUAL = {
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus gold every round. Protect them!',
   farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests gold on a timer. Upgrade harvest speed and yield in the Economy tree.',
   laboratory: "Spell keep for your army. Build one Wizard's Nest to unlock Fireball, Zombie Slime, and Yellow Potion, then cast them from the bottom bar.",
-  barracks: 'Unlocks deployable units. Recruit from the list, then upgrade each troop from the tree icon on its card.',
+  barracks: 'Unlocks deployable units. Recruit from the list, then upgrade each troop from the tree icon on its card. Place it toward the back of your side so raids are less likely to destroy it.',
   engineers: 'Unlocks and upgrades combat towers. One per team.',
 };
 
@@ -14090,6 +14090,11 @@ function scoreTowerSpot(x, y, towerType, ai) {
   else if (towerType === 'turret') score += (1 - Math.abs(depth - 0.42)) * 50 + 20;
   else if (towerType === 'mint') score += depth * 65;
   else if (towerType === 'farm') score += depth * 72;
+  else if (towerType === 'barracks' || towerType === 'engineers' || towerType === 'laboratory') {
+    // Keep production hubs in the back so raids don't wipe unlocks.
+    score += depth * 95 + 40;
+    score -= (1 - depth) * 55; // punish forward placements
+  }
   else if (towerType === 'missile') score += depth * 50 + 10;
   else if (towerType === 'catapult') score += depth * 40 + 18;
   else if (towerType === 'archer') score += depth * 35 + 12;
@@ -14100,7 +14105,15 @@ function scoreTowerSpot(x, y, towerType, ai) {
   }
   const chokeX = pid === 0 ? zone.x2 - 160 : zone.x + 160;
   const choke = { x: chokeX, y: MID_Y };
-  score += Math.max(0, 130 - dist({ x, y }, choke)) * 0.2;
+  // Combat towers like choke; support hubs should not.
+  if (towerType !== 'barracks' && towerType !== 'engineers' && towerType !== 'laboratory'
+      && towerType !== 'farm' && towerType !== 'mint') {
+    score += Math.max(0, 130 - dist({ x, y }, choke)) * 0.2;
+  } else {
+    // Prefer near own base instead of the choke.
+    const bp = basePos(pid);
+    score += Math.max(0, 160 - dist({ x, y }, bp)) * 0.55;
+  }
   return score;
 }
 
@@ -17364,6 +17377,11 @@ function isEconomyTower(type) {
   return type === 'mint' || type === 'farm';
 }
 
+/** Barracks / Depot / Nest — safe in the rear so they aren't sniped early. */
+function isRearSupportTower(type) {
+  return type === 'barracks' || type === 'engineers' || type === 'laboratory';
+}
+
 function countLivingFarms(p) {
   return p.turrets.filter(t => t.towerType === 'farm' && t.hp > 0).length;
 }
@@ -17470,6 +17488,35 @@ function findBestAiForwardDefenseSpot(ai, towerType) {
   return best;
 }
 
+/** Sample mostly in the back third of our zone — protects Barracks / Depot / Nest. */
+function findBestAiRearSupportSpot(ai, towerType, attempts = 72) {
+  const pid = ai.id;
+  const zone = playerZone(pid);
+  const span = zone.x2 - zone.x;
+  // Back band: near own base (high depth).
+  const xLo = pid === 0 ? zone.x + 55 : zone.x + span * 0.55;
+  const xHi = pid === 0 ? zone.x + span * 0.45 : zone.x2 - 55;
+  let best = null, bestScore = -Infinity;
+  for (let i = 0; i < attempts; i++) {
+    // ~80% roll in the rear band; ~20% anywhere (still scored) so mid is an option.
+    const rearRoll = Math.random() < 0.82;
+    const x = rearRoll
+      ? rand(Math.min(xLo, xHi), Math.max(xLo, xHi))
+      : rand(zone.x + 70, zone.x2 - 45);
+    const y = rand(LAND_TOP + 50, LAND_BOTTOM - 50);
+    if (!canPlaceTurret(x, y, pid, null, towerType)) continue;
+    let score = scoreTowerSpot(x, y, towerType, ai);
+    const depth = pid === 0
+      ? (zone.x2 - x) / span
+      : (x - zone.x) / span;
+    score += depth * 55;
+    // Slight lane spread so hubs aren't stacked on mid.
+    score += Math.min(Math.abs(y - MID_Y), 120) * 0.12;
+    if (score > bestScore) { bestScore = score; best = { x, y }; }
+  }
+  return best;
+}
+
 function findBestAiTowerSpot(ai, towerType, attempts = 56) {
   const pid = ai.id;
   const zone = playerZone(pid);
@@ -17478,6 +17525,9 @@ function findBestAiTowerSpot(ai, towerType, attempts = 56) {
   }
   if (towerType === 'turret' || towerType === 'laser') {
     return findBestAiForwardDefenseSpot(ai, towerType);
+  }
+  if (isRearSupportTower(towerType)) {
+    return findBestAiRearSupportSpot(ai, towerType, Math.max(attempts, 72));
   }
   const depthBias = isEconomyTower(towerType) ? 1 : -1;
   let best = null, bestScore = -Infinity;
@@ -17504,6 +17554,8 @@ function survivalAiTryPlaceTower(ai, towerType, spreadSlot) {
     spot = findBestAiSpreadSpot(ai, spreadSlot ?? countAiTowers(ai, 'spread'));
   } else if (towerType === 'turret' || towerType === 'laser') {
     spot = findBestAiForwardDefenseSpot(ai, towerType);
+  } else if (isRearSupportTower(towerType)) {
+    spot = findBestAiRearSupportSpot(ai, towerType, 80);
   } else {
     spot = findBestAiTowerSpot(ai, towerType, isEconomyTower(towerType) ? 52 : 64);
   }
