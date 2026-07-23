@@ -6696,8 +6696,14 @@
         <div class="stat-pill hidden" id="enemy-hp-pill"><span class="icon">💀</span> <span class="pill-label">Enemy </span><span id="enemy-hp-display">600</span></div>
         <div class="stat-pill hidden" id="survival-speed-pill">
           <button type="button" class="surv-speed-btn active" data-speed="1">1×</button>
-          <button type="button" class="surv-speed-btn" data-speed="2">2×</button>
+          <button type="button" class="surv-speed-btn speed-std" data-speed="2">2×</button>
           <button type="button" class="surv-speed-btn" data-speed="4">4×</button>
+          <button type="button" class="surv-speed-btn speed-train hidden" data-speed="8">8×</button>
+          <button type="button" class="surv-speed-btn speed-train hidden" data-speed="16">16×</button>
+        </div>
+        <div class="stat-pill hidden" id="ai-train-pill" title="AI Training progress">
+          <span id="ai-train-stats">0 games</span>
+          <button type="button" class="surv-speed-btn" id="btn-stop-ai-train" title="Stop training and return to menu">Stop</button>
         </div>
         <div class="stat-pill hidden" id="sandbox-side-pill" title="Switch which side you control (Space)">
           <button type="button" class="surv-speed-btn sandbox-side-btn active" data-sandbox-side="0">P1</button>
@@ -6941,6 +6947,8 @@
             <button class="banner-btn" id="btn-free" type="button">🎮 Free Mode</button>
             <button class="banner-btn" id="btn-free2p" type="button">⚔️ FREE 2P</button>
             <button class="banner-btn" id="btn-simulator" type="button">🤖 Simulator</button>
+            <button class="banner-btn" id="btn-ai-training" type="button">🧠 AI Training</button>
+            <button class="banner-btn" id="btn-play-vs-ai" type="button">⚔️ Play vs AI</button>
           </div>
           <div class="menu-icon-row">
             <button class="menu-icon-btn" id="btn-menu-modes" type="button" title="Other game modes" aria-label="Other game modes" aria-expanded="false" aria-controls="menu-modes-pop">🎮</button>
@@ -9400,12 +9408,12 @@ function closeRulebook() {
 
 const UNIT_MANUAL = {
   tank: 'Heavy war elephant with a native rider. Strong against Spreaders (immune to shock/knockback). Extremely weak against Wolves in packs.',
-  speed: 'Lightning-fast wolf that dodges cannon and spread pellets. A pack devour Elephants; Snipers cannot track them. Hunts Snipers, Elephants, and Yetis first — biting a Yeti freezes the wolf solid for 5s, then permanently halves its speed and attack. Ignores Farmers unless one strikes the pack — then all Wolves revenge-hunt that Farmer.',
+  speed: 'Lightning-fast wolf that dodges cannon and spread pellets. A pack devour Elephants; Snipers cannot track them. Hunts Snipers, Archers, Elephants, and Yetis first — biting a Yeti freezes the wolf solid for 5s, then permanently halves its speed and attack. Ignores Farmers unless one strikes the pack — then all Wolves revenge-hunt that Farmer.',
   wolf_hunter: 'Hero wolf assassin in a wolf-head helm. Only one on the field at a time; after death, 10s before you can deploy again. Barracks bazaar: Werewolf (travel as a wolf to close distance, then revert to fight; farm steal with no prey), Ravenous (+5 gold/sec), Twin Spears, Quick Lunge, Bone Cache — buy any, any order. Lunges at 6× speed in range, then spears and bone axes. Hunts wolves and Elephants equally. If other ground units attack him he fights those types back; he ignores Dragons and air units. Without Werewolf he raids farms (−1 gold / 2s). Towers never target him; units won’t attack him while he is on an enemy Farm. Inventory drops on death.',
   striker: 'Mounted knight — strong against Wolves and almost every unit and tower. Weak vs Elephant+Sniper combos and Dragons. First hit deals double damage. Barracks tree doubles Attack, Health, and Speed (Attack Speed stays fixed).',
   farmer: 'Works your Farms for +1 gold/sec while plowing — and +1 HP per gold if hurt. Half a Knight in a scrap. Stands and fights Goblins that enter pitchfork range (does not chase). If a Wolf steps on a Farm, every Farmer hunts that Wolf. Wolves otherwise ignore Farmers — until a Farmer hits one, then the whole pack revenge-hunts that Farmer. When other ground troops (not Goblins, Wolves, or Dragons) enter the last quarter near your castle, farmers drop the plow and fight from outside the walls. Goblins must kill Farmers before they can sack Farms.',
   sniper: 'Long-range soldier. Strong when an Elephant soaks damage in front. Extremely weak vs Wolves — their hard counter. Prioritizes Dragons.',
-  bowman: 'Mobile archer. Fires arcing arrows like Archer Towers (2× Attack on hit). Long reach, low raw damage; Wolves shred them. Prioritizes Dragons.',
+  bowman: 'Mobile archer. Fires arcing arrows like Archer Towers (2× Attack on hit). Long reach, low raw damage; can shoot Wolves but only for 1/4 damage. Wolves hunt them like Snipers. Prioritizes Dragons.',
   swordsman: 'Polished plate footsoldier. Matches Archer pace, fights in the press with steel. Takes only half damage from arrows. Strong vs Wolves, softer into Elephant hide than Knights on horseback.',
   peka: 'Epic flying dragon. Hunts Goblins first, ignores Snipers. Weak to Turrets and Snipers. Fire breath stacks on the ground.',
   yeti: 'Hero ice giant. Only one on the field. A blizzard whirls around it — slight damage, half speed, and disoriented attacks for enemies inside. Scratches with frosty claws (area damage). Every 10s it leaps onto the nearest troop with a slam. Puts out nearby fire. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s.',
@@ -9419,7 +9427,7 @@ const TOWER_MANUAL = {
   spread: 'Castle tower — fires a wide volley of wind blasts. Long range, knockback on hit, and briefly paralyzes enemies. Click to open its skill tree and pick Fire, Ice, or Electricity (one only). Weak vs Elephants (immune to base shock).',
   missile: 'Launches explosive missiles that deal area damage on impact. Expensive but devastating against groups and structures.',
   catapult: 'Siege engine that lobs boulders. Ignores Farmers and prefers high-HP troops (including Dragons). Direct hits deal most of the damage; the splash hurts nearby enemies for less and shoves them lightly. Upgrade Oil (500 gold) for flaming shots that ignite targets and splash wild ground fire (slightly slower fire rate).',
-  archer: 'Huge watchtower with three archers perched along the top. Every arrow launches directly from its visible archer, and each archer picks its own target (random in range, favoring mid-range). Multishot adds arrows to each archer instead of adding crew. Arrows only hurt when they land. Deadly up close, wildly inaccurate at max range. Can clip Dragons mid-flight (half damage).',
+  archer: 'Huge watchtower with three archers perched along the top. Every arrow launches directly from its visible archer, and each archer picks its own target (random in range, favoring mid-range). Multishot adds arrows to each archer instead of adding crew. Arrows only hurt when they land. Deadly up close, wildly inaccurate at max range. Can clip Dragons mid-flight (half damage). Arrows deal only 1/4 damage to Wolves.',
   mint: 'Economy building — does not attack. Each surviving Mint pays bonus gold every round. Protect them!',
   farm: 'Cheap economy building — does not attack. In Live Battle, each Farm harvests gold on a timer. Upgrade harvest speed and yield in the Economy tree.',
   laboratory: "Spell keep for your army. Build one Wizard's Nest to unlock Fireball, Zombie Slime, and Yellow Potion, then cast them from the bottom bar.",
@@ -9609,7 +9617,7 @@ function normalizeSurvivalDifficulty(value) {
 }
 
 function survivalAiBaseIncomeBonus(pid) {
-  const isCpu = gameMode === 'simulator' || (pid === 1 && gameMode === 'survival');
+  const isCpu = isCpuPlayer(pid);
   if (!isCpu) return 0;
   const eco = LIVE_ARMY?.isActive()
     ? LIVE_ARMY.economyRecord(players[pid])
@@ -9729,16 +9737,38 @@ const PVP_HOST_DELAY_PAD_MS = 20;
 let pvpLock = null; // { frame, acc, lastSyncAt, seenActionIds, recentAids, pendingLocal, delayedHost, rttEwma, lastHostSentAt }
 let pvpLocalActionSeq = 0;
 
+function isAiTrainingMode() {
+  return gameMode === 'ai-training';
+}
+
+function isPlayVsAiMode() {
+  return gameMode === 'play-vs-ai';
+}
+
+function isCpuVsCpuMode() {
+  return gameMode === 'simulator' || gameMode === 'ai-training';
+}
+
+function isHumanVsAiMode() {
+  return gameMode === 'survival' || gameMode === 'play-vs-ai';
+}
+
 function isSurvivalLive() {
-  return gameMode === 'survival' || gameMode === 'survival-pvp' || gameMode === 'simulator' || gameMode === 'sandbox';
+  return gameMode === 'survival' || gameMode === 'survival-pvp' || gameMode === 'simulator'
+    || gameMode === 'sandbox' || gameMode === 'ai-training' || gameMode === 'play-vs-ai';
 }
 
 function isLocalSurvival() {
-  return gameMode === 'survival' || gameMode === 'simulator' || gameMode === 'sandbox';
+  return gameMode === 'survival' || gameMode === 'simulator' || gameMode === 'sandbox'
+    || gameMode === 'ai-training' || gameMode === 'play-vs-ai';
 }
 
 function isSandboxMode() {
   return gameMode === 'sandbox';
+}
+
+function isCpuPlayer(pid) {
+  return isCpuVsCpuMode() || (pid === 1 && isHumanVsAiMode());
 }
 
 function setSandboxControl(pid) {
@@ -9896,13 +9926,15 @@ function syncSandboxSidePill() {
 }
 
 function isSimulatorMode() {
-  return gameMode === 'simulator';
+  // Dual-CPU modes share simulator plumbing (brains, timers, no human build).
+  return gameMode === 'simulator' || gameMode === 'ai-training';
 }
 
 function aiSelf() { return survivalAiActivePid; }
 function aiEnemy() { return survivalAiActivePid === 0 ? 1 : 0; }
 function activeAiBrain() {
-  if (isSimulatorMode()) return simulatorAiBrains?.[survivalAiActivePid] || null;
+  if (isCpuVsCpuMode()) return simulatorAiBrains?.[survivalAiActivePid] || null;
+  if (isHumanVsAiMode() && survivalAiActivePid === 1) return survivalAiBrain;
   return survivalAiActivePid === 1 ? survivalAiBrain : null;
 }
 
@@ -10633,7 +10665,7 @@ function survivalIncomeAmount(pid, type) {
     if (type === 'base') {
       const eco = LIVE_ARMY.economyRecord(players[pid]);
       const lvl = 1 + (eco.base.income || 0);
-      const isCpu = gameMode === 'simulator' || (pid === 1 && gameMode === 'survival');
+      const isCpu = isCpuPlayer(pid);
       // CPU HQ payout matches the Local Game menu numbers (+30 / +40 / +100),
       // plus further HQ income upgrades. Player keeps the normal base yield.
       if (isCpu) return survivalAiBaseIncomeBonus(pid);
@@ -10642,16 +10674,16 @@ function survivalIncomeAmount(pid, type) {
     if (type === 'farm' || type === 'mint') {
       let amt = LIVE_ARMY.harvestAmount(players[pid], type);
       if (amt <= 0) return 0;
-      if (pid === 1 && gameMode === 'survival') amt *= survivalAiIncomeMult();
+      if (pid === 1 && isHumanVsAiMode()) amt *= survivalAiIncomeMult();
       return amt;
     }
   }
   const lvl = incomeUpgradeLevel(pid, type);
   if (lvl < 1) return 0;
-  const isCpu = gameMode === 'simulator' || (pid === 1 && gameMode === 'survival');
+  const isCpu = isCpuPlayer(pid);
   if (type === 'base' && isCpu) return survivalAiBaseIncomeBonus(pid);
   let amt = survivalIncomeAmountAtLevel(type, lvl);
-  if (pid === 1 && gameMode === 'survival' && type !== 'base') {
+  if (pid === 1 && isHumanVsAiMode() && type !== 'base') {
     amt *= survivalAiIncomeMult();
   }
   return amt;
@@ -13981,7 +14013,12 @@ function updateIncomeUpgradeUI(force) {
 }
 
 function setSurvivalSpeed(mult) {
-  survivalSpeed = mult === 4 ? 4 : mult === 2 ? 2 : 1;
+  const n = Number(mult) || 1;
+  if (isAiTrainingMode()) {
+    survivalSpeed = [1, 4, 8, 16].includes(n) ? n : (n >= 12 ? 16 : n >= 6 ? 8 : n >= 3 ? 4 : 1);
+  } else {
+    survivalSpeed = n === 4 ? 4 : n === 2 ? 2 : 1;
+  }
   document.querySelectorAll('.surv-speed-btn[data-speed]').forEach(btn => {
     btn.classList.toggle('active', Number(btn.dataset.speed) === survivalSpeed);
   });
@@ -13995,7 +14032,14 @@ function survivalSimDt(rawDt) {
   if (!isSurvivalLive() || phase !== 'combat') return rawDt;
   if (isLiveMenuPauseActive()) return 0;
   if (isSurvivalPvp()) return Math.min(rawDt, 0.14);
+  // AI Training uses multi-step ticks at 1× dt; other modes multiply inside the cap.
+  if (isAiTrainingMode()) return Math.min(rawDt, 0.05);
   return Math.min(rawDt * survivalSpeed, 0.14);
+}
+
+function survivalSimStepCount() {
+  if (!isAiTrainingMode() || phase !== 'combat' || isLiveMenuPauseActive()) return 1;
+  return Math.max(1, survivalSpeed | 0);
 }
 
 function scoreTowerSpot(x, y, towerType, ai) {
@@ -14073,7 +14117,7 @@ const CPU_PLAN_LABELS = {
 };
 
 function freshSurvivalAiBrain() {
-  return {
+  const brain = {
     phase: 'observe',
     phaseUntil: SURVIVAL_AI_OBSERVE_TIME[normalizeSurvivalDifficulty(survivalDifficulty)] || SURVIVAL_AI_OBSERVE_TIME.easy,
     plan: null,
@@ -14105,10 +14149,14 @@ function freshSurvivalAiBrain() {
     earlyProbeAt: 14 + Math.random() * 58,
     earlyProbeDone: false,
     // Independent opening doctrine (defense / farm / attack)
-    strategyPath: survivalAiRollStrategyPath(),
+    strategyPath: null,
     pathSwitchAt: 12 + Math.random() * 38,
     pathLogDone: false,
+    learnLog: { path: null, plans: [], units: [], towers: [] },
   };
+  brain.strategyPath = survivalAiRollStrategyPath();
+  learnNoteChoice(brain, 'path', brain.strategyPath);
+  return brain;
 }
 
 function survivalAiLabel(ai) {
@@ -14147,7 +14195,8 @@ function survivalAiRollStrategyPath(exclude) {
   const pool = exclude
     ? SURVIVAL_AI_STRATEGY_PATHS.filter((p) => p !== exclude)
     : SURVIVAL_AI_STRATEGY_PATHS.slice();
-  return pool[Math.floor(rand(0, pool.length))];
+  const mem = survivalAiLoadMemory();
+  return learnWeightedPick(pool, (p) => learnWeight(mem.paths[p])) || pool[0];
 }
 
 function survivalAiSchedulePathSwitch(brain) {
@@ -14210,6 +14259,7 @@ function survivalAiPathProfile(brain) {
 function survivalAiTickStrategyPath(brain, ai, ctx) {
   if (!brain.strategyPath) {
     brain.strategyPath = survivalAiRollStrategyPath();
+    learnNoteChoice(brain, 'path', brain.strategyPath);
     survivalAiSchedulePathSwitch(brain);
   }
   if (ctx.combatTime < brain.pathSwitchAt) return false;
@@ -14217,6 +14267,7 @@ function survivalAiTickStrategyPath(brain, ai, ctx) {
   if (rand() > survivalAiRandRange(SURVIVAL_AI_PATH_SWITCH_CHANCE)) return false;
   const prev = brain.strategyPath;
   brain.strategyPath = survivalAiRollStrategyPath(prev);
+  learnNoteChoice(brain, 'path', brain.strategyPath);
   addLog(`${survivalAiLabel(ai)} shifts doctrine — now ${SURVIVAL_AI_PATH_LABELS[brain.strategyPath]}-heavy.`);
   return true;
 }
@@ -14533,26 +14584,176 @@ function survivalAiBankTarget(planId, strikeSize) {
 }
 
 // ─── Adaptive learning (localStorage) ─────────────────────────────────────────
-const SURVIVAL_AI_MEMORY_KEY = 'tdg_ai_memory_v1';
+const SURVIVAL_AI_MEMORY_KEY = 'tdg_ai_memory_v2';
+const SURVIVAL_AI_MEMORY_KEY_LEGACY = 'tdg_ai_memory_v1';
 const SURVIVAL_AI_ARCHETYPES = ['wolf', 'knight', 'elephant', 'sniper', 'goblin', 'dragon', 'yeti', 'mixed'];
 let survivalAiMemory = null;
+let aiTrainingStats = { matches: 0, wins0: 0, wins1: 0, draws: 0, lastResult: '' };
+let aiTrainingRestartTimer = null;
+let aiTrainingStopRequested = false;
+
+function learnFreshMemory() {
+  return {
+    version: 2,
+    matches: 0,
+    wins: { 0: 0, 1: 0, draw: 0 },
+    paths: { defense: { a: 0, w: 0 }, farm: { a: 0, w: 0 }, attack: { a: 0, w: 0 } },
+    plans: {},
+    units: {},
+    towers: {},
+    scenarios: {},
+  };
+}
 
 function survivalAiLoadMemory() {
   if (survivalAiMemory) return survivalAiMemory;
-  survivalAiMemory = {};
+  survivalAiMemory = learnFreshMemory();
   try {
-    const raw = localStorage.getItem(SURVIVAL_AI_MEMORY_KEY);
-    if (raw) survivalAiMemory = JSON.parse(raw) || {};
+    let raw = localStorage.getItem(SURVIVAL_AI_MEMORY_KEY);
+    if (!raw) raw = localStorage.getItem(SURVIVAL_AI_MEMORY_KEY_LEGACY);
+    if (raw) {
+      const parsed = JSON.parse(raw) || {};
+      if (parsed.version === 2) {
+        survivalAiMemory = Object.assign(learnFreshMemory(), parsed);
+        if (!survivalAiMemory.scenarios) survivalAiMemory.scenarios = {};
+      } else {
+        // Migrate v1 scenario-keyed archetype maps into scenarios.
+        survivalAiMemory.scenarios = parsed;
+      }
+    }
   } catch (e) {
-    survivalAiMemory = {};
+    survivalAiMemory = learnFreshMemory();
   }
   return survivalAiMemory;
 }
 
 function survivalAiSaveMemory() {
   try {
-    localStorage.setItem(SURVIVAL_AI_MEMORY_KEY, JSON.stringify(survivalAiMemory || {}));
+    localStorage.setItem(SURVIVAL_AI_MEMORY_KEY, JSON.stringify(survivalAiMemory || learnFreshMemory()));
   } catch (e) { /* storage unavailable */ }
+}
+
+function learnBucket(map, key) {
+  if (!map[key]) map[key] = { a: 0, w: 0 };
+  return map[key];
+}
+
+/** Exploration → exploitation: starts fully random, slowly trusts memory. */
+function learnExploreRate() {
+  const mem = survivalAiLoadMemory();
+  const n = mem.matches || 0;
+  // ~100% random at 0 games → ~15% random after ~200 matches.
+  return Math.max(0.12, 1 / (1 + n * 0.02));
+}
+
+function learnWeight(rec) {
+  if (!rec || rec.a < 1) return 1;
+  const rate = rec.w / Math.max(1, rec.a);
+  // Soft prior so early noise doesn't lock in.
+  return 0.25 + rate * 1.75 + Math.min(0.4, rec.a * 0.02);
+}
+
+function learnWeightedPick(keys, weightFn) {
+  const list = keys.filter((k) => k != null);
+  if (!list.length) return null;
+  if (Math.random() < learnExploreRate()) {
+    return list[Math.floor(Math.random() * list.length)];
+  }
+  let total = 0;
+  const weights = list.map((k) => {
+    const w = Math.max(0.05, weightFn(k));
+    total += w;
+    return w;
+  });
+  let r = Math.random() * total;
+  for (let i = 0; i < list.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return list[i];
+  }
+  return list[list.length - 1];
+}
+
+function learnNoteChoice(brain, kind, id) {
+  if (!brain || id == null) return;
+  if (!brain.learnLog) brain.learnLog = { path: null, plans: [], units: [], towers: [] };
+  if (kind === 'path') brain.learnLog.path = id;
+  else if (kind === 'plan') brain.learnLog.plans.push(id);
+  else if (kind === 'unit') brain.learnLog.units.push(id);
+  else if (kind === 'tower') brain.learnLog.towers.push(id);
+}
+
+function learnCreditBrain(brain, won) {
+  if (!brain?.learnLog) return;
+  const mem = survivalAiLoadMemory();
+  const log = brain.learnLog;
+  if (log.path && mem.paths[log.path]) {
+    mem.paths[log.path].a += 1;
+    if (won) mem.paths[log.path].w += 1;
+  }
+  const seenPlans = new Set(log.plans || []);
+  for (const planId of seenPlans) {
+    const rec = learnBucket(mem.plans, planId);
+    rec.a += 1;
+    if (won) rec.w += 1;
+  }
+  const seenUnits = new Set(log.units || []);
+  for (const u of seenUnits) {
+    const rec = learnBucket(mem.units, u);
+    rec.a += 1;
+    if (won) rec.w += 1;
+  }
+  const seenTowers = new Set(log.towers || []);
+  for (const t of seenTowers) {
+    const rec = learnBucket(mem.towers, t);
+    rec.a += 1;
+    if (won) rec.w += 1;
+  }
+}
+
+function learnRecordMatchEnd() {
+  const mem = survivalAiLoadMemory();
+  mem.matches = (mem.matches || 0) + 1;
+  let winner = null;
+  if (players[0].baseHp <= 0 && players[1].baseHp <= 0) {
+    mem.wins.draw = (mem.wins.draw || 0) + 1;
+    aiTrainingStats.draws += 1;
+    aiTrainingStats.lastResult = 'draw';
+  } else if (players[0].baseHp <= 0) {
+    winner = 1;
+    mem.wins[1] = (mem.wins[1] || 0) + 1;
+    aiTrainingStats.wins1 += 1;
+    aiTrainingStats.lastResult = 'blue';
+  } else if (players[1].baseHp <= 0) {
+    winner = 0;
+    mem.wins[0] = (mem.wins[0] || 0) + 1;
+    aiTrainingStats.wins0 += 1;
+    aiTrainingStats.lastResult = 'red';
+  } else {
+    mem.wins.draw = (mem.wins.draw || 0) + 1;
+    aiTrainingStats.draws += 1;
+    aiTrainingStats.lastResult = 'draw';
+  }
+  aiTrainingStats.matches += 1;
+
+  const brains = isCpuVsCpuMode()
+    ? (simulatorAiBrains || [])
+    : [null, survivalAiBrain];
+  for (let pid = 0; pid < 2; pid++) {
+    learnCreditBrain(brains[pid], winner === pid);
+  }
+  survivalAiSaveMemory();
+  syncAiTrainingHud();
+}
+
+function learnBestPath() {
+  const mem = survivalAiLoadMemory();
+  let best = null;
+  let bestW = -1;
+  for (const path of SURVIVAL_AI_STRATEGY_PATHS) {
+    const w = learnWeight(mem.paths[path]);
+    if (w > bestW) { bestW = w; best = path; }
+  }
+  return best || 'attack';
 }
 
 function survivalAiScenarioKey(intel) {
@@ -14568,16 +14769,59 @@ function survivalAiScenarioKey(intel) {
 
 function survivalAiArchetypeRecord(key, archetype) {
   const mem = survivalAiLoadMemory();
-  if (!mem[key]) mem[key] = {};
-  if (!mem[key][archetype]) mem[key][archetype] = { attempts: 0, wins: 0, dmg: 0 };
-  return mem[key][archetype];
+  if (!mem.scenarios) mem.scenarios = {};
+  if (!mem.scenarios[key]) mem.scenarios[key] = {};
+  if (!mem.scenarios[key][archetype]) mem.scenarios[key][archetype] = { attempts: 0, wins: 0, dmg: 0 };
+  return mem.scenarios[key][archetype];
 }
 
 function survivalAiArchetypeMultiplier(key, archetype) {
-  const rec = survivalAiLoadMemory()[key]?.[archetype];
+  const rec = survivalAiLoadMemory().scenarios?.[key]?.[archetype];
   if (!rec || rec.attempts < 2) return 1;
   const rate = rec.wins / rec.attempts;
-  return 0.35 + rate * 1.35;
+  let mult = 0.35 + rate * 1.35;
+  // Also blend global plan-archetype learning when available.
+  const mem = survivalAiLoadMemory();
+  // Find plans of this archetype and average their learned weights.
+  let planW = 0;
+  let planN = 0;
+  for (const [planId, arch] of Object.entries(CPU_PLAN_ARCHETYPE)) {
+    if (arch !== archetype) continue;
+    const pr = mem.plans[planId];
+    if (pr && pr.a >= 1) { planW += learnWeight(pr); planN += 1; }
+  }
+  if (planN > 0) mult *= (0.55 + 0.45 * (planW / planN));
+  return mult;
+}
+
+function syncAiTrainingHud() {
+  const pill = document.getElementById('ai-train-pill');
+  const stats = document.getElementById('ai-train-stats');
+  if (!pill || !stats) return;
+  const show = isAiTrainingMode() && (phase === 'combat' || phase === 'gameover');
+  pill.classList.toggle('hidden', !show);
+  if (!show) return;
+  const mem = survivalAiLoadMemory();
+  const explore = Math.round(learnExploreRate() * 100);
+  stats.textContent = `${aiTrainingStats.matches} games · R${aiTrainingStats.wins0} B${aiTrainingStats.wins1} · ${explore}% explore`;
+  stats.title = `Stored memory: ${mem.matches || 0} lifetime matches. Last: ${aiTrainingStats.lastResult || '—'}`;
+}
+
+function syncSurvivalSpeedButtons() {
+  const train = isAiTrainingMode();
+  document.querySelectorAll('.surv-speed-btn.speed-std').forEach((btn) => {
+    btn.classList.toggle('hidden', train);
+  });
+  document.querySelectorAll('.surv-speed-btn.speed-train').forEach((btn) => {
+    btn.classList.toggle('hidden', !train);
+  });
+  // If current speed isn't available in this mode, snap to a valid one.
+  const allowed = train ? [1, 4, 8, 16] : [1, 2, 4];
+  if (!allowed.includes(survivalSpeed)) {
+    setSurvivalSpeed(train ? 4 : 1);
+  } else {
+    setSurvivalSpeed(survivalSpeed);
+  }
 }
 
 const SURVIVAL_AI_UNIT_ARCHETYPE = {
@@ -14824,6 +15068,9 @@ function survivalAiScorePlan(planId, intel, ai, ctx, brain) {
 
   if (arch) score *= survivalAiArchetypeMultiplier(scenarioKey, arch);
 
+  const planRec = survivalAiLoadMemory().plans[planId];
+  if (planRec && planRec.a >= 1) score *= learnWeight(planRec);
+
   const pathBias = survivalAiPathProfile(brain).planBias;
   if (pathBias && pathBias[planId]) score *= pathBias[planId];
 
@@ -14875,6 +15122,7 @@ function survivalAiPickPlan(intel, ai, ctx, brain) {
   }
 
   if (ctx.playerHpPct < 0.55) best = CPU_PLAN.FINISHER;
+  learnNoteChoice(brain, 'plan', best);
   return best;
 }
 
@@ -15043,13 +15291,12 @@ function survivalAiPickDefenseTower(ai, intel) {
     if (owned >= 2) weights[tt] = (weights[tt] || 1) * 0.3;
     else if (owned === 1) weights[tt] = (weights[tt] || 1) * 0.7;
   }
-  let best = null, bestW = -1;
-  for (const tt of unlocked) {
-    if (ai.coins < towerCost(ai, tt)) continue;
-    const w = (weights[tt] || 1) + Math.random() * 0.5;
-    if (w > bestW) { bestW = w; best = tt; }
-  }
-  return best;
+  const mem = survivalAiLoadMemory();
+  const affordable = unlocked.filter((tt) => ai.coins >= towerCost(ai, tt));
+  if (!affordable.length) return null;
+  // Explore randomly early; otherwise bias toward towers that helped win matches.
+  const pick = learnWeightedPick(affordable, (tt) => (weights[tt] || 1) * learnWeight(mem.towers[tt]));
+  return pick;
 }
 
 function survivalAiQuietEconomy(ai, ctx) {
@@ -15716,12 +15963,15 @@ function survivalAiTrySpawnUnitOfType(ai, type, logDeploy = true, slotFn = null)
   if (!isUnitEnabled(type) || !LIVE_ARMY.unitUnlocked(ai, type)) return false;
   if (ai.coins < unitDef(type, aiSelf()).cost) return false;
   const idx = combatUnits.filter((u) => u.owner === aiSelf() && u.type === type).length;
+  const note = () => learnNoteChoice(activeAiBrain(), 'unit', type);
   if (survivalTryLiveSpawnUnit(type, idx, slotFn)) {
+    note();
     if (logDeploy) addLog(`🤖 Enemy deployed ${UNIT_TYPES[type].name}`);
     return true;
   }
   for (let attempt = 0; attempt < 10; attempt++) {
     if (survivalTryLiveSpawnUnit(type, idx + attempt, slotFn)) {
+      note();
       if (logDeploy) addLog(`🤖 Enemy deployed ${UNIT_TYPES[type].name}`);
       return true;
     }
@@ -16177,7 +16427,12 @@ function survivalAiEarlyProbe(ai, brain, intel, ctx) {
   }
 
   const count = Math.min(liveRoom, Math.floor(rand(1, 3.99)));
-  const picks = survivalAiShuffledUnits(unlocked).slice(0, count);
+  const mem = survivalAiLoadMemory();
+  const ranked = unlocked.slice().sort((a, b) => learnWeight(mem.units[b]) - learnWeight(mem.units[a]));
+  // Mix learned ranking with shuffle while exploring.
+  const picks = (Math.random() < learnExploreRate()
+    ? survivalAiShuffledUnits(unlocked)
+    : ranked).slice(0, count);
   let spawned = 0;
   for (const type of picks) {
     if (survivalAiTrySpawnUnitOfType(ai, type, false)) spawned += 1;
@@ -16906,6 +17161,7 @@ function survivalAiTryPlaceTower(ai, towerType, spreadSlot) {
   }
   if (!spot) return false;
   if (!survivalLivePlaceTower(ai.id, towerType, spot.x, spot.y)) return false;
+  learnNoteChoice(activeAiBrain(), 'tower', towerType);
   addLog(`🤖 Enemy placed ${towerDef(towerType).name}`);
   return true;
 }
@@ -17100,8 +17356,13 @@ function setupSimulator() {
   toggleMissilePanel(false);
   toggleSpreadPanel(false);
   toggleCommanderPanel(false);
-  addLog('🤖 Simulator — Red CPU vs Blue CPU');
-  addLog('Watch both sides build, tech, and strike. Use speed controls to fast-forward.');
+  if (isAiTrainingMode()) {
+    addLog('🧠 AI Training — Red vs Blue trainees (self-learning)');
+    addLog('Starts random, learns from wins/losses. Use 1×/4×/8×/16× — Stop when done.');
+  } else {
+    addLog('🤖 Simulator — Red CPU vs Blue CPU');
+    addLog('Watch both sides build, tech, and strike. Use speed controls to fast-forward.');
+  }
   updateUI();
 }
 
@@ -18312,6 +18573,23 @@ function endSurvivalLive() {
   liveMenuPaused = false;
   document.getElementById('bottom-panel').classList.add('hidden');
   let title, text, btnText;
+
+  // AI Training: record outcome and immediately queue the next match.
+  if (isAiTrainingMode()) {
+    learnRecordMatchEnd();
+    phase = 'gameover';
+    if (aiTrainingStopRequested) {
+      aiTrainingStopRequested = false;
+      stopAiTrainingToMenu();
+      return;
+    }
+    const mem = survivalAiLoadMemory();
+    const explore = Math.round(learnExploreRate() * 100);
+    addLog(`🧠 Match ${aiTrainingStats.matches} done (${aiTrainingStats.lastResult}). Memory ${mem.matches} · explore ${explore}% — restarting…`);
+    scheduleAiTrainingRestart();
+    return;
+  }
+
   if (isSimulatorMode()) {
   if (players[0].baseHp <= 0 && players[1].baseHp <= 0) {
     title = '🤝 Draw!';
@@ -18330,6 +18608,11 @@ function endSurvivalLive() {
     phase = 'gameover';
     showBanner(title, text, btnText);
     return;
+  }
+
+  // Play vs trained AI — credit the match into the shared brain.
+  if (isPlayVsAiMode()) {
+    learnRecordMatchEnd();
   }
   const myId = getLocalPlayerId();
   const enemy = enemyId(myId);
@@ -18386,8 +18669,8 @@ const COUNTERS = {
   farmer:  { tank: 0.25, speed: 1.35, wolf_hunter: 1.0, angel: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.0,  sniper: 1.15, bowman: 1.1,  yeti: 1.0,  peka: 0.6,  bloop: 1.1,  goblin: 2.3, turret: 1.25, laser: 1.0,  spread: 1.05, missile: 0.95, archer: 1.1,  catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.15 },
   // Sniper: strong with a frontline tank; extremely weak vs Wolves (their hard counter).
   sniper:  { tank: 1.05, speed: 0.4,  wolf_hunter: 0.95, angel: 1.3, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.0,  bowman: 1.0,  yeti: 1.25, peka: 1.35, bloop: 0.95, goblin: 0.9,  turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, archer: 0.9,  catapult: 0.95, mint: 1.2,  farm: 1.2,  base: 1.1 },
-  // Archer (troop): mid-range bowmen — softer than Snipers, still fragile to Wolves; arrows deal 1/2 vs Swordsmen plate.
-  bowman:  { tank: 1.1,  speed: 0.45, wolf_hunter: 0.95, angel: 1.2, striker: 1.2,  swordsman: 0.5, farmer: 1.25, sniper: 0.95, bowman: 1.0,  yeti: 1.2,  peka: 1.25, bloop: 1.0,  goblin: 1.0,  turret: 1.2,  laser: 0.8,  spread: 0.75, missile: 0.9,  archer: 0.95, catapult: 1.0,  mint: 1.15, farm: 1.15, base: 1.05 },
+  // Archer (troop): mid-range bowmen — can hit Wolves but only at 1/4 damage; arrows deal 1/2 vs Swordsmen plate.
+  bowman:  { tank: 1.1,  speed: 0.25, wolf_hunter: 0.95, angel: 1.2, striker: 1.2,  swordsman: 0.5, farmer: 1.25, sniper: 0.95, bowman: 1.0,  yeti: 1.2,  peka: 1.25, bloop: 1.0,  goblin: 1.0,  turret: 1.2,  laser: 0.8,  spread: 0.75, missile: 0.9,  archer: 0.95, catapult: 1.0,  mint: 1.15, farm: 1.15, base: 1.05 },
   // Yeti: freezing punches punish packs; struggles vs long range and dragons.
   yeti:    { tank: 1.1,  speed: 1.25, wolf_hunter: 1.05, angel: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1,  sniper: 0.85, bowman: 0.9,  yeti: 1.0,  peka: 0.7,  bloop: 1.1,  goblin: 1.15, turret: 1.15, laser: 0.9,  spread: 1.2,  missile: 1.0,  archer: 0.85, catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.1 },
   angel:    { tank: 1.05, speed: 1.15, wolf_hunter: 0.85, angel: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1, sniper: 0.95, bowman: 1.0, yeti: 1.0, peka: 1.2, bloop: 1.1, goblin: 1.2, turret: 1.15, laser: 0.95, spread: 1.05, missile: 0.95, archer: 0.9, catapult: 1.0, mint: 1.1, farm: 1.1, base: 1.1 },
@@ -18400,8 +18683,8 @@ const COUNTERS = {
   spread:  { tank: 0.55, speed: 1.1,  wolf_hunter: 0, angel: 1.0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.25, bowman: 1.2,  yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 1.15, turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
   // Missile: targets Dragons first when they are on the field.
   missile: { tank: 0.85, speed: 1.15, wolf_hunter: 0, angel: 1.25, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.1,  bowman: 1.05, yeti: 1.05, peka: 1.35, bloop: 1.1,  goblin: 1.0,  turret: 0.8,  laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 0.9,  farm: 0.9,  base: 0.4 },
-  // Archer tower: heavy vs ground; 1/2 vs Swordsmen plate; half vs dragons baked in combat.
-  archer:  { tank: 1.35, speed: 1.2,  wolf_hunter: 0, angel: 1.15, striker: 1.25, swordsman: 0.5, farmer: 1.3,  sniper: 1.15, bowman: 1.2,  yeti: 1.2,  peka: 1.0,  bloop: 1.15, goblin: 1.2,  turret: 0.7,  laser: 0.75, spread: 0.8,  missile: 0.7,  archer: 1.0, catapult: 1.0, mint: 1.0,  farm: 1.0,  base: 0.35 },
+  // Archer tower: heavy vs ground; 1/4 vs Wolves; 1/2 vs Swordsmen plate; half vs dragons baked in combat.
+  archer:  { tank: 1.35, speed: 0.25, wolf_hunter: 0, angel: 1.15, striker: 1.25, swordsman: 0.5, farmer: 1.3,  sniper: 1.15, bowman: 1.2,  yeti: 1.2,  peka: 1.0,  bloop: 1.15, goblin: 1.2,  turret: 0.7,  laser: 0.75, spread: 0.8,  missile: 0.7,  archer: 1.0, catapult: 1.0, mint: 1.0,  farm: 1.0,  base: 0.35 },
   // Catapult: siege vs high-HP ground (elephants/yetis); weak vs fliers/wolves.
   catapult:{ tank: 1.45, speed: 0.75, wolf_hunter: 0, angel: 0.7, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.1,  bowman: 1.05, yeti: 1.35, peka: 0.55, bloop: 1.05, goblin: 1.0,  turret: 0.85, laser: 0.9,  spread: 0.9,  missile: 0.85, archer: 0.9,  catapult: 1.0, mint: 1.05, farm: 1.05, base: 0.45 },
 };
@@ -18523,7 +18806,7 @@ const P1_COLOR = { main: '#4ECDC4', light: '#7EDDD6', dark: '#2A9D8F' };
 const P2_COLOR = { main: '#FF8E53', light: '#FFB088', dark: '#E76F51' };
 
 // ─── Game State ──────────────────────────────────────────────────────────────
-let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'simulator' | 'sandbox' | 'free' | 'free2p'
+let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'simulator' | 'ai-training' | 'play-vs-ai' | 'sandbox' | 'free' | 'free2p'
 let phase = 'menu'; // menu | prep | combat | summary | gameover | free | free2p
 let round = 1;
 let activePlayer = 0; // 0 = P1, 1 = P2/AI
@@ -28902,7 +29185,7 @@ function startCombat() {
 }
 
 function sniperIgnoresUnitType(unitType) {
-  return unitType === 'speed'; // Wolves move too fast — snipers don't track them.
+  return unitType === 'speed'; // Wolves move too fast — dedicated Snipers don't track them (Archers still can).
 }
 
 // Flying units soar overhead — only Turrets (and turret pellets) + snipers/archers can reach them.
@@ -29745,9 +30028,9 @@ function isDragonUnit(u) {
   return !!u && (u.type === 'peka' || unitDef(u.type, u.owner)?.behavior === 'dragon');
 }
 
-// Wolves prioritize hunting Snipers, Elephants, and Yetis.
+// Wolves prioritize hunting Snipers, Archers, Elephants, and Yetis.
 function wolfPriorityTarget(unitType) {
-  return unitType === 'sniper' || unitType === 'tank' || unitType === 'yeti';
+  return unitType === 'sniper' || unitType === 'bowman' || unitType === 'tank' || unitType === 'yeti';
 }
 
 function isWolfUnit(u) {
@@ -31104,7 +31387,8 @@ function getMovementGoal(unit) {
     if (bestDragon) return bestDragon;
     for (const u of combatUnits) {
       if (u.owner !== enemy || u.hp <= 0) continue;
-      if (sniperIgnoresUnitType(u.type) || unitIsFlying(u)) continue;
+      // Only dedicated Snipers skip wolves — Archers (bowmen) close and shoot them.
+      if ((unit.type === 'sniper' && sniperIgnoresUnitType(u.type)) || unitIsFlying(u)) continue;
       return { x: u.x, y: u.y };
     }
     let best = null, bestD = Infinity;
@@ -31278,7 +31562,7 @@ function findTarget(unit) {
     return best;
   }
 
-  // Wolves hunt pack-revenged farmers, then Snipers/Elephants/Yetis — ignore other farmers.
+  // Wolves hunt pack-revenged farmers, then Snipers/Archers/Elephants/Yetis — ignore other farmers.
   if (behavior === 'flank') {
     // Too scared to fight while a dragon is on the field.
     if (nearestEnemyDragon(unit)) return null;
@@ -31314,7 +31598,8 @@ function findTarget(unit) {
       if (behavior === 'flank' && u.type === 'farmer') continue;
       // Snipers / Archers are the dedicated anti-air — other ground troops can't hit flyers.
       if (unitIsFlying(u) && behavior !== 'sniper') continue;
-      if (behavior === 'sniper' && sniperIgnoresUnitType(u.type)) continue;
+      // Dedicated Snipers ignore Wolves; Archers (bowmen) still shoot them (at reduced damage).
+      if (unit.type === 'sniper' && sniperIgnoresUnitType(u.type)) continue;
       const d = dist(unit, u);
       if (d <= ut.range) {
         const counter = getCounter(unit.type, u.type);
@@ -31645,7 +31930,7 @@ function steerUnit(unit, dt) {
     }
   }
 
-  // Wolves path around blockers but rush straight at Snipers and Elephants.
+  // Wolves path around blockers but rush straight at Snipers, Archers, and Elephants.
   if (behavior === 'flank' && !isZombieActive(unit)) {
     // Panic: sprint directly away from any nearby dragon.
     const dragon = nearestEnemyDragon(unit);
@@ -31713,7 +31998,7 @@ function steerUnit(unit, dt) {
     if (behavior === 'sniper') {
       for (const u of combatUnits) {
         if (u.owner === unit.owner || u.hp <= 0) continue;
-        if (sniperIgnoresUnitType(u.type)) continue;
+        if (unit.type === 'sniper' && sniperIgnoresUnitType(u.type)) continue;
         const d = dist(unit, u);
         const keepAway = getUnitSize(u) + usz + 50;
         if (d < keepAway && d > 0) {
@@ -31726,7 +32011,7 @@ function steerUnit(unit, dt) {
   } else if (behavior === 'sniper') {
     for (const u of combatUnits) {
       if (u.owner === unit.owner || u.hp <= 0) continue;
-      if (sniperIgnoresUnitType(u.type)) continue;
+      if (unit.type === 'sniper' && sniperIgnoresUnitType(u.type)) continue;
       const d = dist(unit, u);
       const keepAway = getUnitSize(u) + usz + 50;
       if (d < keepAway && d > 0) {
@@ -36107,10 +36392,15 @@ function updateUI() {
   }
   const roundLabel = document.getElementById('round-label');
   const roundEl = document.getElementById('round-display');
-  if (gameMode === 'survival' || gameMode === 'survival-pvp' || isSandboxMode()) {
+  if (gameMode === 'survival' || gameMode === 'survival-pvp' || isSandboxMode() || isPlayVsAiMode()) {
     roundLabel.textContent = 'Mode';
-    roundEl.textContent = isSurvivalPvp() ? 'Online PvP' : (isSandboxMode() ? 'Sandbox' : survivalDifficultyModeLabel());
-  } else if (isSimulatorMode()) {
+    roundEl.textContent = isSurvivalPvp()
+      ? 'Online PvP'
+      : (isSandboxMode() ? 'Sandbox' : (isPlayVsAiMode() ? 'Play vs AI' : survivalDifficultyModeLabel()));
+  } else if (isAiTrainingMode()) {
+    roundLabel.textContent = 'Train';
+    roundEl.textContent = `Game ${aiTrainingStats.matches + (phase === 'combat' ? 1 : 0)}`;
+  } else if (gameMode === 'simulator') {
     roundLabel.textContent = 'Teams';
     roundEl.textContent = 'Red vs Blue';
   } else {
@@ -36134,19 +36424,25 @@ function updateUI() {
     ? `⚔️ Live Battle (${survivalDifficultyModeLabel()})`
     : gameMode === 'survival-pvp'
       ? '⚔️ Online PvP'
-      : isSimulatorMode()
-        ? '🤖 Simulator'
+      : isAiTrainingMode()
+        ? '🧠 AI Training'
+        : isPlayVsAiMode()
+          ? '⚔️ Play vs AI'
+          : (gameMode === 'simulator')
+            ? '🤖 Simulator'
     : (phaseNames[phase] || phase);
 
   const speedPill = document.getElementById('survival-speed-pill');
   if (speedPill) {
     const showSpeed = isSurvivalLive() && phase === 'combat';
     speedPill.classList.toggle('hidden', !showSpeed);
+    syncSurvivalSpeedButtons();
     speedPill.querySelectorAll('.surv-speed-btn').forEach((btn) => {
       btn.disabled = isSurvivalPvp();
       btn.title = isSurvivalPvp() ? 'Speed is fixed in online PvP lockstep.' : '';
     });
   }
+  syncAiTrainingHud();
   syncSandboxSidePill();
   syncSandboxMoneyBtn();
 
@@ -36961,6 +37257,134 @@ document.addEventListener('keydown', (e) => {
   cycleSandboxControl();
 });
 
+function clearAiTrainingRestart() {
+  if (aiTrainingRestartTimer) {
+    clearTimeout(aiTrainingRestartTimer);
+    aiTrainingRestartTimer = null;
+  }
+}
+
+function scheduleAiTrainingRestart() {
+  clearAiTrainingRestart();
+  const keepSpeed = survivalSpeed;
+  aiTrainingRestartTimer = setTimeout(() => {
+    aiTrainingRestartTimer = null;
+    if (!isAiTrainingMode() || aiTrainingStopRequested) {
+      aiTrainingStopRequested = false;
+      if (isAiTrainingMode()) stopAiTrainingToMenu();
+      return;
+    }
+    try {
+      setupSimulator();
+      // Training-flavored labels
+      players[0].name = 'Red Trainee';
+      players[1].name = 'Blue Trainee';
+      addLog('🧠 AI Training — next match. Both CPUs learn from every result.');
+      liveMenuPaused = false;
+      setSurvivalSpeed(keepSpeed);
+      syncSurvivalSpeedButtons();
+      syncAiTrainingHud();
+      updateUI();
+    } catch (err) {
+      console.error('AI Training restart failed', err);
+      stopAiTrainingToMenu();
+    }
+  }, 450);
+}
+
+function stopAiTrainingToMenu() {
+  clearAiTrainingRestart();
+  aiTrainingStopRequested = false;
+  hideBanner();
+  gameMode = null;
+  resetGame();
+  syncAiTrainingHud();
+  document.getElementById('menu-screen').classList.remove('hidden');
+  addLog('🧠 AI Training stopped. Brain saved in this browser.');
+}
+
+function requestStopAiTraining() {
+  if (!isAiTrainingMode()) return;
+  aiTrainingStopRequested = true;
+  addLog('🧠 Stop requested — finishing current match…');
+  // If already between matches / gameover, exit immediately.
+  if (phase === 'gameover' || phase === 'menu') {
+    stopAiTrainingToMenu();
+  }
+}
+
+function startAiTraining() {
+  try {
+    if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
+    pvpOnline = null;
+    clearAiTrainingRestart();
+    aiTrainingStopRequested = false;
+    aiTrainingStats = { matches: 0, wins0: 0, wins1: 0, draws: 0, lastResult: '' };
+    gameMode = 'ai-training';
+    survivalSpeed = 4;
+    round = 1;
+    resetGame();
+    survivalDifficulty = 'medium';
+    survivalAiLoadMemory();
+    setupSimulator();
+    players[0].name = 'Red Trainee';
+    players[1].name = 'Blue Trainee';
+    document.getElementById('menu-screen').classList.add('hidden');
+    setSurvivalSpeed(4);
+    syncSurvivalSpeedButtons();
+    syncAiTrainingHud();
+    showBanner(
+      '🧠 AI Training',
+      'CPU vs CPU — starts fully random, then learns from every match.\nSpeeds: 1× / 4× / 8× / 16×. Loops until you hit Stop.\nBrain is saved in this browser.',
+      'Start Training'
+    );
+    bannerAction = () => {
+      liveMenuPaused = false;
+      syncAiTrainingHud();
+    };
+  } catch (err) {
+    console.error('Failed to start AI Training', err);
+    document.getElementById('menu-screen').classList.remove('hidden');
+    addLog('Could not start AI Training — try refreshing the page.');
+  }
+}
+
+function startPlayVsAi() {
+  try {
+    if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
+    pvpOnline = null;
+    gameMode = 'play-vs-ai';
+    survivalSpeed = 1;
+    setSurvivalSpeed(1);
+    round = 1;
+    survivalDifficulty = 'medium';
+    resetGame();
+    survivalDifficulty = 'medium';
+    survivalAiLoadMemory();
+    setupSurvivalLive();
+    if (survivalAiBrain) {
+      survivalAiBrain.strategyPath = learnBestPath();
+      learnNoteChoice(survivalAiBrain, 'path', survivalAiBrain.strategyPath);
+    }
+    players[1].name = 'Trained AI';
+    players[1].isAI = true;
+    document.getElementById('menu-screen').classList.add('hidden');
+    syncSurvivalSpeedButtons();
+    const mem = survivalAiLoadMemory();
+    const explore = Math.round(learnExploreRate() * 100);
+    showBanner(
+      '⚔️ Play vs AI',
+      `Fight the self-learning CPU.\nIt has ${mem.matches || 0} training matches stored (${explore}% still exploring).\nTrain it more in AI Training mode to make it sharper.`,
+      'Fight!'
+    );
+    bannerAction = () => { liveMenuPaused = false; };
+  } catch (err) {
+    console.error('Failed to start Play vs AI', err);
+    document.getElementById('menu-screen').classList.remove('hidden');
+    addLog('Could not start Play vs AI — try refreshing the page.');
+  }
+}
+
 function startSimulator() {
   try {
     if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
@@ -36973,6 +37397,7 @@ function startSimulator() {
     survivalDifficulty = 'medium';
     setupSimulator();
     document.getElementById('menu-screen').classList.add('hidden');
+    syncSurvivalSpeedButtons();
     showBanner(
       '🤖 Simulator',
       'Red CPU vs Blue CPU — both sides use the Live Battle AI.\nUse 1× / 2× / 4× speed controls to fast-forward.',
@@ -36989,6 +37414,20 @@ function startSimulator() {
 document.getElementById('btn-simulator').addEventListener('click', () => {
   closeMenuModesPop();
   startSimulator();
+});
+
+document.getElementById('btn-ai-training')?.addEventListener('click', () => {
+  closeMenuModesPop();
+  startAiTraining();
+});
+
+document.getElementById('btn-play-vs-ai')?.addEventListener('click', () => {
+  closeMenuModesPop();
+  startPlayVsAi();
+});
+
+document.getElementById('btn-stop-ai-train')?.addEventListener('click', () => {
+  requestStopAiTraining();
 });
 
 function startSandboxLive() {
@@ -37107,6 +37546,8 @@ window.addEventListener('keyup', (e) => {
 });
 
 function resetGame() {
+  clearAiTrainingRestart();
+  syncAiTrainingHud();
   if (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive()) LIVE_ARMY.onBattleEnd();
   round = 1;
   phase = 'menu';
@@ -37204,14 +37645,19 @@ function renderFrame(time) {
   const rawDt = Math.min((time - lastTime) / 1000, 0.05);
   lastTime = time;
   animFrame++;
+  const steps = survivalSimStepCount();
   let dt = survivalSimDt(rawDt);
 
   if (phase === 'combat') {
     if (isLocalSurvival()) {
-    refreshSandboxCoins();
-    updateSurvivalLive(dt);
-    dt = survivalSimDt(rawDt);
-      updateCombat(dt);
+      for (let step = 0; step < steps; step++) {
+        if (phase !== 'combat') break;
+        refreshSandboxCoins();
+        dt = survivalSimDt(rawDt);
+        updateSurvivalLive(dt);
+        dt = survivalSimDt(rawDt);
+        updateCombat(dt);
+      }
     } else if (isSurvivalPvp()) {
       // Host-authoritative sim + client prediction/correction.
       pvpTick(rawDt);
