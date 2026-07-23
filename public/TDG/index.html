@@ -6948,6 +6948,7 @@
             <button class="banner-btn" id="btn-free2p" type="button">⚔️ FREE 2P</button>
             <button class="banner-btn" id="btn-simulator" type="button">🤖 Simulator</button>
             <button class="banner-btn" id="btn-ai-training" type="button">🧠 AI Training</button>
+            <button class="banner-btn" id="btn-ai-vs-cpu" type="button">🥊 AI vs CPU Training</button>
             <button class="banner-btn" id="btn-play-vs-ai" type="button">⚔️ Play vs AI</button>
           </div>
           <div class="menu-icon-row">
@@ -9616,6 +9617,23 @@ function normalizeSurvivalDifficulty(value) {
   return 'easy';
 }
 
+/** HQ gold / cycle for learning AI — same baseline as the human player (+25). */
+const LEARNING_AI_HQ_INCOME = SURVIVAL_BASE_INCOME; // 25
+/** Sparring CPU HQ buff in AI vs CPU Training. */
+const SPARRING_CPU_HQ_INCOME = 50;
+
+function survivalAiHqFlatForPid(pid) {
+  // AI Training (self-play) + Play vs AI: fair +25 like the player.
+  if (isAiSelfPlayMode() || isPlayVsAiMode()) return LEARNING_AI_HQ_INCOME;
+  // AI vs CPU Training: learner +25, buffed CPU +50.
+  if (isAiVsCpuTrainingMode()) {
+    return isLearningAiPid(pid) ? LEARNING_AI_HQ_INCOME : SPARRING_CPU_HQ_INCOME;
+  }
+  // Local Game / Simulator: difficulty edge (+30 / +40 / +100).
+  return SURVIVAL_AI_BASE_INCOME_EDGE[normalizeSurvivalDifficulty(survivalDifficulty)]
+    ?? SURVIVAL_AI_BASE_INCOME_EDGE.easy;
+}
+
 function survivalAiBaseIncomeBonus(pid) {
   const isCpu = isCpuPlayer(pid);
   if (!isCpu) return 0;
@@ -9625,8 +9643,7 @@ function survivalAiBaseIncomeBonus(pid) {
   const incomeUpgrades = eco
     ? (eco.base.income || 0)
     : Math.max(0, incomeUpgradeLevel(pid, 'base') - 1);
-  const edge = SURVIVAL_AI_BASE_INCOME_EDGE[normalizeSurvivalDifficulty(survivalDifficulty)]
-    ?? SURVIVAL_AI_BASE_INCOME_EDGE.easy;
+  const edge = survivalAiHqFlatForPid(pid);
   return edge + incomeUpgrades * SURVIVAL_AI_BASE_INCOME_EDGE_PER_UPGRADE;
 }
 // If the player does nothing meaningful in the opening, the CPU blindsides them
@@ -9737,8 +9754,17 @@ const PVP_HOST_DELAY_PAD_MS = 20;
 let pvpLock = null; // { frame, acc, lastSyncAt, seenActionIds, recentAids, pendingLocal, delayedHost, rttEwma, lastHostSentAt }
 let pvpLocalActionSeq = 0;
 
-function isAiTrainingMode() {
+function isAiSelfPlayMode() {
   return gameMode === 'ai-training';
+}
+
+function isAiVsCpuTrainingMode() {
+  return gameMode === 'ai-vs-cpu';
+}
+
+/** Any looping training mode (self-play or AI vs buffed CPU). */
+function isAiTrainingMode() {
+  return gameMode === 'ai-training' || gameMode === 'ai-vs-cpu';
 }
 
 function isPlayVsAiMode() {
@@ -9746,7 +9772,15 @@ function isPlayVsAiMode() {
 }
 
 function isCpuVsCpuMode() {
-  return gameMode === 'simulator' || gameMode === 'ai-training';
+  return gameMode === 'simulator' || gameMode === 'ai-training' || gameMode === 'ai-vs-cpu';
+}
+
+/** Learning AI side in training / Play vs AI (writes to memory). */
+function isLearningAiPid(pid) {
+  if (isAiVsCpuTrainingMode()) return pid === 0;
+  if (isAiSelfPlayMode()) return true;
+  if (isPlayVsAiMode()) return pid === 1;
+  return false;
 }
 
 function isHumanVsAiMode() {
@@ -9755,12 +9789,12 @@ function isHumanVsAiMode() {
 
 function isSurvivalLive() {
   return gameMode === 'survival' || gameMode === 'survival-pvp' || gameMode === 'simulator'
-    || gameMode === 'sandbox' || gameMode === 'ai-training' || gameMode === 'play-vs-ai';
+    || gameMode === 'sandbox' || gameMode === 'ai-training' || gameMode === 'ai-vs-cpu' || gameMode === 'play-vs-ai';
 }
 
 function isLocalSurvival() {
   return gameMode === 'survival' || gameMode === 'simulator' || gameMode === 'sandbox'
-    || gameMode === 'ai-training' || gameMode === 'play-vs-ai';
+    || gameMode === 'ai-training' || gameMode === 'ai-vs-cpu' || gameMode === 'play-vs-ai';
 }
 
 function isSandboxMode() {
@@ -9927,7 +9961,7 @@ function syncSandboxSidePill() {
 
 function isSimulatorMode() {
   // Dual-CPU modes share simulator plumbing (brains, timers, no human build).
-  return gameMode === 'simulator' || gameMode === 'ai-training';
+  return gameMode === 'simulator' || gameMode === 'ai-training' || gameMode === 'ai-vs-cpu';
 }
 
 function aiSelf() { return survivalAiActivePid; }
@@ -10674,7 +10708,8 @@ function survivalIncomeAmount(pid, type) {
     if (type === 'farm' || type === 'mint') {
       let amt = LIVE_ARMY.harvestAmount(players[pid], type);
       if (amt <= 0) return 0;
-      if (pid === 1 && isHumanVsAiMode()) amt *= survivalAiIncomeMult();
+      // Play vs AI stays fair — no farm/mint income multiplier on the AI.
+      if (pid === 1 && gameMode === 'survival') amt *= survivalAiIncomeMult();
       return amt;
     }
   }
@@ -10683,7 +10718,7 @@ function survivalIncomeAmount(pid, type) {
   const isCpu = isCpuPlayer(pid);
   if (type === 'base' && isCpu) return survivalAiBaseIncomeBonus(pid);
   let amt = survivalIncomeAmountAtLevel(type, lvl);
-  if (pid === 1 && isHumanVsAiMode() && type !== 'base') {
+  if (pid === 1 && gameMode === 'survival' && type !== 'base') {
     amt *= survivalAiIncomeMult();
   }
   return amt;
@@ -14638,12 +14673,12 @@ function learnBucket(map, key) {
   return map[key];
 }
 
-/** Exploration → exploitation: starts fully random, slowly trusts memory. */
+/** Exploration → exploitation: stays curious longer so it tries more units/towers. */
 function learnExploreRate() {
   const mem = survivalAiLoadMemory();
   const n = mem.matches || 0;
-  // ~100% random at 0 games → ~15% random after ~200 matches.
-  return Math.max(0.12, 1 / (1 + n * 0.02));
+  // ~100% random at 0 → floors at 40% even after hundreds of matches.
+  return Math.max(0.40, 1 / (1 + n * 0.008));
 }
 
 function learnWeight(rec) {
@@ -14653,10 +14688,21 @@ function learnWeight(rec) {
   return 0.25 + rate * 1.75 + Math.min(0.4, rec.a * 0.02);
 }
 
+/** Prefer options the brain has barely tried — drives trying “all kinds” of units/towers. */
+function learnCuriosity(rec) {
+  const a = rec?.a || 0;
+  if (a <= 0) return 3.2;
+  if (a < 3) return 2.4;
+  if (a < 8) return 1.55;
+  if (a < 15) return 1.15;
+  return 1;
+}
+
 function learnWeightedPick(keys, weightFn) {
   const list = keys.filter((k) => k != null);
   if (!list.length) return null;
-  if (Math.random() < learnExploreRate()) {
+  const explore = Math.random() < learnExploreRate();
+  if (explore && Math.random() < 0.45) {
     return list[Math.floor(Math.random() * list.length)];
   }
   let total = 0;
@@ -14735,11 +14781,16 @@ function learnRecordMatchEnd() {
   }
   aiTrainingStats.matches += 1;
 
-  const brains = isCpuVsCpuMode()
-    ? (simulatorAiBrains || [])
-    : [null, survivalAiBrain];
-  for (let pid = 0; pid < 2; pid++) {
-    learnCreditBrain(brains[pid], winner === pid);
+  if (isAiVsCpuTrainingMode()) {
+    // Only the learning AI (+25) writes memory — the buffed CPU is a sparring partner.
+    learnCreditBrain(simulatorAiBrains?.[0], winner === 0);
+  } else if (isCpuVsCpuMode()) {
+    const brains = simulatorAiBrains || [];
+    for (let pid = 0; pid < 2; pid++) {
+      learnCreditBrain(brains[pid], winner === pid);
+    }
+  } else {
+    learnCreditBrain(survivalAiBrain, winner === 1);
   }
   survivalAiSaveMemory();
   syncAiTrainingHud();
@@ -14803,8 +14854,11 @@ function syncAiTrainingHud() {
   if (!show) return;
   const mem = survivalAiLoadMemory();
   const explore = Math.round(learnExploreRate() * 100);
-  stats.textContent = `${aiTrainingStats.matches} games · R${aiTrainingStats.wins0} B${aiTrainingStats.wins1} · ${explore}% explore`;
-  stats.title = `Stored memory: ${mem.matches || 0} lifetime matches. Last: ${aiTrainingStats.lastResult || '—'}`;
+  const side = isAiVsCpuTrainingMode() ? `AI${aiTrainingStats.wins0} CPU${aiTrainingStats.wins1}` : `R${aiTrainingStats.wins0} B${aiTrainingStats.wins1}`;
+  stats.textContent = `${aiTrainingStats.matches} games · ${side} · ${explore}% explore`;
+  stats.title = isAiVsCpuTrainingMode()
+    ? `Learning AI +25 vs Buffed CPU +50. Memory: ${mem.matches || 0} matches. Last: ${aiTrainingStats.lastResult || '—'}`
+    : `Stored memory: ${mem.matches || 0} lifetime matches. Last: ${aiTrainingStats.lastResult || '—'}`;
 }
 
 function syncSurvivalSpeedButtons() {
@@ -15053,26 +15107,34 @@ function survivalAiScorePlan(planId, intel, ai, ctx, brain) {
   const arch = CPU_PLAN_ARCHETYPE[planId];
   let score = 0;
 
-  // Primary scoring: sum priority from every detected behavior this plan counters.
-  for (const b of survivalAiDetectBehaviors(intel, ctx)) {
-    if (b.plan === planId) score += b.score;
+  // Reaction-first: heavily weight plans that counter what the opponent is doing.
+  const behaviors = survivalAiDetectBehaviors(intel, ctx);
+  let reactionHits = 0;
+  for (const b of behaviors) {
+    if (b.plan === planId) {
+      score += b.score * 2.4;
+      reactionHits += 1;
+    }
   }
 
   if (score <= 0) {
     // Legacy fallback weights for plans with no active behavior match.
     switch (planId) {
       case CPU_PLAN.CANNON_PUSH: score = 12; break;
-      default: score = 0;
+      default: score = 4 + Math.random() * 6; // keep variety when nothing clear
     }
   }
 
   if (arch) score *= survivalAiArchetypeMultiplier(scenarioKey, arch);
 
   const planRec = survivalAiLoadMemory().plans[planId];
-  if (planRec && planRec.a >= 1) score *= learnWeight(planRec);
+  score *= learnWeight(planRec) * learnCuriosity(planRec);
 
   const pathBias = survivalAiPathProfile(brain).planBias;
-  if (pathBias && pathBias[planId]) score *= pathBias[planId];
+  if (pathBias && pathBias[planId]) {
+    // Soften doctrine bias when a clear reaction is available.
+    score *= reactionHits > 0 ? (0.55 + 0.45 * pathBias[planId]) : pathBias[planId];
+  }
 
   if (!brain.lastStrikeSuccess && brain.plan?.id === planId && (brain.consecutiveFailures || 0) >= 1) {
     score *= 0.25;
@@ -15098,15 +15160,28 @@ function survivalAiPickPlan(intel, ai, ctx, brain) {
   brain.detectedBehaviors = behaviors;
 
   const candidates = Object.values(CPU_PLAN);
-  let best = null;
-  let bestScore = -1;
+  const scored = [];
   for (const planId of candidates) {
     const s = survivalAiScorePlan(planId, intel, ai, ctx, brain);
-    if (s > bestScore) { bestScore = s; best = planId; }
+    scored.push({ planId, s });
   }
+  scored.sort((a, b) => b.s - a.s);
+  let best = scored[0]?.planId || null;
+  let bestScore = scored[0]?.s ?? -1;
 
-  if (behaviors.length && behaviors[0].plan && bestScore >= 40) {
+  // Strong reaction: take the counter plan.
+  if (behaviors.length && behaviors[0].plan && behaviors[0].score >= 28) {
     best = behaviors[0].plan;
+    bestScore = Math.max(bestScore, behaviors[0].score * 2.4);
+  } else if (scored.length && Math.random() < learnExploreRate()) {
+    // Try more plans — weighted among the top few, not always #1.
+    const top = scored.slice(0, Math.min(5, scored.length)).filter((x) => x.s > 0);
+    if (top.length) {
+      best = learnWeightedPick(top.map((x) => x.planId), (id) => {
+        const row = top.find((x) => x.planId === id);
+        return (row?.s || 1) * learnCuriosity(survivalAiLoadMemory().plans[id]);
+      }) || best;
+    }
   }
 
   if (!best || bestScore < 8) {
@@ -15207,9 +15282,23 @@ function survivalAiComposeStrike(planId, intel, strikeSize, ai, brain) {
       fill('swordsman', strikeSize);
   }
 
-  const fallback = ['striker', 'swordsman', 'tank', 'speed', 'sniper', 'bowman', 'yeti', 'goblin', 'farmer'];
+  const fallback = ['striker', 'swordsman', 'tank', 'speed', 'sniper', 'bowman', 'yeti', 'goblin', 'farmer', 'peka', 'bloop'];
   for (const t of fallback) {
     while (order.length < strikeSize && has(t)) order.push(t);
+  }
+
+  // Curiosity: swap some slots for under-tried unlocked units so it experiments mid-strike.
+  if (order.length && Math.random() < learnExploreRate()) {
+    const mem = survivalAiLoadMemory();
+    const pool = SURVIVAL_AI_PROBE_UNITS.filter(has);
+    if (pool.length) {
+      const swaps = Math.max(1, Math.floor(order.length * 0.35));
+      for (let i = 0; i < swaps; i++) {
+        const idx = Math.floor(Math.random() * order.length);
+        const pick = learnWeightedPick(pool, (t) => learnCuriosity(mem.units[t]) * learnWeight(mem.units[t]));
+        if (pick) order[idx] = pick;
+      }
+    }
   }
 
   return order.slice(0, strikeSize).reverse();
@@ -15250,6 +15339,19 @@ function survivalAiPrepUnlocks(ai, planId, intel) {
       if (buyBarracksUpgrade(aiSelf(), 'unlock', ut)) return true;
     }
   }
+  // Curiosity unlocks: try units outside the plan so the brain samples the full roster.
+  if (Math.random() < learnExploreRate() * 0.85) {
+    const mem = survivalAiLoadMemory();
+    const locked = SURVIVAL_AI_PROBE_UNITS.filter(
+      (ut) => isUnitEnabled(ut)
+        && !LIVE_ARMY.unitUnlocked(ai, ut)
+        && ai.coins >= LIVE_ARMY.unitUnlockCost(ut),
+    );
+    if (locked.length) {
+      const pick = learnWeightedPick(locked, (ut) => learnCuriosity(mem.units[ut]) * learnWeight(mem.units[ut]));
+      if (pick && buyBarracksUpgrade(aiSelf(), 'unlock', pick)) return true;
+    }
+  }
   return false;
 }
 
@@ -15261,17 +15363,17 @@ function survivalAiPrepTowerUnlock(ai, intel, planId) {
     (tt) => !LIVE_ARMY.towerUnlocked(ai, tt) && ai.coins >= LIVE_ARMY.towerUnlockCost(tt),
   );
   if (!locked.length) return false;
-  let pick = locked[0];
-  let best = -1;
-  for (const tt of locked) {
-    let w = planTowers.includes(tt) ? 40 : 10;
+  const mem = survivalAiLoadMemory();
+  const pick = learnWeightedPick(locked, (tt) => {
+    let w = planTowers.includes(tt) ? 40 : 12;
     if (tt === 'turret' && intel.dragons >= 0.5) w += 50;
     if (tt === 'spread' && (intel.wolves + intel.goblins + intel.bloops) >= 1) w += 35;
     if (tt === 'laser' && (intel.snipers >= 0.5 || intel.archers >= 0.5 || intel.yetis >= 0.5)) w += 28;
     if (tt === 'catapult' && (intel.wolves >= 1 || intel.dragons >= 0.5 || intel.elephants >= 1)) w += 25;
-    if (w > best) { best = w; pick = tt; }
-  }
-  return buyEngineersUpgrade(aiSelf(), 'unlock', pick);
+    if (tt === 'archer' && (intel.knights + intel.swordsmen + intel.farmers) >= 1) w += 22;
+    return w * learnCuriosity(mem.towers[tt]) * learnWeight(mem.towers[tt]);
+  });
+  return pick ? buyEngineersUpgrade(aiSelf(), 'unlock', pick) : false;
 }
 
 function survivalAiPickDefenseTower(ai, intel) {
@@ -15294,8 +15396,10 @@ function survivalAiPickDefenseTower(ai, intel) {
   const mem = survivalAiLoadMemory();
   const affordable = unlocked.filter((tt) => ai.coins >= towerCost(ai, tt));
   if (!affordable.length) return null;
-  // Explore randomly early; otherwise bias toward towers that helped win matches.
-  const pick = learnWeightedPick(affordable, (tt) => (weights[tt] || 1) * learnWeight(mem.towers[tt]));
+  // Reaction weights × win memory × curiosity (under-tried towers get boosted).
+  const pick = learnWeightedPick(affordable, (tt) => (
+    (weights[tt] || 1) * learnWeight(mem.towers[tt]) * learnCuriosity(mem.towers[tt])
+  ));
   return pick;
 }
 
@@ -17356,9 +17460,12 @@ function setupSimulator() {
   toggleMissilePanel(false);
   toggleSpreadPanel(false);
   toggleCommanderPanel(false);
-  if (isAiTrainingMode()) {
-    addLog('🧠 AI Training — Red vs Blue trainees (self-learning)');
-    addLog('Starts random, learns from wins/losses. Use 1×/4×/8×/16× — Stop when done.');
+  if (isAiVsCpuTrainingMode()) {
+    addLog('🥊 AI vs CPU Training — Learning AI (+25 HQ) vs Buffed CPU (+50 HQ)');
+    addLog('AI reacts, tries units/towers, and learns. CPU has a big income edge. Stop when done.');
+  } else if (isAiSelfPlayMode()) {
+    addLog('🧠 AI Training — Red vs Blue trainees (both +25 HQ, self-learning)');
+    addLog('Starts curious, learns from wins/losses. Use 1×/4×/8×/16× — Stop when done.');
   } else {
     addLog('🤖 Simulator — Red CPU vs Blue CPU');
     addLog('Watch both sides build, tech, and strike. Use speed controls to fast-forward.');
@@ -18806,7 +18913,7 @@ const P1_COLOR = { main: '#4ECDC4', light: '#7EDDD6', dark: '#2A9D8F' };
 const P2_COLOR = { main: '#FF8E53', light: '#FFB088', dark: '#E76F51' };
 
 // ─── Game State ──────────────────────────────────────────────────────────────
-let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'simulator' | 'ai-training' | 'play-vs-ai' | 'sandbox' | 'free' | 'free2p'
+let gameMode = null; // '2p' | 'survival' | 'survival-pvp' | 'simulator' | 'ai-training' | 'ai-vs-cpu' | 'play-vs-ai' | 'sandbox' | 'free' | 'free2p'
 let phase = 'menu'; // menu | prep | combat | summary | gameover | free | free2p
 let round = 1;
 let activePlayer = 0; // 0 = P1, 1 = P2/AI
@@ -36398,7 +36505,7 @@ function updateUI() {
       ? 'Online PvP'
       : (isSandboxMode() ? 'Sandbox' : (isPlayVsAiMode() ? 'Play vs AI' : survivalDifficultyModeLabel()));
   } else if (isAiTrainingMode()) {
-    roundLabel.textContent = 'Train';
+    roundLabel.textContent = isAiVsCpuTrainingMode() ? 'AI↔CPU' : 'Train';
     roundEl.textContent = `Game ${aiTrainingStats.matches + (phase === 'combat' ? 1 : 0)}`;
   } else if (gameMode === 'simulator') {
     roundLabel.textContent = 'Teams';
@@ -36424,8 +36531,10 @@ function updateUI() {
     ? `⚔️ Live Battle (${survivalDifficultyModeLabel()})`
     : gameMode === 'survival-pvp'
       ? '⚔️ Online PvP'
-      : isAiTrainingMode()
-        ? '🧠 AI Training'
+      : isAiVsCpuTrainingMode()
+        ? '🥊 AI vs CPU'
+        : isAiSelfPlayMode()
+          ? '🧠 AI Training'
         : isPlayVsAiMode()
           ? '⚔️ Play vs AI'
           : (gameMode === 'simulator')
@@ -37276,10 +37385,15 @@ function scheduleAiTrainingRestart() {
     }
     try {
       setupSimulator();
-      // Training-flavored labels
-      players[0].name = 'Red Trainee';
-      players[1].name = 'Blue Trainee';
-      addLog('🧠 AI Training — next match. Both CPUs learn from every result.');
+      if (isAiVsCpuTrainingMode()) {
+        players[0].name = 'Learning AI';
+        players[1].name = 'Buffed CPU';
+        addLog('🥊 Next match — Learning AI +25 vs Buffed CPU +50.');
+      } else {
+        players[0].name = 'Red Trainee';
+        players[1].name = 'Blue Trainee';
+        addLog('🧠 AI Training — next match. Both CPUs learn from every result.');
+      }
       liveMenuPaused = false;
       setSurvivalSpeed(keepSpeed);
       syncSurvivalSpeedButtons();
@@ -37335,7 +37449,7 @@ function startAiTraining() {
     syncAiTrainingHud();
     showBanner(
       '🧠 AI Training',
-      'CPU vs CPU — starts fully random, then learns from every match.\nSpeeds: 1× / 4× / 8× / 16×. Loops until you hit Stop.\nBrain is saved in this browser.',
+      'Self-play — both sides at +25 HQ (same as a player).\nTries many units/towers, reacts to the opponent, learns from wins.\nSpeeds: 1× / 4× / 8× / 16×. Stop anytime.',
       'Start Training'
     );
     bannerAction = () => {
@@ -37346,6 +37460,42 @@ function startAiTraining() {
     console.error('Failed to start AI Training', err);
     document.getElementById('menu-screen').classList.remove('hidden');
     addLog('Could not start AI Training — try refreshing the page.');
+  }
+}
+
+function startAiVsCpuTraining() {
+  try {
+    if (window.TDG_PVP?.cleanup) window.TDG_PVP.cleanup();
+    pvpOnline = null;
+    clearAiTrainingRestart();
+    aiTrainingStopRequested = false;
+    aiTrainingStats = { matches: 0, wins0: 0, wins1: 0, draws: 0, lastResult: '' };
+    gameMode = 'ai-vs-cpu';
+    survivalSpeed = 4;
+    round = 1;
+    resetGame();
+    survivalDifficulty = 'medium';
+    survivalAiLoadMemory();
+    setupSimulator();
+    players[0].name = 'Learning AI';
+    players[1].name = 'Buffed CPU';
+    document.getElementById('menu-screen').classList.add('hidden');
+    setSurvivalSpeed(4);
+    syncSurvivalSpeedButtons();
+    syncAiTrainingHud();
+    showBanner(
+      '🥊 AI vs CPU Training',
+      'Learning AI at +25 HQ vs Buffed CPU at +50 HQ.\nAI must outplay a richer opponent — reacts, experiments, and saves what works.\nSpeeds: 1× / 4× / 8× / 16×. Stop anytime.',
+      'Start Training'
+    );
+    bannerAction = () => {
+      liveMenuPaused = false;
+      syncAiTrainingHud();
+    };
+  } catch (err) {
+    console.error('Failed to start AI vs CPU Training', err);
+    document.getElementById('menu-screen').classList.remove('hidden');
+    addLog('Could not start AI vs CPU Training — try refreshing the page.');
   }
 }
 
@@ -37374,7 +37524,7 @@ function startPlayVsAi() {
     const explore = Math.round(learnExploreRate() * 100);
     showBanner(
       '⚔️ Play vs AI',
-      `Fight the self-learning CPU.\nIt has ${mem.matches || 0} training matches stored (${explore}% still exploring).\nTrain it more in AI Training mode to make it sharper.`,
+      `Fight the self-learning AI (+25 HQ, same as you).\nIt has ${mem.matches || 0} training matches stored (${explore}% still exploring).\nTrain it in AI Training / AI vs CPU to make it sharper.`,
       'Fight!'
     );
     bannerAction = () => { liveMenuPaused = false; };
@@ -37419,6 +37569,11 @@ document.getElementById('btn-simulator').addEventListener('click', () => {
 document.getElementById('btn-ai-training')?.addEventListener('click', () => {
   closeMenuModesPop();
   startAiTraining();
+});
+
+document.getElementById('btn-ai-vs-cpu')?.addEventListener('click', () => {
+  closeMenuModesPop();
+  startAiVsCpuTraining();
 });
 
 document.getElementById('btn-play-vs-ai')?.addEventListener('click', () => {
