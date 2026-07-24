@@ -17824,9 +17824,8 @@ function survivalAiRushSnipersAgainstDragon(ai, intel) {
   return true;
 }
 
-// Pivot hard into Wolves (or Snipers if Wolves aren't unlocked) when Elephants
-// push. Interrupts banking/prepare so the CPU dumps a pack instead of dying
-// while saving for an unrelated strike.
+// Pivot into Wolves/Snipers when Elephants push. Aborts a bank only if they
+// threaten home; otherwise spends surplus only so the war chest survives.
 function survivalAiMassCounterElephants(ai, brain) {
   const elephants = combatUnits.filter((u) =>
     u.owner === aiEnemy() && u.hp > 0 && u.type === 'tank'
@@ -17884,9 +17883,29 @@ function survivalAiMassCounterElephants(ai, brain) {
   const want = Math.min(14, elephants.length * perElephant + 1);
   if (liveCounters >= want) return false;
 
-  // Drop the current plan — Elephants at the door outrank a secret bank.
-  if (brain.phase === 'prepare' || brain.phase === 'surprise_bank'
-      || (brain.phase === 'strike' && (brain.strikeQueue?.length || 0) > 0)) {
+  const homeThreat = elephants.some((u) =>
+    dist(u, basePos(aiSelf())) <= AI_BASE_DEFENSE_RANGE
+    || survivalAiUnitNearAiTowers(u));
+  const banking = survivalAiIsBankingPhase(brain);
+
+  // Only cancel a bank when Elephants are actually at the door.
+  // Midfield elephants while banking → hold the wave chest and spawn at most 1–2 from surplus.
+  if (banking && !homeThreat) {
+    const slotFn = survivalAiIsRangedHunterType(counter)
+      ? (idx, pid) => getSniperFlankSlot(idx, pid)
+      : (idx, pid) => getBaseDefenseSlot(idx, pid);
+    let spawned = 0;
+    const maxSoft = Math.min(2, want - liveCounters);
+    for (let i = 0; i < maxSoft; i++) {
+      const cost = unitDef(counter, aiSelf()).cost;
+      if (!survivalAiCanSpendFromWarChest(ai, brain, cost, false)) break;
+      if (survivalAiTrySpawnUnitOfType(ai, counter, spawned === 0, slotFn)) spawned += 1;
+      else break;
+    }
+    return spawned > 0;
+  }
+
+  if (homeThreat && (banking || (brain.phase === 'strike' && (brain.strikeQueue?.length || 0) > 0))) {
     brain.plan = null;
     brain.strikeQueue = [];
     brain.strikeComposition = null;
@@ -17901,8 +17920,7 @@ function survivalAiMassCounterElephants(ai, brain) {
     ? (idx, pid) => getSniperFlankSlot(idx, pid)
     : (idx, pid) => getBaseDefenseSlot(idx, pid);
 
-  // Commander wall when the pack is big enough.
-  if (commanderUnlocked(ai) && deficit >= 3) {
+  if (commanderUnlocked(ai) && deficit >= 3 && homeThreat) {
     const placed = survivalAiCommanderBatchAtBase(
       ai, counter, Math.min(deficit, commanderCap(ai)),
     );
@@ -17912,11 +17930,14 @@ function survivalAiMassCounterElephants(ai, brain) {
     }
   }
 
-  // Otherwise dump as many as we can this think-tick.
-  const maxSpawns = Math.min(deficit, elephants.length >= 3 ? 5 : elephants.length >= 2 ? 4 : 3);
+  const maxSpawns = Math.min(deficit, homeThreat
+    ? (elephants.length >= 3 ? 5 : elephants.length >= 2 ? 4 : 3)
+    : 2);
   let spawned = 0;
   for (let i = 0; i < maxSpawns; i++) {
-    if (ai.coins < unitDef(counter, aiSelf()).cost) break;
+    const cost = unitDef(counter, aiSelf()).cost;
+    if (banking && !survivalAiCanSpendFromWarChest(ai, brain, cost, homeThreat)) break;
+    if (ai.coins < cost) break;
     if (survivalAiTrySpawnUnitOfType(ai, counter, spawned === 0, slotFn)) spawned += 1;
     else break;
   }
@@ -18006,8 +18027,14 @@ function survivalAiSurpriseReadyToCommit(ai, brain) {
   const banked = ai.coins >= brain.surpriseBankTarget;
   const waited = combatTime >= brain.surpriseReadyAt;
   if (!banked || !waited) return false;
+  // Don't tip a half-ready surprise into an ongoing midfield stalemate.
+  if (survivalAiMutualAttritionFight() && ai.coins < brain.surpriseBankTarget * 1.2) {
+    brain.surpriseBankTarget = Math.round(brain.surpriseBankTarget * 1.1);
+    brain.surpriseReadyAt = combatTime + 8 + rand(0, 10);
+    return false;
+  }
   if (ai.coins >= brain.surpriseBankTarget * (1.45 + rand(0, 0.25))) return true;
-  const hesitate = Math.min(0.5, 0.1 + (brain.surpriseCount || 0) * 0.05);
+  const hesitate = Math.min(0.55, 0.14 + (brain.surpriseCount || 0) * 0.05);
   return rand() >= hesitate;
 }
 
@@ -18555,44 +18582,107 @@ function survivalAiMidGameEcoRaid(ai, brain, intel) {
   return false;
 }
 
+
+/** True while the CPU is intentionally banking for a coordinated strike. */
+function survivalAiIsBankingPhase(brain) {
+  return brain?.phase === 'prepare' || brain?.phase === 'surprise_bank';
+}
+
+/** Gold the CPU must keep for its planned wave — soft reacts must not empty this. */
+function survivalAiWarChestFloor(brain) {
+  if (!brain) return 0;
+  if (brain.phase === 'surprise_bank' && brain.surpriseBankTarget > 0) {
+    return Math.round(brain.surpriseBankTarget * 0.78);
+  }
+  if (brain.phase === 'prepare' && brain.plan?.bankTarget > 0) {
+    return Math.round(brain.plan.bankTarget * 0.72);
+  }
+  return 0;
+}
+
+/** Enemy troops at/near our HQ — must answer even while banking. */
+function survivalAiImminentBaseThreat() {
+  return Object.values(survivalAiNearBaseThreatsByType()).reduce((s, n) => s + n, 0);
+}
+
+/** Midfield brawl: both sides already have armies trading — dumping more gold is a stalemate trap. */
+function survivalAiMutualAttritionFight() {
+  const theirs = survivalAiLivePlayerUnits().total;
+  const ours = combatUnits.filter((u) => u.owner === aiSelf() && u.hp > 0).length;
+  return theirs >= 4 && ours >= 3;
+}
+
+/**
+ * May we spend `cost` on a reaction without wrecking the war chest?
+ * urgent=true (base/dragon) may dip deeper; soft midfield reacts may not.
+ */
+function survivalAiCanSpendFromWarChest(ai, brain, cost, urgent) {
+  const floor = survivalAiWarChestFloor(brain);
+  if (floor <= 0) return ai.coins >= cost;
+  const keep = urgent ? Math.round(floor * 0.40) : floor;
+  return ai.coins - cost >= keep;
+}
+
+function survivalAiTrySpawnPreservingChest(ai, brain, type, logDeploy, slotFn, urgent) {
+  const cost = unitDef(type, aiSelf()).cost;
+  if (!survivalAiCanSpendFromWarChest(ai, brain, cost, !!urgent)) return false;
+  return survivalAiTrySpawnUnitOfType(ai, type, logDeploy, slotFn);
+}
+
 function survivalAiEmergencyReact(ai, brain, intel, ctx) {
-  // Dragon on the field → snipers are the hard counter; interrupt any plan.
+  const banking = survivalAiIsBankingPhase(brain);
+  const nearBaseN = survivalAiImminentBaseThreat();
+  const imminent = nearBaseN > 0;
   const liveDragon = combatUnits.some((u) => u.owner === aiEnemy() && u.hp > 0 && u.type === 'peka');
+  const attrition = survivalAiMutualAttritionFight();
+
+  // Dragon on the field → snipers are the hard counter.
+  // Only abort a bank if the dragon is actually threatening (or we're not banking).
   if (liveDragon) {
-    if (brain.phase === 'prepare' || brain.phase === 'strike') {
-      brain.plan = null;
-      brain.strikeQueue = [];
-      brain.strikeComposition = null;
-      brain.phase = 'recover';
-      brain.phaseUntil = combatTime + 8;
+    const dragonNear = combatUnits.some((u) =>
+      u.owner === aiEnemy() && u.hp > 0 && u.type === 'peka'
+      && (survivalAiEnemyAdvancing(u) || dist(u, basePos(aiSelf())) <= AI_BASE_DEFENSE_RANGE * 1.35));
+    if (dragonNear || !banking) {
+      if (brain.phase === 'prepare' || brain.phase === 'strike') {
+        brain.plan = null;
+        brain.strikeQueue = [];
+        brain.strikeComposition = null;
+        brain.phase = 'recover';
+        brain.phaseUntil = combatTime + 8;
+      }
+      if (survivalAiRushSnipersAgainstDragon(ai, intel)) return true;
     }
-    if (survivalAiRushSnipersAgainstDragon(ai, intel)) return true;
   }
 
-  // Elephants pushing → mass Wolves (or Snipers if Wolves aren't unlocked).
+  // Elephants: full pivot only when they threaten home; otherwise soft surplus counters.
   if (survivalAiMassCounterElephants(ai, brain)) return true;
 
-  // TOP PRIORITY: enemy units at our base → wall it with counters hugging the
-  // base until we outnumber the attackers right there. Losing the base loses the
-  // game, so this outranks everything else.
-  if (survivalAiDefendBase(ai)) return true;
+  // TOP PRIORITY: troops at our base — always answer (war chest may dip).
+  if (imminent && survivalAiDefendBase(ai)) return true;
 
-  // A real attack is pressing in at midfield → slam down a Commander wall of
-  // counters at our base in one tick (rush-buying the Commander if we have to).
+  // While banking for a big wave: do NOT empty the chest answering midfield trades.
+  // Hold gold for one decisive strike instead of fueling a stalemate dump.
+  if (banking && !imminent) {
+    const floor = survivalAiWarChestFloor(brain);
+    const surplus = ai.coins - floor;
+    // Only tiny surplus reacts (1 unit) — never commander dumps / dragon / wolf bait.
+    if (!attrition && surplus >= 80) {
+      if (survivalAiDeployCounterGaps(ai, 1)) return true;
+    }
+    return false;
+  }
+
+  // Not banking (or base is threatened): normal reactive toolkit.
   if (survivalAiReactiveCommanderCounter(ai, intel, ctx)) return true;
-
-  // Lots of volume the Commander couldn't answer → unleash a Dragon of our own.
   if (survivalAiCounterVolumeWithDragon(ai)) return true;
-
-  // Knight under our towers → swarm it with Wolves to finish it off.
   if (survivalAiTryWolfKnightBait(ai, intel)) return true;
 
-  // Counter every active threat at once — cycle spend across all deficits.
   const threatCount = survivalAiAdvancingThreatCount();
-  const nearBaseN = Object.values(survivalAiNearBaseThreatsByType()).reduce((s, n) => s + n, 0);
   const activeThreats = threatCount + nearBaseN;
   if (activeThreats > 0 && brain.phase !== 'strike') {
-    const maxSpawns = activeThreats >= 5 ? 4 : activeThreats >= 3 ? 3 : 2;
+    // In attrition fights, answer thinner — save for the next coordinated push.
+    let maxSpawns = activeThreats >= 5 ? 4 : activeThreats >= 3 ? 3 : 2;
+    if (attrition) maxSpawns = Math.min(maxSpawns, 2);
     if (survivalAiDeployCounterGaps(ai, maxSpawns)) return true;
   }
 
@@ -18670,10 +18760,22 @@ function survivalAiTickPlanner(ai, brain) {
     const banked = ai.coins >= plan.bankTarget;
     const timedOut = combatTime >= plan.readyAt;
     const finisherNow = plan.id === CPU_PLAN.FINISHER && ctx.playerHpPct < 0.55;
-    const overflowing = ai.coins >= plan.bankTarget * (1.35 + rand(0, 0.35));
-    const impatient = timedOut && ai.coins >= plan.bankTarget * (0.65 + rand(0, 0.12));
+    const overflowing = ai.coins >= plan.bankTarget * (1.45 + rand(0, 0.35));
+    // Impatient commits caused all-in stalemates — require closer to full bank.
+    const impatient = timedOut && ai.coins >= plan.bankTarget * (0.88 + rand(0, 0.08));
+    const attrition = survivalAiMutualAttritionFight();
+    const enemyPushingHome = survivalAiImminentBaseThreat() >= 2;
 
-    if ((banked && timedOut) || overflowing || finisherNow || impatient) {
+    // Midfield meat-grinder: keep banking for a bigger wave instead of joining the dump.
+    if (attrition && !finisherNow && !enemyPushingHome && ai.coins < plan.bankTarget * 1.05) {
+      if (timedOut) {
+        plan.readyAt = combatTime + 10 + rand(0, 8);
+        plan.bankTarget = Math.round(plan.bankTarget * 1.08);
+      }
+      return false;
+    }
+
+    if ((banked && timedOut) || overflowing || finisherNow || (impatient && !attrition)) {
       brain.lastPlanId = plan.id;
       return survivalAiBeginStrike(brain, ai, intel);
     }
@@ -18682,7 +18784,7 @@ function survivalAiTickPlanner(ai, brain) {
 
   if (brain.phase === 'recover') {
     // Chain-strike only after a successful push while the player is still hurt.
-    if (brain.lastStrikeSuccess && ctx.playerHpPct < 0.7) {
+    if (brain.lastStrikeSuccess && ctx.playerHpPct < 0.7 && !survivalAiMutualAttritionFight()) {
       const followSurprise = brain.strategyPath === 'attack'
         ? rand() < 0.72
         : brain.strategyPath === 'farm'
@@ -18693,6 +18795,11 @@ function survivalAiTickPlanner(ai, brain) {
       } else {
         survivalAiBeginPrepare(brain, intel, ai, ctx);
       }
+      return true;
+    }
+    // Failed / contested fight → rebuild economy and bank a bigger wave.
+    if (!brain.lastStrikeSuccess && survivalAiMutualAttritionFight() && combatTime >= brain.phaseUntil) {
+      survivalAiBeginSurpriseBank(brain, ai, intel, ctx, { budgetBonus: 120 });
       return true;
     }
     if (survivalAiQuietEconomy(ai, ctx)) return true;
