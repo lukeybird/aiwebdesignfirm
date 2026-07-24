@@ -7164,7 +7164,7 @@
               <canvas id="ai-stats-reward-chart" width="860" height="220" aria-label="AI reward learning curve"></canvas>
             </div>
             <div class="ai-stats-reward-wrap">
-              <div class="ai-stats-chart-label" id="ai-stats-wr-label">Win rate &amp; record</div>
+              <div class="ai-stats-chart-label" id="ai-stats-wr-label">vs CPU win rate + match length</div>
               <canvas id="ai-stats-chart" width="860" height="260" aria-label="AI win rate chart"></canvas>
             </div>
             <p class="ai-stats-footnote" id="ai-stats-footnote"></p>
@@ -9596,7 +9596,7 @@ function aiStatsBucketHistory(entries, range) {
     const key = Math.floor(e.t / bucketMs) * bucketMs;
     let b = map.get(key);
     if (!b) {
-      b = { t: key, w: 0, l: 0, d: 0, eco: 0, atk: 0, def: 0, reward: 0, n: 0 };
+      b = { t: key, w: 0, l: 0, d: 0, eco: 0, atk: 0, def: 0, reward: 0, dur: 0, n: 0 };
       map.set(key, b);
     }
     if (e.result === 'win') b.w += 1;
@@ -9606,6 +9606,7 @@ function aiStatsBucketHistory(entries, range) {
     b.atk += e.atk || 0;
     b.def += e.def || 0;
     b.reward += e.reward || 0;
+    b.dur += e.dur || 0;
     b.n += 1;
   }
   return [...map.values()].sort((a, b) => a.t - b.t);
@@ -9622,9 +9623,26 @@ function aiStatsMatchSeries(entries) {
     eco: e.eco || 0,
     atk: e.atk || 0,
     def: e.def || 0,
+    dur: e.dur > 0 ? e.dur : 0,
     reward: e.reward != null ? e.reward : Math.round(((e.eco || 0) + (e.atk || 0) + (e.def || 0)) / 3),
     n: 1,
   }));
+}
+
+function aiStatsAvgDuration(entries) {
+  const list = (entries || []).filter((e) => e && e.dur > 0);
+  if (!list.length) return 0;
+  return list.reduce((a, e) => a + e.dur, 0) / list.length;
+}
+
+function aiStatsBuildView(entries, range) {
+  const byMatch = range === 'match';
+  if (byMatch) {
+    return { byMatch: true, view: aiStatsMatchSeries(entries.slice(-120)) };
+  }
+  const buckets = aiStatsBucketHistory(entries, range);
+  const maxBuckets = range === 'minute' ? 60 : range === 'hour' ? 48 : 30;
+  return { byMatch: false, view: buckets.slice(-maxBuckets) };
 }
 
 function aiStatsRollingWinPct(points, windowSize) {
@@ -9657,6 +9675,7 @@ function aiStatsFormatBucketLabel(t, range) {
 function aiStatsDrawChart(canvas, seriesList, opts) {
   if (!canvas) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const hasRight = seriesList.some((s) => s && s.axis === 'right');
   const cssW = Math.max(280, canvas.clientWidth || opts?.width || 860);
   const cssH = Math.max(160, opts?.height || canvas.clientHeight || 220);
   canvas.style.width = '100%';
@@ -9668,44 +9687,56 @@ function aiStatsDrawChart(canvas, seriesList, opts) {
   const W = cssW, H = cssH;
   ctx.clearRect(0, 0, W, H);
 
-  const pad = { l: 48, r: 16, t: 18, b: 42 };
+  const pad = { l: 48, r: hasRight ? 52 : 16, t: 18, b: 42 };
   const plotW = Math.max(10, W - pad.l - pad.r);
   const plotH = Math.max(10, H - pad.t - pad.b);
 
-  // Plot background
   ctx.fillStyle = 'rgba(8, 14, 22, 0.9)';
   ctx.fillRect(pad.l, pad.t, plotW, plotH);
   ctx.strokeStyle = 'rgba(255,255,255,0.1)';
   ctx.strokeRect(pad.l + 0.5, pad.t + 0.5, plotW - 1, plotH - 1);
 
-  const allY = [];
-  for (const s of seriesList) {
-    for (const v of (s.values || [])) if (Number.isFinite(v)) allY.push(v);
+  const leftSeries = seriesList.filter((s) => s && s.axis !== 'right');
+  const rightSeries = seriesList.filter((s) => s && s.axis === 'right');
+
+  function collectY(list) {
+    const allY = [];
+    for (const s of list) for (const v of (s.values || [])) if (Number.isFinite(v)) allY.push(v);
+    return allY;
   }
-  const hasData = allY.length > 0;
-  let yMin = opts?.yMin != null ? opts.yMin : (hasData ? Math.min(...allY) : 0);
-  let yMax = opts?.yMax != null ? opts.yMax : (hasData ? Math.max(...allY) : 1);
-  if (!(yMax > yMin)) yMax = yMin + 1;
-  // Keep flat series (e.g. all 0% WR) visually off the floor.
-  if (opts?.yMax == null && opts?.yMin == null) {
-    const span = yMax - yMin;
-    yMin = Math.max(0, yMin - span * 0.12);
-    yMax = yMax + Math.max(span * 0.18, 8);
-  } else if (opts?.liftZero && yMin === 0) {
-    // small headroom above max so tops aren't clipped; keep 0 near bottom with margin
-    yMax = Math.max(yMax * 1.12, yMax + 4);
+
+  function axisRange(allY, yMinOpt, yMaxOpt, liftZero) {
+    const hasData = allY.length > 0;
+    let yMin = yMinOpt != null ? yMinOpt : (hasData ? Math.min(...allY) : 0);
+    let yMax = yMaxOpt != null ? yMaxOpt : (hasData ? Math.max(...allY) : 1);
+    if (!(yMax > yMin)) yMax = yMin + 1;
+    if (yMaxOpt == null && yMinOpt == null) {
+      const span = yMax - yMin;
+      yMin = Math.max(0, yMin - span * 0.12);
+      yMax = yMax + Math.max(span * 0.18, 8);
+    } else if (liftZero && yMin === 0) {
+      yMax = Math.max(yMax * 1.12, yMax + 4);
+    }
+    return { yMin, yMax, hasData };
   }
+
+  const leftY = collectY(leftSeries);
+  const rightY = collectY(rightSeries);
+  const leftR = axisRange(leftY, opts?.yMin, opts?.yMax, opts?.liftZero);
+  const rightR = axisRange(rightY, opts?.yMinR, opts?.yMaxR, true);
+  const hasData = leftR.hasData || rightR.hasData;
 
   const n = Math.max(...seriesList.map((s) => (s.values || []).length), 1);
   const xAt = (i) => pad.l + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
-  const yAt = (v) => pad.t + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+  const yAtL = (v) => pad.t + plotH - ((v - leftR.yMin) / (leftR.yMax - leftR.yMin)) * plotH;
+  const yAtR = (v) => pad.t + plotH - ((v - rightR.yMin) / (rightR.yMax - rightR.yMin)) * plotH;
   const labels = opts?.xLabels || [];
 
-  // Grid + Y labels
+  // Grid + left Y
   ctx.font = '11px Rajdhani, sans-serif';
   for (let g = 0; g <= 4; g++) {
     const y = pad.t + (plotH * g) / 4;
-    const v = yMax - ((yMax - yMin) * g) / 4;
+    const v = leftR.yMax - ((leftR.yMax - leftR.yMin) * g) / 4;
     ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.beginPath();
     ctx.moveTo(pad.l, y);
@@ -9716,18 +9747,24 @@ function aiStatsDrawChart(canvas, seriesList, opts) {
     ctx.textBaseline = 'middle';
     const label = opts?.yFormat ? opts.yFormat(v) : String(Math.round(v));
     ctx.fillText(label, pad.l - 6, y);
+    if (hasRight) {
+      const vr = rightR.yMax - ((rightR.yMax - rightR.yMin) * g) / 4;
+      ctx.fillStyle = 'rgba(250, 204, 100, 0.7)';
+      ctx.textAlign = 'left';
+      const rlabel = opts?.yFormatR ? opts.yFormatR(vr) : String(Math.round(vr));
+      ctx.fillText(rlabel, pad.l + plotW + 6, y);
+    }
   }
 
-  // Bars first (behind lines)
-  for (const s of seriesList) {
-    if (!s.bars || !s.values?.length) continue;
+  function drawBars(s, yAt) {
+    if (!s.bars || !s.values?.length) return;
     const vals = s.values;
     const barW = Math.max(2, Math.min(18, (plotW / Math.max(n, 1)) * 0.55));
+    const y0 = yAt(0);
     for (let i = 0; i < vals.length; i++) {
       const v = vals[i];
       if (!Number.isFinite(v) || v === 0) continue;
       const x = xAt(i);
-      const y0 = yAt(0);
       const y1 = yAt(v);
       ctx.fillStyle = s.barColor || s.color;
       ctx.globalAlpha = 0.55;
@@ -9736,15 +9773,12 @@ function aiStatsDrawChart(canvas, seriesList, opts) {
     }
   }
 
-  // Lines + fills
-  for (const s of seriesList) {
-    if (s.bars || !s.values?.length) continue;
+  function drawLine(s, yAt, baseMin) {
+    if (s.bars || !s.values?.length) return;
     const vals = s.values;
-    // Area fill
     if (s.fill !== false) {
       ctx.beginPath();
-      let started = false;
-      let firstX = null, lastX = null;
+      let started = false, firstX = null, lastX = null;
       for (let i = 0; i < vals.length; i++) {
         const v = vals[i];
         if (!Number.isFinite(v)) { started = false; continue; }
@@ -9754,8 +9788,8 @@ function aiStatsDrawChart(canvas, seriesList, opts) {
         lastX = x;
       }
       if (firstX != null && lastX != null) {
-        ctx.lineTo(lastX, yAt(Math.max(0, yMin)));
-        ctx.lineTo(firstX, yAt(Math.max(0, yMin)));
+        ctx.lineTo(lastX, yAt(Math.max(0, baseMin)));
+        ctx.lineTo(firstX, yAt(Math.max(0, baseMin)));
         ctx.closePath();
         ctx.fillStyle = s.color;
         ctx.globalAlpha = 0.16;
@@ -9763,7 +9797,6 @@ function aiStatsDrawChart(canvas, seriesList, opts) {
         ctx.globalAlpha = 1;
       }
     }
-    // Stroke
     ctx.strokeStyle = s.color;
     ctx.lineWidth = s.width || 2.8;
     ctx.lineJoin = 'round';
@@ -9778,9 +9811,7 @@ function aiStatsDrawChart(canvas, seriesList, opts) {
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    // Points
-    const showDots = n <= 80;
-    if (showDots) {
+    if (n <= 80) {
       for (let i = 0; i < vals.length; i++) {
         const v = vals[i];
         if (!Number.isFinite(v)) continue;
@@ -9791,6 +9822,11 @@ function aiStatsDrawChart(canvas, seriesList, opts) {
       }
     }
   }
+
+  for (const s of leftSeries) drawBars(s, yAtL);
+  for (const s of rightSeries) drawBars(s, yAtR);
+  for (const s of leftSeries) drawLine(s, yAtL, leftR.yMin);
+  for (const s of rightSeries) drawLine(s, yAtR, rightR.yMin);
 
   // X labels
   ctx.fillStyle = 'rgba(232,235,224,0.5)';
@@ -9844,9 +9880,15 @@ function renderAiStats() {
   const avgTotal = aiStatsAvgReward(mem, 'total');
   const blend = learnGetBlend();
   const pct = (x) => `${Math.round(x * 100)}%`;
+  const cpuHist = aiStatsFilterHistory(mem, 'cpu');
+  const avgDur = aiStatsAvgDuration(cpuHist);
+  const durLabel = avgDur >= 60
+    ? `${Math.floor(avgDur / 60)}m ${Math.round(avgDur % 60)}s`
+    : `${Math.round(avgDur)}s`;
   const cards = [
+    { lbl: 'vs CPU WR', val: fmtPct(vsCpu.rate), sub: `${vsCpu.w}W-${vsCpu.l}L-${vsCpu.d}D · ${vsCpu.n} games` },
+    { lbl: 'Avg length', val: avgDur > 0 ? durLabel : '—', sub: 'vs CPU match duration' },
     { lbl: 'Overall WR', val: fmtPct(overallRate), sub: `${overallW}W / ${overallN} games` },
-    { lbl: 'vs CPU', val: fmtPct(vsCpu.rate), sub: `${vsCpu.w}W-${vsCpu.l}L-${vsCpu.d}D` },
     { lbl: 'vs Human', val: fmtPct(vsHuman.rate), sub: `${vsHuman.w}W-${vsHuman.l}L-${vsHuman.d}D` },
     { lbl: 'Auto-balance', val: `${pct(blend.eco)}/${pct(blend.atk)}/${pct(blend.def)}`, sub: 'eco / atk / def → wins & length' },
     { lbl: 'Avg Reward', val: String(Math.round(avgTotal)), sub: 'combined score / match' },
@@ -9859,18 +9901,9 @@ function renderAiStats() {
   )).join('');
 
   const filtered = aiStatsFilterHistory(mem, aiStatsOppFilter);
-  const byMatch = aiStatsRange === 'match';
-  let view;
-  if (byMatch) {
-    const maxMatches = 120;
-    view = aiStatsMatchSeries(filtered.slice(-maxMatches));
-  } else {
-    const buckets = aiStatsBucketHistory(filtered, aiStatsRange);
-    const maxBuckets = aiStatsRange === 'minute' ? 60 : aiStatsRange === 'hour' ? 48 : 30;
-    view = buckets.slice(-maxBuckets);
-  }
+  const { byMatch, view } = aiStatsBuildView(filtered, aiStatsRange);
 
-  const xLabels = view.map((b, i) => {
+  const xLabels = view.map((b) => {
     if (byMatch) return String(b.idx);
     return aiStatsFormatBucketLabel(b.t, aiStatsRange);
   });
@@ -9901,46 +9934,45 @@ function renderAiStats() {
     yFormat: (v) => String(Math.round(v)),
   });
 
-  // Win rate: rolling (match) or bucket WR + games bars
-  const wrLabel = document.getElementById('ai-stats-wr-label');
-  let wrSeries;
-  let gamesBars = null;
-  if (byMatch) {
-    wrSeries = aiStatsRollingWinPct(view, Math.min(10, Math.max(3, Math.floor(view.length / 4) || 3)));
-    if (wrLabel) wrLabel.textContent = `Rolling win rate (last ~10 matches) · ${fmtPct(overallRate)} lifetime`;
-  } else {
-    wrSeries = view.map((b) => {
+  // Bottom chart: always emphasize vs-CPU win ratio + match duration (seconds).
+  const cpuEntries = aiStatsFilterHistory(mem, 'cpu');
+  const cpuBuilt = aiStatsBuildView(cpuEntries, aiStatsRange);
+  const cpuView = cpuBuilt.view;
+  const cpuByMatch = cpuBuilt.byMatch;
+  const cpuLabels = cpuView.map((b) => {
+    if (cpuByMatch) return String(b.idx);
+    return aiStatsFormatBucketLabel(b.t, aiStatsRange);
+  });
+
+  const cpuWrSeries = cpuByMatch
+    ? aiStatsRollingWinPct(cpuView, Math.min(10, Math.max(3, Math.floor(cpuView.length / 4) || 3)))
+    : cpuView.map((b) => {
       const n = b.w + b.l + b.d;
       return n ? (b.w / n) * 100 : NaN;
     });
-    gamesBars = view.map((b) => b.n || 0);
-    if (wrLabel) {
-      wrLabel.textContent = `Win rate by ${aiStatsRange} · ${aiStatsOppFilter === 'all' ? 'all opponents' : 'vs ' + aiStatsOppFilter}`;
-    }
+  const durSeries = cpuView.map((b) => {
+    if (cpuByMatch) return b.dur > 0 ? b.dur : NaN;
+    return b.n ? (b.dur / b.n) : NaN;
+  });
+
+  const wrLabel = document.getElementById('ai-stats-wr-label');
+  if (wrLabel) {
+    wrLabel.textContent = cpuByMatch
+      ? `vs CPU win rate (rolling) + match length · lifetime ${fmtPct(vsCpu.rate)} (${vsCpu.w}W-${vsCpu.l}L)`
+      : `vs CPU win rate by ${aiStatsRange} + avg match length · lifetime ${fmtPct(vsCpu.rate)}`;
   }
 
-  const wrSeriesList = [
-    { label: byMatch ? 'Rolling WR %' : 'Win rate %', color: '#7dd3fc', values: wrSeries, width: 3 },
-  ];
-  if (gamesBars) {
-    // Scale games into % axis for visibility as translucent bars (secondary feel)
-    const maxG = Math.max(...gamesBars, 1);
-    wrSeriesList.unshift({
-      label: 'Games',
-      color: 'rgba(250, 204, 100, 0.85)',
-      barColor: 'rgba(250, 204, 100, 0.35)',
-      values: gamesBars.map((g) => (g / maxG) * 100),
-      bars: true,
-      fill: false,
-    });
-  }
-
-  aiStatsDrawChart(document.getElementById('ai-stats-chart'), wrSeriesList, {
-    height: 240,
+  aiStatsDrawChart(document.getElementById('ai-stats-chart'), [
+    { label: 'vs CPU WR %', color: '#7dd3fc', values: cpuWrSeries, width: 3.2 },
+    { label: 'Duration (s)', color: '#fbbf24', values: durSeries, axis: 'right', width: 2.6, fill: false },
+  ], {
+    height: 250,
     yMin: 0,
     yMax: 100,
-    xLabels,
+    yMinR: 0,
+    xLabels: cpuLabels,
     yFormat: (v) => `${Math.round(v)}%`,
+    yFormatR: (v) => (v >= 60 ? `${Math.round(v / 60)}m` : `${Math.round(v)}s`),
   });
 
   const first = view[0], last = view[view.length - 1];
@@ -9949,9 +9981,11 @@ function renderAiStats() {
     if (byMatch) rangeHint = `Matches ${first.idx}–${last.idx} · ${filtered.length} total in filter`;
     else rangeHint = `${aiStatsFormatBucketLabel(first.t, aiStatsRange)} → ${aiStatsFormatBucketLabel(last.t, aiStatsRange)} · ${filtered.length} matches in filter`;
   }
+  const avgDurCpu = aiStatsAvgDuration(cpuEntries);
   if (footnote) {
     const b = learnGetBlend();
-    footnote.textContent = `Auto-balance now: eco ${Math.round(b.eco * 100)}% · attack ${Math.round(b.atk * 100)}% · defense ${Math.round(b.def * 100)}% (learns from wins + longer games). ${rangeHint}`;
+    const durTxt = avgDurCpu > 0 ? `Avg vs-CPU length ${Math.round(avgDurCpu)}s. ` : '';
+    footnote.textContent = `${durTxt}Auto-balance: eco ${Math.round(b.eco * 100)}% · attack ${Math.round(b.atk * 100)}% · defense ${Math.round(b.def * 100)}%. ${rangeHint}`;
   }
 }
 
