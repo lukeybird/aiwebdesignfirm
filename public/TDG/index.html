@@ -15301,11 +15301,12 @@ function learnScoreMatchRewards(pid) {
     incomeUp = eco?.base?.income || 0;
   } catch (e) { /* ignore */ }
 
+  // Eco is weighted highest so the bot learns to farm / mint / upgrade income.
   const eco = Math.round(
-    s.ecoGold * 0.08
-    + farms * 18
-    + mints * 28
-    + incomeUp * 22
+    s.ecoGold * 0.18
+    + farms * 32
+    + mints * 48
+    + incomeUp * 40
   );
   const towerKills = combatStats?.[pid]?.towerKills || 0;
   const atk = Math.round(
@@ -15318,7 +15319,7 @@ function learnScoreMatchRewards(pid) {
     s.defKills * 14
     + s.defKillValue * 0.12
   );
-  const total = Math.round(eco * 0.34 + atk * 0.38 + defn * 0.28);
+  const total = Math.round(eco * 0.48 + atk * 0.30 + defn * 0.22);
   return { eco, atk, def: defn, total, raw: { ...s, farms, mints, incomeUp } };
 }
 
@@ -15349,12 +15350,21 @@ function learnAccumulateReward(scores) {
 function learnCreditRewardPath(brain, scores, won) {
   if (!brain || !scores) return;
   const mem = survivalAiLoadMemory();
+  // Prefer farm/eco when close — eco gets a 1.35× nudge for path credit.
+  const ecoV = (scores.eco || 0) * 1.35;
+  const atkV = scores.atk || 0;
+  const defV = scores.def || 0;
   let best = 'attack';
-  let bestV = scores.atk;
-  if (scores.eco >= bestV) { best = 'farm'; bestV = scores.eco; }
-  if (scores.def >= bestV) { best = 'defense'; bestV = scores.def; }
+  let bestV = atkV;
+  if (ecoV >= bestV) { best = 'farm'; bestV = ecoV; }
+  if (defV >= bestV) { best = 'defense'; bestV = defV; }
   if (!mem.paths[best]) mem.paths[best] = { a: 0, w: 0 };
   mem.paths[best].a += 1;
+  // Extra farm credit when eco scored well, even on a loss (build the habit).
+  if (best === 'farm') {
+    mem.paths.farm.a += 0.45;
+    if ((scores.eco || 0) >= 60) mem.paths.farm.w += won ? 0.85 : 0.25;
+  }
   // Stronger credit when the match was won AND that pillar scored well.
   if (won && bestV >= 40) mem.paths[best].w += 1;
   else if (won) mem.paths[best].w += 0.5;
