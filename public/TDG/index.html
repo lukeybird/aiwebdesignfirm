@@ -9842,10 +9842,13 @@ function renderAiStats() {
 
   const fmtPct = (r) => `${Math.round(r * 1000) / 10}%`;
   const avgTotal = aiStatsAvgReward(mem, 'total');
+  const blend = learnGetBlend();
+  const pct = (x) => `${Math.round(x * 100)}%`;
   const cards = [
     { lbl: 'Overall WR', val: fmtPct(overallRate), sub: `${overallW}W / ${overallN} games` },
     { lbl: 'vs CPU', val: fmtPct(vsCpu.rate), sub: `${vsCpu.w}W-${vsCpu.l}L-${vsCpu.d}D` },
     { lbl: 'vs Human', val: fmtPct(vsHuman.rate), sub: `${vsHuman.w}W-${vsHuman.l}L-${vsHuman.d}D` },
+    { lbl: 'Auto-balance', val: `${pct(blend.eco)}/${pct(blend.atk)}/${pct(blend.def)}`, sub: 'eco / atk / def → wins & length' },
     { lbl: 'Avg Reward', val: String(Math.round(avgTotal)), sub: 'combined score / match' },
     { lbl: 'Avg Eco', val: String(Math.round(aiStatsAvgReward(mem, 'eco'))), sub: 'income / farms / mints' },
     { lbl: 'Avg Attack', val: String(Math.round(aiStatsAvgReward(mem, 'atk'))), sub: 'base + tower pressure' },
@@ -9947,7 +9950,8 @@ function renderAiStats() {
     else rangeHint = `${aiStatsFormatBucketLabel(first.t, aiStatsRange)} → ${aiStatsFormatBucketLabel(last.t, aiStatsRange)} · ${filtered.length} matches in filter`;
   }
   if (footnote) {
-    footnote.textContent = `Top chart is the learning curve (eco / attack / defense). Bottom chart is win rate — stays near 0% until the bot starts winning. ${rangeHint}`;
+    const b = learnGetBlend();
+    footnote.textContent = `Auto-balance now: eco ${Math.round(b.eco * 100)}% · attack ${Math.round(b.atk * 100)}% · defense ${Math.round(b.def * 100)}% (learns from wins + longer games). ${rangeHint}`;
   }
 }
 
@@ -9959,6 +9963,8 @@ function exportAiStatsJson() {
     matches: mem.matches,
     vs: mem.vs,
     rewards: mem.rewards,
+    blend: mem.blend,
+    pillarValue: mem.pillarValue,
     history: mem.history,
     wins: mem.wins,
   };
@@ -15207,7 +15213,7 @@ let aiTrainingStopRequested = false;
 
 function learnFreshMemory() {
   return {
-    version: 4,
+    version: 5,
     matches: 0,
     wins: { 0: 0, 1: 0, draw: 0 },
     paths: { defense: { a: 0, w: 0 }, farm: { a: 0, w: 0 }, attack: { a: 0, w: 0 } },
@@ -15232,6 +15238,9 @@ function learnFreshMemory() {
       def: { sum: 0, n: 0 },
       total: { sum: 0, n: 0 },
     },
+    // Auto-balance: which pillars correlate with wins + longer games.
+    pillarValue: { eco: 1, atk: 1, def: 1 },
+    blend: { eco: 1 / 3, atk: 1 / 3, def: 1 / 3 },
   };
 }
 
@@ -15290,6 +15299,105 @@ function learnLearningPidForMatch() {
   return null;
 }
 
+function learnEnsureBlend(mem) {
+  if (!mem.pillarValue) mem.pillarValue = { eco: 1, atk: 1, def: 1 };
+  for (const k of ['eco', 'atk', 'def']) {
+    if (!(mem.pillarValue[k] > 0)) mem.pillarValue[k] = 1;
+  }
+  if (!mem.blend) mem.blend = { eco: 1 / 3, atk: 1 / 3, def: 1 / 3 };
+  return mem.blend;
+}
+
+/** Current auto-balance weights (sum ≈ 1), floored so no pillar dies. */
+function learnGetBlend() {
+  const mem = survivalAiLoadMemory();
+  learnEnsureBlend(mem);
+  const floor = 0.14;
+  let eco = Math.max(floor, mem.blend.eco || 0);
+  let atk = Math.max(floor, mem.blend.atk || 0);
+  let defn = Math.max(floor, mem.blend.def || 0);
+  const sum = eco + atk + defn || 1;
+  return { eco: eco / sum, atk: atk / sum, def: defn / sum };
+}
+
+/** Success signal: winning matters most; lasting longer still scores (survival / pressure). */
+function learnOutcomeQuality(result, durationSec) {
+  const winPart = result === 'win' ? 1 : result === 'draw' ? 0.42 : 0;
+  // ~25s skimishes → 0; ~3+ min games → 1
+  const lenPart = Math.max(0, Math.min(1, ((durationSec || 0) - 25) / 155));
+  // Wins that also last get a small bonus (controlled victories > coin-flips).
+  const winLen = result === 'win' ? lenPart * 0.2 : result === 'loss' ? lenPart * 0.55 : lenPart * 0.35;
+  return Math.max(0, Math.min(1.25, winPart * 0.62 + winLen));
+}
+
+/**
+ * After each match, nudge pillar values toward what co-occurred with wins / long games.
+ * Rebalances eco vs attack vs defense automatically.
+ */
+function learnUpdateBlendFromMatch(scores, result, durationSec) {
+  const mem = survivalAiLoadMemory();
+  learnEnsureBlend(mem);
+  const outcome = learnOutcomeQuality(result, durationSec);
+  const e = Math.max(0, scores.eco || 0);
+  const a = Math.max(0, scores.atk || 0);
+  const d = Math.max(0, scores.def || 0);
+  const sum = e + a + d;
+  const shares = sum > 0
+    ? { eco: e / sum, atk: a / sum, def: d / sum }
+    : { eco: 1 / 3, atk: 1 / 3, def: 1 / 3 };
+
+  // Faster early, steadier later.
+  const n = mem.matches || 0;
+  const lr = Math.max(0.035, Math.min(0.14, 0.12 / (1 + n * 0.01)));
+
+  for (const k of ['eco', 'atk', 'def']) {
+    // Pillars that showed up in successful matches rise; loud pillars in quick losses fall.
+    const successCredit = outcome * (0.25 + shares[k] * 1.5);
+    const failPenalty = (result === 'loss' && outcome < 0.35)
+      ? shares[k] * 0.22
+      : 0;
+    const target = 0.35 + successCredit * 2.2 - failPenalty;
+    mem.pillarValue[k] = mem.pillarValue[k] * (1 - lr) + target * lr;
+    mem.pillarValue[k] = Math.max(0.2, Math.min(3.2, mem.pillarValue[k]));
+  }
+
+  // Softmax-ish → blend with floor, so the bot always keeps all three goals in play.
+  const exps = {
+    eco: Math.exp(mem.pillarValue.eco),
+    atk: Math.exp(mem.pillarValue.atk),
+    def: Math.exp(mem.pillarValue.def),
+  };
+  const es = exps.eco + exps.atk + exps.def;
+  const floor = 0.14;
+  let blend = {
+    eco: Math.max(floor, exps.eco / es),
+    atk: Math.max(floor, exps.atk / es),
+    def: Math.max(floor, exps.def / es),
+  };
+  const bsum = blend.eco + blend.atk + blend.def;
+  mem.blend = { eco: blend.eco / bsum, atk: blend.atk / bsum, def: blend.def / bsum };
+  return mem.blend;
+}
+
+/** One-shot rebalance from stored history (migration / repair). */
+function learnRebuildBlendFromHistory(mem) {
+  if (!mem) return;
+  mem.pillarValue = { eco: 1, atk: 1, def: 1 };
+  mem.blend = { eco: 1 / 3, atk: 1 / 3, def: 1 / 3 };
+  const hist = Array.isArray(mem.history) ? mem.history : [];
+  const prev = survivalAiMemory;
+  survivalAiMemory = mem;
+  for (const h of hist.slice(-200)) {
+    if (!h) continue;
+    learnUpdateBlendFromMatch(
+      { eco: h.eco || 0, atk: h.atk || 0, def: h.def || 0 },
+      h.result || 'loss',
+      h.dur || 60
+    );
+  }
+  survivalAiMemory = prev || mem;
+}
+
 function learnScoreMatchRewards(pid) {
   const s = learnPerfSide(pid) || { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0 };
   const p = players[pid];
@@ -15297,16 +15405,16 @@ function learnScoreMatchRewards(pid) {
   const mints = (p?.turrets || []).filter((t) => t.hp > 0 && t.towerType === 'mint').length;
   let incomeUp = 0;
   try {
-    const eco = LIVE_ARMY?.economyRecord?.(p);
-    incomeUp = eco?.base?.income || 0;
+    const ecoRec = LIVE_ARMY?.economyRecord?.(p);
+    incomeUp = ecoRec?.base?.income || 0;
   } catch (e) { /* ignore */ }
 
-  // Eco is weighted highest so the bot learns to farm / mint / upgrade income.
+  // Raw pillar meters (balanced scales). Blend weights adapt over matches.
   const eco = Math.round(
-    s.ecoGold * 0.18
-    + farms * 32
-    + mints * 48
-    + incomeUp * 40
+    s.ecoGold * 0.12
+    + farms * 24
+    + mints * 36
+    + incomeUp * 30
   );
   const towerKills = combatStats?.[pid]?.towerKills || 0;
   const atk = Math.round(
@@ -15319,8 +15427,9 @@ function learnScoreMatchRewards(pid) {
     s.defKills * 14
     + s.defKillValue * 0.12
   );
-  const total = Math.round(eco * 0.48 + atk * 0.30 + defn * 0.22);
-  return { eco, atk, def: defn, total, raw: { ...s, farms, mints, incomeUp } };
+  const blend = learnGetBlend();
+  const total = Math.round(eco * blend.eco + atk * blend.atk + defn * blend.def);
+  return { eco, atk, def: defn, total, blend: { ...blend }, raw: { ...s, farms, mints, incomeUp } };
 }
 
 function learnPushHistory(entry) {
@@ -15346,32 +15455,30 @@ function learnAccumulateReward(scores) {
   }
 }
 
-/** Bias doctrine paths from which reward pillar dominated this match. */
-function learnCreditRewardPath(brain, scores, won) {
+/** Bias doctrine paths from which reward pillar dominated this match (using live blend). */
+function learnCreditRewardPath(brain, scores, won, outcomeQuality) {
   if (!brain || !scores) return;
   const mem = survivalAiLoadMemory();
-  // Prefer farm/eco when close — eco gets a 1.35× nudge for path credit.
-  const ecoV = (scores.eco || 0) * 1.35;
-  const atkV = scores.atk || 0;
-  const defV = scores.def || 0;
+  const blend = scores.blend || learnGetBlend();
+  // Weight raw pillars by what the auto-balancer currently trusts.
+  const ecoV = (scores.eco || 0) * (0.75 + blend.eco);
+  const atkV = (scores.atk || 0) * (0.75 + blend.atk);
+  const defV = (scores.def || 0) * (0.75 + blend.def);
   let best = 'attack';
   let bestV = atkV;
   if (ecoV >= bestV) { best = 'farm'; bestV = ecoV; }
   if (defV >= bestV) { best = 'defense'; bestV = defV; }
   if (!mem.paths[best]) mem.paths[best] = { a: 0, w: 0 };
   mem.paths[best].a += 1;
-  // Extra farm credit when eco scored well, even on a loss (build the habit).
-  if (best === 'farm') {
-    mem.paths.farm.a += 0.45;
-    if ((scores.eco || 0) >= 60) mem.paths.farm.w += won ? 0.85 : 0.25;
-  }
-  // Stronger credit when the match was won AND that pillar scored well.
+  const q = outcomeQuality != null ? outcomeQuality : (won ? 1 : 0);
   if (won && bestV >= 40) mem.paths[best].w += 1;
   else if (won) mem.paths[best].w += 0.5;
-  // Soft-credit the path the brain actually ran if rewards were balanced.
+  else if (q >= 0.45) mem.paths[best].w += 0.2; // long survival still lightly credits the pillar
+  // Soft-credit the path the brain actually ran.
   if (brain.strategyPath && mem.paths[brain.strategyPath]) {
     mem.paths[brain.strategyPath].a += 0.35;
     if (won) mem.paths[brain.strategyPath].w += 0.35;
+    else if (q >= 0.5) mem.paths[brain.strategyPath].w += 0.12;
   }
 }
 
@@ -15594,7 +15701,7 @@ function survivalAiLoadMemory() {
     if (!raw) raw = localStorage.getItem(SURVIVAL_AI_MEMORY_KEY_LEGACY);
     if (raw) {
       const parsed = JSON.parse(raw) || {};
-      if (parsed.version === 2 || parsed.version === 3 || parsed.version === 4) {
+      if (parsed.version === 2 || parsed.version === 3 || parsed.version === 4 || parsed.version === 5) {
         survivalAiMemory = Object.assign(learnFreshMemory(), parsed);
         if (!survivalAiMemory.scenarios) survivalAiMemory.scenarios = {};
         if (!survivalAiMemory.counters) survivalAiMemory.counters = { vsArch: {}, vsUnit: {} };
@@ -15607,7 +15714,12 @@ function survivalAiLoadMemory() {
             eco: { sum: 0, n: 0 }, atk: { sum: 0, n: 0 }, def: { sum: 0, n: 0 }, total: { sum: 0, n: 0 },
           };
         }
-        survivalAiMemory.version = 4;
+        learnEnsureBlend(survivalAiMemory);
+        // Rebuild blend once from history if migrating an older memory with enough games.
+        if ((parsed.version || 0) < 5 && (survivalAiMemory.history || []).length >= 8) {
+          learnRebuildBlendFromHistory(survivalAiMemory);
+        }
+        survivalAiMemory.version = 5;
       } else {
         // Migrate v1 scenario-keyed archetype maps into scenarios.
         survivalAiMemory.scenarios = parsed;
@@ -15617,7 +15729,8 @@ function survivalAiLoadMemory() {
         survivalAiMemory.rewards = {
           eco: { sum: 0, n: 0 }, atk: { sum: 0, n: 0 }, def: { sum: 0, n: 0 }, total: { sum: 0, n: 0 },
         };
-        survivalAiMemory.version = 4;
+        learnEnsureBlend(survivalAiMemory);
+        survivalAiMemory.version = 5;
       }
     }
   } catch (e) {
@@ -15770,6 +15883,10 @@ function learnRecordMatchEnd() {
     else if (result === 'loss') mem.vs[opp].l += 1;
     else mem.vs[opp].d += 1;
 
+    const dur = Math.max(0, Math.round(combatTime || 0));
+    const outcomeQ = learnOutcomeQuality(result, dur);
+    learnUpdateBlendFromMatch(scores, result, dur);
+
     learnPushHistory({
       t: Date.now(),
       opp,
@@ -15778,13 +15895,15 @@ function learnRecordMatchEnd() {
       atk: scores.atk,
       def: scores.def,
       reward: scores.total,
+      dur,
+      blend: { ...learnGetBlend() },
       mode: gameMode,
     });
 
     const brain = isCpuVsCpuMode()
       ? simulatorAiBrains?.[learnPid]
       : survivalAiBrain;
-    learnCreditRewardPath(brain, scores, result === 'win');
+    learnCreditRewardPath(brain, scores, result === 'win', outcomeQ);
   }
 
   // Self-play: also score the other trainee so both sides feed rewards.
@@ -15792,7 +15911,10 @@ function learnRecordMatchEnd() {
     const other = 1 - (learnPid ?? 0);
     const scores2 = learnScoreMatchRewards(other);
     learnAccumulateReward(scores2);
-    learnCreditRewardPath(simulatorAiBrains?.[other], scores2, winner === other);
+    const dur2 = Math.max(0, Math.round(combatTime || 0));
+    const res2 = winner === other ? 'win' : 'loss';
+    learnUpdateBlendFromMatch(scores2, res2, dur2);
+    learnCreditRewardPath(simulatorAiBrains?.[other], scores2, winner === other, learnOutcomeQuality(res2, dur2));
   }
 
   if (isAiVsCpuTrainingMode()) {
