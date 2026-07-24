@@ -6784,6 +6784,7 @@
           <button type="button" class="surv-speed-btn" data-speed="4">4×</button>
           <button type="button" class="surv-speed-btn speed-train hidden" data-speed="8">8×</button>
           <button type="button" class="surv-speed-btn speed-train hidden" data-speed="16">16×</button>
+          <button type="button" class="surv-speed-btn speed-train hidden" data-speed="64">64×</button>
         </div>
         <div class="stat-pill hidden" id="ai-train-pill" title="AI Training progress">
           <span id="ai-train-stats">0 games</span>
@@ -14449,7 +14450,7 @@ function updateIncomeUpgradeUI(force) {
 function setSurvivalSpeed(mult) {
   const n = Number(mult) || 1;
   if (isAiTrainingMode()) {
-    survivalSpeed = [1, 4, 8, 16].includes(n) ? n : (n >= 12 ? 16 : n >= 6 ? 8 : n >= 3 ? 4 : 1);
+    survivalSpeed = [1, 4, 8, 16, 64].includes(n) ? n : (n >= 40 ? 64 : n >= 12 ? 16 : n >= 6 ? 8 : n >= 3 ? 4 : 1);
   } else {
     survivalSpeed = n === 4 ? 4 : n === 2 ? 2 : 1;
   }
@@ -15709,7 +15710,7 @@ function syncSurvivalSpeedButtons() {
     btn.classList.toggle('hidden', !train);
   });
   // If current speed isn't available in this mode, snap to a valid one.
-  const allowed = train ? [1, 4, 8, 16] : [1, 2, 4];
+  const allowed = train ? [1, 4, 8, 16, 64] : [1, 2, 4];
   if (!allowed.includes(survivalSpeed)) {
     setSurvivalSpeed(train ? 4 : 1);
   } else {
@@ -18361,7 +18362,7 @@ function setupSimulator() {
     addLog('AI reacts, tries units/towers, and learns. CPU has a big income edge. Stop when done.');
   } else if (isAiSelfPlayMode()) {
     addLog('🧠 AI Training — Red vs Blue trainees (both +25 HQ, self-learning)');
-    addLog('Starts curious, learns from wins/losses. Use 1×/4×/8×/16× — Stop when done.');
+    addLog('Starts curious, learns from wins/losses. Use 1×/4×/8×/16×/64× — Stop when done.');
   } else {
     addLog('🤖 Simulator — Red CPU vs Blue CPU');
     addLog('Watch both sides build, tech, and strike. Use speed controls to fast-forward.');
@@ -38360,7 +38361,7 @@ function startAiTraining() {
     syncAiTrainingHud();
     showBanner(
       '🧠 AI Training',
-      'Self-play — both sides at +25 HQ (same as a player).\nTries many units/towers, reacts to the opponent, learns from wins.\nSpeeds: 1× / 4× / 8× / 16×. Stop anytime.',
+      'Self-play — both sides at +25 HQ (same as a player).\nTries many units/towers, reacts to the opponent, learns from wins.\nSpeeds: 1× / 4× / 8× / 16× / 64×. Stop anytime.',
       'Start Training'
     );
     bannerAction = () => {
@@ -38396,7 +38397,7 @@ function startAiVsCpuTraining() {
     syncAiTrainingHud();
     showBanner(
       '🥊 AI vs CPU Training',
-      'Learning AI at +25 HQ vs Buffed CPU at +50 HQ.\nAI must outplay a richer opponent — reacts, experiments, and saves what works.\nSpeeds: 1× / 4× / 8× / 16×. Stop anytime.',
+      'Learning AI at +25 HQ vs Buffed CPU at +50 HQ.\nAI must outplay a richer opponent — reacts, experiments, and saves what works.\nSpeeds: 1× / 4× / 8× / 16× / 64×. Stop anytime.',
       'Start Training'
     );
     bannerAction = () => {
