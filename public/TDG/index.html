@@ -15264,12 +15264,13 @@ function learnFreshMemory() {
     circ: {},
     // Meta-learner: how to learn (explore schedule + which signals to trust).
     meta: {
-      exploreFloor: 0.22,
-      exploreDecay: 0.011,
+      exploreFloor: 0.28,
+      exploreDecay: 0.02,
       curiosityBoost: 1,
       priorStrength: 1,
       signalTrust: { global: 1, circ: 1.2, counter: 1, reaction: 1.1 },
       recent: [],
+      winFocused: true,
     },
     // What worked against what: foe archetype / unit → our response.
     counters: { vsArch: {}, vsUnit: {} },
@@ -15302,13 +15303,20 @@ const LEARN_META_RECENT_MAX = 48;
 function learnEnsureMeta(mem) {
   if (!mem.meta) {
     mem.meta = {
-      exploreFloor: 0.22,
-      exploreDecay: 0.011,
+      exploreFloor: 0.28,
+      exploreDecay: 0.02,
       curiosityBoost: 1,
       priorStrength: 1,
       signalTrust: { global: 1, circ: 1.2, counter: 1, reaction: 1.1 },
       recent: [],
+      winFocused: true,
     };
+  }
+  // One-time migrate: old 50% explore floors were a loss spiral — snap down.
+  if (!mem.meta.winFocused) {
+    mem.meta.winFocused = true;
+    mem.meta.exploreFloor = Math.min(mem.meta.exploreFloor || 0.28, 0.28);
+    mem.meta.exploreDecay = Math.max(mem.meta.exploreDecay || 0.02, 0.02);
   }
   const m = mem.meta;
   if (!m.signalTrust) m.signalTrust = { global: 1, circ: 1.2, counter: 1, reaction: 1.1 };
@@ -15453,62 +15461,49 @@ function learnCircAwareWeight(kind, id, circKey) {
  * Meta-learning: adjust how the bot learns from recent win/loss + longevity trends.
  * Improves explore floor, curiosity, and which memory signals to trust.
  */
-function learnMetaUpdate(result, durationSec, circKey) {
+function learnLifetimeWins() {
+  const mem = survivalAiLoadMemory();
+  const vs = mem.vs || {};
+  return (vs.cpu?.w || 0) + (vs.human?.w || 0) + (vs.self?.w || 0);
+}
+
+/**
+ * Meta-learning tied to WINS found — not loss spirals.
+ * Explore anneals as lifetime wins grow; losses no longer jack explore to 50%.
+ */
+function learnMetaUpdate(result, durationSec, circKey, baseDmgPct) {
   const mem = survivalAiLoadMemory();
   const meta = learnEnsureMeta(mem);
   const won = result === 'win';
-  const q = learnOutcomeQuality(result, durationSec);
+  const q = learnOutcomeQuality(result, durationSec, baseDmgPct);
   meta.recent.push({ t: Date.now(), won: won ? 1 : 0, q, circ: circKey || null, result });
   if (meta.recent.length > LEARN_META_RECENT_MAX) {
     meta.recent.splice(0, meta.recent.length - LEARN_META_RECENT_MAX);
   }
-  const recent = meta.recent;
-  if (recent.length < 10) return meta;
 
-  const half = Math.floor(recent.length / 2);
-  const older = recent.slice(0, half);
-  const newer = recent.slice(half);
-  const avg = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0) / Math.max(1, arr.length);
-  const oldQ = avg(older, (x) => x.q);
-  const newQ = avg(newer, (x) => x.q);
-  const newWR = avg(newer, (x) => x.won);
-  const lr = 0.045;
+  const wins = learnLifetimeWins();
+  // Hard anneal schedule from wins (north star).
+  const winFloor = Math.max(0.05, Math.min(0.35, 0.45 / Math.sqrt(wins + 1)));
+  meta.exploreFloor = meta.exploreFloor * 0.85 + winFloor * 0.15;
 
-  if (newQ > oldQ + 0.04) {
-    // Learning is working → exploit more, trust circumstance memory more.
-    meta.exploreFloor = Math.max(0.10, meta.exploreFloor - lr);
-    meta.curiosityBoost = Math.max(0.7, meta.curiosityBoost - lr * 0.8);
-    meta.signalTrust.circ = Math.min(2.2, meta.signalTrust.circ + lr * 1.4);
-    meta.signalTrust.counter = Math.min(2.0, meta.signalTrust.counter + lr);
-    meta.exploreDecay = Math.min(0.02, meta.exploreDecay + 0.0004);
-  } else if (newQ < oldQ - 0.04) {
-    // Results getting worse → explore more, rediscover.
-    meta.exploreFloor = Math.min(0.48, meta.exploreFloor + lr * 1.3);
-    meta.curiosityBoost = Math.min(1.9, meta.curiosityBoost + lr);
-    meta.signalTrust.global = Math.min(1.6, meta.signalTrust.global + lr * 0.5);
-    meta.exploreDecay = Math.max(0.005, meta.exploreDecay - 0.0005);
-  }
-
-  // Stuck losing a lot recently → force curiosity spike.
-  if (newWR < 0.12 && newer.length >= 8) {
-    meta.exploreFloor = Math.min(0.5, meta.exploreFloor + 0.03);
-    meta.curiosityBoost = Math.min(2.0, meta.curiosityBoost + 0.08);
-  }
-  // Winning often → tighten exploit.
-  if (newWR > 0.55 && newer.length >= 8) {
-    meta.exploreFloor = Math.max(0.10, meta.exploreFloor - 0.02);
-    meta.signalTrust.circ = Math.min(2.3, meta.signalTrust.circ + 0.04);
-  }
-
-  // Circumstance that just succeeded/failed nudges circ trust.
-  if (circKey) {
-    const node = mem.circ?.[circKey];
-    if (node && node.v >= 3) {
-      const rate = node.w / node.v;
-      if (won && rate >= 0.4) meta.signalTrust.circ = Math.min(2.3, meta.signalTrust.circ + 0.03);
-      if (!won && rate < 0.2) meta.signalTrust.reaction = Math.min(2.0, meta.signalTrust.reaction + 0.03);
+  if (won) {
+    meta.exploreFloor = Math.max(0.05, meta.exploreFloor - 0.04);
+    meta.curiosityBoost = Math.max(0.65, meta.curiosityBoost - 0.06);
+    meta.signalTrust.circ = Math.min(2.3, meta.signalTrust.circ + 0.06);
+    meta.signalTrust.counter = Math.min(2.0, meta.signalTrust.counter + 0.04);
+    if (circKey) {
+      const node = mem.circ?.[circKey];
+      if (node && node.v >= 2) meta.signalTrust.circ = Math.min(2.4, meta.signalTrust.circ + 0.05);
     }
+  } else {
+    // Mild curiosity bump only — never climb back toward 50% explore forever.
+    meta.curiosityBoost = Math.min(1.45, meta.curiosityBoost + 0.015);
+    meta.exploreFloor = Math.min(0.32, meta.exploreFloor + 0.008);
   }
+
+  // Clamp absolute bounds.
+  meta.exploreFloor = Math.max(0.05, Math.min(0.35, meta.exploreFloor));
+  meta.curiosityBoost = Math.max(0.65, Math.min(1.5, meta.curiosityBoost));
   return meta;
 }
 
@@ -15528,8 +15523,8 @@ let learnMatchPerf = null;
 
 function learnResetMatchPerf() {
   learnMatchPerf = {
-    0: { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0 },
-    1: { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0 },
+    0: { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0, byUnit: {}, byUnitBase: {} },
+    1: { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0, byUnit: {}, byUnitBase: {} },
   };
 }
 
@@ -15558,6 +15553,60 @@ function learnNoteDef(pid, killValue) {
   if (!s) return;
   s.defKills += 1;
   s.defKillValue += Math.max(0, killValue || 0);
+}
+
+function learnNoteUnitDmg(pid, unitType, dmg, isBase) {
+  const s = learnPerfSide(pid);
+  if (!s || !unitType || !(dmg > 0)) return;
+  if (!s.byUnit) s.byUnit = {};
+  s.byUnit[unitType] = (s.byUnit[unitType] || 0) + dmg;
+  if (isBase) {
+    if (!s.byUnitBase) s.byUnitBase = {};
+    s.byUnitBase[unitType] = (s.byUnitBase[unitType] || 0) + dmg;
+  }
+}
+
+/** Top unit types by damage (optionally HQ-only). Used so losses don't credit the whole army. */
+function learnTopUnitTypes(pid, limit, baseOnly) {
+  const s = learnPerfSide(pid);
+  const map = baseOnly ? (s?.byUnitBase || {}) : (s?.byUnit || {});
+  return Object.entries(map)
+    .filter(([, d]) => d > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit || 4)
+    .map(([t]) => t);
+}
+
+function learnEnemyBaseDmgPct(pid) {
+  const foe = players[enemyId(pid)];
+  if (!foe || !(foe.baseMaxHp > 0)) return 0;
+  const dealt = learnPerfSide(pid)?.atkBase || 0;
+  return Math.max(0, Math.min(1, dealt / foe.baseMaxHp));
+}
+
+/** Decay old loss-heavy bandit rows so impossible-era memory doesn't lock the bot. */
+function learnDecayStaleLossMemory() {
+  const mem = survivalAiLoadMemory();
+  const decay = (rec) => {
+    if (!rec || !(rec.a > 0)) return;
+    const rate = rec.w / rec.a;
+    // Heavy losers: shrink so new even-eco wins can overwrite.
+    if (rec.a >= 8 && rate < 0.08) {
+      rec.a *= 0.92;
+      rec.w *= 0.92;
+    }
+  };
+  for (const rec of Object.values(mem.plans || {})) decay(rec);
+  for (const rec of Object.values(mem.units || {})) decay(rec);
+  for (const rec of Object.values(mem.towers || {})) decay(rec);
+  for (const rec of Object.values(mem.paths || {})) decay(rec);
+  for (const node of Object.values(mem.circ || {})) {
+    if (!node) continue;
+    for (const table of [node.plans, node.units, node.towers, node.paths]) {
+      if (!table) continue;
+      for (const rec of Object.values(table)) decay(rec);
+    }
+  }
 }
 
 /** Which opponent bucket this match belongs to (learning AI view). */
@@ -15597,24 +15646,31 @@ function learnGetBlend() {
   return { eco: eco / sum, atk: atk / sum, def: defn / sum };
 }
 
-/** Success signal: winning matters most; lasting longer still scores (survival / pressure). */
-function learnOutcomeQuality(result, durationSec) {
-  const winPart = result === 'win' ? 1 : result === 'draw' ? 0.42 : 0;
-  // ~25s skimishes → 0; ~3+ min games → 1
-  const lenPart = Math.max(0, Math.min(1, ((durationSec || 0) - 25) / 155));
-  // Wins that also last get a small bonus (controlled victories > coin-flips).
-  const winLen = result === 'win' ? lenPart * 0.2 : result === 'loss' ? lenPart * 0.55 : lenPart * 0.35;
-  return Math.max(0, Math.min(1.25, winPart * 0.62 + winLen));
+/**
+ * Success signal is WIN-PRIMARY.
+ * Long losses no longer look "good" — that was training the bot to stall.
+ * Optional baseDmgPct (0–1) gives a small shaped bonus only when damaging the enemy HQ.
+ */
+function learnOutcomeQuality(result, durationSec, baseDmgPct) {
+  if (result === 'win') {
+    // Fast wins slightly preferred; slow wins still fully count.
+    const lenPart = Math.max(0, Math.min(1, ((durationSec || 0) - 25) / 155));
+    return 1.0 + lenPart * 0.08;
+  }
+  if (result === 'draw') return 0.2;
+  // Losses: near-zero. Tiny credit only if we actually hurt their base (progress toward a win).
+  const push = Math.max(0, Math.min(1, baseDmgPct || 0));
+  return push * 0.18;
 }
 
 /**
  * After each match, nudge pillar values toward what co-occurred with wins / long games.
  * Rebalances eco vs attack vs defense automatically.
  */
-function learnUpdateBlendFromMatch(scores, result, durationSec) {
+function learnUpdateBlendFromMatch(scores, result, durationSec, baseDmgPct) {
   const mem = survivalAiLoadMemory();
   learnEnsureBlend(mem);
-  const outcome = learnOutcomeQuality(result, durationSec);
+  const outcome = learnOutcomeQuality(result, durationSec, baseDmgPct);
   const e = Math.max(0, scores.eco || 0);
   const a = Math.max(0, scores.atk || 0);
   const d = Math.max(0, scores.def || 0);
@@ -15628,12 +15684,15 @@ function learnUpdateBlendFromMatch(scores, result, durationSec) {
   const lr = Math.max(0.035, Math.min(0.14, 0.12 / (1 + n * 0.01)));
 
   for (const k of ['eco', 'atk', 'def']) {
-    // Pillars that showed up in successful matches rise; loud pillars in quick losses fall.
+    // Only wins (and rare HQ-damage progress) move the blend.
     const successCredit = outcome * (0.25 + shares[k] * 1.5);
-    const failPenalty = (result === 'loss' && outcome < 0.35)
-      ? shares[k] * 0.22
-      : 0;
-    const target = 0.35 + successCredit * 2.2 - failPenalty;
+    // Losing while defense-dominated → nudge away from pure stall.
+    const stallPenalty = (result === 'loss' && k === 'def' && shares.def > 0.45)
+      ? 0.35
+      : (result === 'loss' ? shares[k] * 0.15 : 0);
+    // Winning with attack pressure → boost atk.
+    const atkWinBoost = (result === 'win' && k === 'atk') ? 0.45 : 0;
+    const target = 0.35 + successCredit * 2.2 - stallPenalty + atkWinBoost;
     mem.pillarValue[k] = mem.pillarValue[k] * (1 - lr) + target * lr;
     mem.pillarValue[k] = Math.max(0.2, Math.min(3.2, mem.pillarValue[k]));
   }
@@ -15856,18 +15915,23 @@ function learnCreditRoutePair(winnerPid, loserPid) {
   if (myUnits.length) winArchs.add(survivalAiClassifyComposition(myUnits));
   if (!winArchs.size) winArchs.add('mixed');
 
-  // Winner's tools succeeded against loser's archetypes.
+  // Only credit TOP damage dealers + last plans — not the entire roster.
+  const topWinUnits = learnTopUnitTypes(winnerPid, 4, false);
+  const creditUnits = topWinUnits.length ? topWinUnits : myUnits.slice(0, 3);
+  const creditPlans = myPlans.slice(-2);
+  const creditTowers = myTowers.slice(0, 3);
+
   for (const foeArch of foeArchs) {
     if (!mem.counters.vsArch[foeArch]) mem.counters.vsArch[foeArch] = {};
-    for (const u of myUnits) {
+    for (const u of creditUnits) {
       const rec = learnBucket(mem.counters.vsArch[foeArch], `u:${u}`);
       rec.a += 1; rec.w += 1;
     }
-    for (const t of myTowers) {
+    for (const t of creditTowers) {
       const rec = learnBucket(mem.counters.vsArch[foeArch], `t:${t}`);
       rec.a += 1; rec.w += 1;
     }
-    for (const p of myPlans) {
+    for (const p of creditPlans) {
       const rec = learnBucket(mem.counters.vsArch[foeArch], `p:${p}`);
       rec.a += 1; rec.w += 1;
     }
@@ -15877,10 +15941,10 @@ function learnCreditRoutePair(winnerPid, loserPid) {
     }
   }
 
-  // Unit-vs-unit: winner's units beat loser's units.
+  // Unit-vs-unit: only top damage units vs foe types present.
   for (const foeU of foeUnits) {
     if (!mem.counters.vsUnit[foeU]) mem.counters.vsUnit[foeU] = {};
-    for (const myU of myUnits) {
+    for (const myU of creditUnits) {
       const rec = learnBucket(mem.counters.vsUnit[foeU], myU);
       rec.a += 1; rec.w += 1;
     }
@@ -16038,19 +16102,20 @@ function learnBucket(map, key) {
 function learnExploreRate(circKey) {
   const mem = survivalAiLoadMemory();
   const meta = learnEnsureMeta(mem);
-  const n = mem.matches || 0;
-  let floor = meta.exploreFloor;
-  let decay = meta.exploreDecay;
+  const wins = learnLifetimeWins();
+  // Primary schedule: explore falls as we discover wins. Matches alone don't count.
+  let rate = Math.max(0.05, Math.min(0.40, 0.50 / Math.sqrt(wins + 1)));
+  rate = Math.max(rate, meta.exploreFloor || 0.05);
+  rate = Math.min(rate, 0.40);
   if (circKey && mem.circ?.[circKey]) {
     const node = mem.circ[circKey];
     const visits = node.v || 0;
-    const rate = visits > 0 ? node.w / visits : 0;
-    // New circumstance → explore; proven winning circumstance → exploit.
-    if (visits < 4) floor = Math.min(0.55, floor + 0.18);
-    else if (rate >= 0.45 && visits >= 6) floor = Math.max(0.08, floor - 0.12);
-    else if (rate < 0.15 && visits >= 6) floor = Math.min(0.55, floor + 0.1);
+    const wr = visits > 0 ? node.w / visits : 0;
+    if (visits < 3) rate = Math.min(0.40, rate + 0.08);
+    else if (wr >= 0.4 && visits >= 4) rate = Math.max(0.05, rate - 0.12);
+    else if (wr === 0 && visits >= 8) rate = Math.min(0.40, rate + 0.06);
   }
-  return Math.max(floor, 1 / (1 + n * decay));
+  return rate;
 }
 
 function learnWeight(rec) {
@@ -16111,30 +16176,66 @@ function learnCreditBrain(brain, won) {
   if (!brain?.learnLog) return;
   const mem = survivalAiLoadMemory();
   const log = brain.learnLog;
+  const pid = learnBrainPid(brain);
+  const topUnits = (pid === 0 || pid === 1)
+    ? learnTopUnitTypes(pid, won ? 5 : 3, !won)
+    : [];
+  // Prefer damage-dealers; fall back to last few logged units if no dmg tracked yet.
+  let unitCredit = topUnits;
+  if (!unitCredit.length) {
+    const logged = [...new Set(log.units || [])];
+    unitCredit = won ? logged.slice(-5) : logged.slice(-2);
+  }
+  // Plans: last plan matters most (what we actually committed).
+  const plans = log.plans || [];
+  const planCredit = plans.length
+    ? (won ? [...new Set(plans.slice(-3))] : [...new Set(plans.slice(-1))])
+    : [];
+
   if (log.path && mem.paths[log.path]) {
     mem.paths[log.path].a += 1;
-    if (won) mem.paths[log.path].w += 1;
+    if (won) mem.paths[log.path].w += 1.25;
   }
-  const seenPlans = new Set(log.plans || []);
-  for (const planId of seenPlans) {
+  for (const planId of planCredit) {
     const rec = learnBucket(mem.plans, planId);
     rec.a += 1;
-    if (won) rec.w += 1;
+    if (won) rec.w += 1.25;
   }
-  const seenUnits = new Set(log.units || []);
-  for (const u of seenUnits) {
+  for (const u of unitCredit) {
     const rec = learnBucket(mem.units, u);
     rec.a += 1;
-    if (won) rec.w += 1;
+    if (won) rec.w += 1.25;
   }
-  const seenTowers = new Set(log.towers || []);
-  for (const t of seenTowers) {
-    const rec = learnBucket(mem.towers, t);
-    rec.a += 1;
-    if (won) rec.w += 1;
+  // Towers: only on wins (defense credit was drowning attack learning).
+  if (won) {
+    for (const t of new Set(log.towers || [])) {
+      const rec = learnBucket(mem.towers, t);
+      rec.a += 1;
+      rec.w += 1;
+    }
+  } else {
+    // Loss: light attempt on last tower only so we don't poison the whole table.
+    const lastT = (log.towers || [])[(log.towers || []).length - 1];
+    if (lastT) learnBucket(mem.towers, lastT).a += 0.35;
   }
-  // Same choices credited under the circumstance fingerprint for this match.
-  if (brain.lastCircKey) learnCreditBrainToCirc(brain, won, brain.lastCircKey);
+
+  if (brain.lastCircKey) {
+    learnCreditBrainToCircSelective(brain, won, brain.lastCircKey, planCredit, unitCredit);
+  }
+  learnDecayStaleLossMemory();
+}
+
+function learnCreditBrainToCircSelective(brain, won, circKey, plans, units) {
+  if (!circKey) return;
+  if (brain.learnLog?.path) learnCircCredit(circKey, 'paths', brain.learnLog.path, won, won ? 1.2 : 0.7);
+  for (const planId of plans || []) learnCircCredit(circKey, 'plans', planId, won, won ? 1.2 : 0.7);
+  for (const u of units || []) learnCircCredit(circKey, 'units', u, won, won ? 1.1 : 0.55);
+  if (won) {
+    for (const t of new Set(brain.learnLog?.towers || [])) {
+      learnCircCredit(circKey, 'towers', t, true, 0.8);
+    }
+  }
+  learnCircVisit(circKey, won);
 }
 
 function learnRecordMatchEnd() {
@@ -16184,14 +16285,15 @@ function learnRecordMatchEnd() {
     else mem.vs[opp].d += 1;
 
     const dur = Math.max(0, Math.round(combatTime || 0));
-    const outcomeQ = learnOutcomeQuality(result, dur);
-    learnUpdateBlendFromMatch(scores, result, dur);
+    const basePct = learnEnemyBaseDmgPct(learnPid);
+    const outcomeQ = learnOutcomeQuality(result, dur, basePct);
+    learnUpdateBlendFromMatch(scores, result, dur, basePct);
 
     const brain = isCpuVsCpuMode()
       ? simulatorAiBrains?.[learnPid]
       : survivalAiBrain;
     const circKey = brain?.lastCircKey || null;
-    learnMetaUpdate(result, dur, circKey);
+    learnMetaUpdate(result, dur, circKey, basePct);
 
     learnPushHistory({
       t: Date.now(),
@@ -16218,8 +16320,10 @@ function learnRecordMatchEnd() {
     learnAccumulateReward(scores2);
     const dur2 = Math.max(0, Math.round(combatTime || 0));
     const res2 = winner === other ? 'win' : 'loss';
-    learnUpdateBlendFromMatch(scores2, res2, dur2);
-    learnCreditRewardPath(simulatorAiBrains?.[other], scores2, winner === other, learnOutcomeQuality(res2, dur2));
+    const basePct2 = learnEnemyBaseDmgPct(other);
+    learnUpdateBlendFromMatch(scores2, res2, dur2, basePct2);
+    learnMetaUpdate(res2, dur2, simulatorAiBrains?.[other]?.lastCircKey || null, basePct2);
+    learnCreditRewardPath(simulatorAiBrains?.[other], scores2, winner === other, learnOutcomeQuality(res2, dur2, basePct2));
   }
 
   if (isAiVsCpuTrainingMode()) {
@@ -16530,21 +16634,36 @@ function survivalAiGradeStrike(brain) {
   const impact = wallDmg + towersDown * 60 + baseDmg * 1.5;
   const success = towersDown >= 1 || baseDmg >= 15 || wallDmg >= 45;
 
-  const rec = survivalAiArchetypeRecord(ev.key, ev.archetype);
+  // Use rich circumstance key (unified) — wall-only key kept as legacy fallback.
+  const circKey = brain.lastCircKey || ev.circKey || survivalAiCircumstanceKey(
+    null,
+    { combatTime, playerHpPct: players[aiEnemy()]?.baseMaxHp ? players[aiEnemy()].baseHp / players[aiEnemy()].baseMaxHp : 1 }
+  );
+  const rec = survivalAiArchetypeRecord(circKey, ev.archetype);
   rec.attempts += 1;
   if (success) rec.wins += 1;
   rec.dmg += Math.max(0, impact);
 
-  // Circumstance learning: credit this strike's plan/units under the live board state.
-  const circKey = brain.lastCircKey || ev.circKey || ev.key;
-  if (brain.plan?.id) learnCircCredit(circKey, 'plans', brain.plan.id, success, success ? 1.1 : 0.85);
-  if (brain.learnLog?.units?.length) {
-    for (const u of new Set(brain.learnLog.units.slice(-8))) {
-      learnCircCredit(circKey, 'units', u, success, 0.55);
-    }
+  // Credit only the committed plan + top damage units from this strike window.
+  if (brain.plan?.id) {
+    learnCircCredit(circKey, 'plans', brain.plan.id, success, success ? 1.35 : 0.7);
+    const planRec = learnBucket(survivalAiLoadMemory().plans, brain.plan.id);
+    planRec.a += 0.6;
+    if (success) planRec.w += 0.85;
   }
-  if (brain.strategyPath) learnCircCredit(circKey, 'paths', brain.strategyPath, success, 0.4);
-  learnCircVisit(circKey, success);
+  const pid = learnBrainPid(brain);
+  const dmgUnits = (pid === 0 || pid === 1) ? learnTopUnitTypes(pid, 3, false) : [];
+  const strikeUnits = dmgUnits.length
+    ? dmgUnits
+    : [...new Set((brain.learnLog?.units || []).slice(-4))];
+  for (const u of strikeUnits) {
+    learnCircCredit(circKey, 'units', u, success, success ? 0.9 : 0.4);
+  }
+  if (brain.strategyPath && success) {
+    learnCircCredit(circKey, 'paths', brain.strategyPath, true, 0.55);
+  }
+  if (success) learnCircVisit(circKey, true);
+  else if (brain.plan?.id) learnCircVisit(circKey, false);
   survivalAiSaveMemory();
 
   brain.lastStrikeArchetype = ev.archetype;
@@ -16561,9 +16680,9 @@ function survivalAiGradeStrike(brain) {
 
 // ─── Counter doctrine: pick a hidden plan from player intel ───────────────────
 function survivalAiScorePlan(planId, intel, ai, ctx, brain) {
-  const scenarioKey = survivalAiScenarioKey(intel);
   const circKey = survivalAiCircumstanceKey(intel, ctx);
   if (brain) brain.lastCircKey = circKey;
+  const scenarioKey = circKey; // unified: circumstance key drives archetype memory too
   const arch = CPU_PLAN_ARCHETYPE[planId];
   let score = 0;
   const meta = learnGetMeta();
@@ -33356,6 +33475,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
     p.baseDamageThisRound += dmg;
     pulseBaseShake(p);
     trackDamageDealt(attacker.owner, dmg, true);
+    if (attacker.type) learnNoteUnitDmg(attacker.owner, attacker.type, dmg, true);
     spawnParticles(basePos(p.id).x, basePos(p.id).y, p.color.main, 8);
     if (jousted) {
       attacker.joustReady = false;
@@ -33378,6 +33498,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
     const dealt = applyHpLoss(t, dmg);
     t.lastHitBy = attacker.owner;
     trackDamageDealt(attacker.owner, dealt, false, 'tower');
+    if (attacker.type) learnNoteUnitDmg(attacker.owner, attacker.type, dealt, false);
     spawnParticles(t.x, t.y, def.color, 5);
     if (attacker.type === 'goblin' && (t.towerType === 'farm' || t.towerType === 'mint') && typeof LIVE_ARMY !== 'undefined') {
       const victimId = towerOwnerId(t);
@@ -33418,6 +33539,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
   u.lastHitBy = attacker.owner;
   const dealt = applyHpLoss(u, dmg);
   trackDamageDealt(attacker.owner, dealt, false);
+  if (attacker.type) learnNoteUnitDmg(attacker.owner, attacker.type, dealt, false);
   if (dealt > 0 && isWolfHunter(u)) {
     noteWolfHunterAttackedBy(u, attacker);
   }
