@@ -10226,12 +10226,12 @@ function normalizeSurvivalDifficulty(value) {
 /** HQ gold / cycle for learning AI — same baseline as the human player (+25). */
 const LEARNING_AI_HQ_INCOME = SURVIVAL_BASE_INCOME; // 25
 /** Sparring CPU HQ buff in AI vs CPU Training. */
-const SPARRING_CPU_HQ_INCOME = 50;
+const SPARRING_CPU_HQ_INCOME = 25;
 
 function survivalAiHqFlatForPid(pid) {
   // AI Training (self-play) + Play vs AI: fair +25 like the player.
   if (isAiSelfPlayMode() || isPlayVsAiMode()) return LEARNING_AI_HQ_INCOME;
-  // AI vs CPU Training: learner +25, buffed CPU +50.
+  // AI vs CPU Training: both +25 HQ (fair sparring so the learner can find wins).
   if (isAiVsCpuTrainingMode()) {
     return isLearningAiPid(pid) ? LEARNING_AI_HQ_INCOME : SPARRING_CPU_HQ_INCOME;
   }
@@ -16301,7 +16301,7 @@ function syncAiTrainingHud() {
   stats.textContent = `${aiTrainingStats.matches} games · ${side} · ${explore}% explore · ${circN} circ`;
   const meta = learnEnsureMeta(mem);
   stats.title = isAiVsCpuTrainingMode()
-    ? `Learning AI +25 vs Buffed CPU +50. Circumstance memories: ${circN}. Explore floor ${Math.round(meta.exploreFloor * 100)}%. Last: ${aiTrainingStats.lastResult || '—'}`
+    ? `Learning AI +25 vs CPU +25. Circumstance memories: ${circN}. Explore floor ${Math.round(meta.exploreFloor * 100)}%. Last: ${aiTrainingStats.lastResult || '—'}`
     : `Circumstance memories: ${circN}. Explore floor ${Math.round(meta.exploreFloor * 100)}%. Last: ${aiTrainingStats.lastResult || '—'}`;
 }
 
@@ -18981,7 +18981,7 @@ function setupSimulator() {
   toggleSpreadPanel(false);
   toggleCommanderPanel(false);
   if (isAiVsCpuTrainingMode()) {
-    addLog('🥊 AI vs CPU Training — Learning AI (+25 HQ) vs Buffed CPU (+50 HQ)');
+    addLog('🥊 AI vs CPU Training — Learning AI (+25 HQ) vs CPU (+25 HQ)');
     addLog('AI reacts, tries units/towers, and learns. CPU has a big income edge. Stop when done.');
   } else if (isAiSelfPlayMode()) {
     addLog('🧠 AI Training — Red vs Blue trainees (both +25 HQ, self-learning)');
@@ -38922,8 +38922,8 @@ function scheduleAiTrainingRestart() {
       setupSimulator();
       if (isAiVsCpuTrainingMode()) {
         players[0].name = 'Learning AI';
-        players[1].name = 'Buffed CPU';
-        addLog('🥊 Next match — Learning AI +25 vs Buffed CPU +50.');
+        players[1].name = 'CPU';
+        addLog('🥊 Next match — Learning AI +25 vs CPU +25.');
       } else {
         players[0].name = 'Red Trainee';
         players[1].name = 'Blue Trainee';
@@ -39013,14 +39013,14 @@ function startAiVsCpuTraining() {
     survivalAiLoadMemory();
     setupSimulator();
     players[0].name = 'Learning AI';
-    players[1].name = 'Buffed CPU';
+    players[1].name = 'CPU';
     document.getElementById('menu-screen').classList.add('hidden');
     setSurvivalSpeed(4);
     syncSurvivalSpeedButtons();
     syncAiTrainingHud();
     showBanner(
       '🥊 AI vs CPU Training',
-      'Learning AI at +25 HQ vs Buffed CPU at +50 HQ.\nAI must outplay a richer opponent — reacts, experiments, and saves what works.\nSpeeds: 1× / 4× / 8× / 16× / 64× / 256×. Stop anytime.',
+      'Learning AI at +25 HQ vs CPU at +25 HQ (even eco).\nEasier sparring so it can discover winning lines, then save what works.\nSpeeds: 1× / 4× / 8× / 16× / 64× / 256×. Stop anytime.',
       'Start Training'
     );
     bannerAction = () => {
