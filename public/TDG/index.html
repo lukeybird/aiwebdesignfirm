@@ -1273,6 +1273,90 @@
 
     #survival-difficulty-screen.hidden { display: none; }
 
+    #ai-stats-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 14, 12, 0.97);
+      z-index: 36;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #ai-stats-screen.hidden { display: none; }
+    .ai-stats-panel { max-width: 820px; width: 100%; }
+    .ai-stats-scroll { padding: 8px 18px 16px; }
+    .ai-stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .ai-stats-card {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(20, 28, 40, 0.7);
+    }
+    .ai-stats-card .lbl {
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      margin-bottom: 4px;
+    }
+    .ai-stats-card .val {
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-family: Orbitron, Rajdhani, sans-serif;
+    }
+    .ai-stats-card .sub { font-size: 0.75rem; opacity: 0.65; margin-top: 2px; }
+    .ai-stats-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .ai-stats-seg {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ai-stats-tab, .ai-stats-range {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(30, 40, 55, 0.85);
+      color: #e8ebe0;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .ai-stats-tab.active, .ai-stats-range.active {
+      background: rgba(56, 120, 180, 0.55);
+      border-color: rgba(120, 180, 240, 0.55);
+    }
+    .ai-stats-chart-wrap, .ai-stats-reward-wrap {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      background: rgba(12, 18, 28, 0.85);
+      padding: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    #ai-stats-chart, #ai-stats-reward-chart {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .ai-stats-footnote {
+      font-size: 0.78rem;
+      opacity: 0.6;
+      line-height: 1.4;
+      margin: 0;
+    }
+
     .survival-diff-panel { max-width: 420px; width: 100%; }
 
     .survival-diff-options {
@@ -6950,6 +7034,7 @@
             <button class="banner-btn" id="btn-ai-training" type="button">🧠 AI Training</button>
             <button class="banner-btn" id="btn-ai-vs-cpu" type="button">🥊 AI vs CPU Training</button>
             <button class="banner-btn" id="btn-play-vs-ai" type="button">⚔️ Play vs AI</button>
+            <button class="banner-btn" id="btn-ai-stats" type="button">📊 AI Stats</button>
           </div>
           <div class="menu-icon-row">
             <button class="menu-icon-btn" id="btn-menu-modes" type="button" title="Other game modes" aria-label="Other game modes" aria-expanded="false" aria-controls="menu-modes-pop">🎮</button>
@@ -7038,6 +7123,41 @@
           <div class="rulebook-actions">
             <button class="banner-btn secondary" id="btn-rules-reset" type="button">Reset Defaults</button>
             <button class="banner-btn" id="btn-rules-back" type="button">Save &amp; Back</button>
+          </div>
+        </div>
+      </div>
+      <div id="ai-stats-screen" class="hidden">
+        <div class="rulebook-panel ai-stats-panel">
+          <div class="rulebook-header">
+            <h2>📊 AI Stats</h2>
+            <p>Win rate vs CPU and humans over time — plus eco / attack / defense reward scores that train the learning bot.</p>
+          </div>
+          <div class="rulebook-scroll ai-stats-scroll">
+            <div class="ai-stats-summary" id="ai-stats-summary"></div>
+            <div class="ai-stats-controls">
+              <div class="ai-stats-seg" role="group" aria-label="Opponent filter">
+                <button type="button" class="ai-stats-tab active" data-ai-opp="all">Overall</button>
+                <button type="button" class="ai-stats-tab" data-ai-opp="cpu">vs CPU</button>
+                <button type="button" class="ai-stats-tab" data-ai-opp="human">vs Human</button>
+                <button type="button" class="ai-stats-tab" data-ai-opp="self">Self-play</button>
+              </div>
+              <div class="ai-stats-seg" role="group" aria-label="Time scale">
+                <button type="button" class="ai-stats-range active" data-ai-range="minute">Minutes</button>
+                <button type="button" class="ai-stats-range" data-ai-range="hour">Hours</button>
+                <button type="button" class="ai-stats-range" data-ai-range="day">Days</button>
+              </div>
+            </div>
+            <div class="ai-stats-chart-wrap">
+              <canvas id="ai-stats-chart" width="720" height="280" aria-label="AI win rate chart"></canvas>
+            </div>
+            <div class="ai-stats-reward-wrap">
+              <canvas id="ai-stats-reward-chart" width="720" height="200" aria-label="AI reward chart"></canvas>
+            </div>
+            <p class="ai-stats-footnote" id="ai-stats-footnote"></p>
+          </div>
+          <div class="rulebook-actions">
+            <button class="banner-btn secondary" id="btn-ai-stats-export" type="button">Export JSON</button>
+            <button class="banner-btn" id="btn-ai-stats-back" type="button">Back to Menu</button>
           </div>
         </div>
       </div>
@@ -9398,6 +9518,7 @@ function resetRulesToDefaults() {
 }
 
 function openRulebook() {
+  closeAiStats();
   buildRulebookUI();
   document.getElementById('rulebook-screen').classList.remove('hidden');
 }
@@ -9405,7 +9526,285 @@ function openRulebook() {
 function closeRulebook() {
   readRulebookFromUI();
   document.getElementById('rulebook-screen').classList.add('hidden');
+    document.getElementById('ai-stats-screen')?.classList.add('hidden');
 }
+
+
+let aiStatsOppFilter = 'all';
+let aiStatsRange = 'minute';
+
+function openAiStats() {
+  closeMenuModesPop();
+  document.getElementById('manual-screen')?.classList.add('hidden');
+  document.getElementById('rulebook-screen')?.classList.add('hidden');
+  document.getElementById('ai-stats-screen')?.classList.remove('hidden');
+  renderAiStats();
+}
+
+function closeAiStats() {
+  document.getElementById('ai-stats-screen')?.classList.add('hidden');
+}
+
+function aiStatsWinRate(rec) {
+  const w = rec?.w || 0, l = rec?.l || 0, d = rec?.d || 0;
+  const n = w + l + d;
+  if (!n) return { rate: 0, n: 0, w, l, d };
+  return { rate: w / n, n, w, l, d };
+}
+
+function aiStatsAvgReward(mem, key) {
+  const r = mem?.rewards?.[key];
+  if (!r || !r.n) return 0;
+  return r.sum / r.n;
+}
+
+function aiStatsFilterHistory(mem, opp) {
+  const hist = Array.isArray(mem?.history) ? mem.history : [];
+  if (!opp || opp === 'all') return hist.slice();
+  return hist.filter((h) => h && h.opp === opp);
+}
+
+function aiStatsBucketMs(range) {
+  if (range === 'hour') return 60 * 60 * 1000;
+  if (range === 'day') return 24 * 60 * 60 * 1000;
+  return 60 * 1000;
+}
+
+function aiStatsBucketHistory(entries, range) {
+  const bucketMs = aiStatsBucketMs(range);
+  const map = new Map();
+  for (const e of entries) {
+    if (!e || !e.t) continue;
+    const key = Math.floor(e.t / bucketMs) * bucketMs;
+    let b = map.get(key);
+    if (!b) {
+      b = { t: key, w: 0, l: 0, d: 0, eco: 0, atk: 0, def: 0, reward: 0, n: 0 };
+      map.set(key, b);
+    }
+    if (e.result === 'win') b.w += 1;
+    else if (e.result === 'loss') b.l += 1;
+    else b.d += 1;
+    b.eco += e.eco || 0;
+    b.atk += e.atk || 0;
+    b.def += e.def || 0;
+    b.reward += e.reward || 0;
+    b.n += 1;
+  }
+  return [...map.values()].sort((a, b) => a.t - b.t);
+}
+
+function aiStatsDrawLineChart(canvas, seriesList, opts) {
+  if (!canvas) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cssW = canvas.clientWidth || 720;
+  const cssH = canvas.clientHeight || (opts?.height || 280);
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = cssW, H = cssH;
+  ctx.clearRect(0, 0, W, H);
+  const pad = { l: 44, r: 14, t: 28, b: 36 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillRect(pad.l, pad.t, plotW, plotH);
+
+  const allY = [];
+  for (const s of seriesList) for (const v of s.values) if (Number.isFinite(v)) allY.push(v);
+  let yMin = opts?.yMin != null ? opts.yMin : (allY.length ? Math.min(...allY) : 0);
+  let yMax = opts?.yMax != null ? opts.yMax : (allY.length ? Math.max(...allY) : 1);
+  if (yMax <= yMin) yMax = yMin + 1;
+  const padY = (yMax - yMin) * 0.08;
+  yMin = Math.max(opts?.yMin != null ? opts.yMin : yMin - padY, opts?.clampMin != null ? opts.clampMin : -Infinity);
+  yMax = Math.min(opts?.yMax != null ? opts.yMax : yMax + padY, opts?.clampMax != null ? opts.clampMax : Infinity);
+
+  const n = Math.max(...seriesList.map((s) => s.values.length), 1);
+  const xAt = (i) => pad.l + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yAt = (v) => pad.t + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let g = 0; g <= 4; g++) {
+    const y = pad.t + (plotH * g) / 4;
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(pad.l + plotW, y);
+  }
+  ctx.stroke();
+
+  // Y labels
+  ctx.fillStyle = 'rgba(232,235,224,0.55)';
+  ctx.font = '11px Rajdhani, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let g = 0; g <= 4; g++) {
+    const v = yMax - ((yMax - yMin) * g) / 4;
+    const y = pad.t + (plotH * g) / 4;
+    const label = opts?.yFormat ? opts.yFormat(v) : String(Math.round(v));
+    ctx.fillText(label, pad.l - 6, y);
+  }
+
+  // Title
+  if (opts?.title) {
+    ctx.fillStyle = 'rgba(232,235,224,0.85)';
+    ctx.font = '600 13px Rajdhani, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(opts.title, pad.l, 8);
+  }
+
+  // Series
+  for (const s of seriesList) {
+    if (!s.values.length) continue;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < s.values.length; i++) {
+      const v = s.values[i];
+      if (!Number.isFinite(v)) { started = false; continue; }
+      const x = xAt(i), y = yAt(v);
+      if (!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    // dots for sparse data
+    if (s.values.length <= 40) {
+      ctx.fillStyle = s.color;
+      for (let i = 0; i < s.values.length; i++) {
+        const v = s.values[i];
+        if (!Number.isFinite(v)) continue;
+        ctx.beginPath();
+        ctx.arc(xAt(i), yAt(v), 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // Legend
+  let lx = pad.l;
+  ctx.font = '11px Rajdhani, sans-serif';
+  ctx.textBaseline = 'middle';
+  for (const s of seriesList) {
+    ctx.fillStyle = s.color;
+    ctx.fillRect(lx, H - 16, 10, 10);
+    ctx.fillStyle = 'rgba(232,235,224,0.75)';
+    ctx.textAlign = 'left';
+    ctx.fillText(s.label, lx + 14, H - 11);
+    lx += ctx.measureText(s.label).width + 34;
+  }
+
+  // Empty state
+  if (!seriesList.some((s) => s.values.length)) {
+    ctx.fillStyle = 'rgba(232,235,224,0.45)';
+    ctx.font = '14px Rajdhani, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No matches recorded yet — train or play vs AI to populate charts.', W / 2, H / 2);
+  }
+}
+
+function aiStatsFormatBucketLabel(t, range) {
+  const d = new Date(t);
+  if (range === 'day') return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (range === 'hour') return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric' });
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function renderAiStats() {
+  const mem = survivalAiLoadMemory();
+  const summary = document.getElementById('ai-stats-summary');
+  const footnote = document.getElementById('ai-stats-footnote');
+  if (!summary) return;
+
+  const vsCpu = aiStatsWinRate(mem.vs?.cpu);
+  const vsHuman = aiStatsWinRate(mem.vs?.human);
+  const vsSelf = aiStatsWinRate(mem.vs?.self);
+  const overallN = vsCpu.n + vsHuman.n + vsSelf.n;
+  const overallW = vsCpu.w + vsHuman.w + vsSelf.w;
+  const overallRate = overallN ? overallW / overallN : 0;
+
+  const fmtPct = (r) => `${Math.round(r * 1000) / 10}%`;
+  const cards = [
+    { lbl: 'Overall WR', val: fmtPct(overallRate), sub: `${overallW}W / ${overallN} games` },
+    { lbl: 'vs CPU', val: fmtPct(vsCpu.rate), sub: `${vsCpu.w}W-${vsCpu.l}L-${vsCpu.d}D` },
+    { lbl: 'vs Human', val: fmtPct(vsHuman.rate), sub: `${vsHuman.w}W-${vsHuman.l}L-${vsHuman.d}D` },
+    { lbl: 'Avg Eco', val: String(Math.round(aiStatsAvgReward(mem, 'eco'))), sub: 'income / farms / mints' },
+    { lbl: 'Avg Attack', val: String(Math.round(aiStatsAvgReward(mem, 'atk'))), sub: 'base + tower pressure' },
+    { lbl: 'Avg Defense', val: String(Math.round(aiStatsAvgReward(mem, 'def'))), sub: 'incoming troops killed' },
+  ];
+  summary.innerHTML = cards.map((c) => (
+    `<div class="ai-stats-card"><div class="lbl">${c.lbl}</div><div class="val">${c.val}</div><div class="sub">${c.sub}</div></div>`
+  )).join('');
+
+  const filtered = aiStatsFilterHistory(mem, aiStatsOppFilter);
+  const buckets = aiStatsBucketHistory(filtered, aiStatsRange);
+  // Keep a readable tail window
+  const maxBuckets = aiStatsRange === 'minute' ? 60 : aiStatsRange === 'hour' ? 48 : 30;
+  const view = buckets.slice(-maxBuckets);
+
+  const wrSeries = view.map((b) => {
+    const n = b.w + b.l + b.d;
+    return n ? b.w / n : null;
+  });
+  const gamesSeries = view.map((b) => b.n);
+
+  const gamesInView = gamesSeries.reduce((a, b) => a + b, 0);
+  aiStatsDrawLineChart(document.getElementById('ai-stats-chart'), [
+    { label: 'Win rate %', color: '#6ec8ff', values: wrSeries.map((v) => (v == null ? NaN : v * 100)) },
+  ], {
+    title: `Win rate · ${aiStatsOppFilter === 'all' ? 'all opponents' : 'vs ' + aiStatsOppFilter} · by ${aiStatsRange} (${gamesInView} games)`,
+    yMin: 0,
+    yMax: 100,
+    height: 280,
+    yFormat: (v) => `${Math.round(v)}%`,
+  });
+
+  const ecoS = view.map((b) => (b.n ? b.eco / b.n : NaN));
+  const atkS = view.map((b) => (b.n ? b.atk / b.n : NaN));
+  const defS = view.map((b) => (b.n ? b.def / b.n : NaN));
+  aiStatsDrawLineChart(document.getElementById('ai-stats-reward-chart'), [
+    { label: 'Eco', color: '#86efac', values: ecoS },
+    { label: 'Attack', color: '#fca5a5', values: atkS },
+    { label: 'Defense', color: '#93c5fd', values: defS },
+  ], {
+    title: 'Average reward scores per match',
+    yMin: 0,
+    height: 200,
+  });
+
+  const first = view[0], last = view[view.length - 1];
+  const rangeHint = view.length
+    ? `${aiStatsFormatBucketLabel(first.t, aiStatsRange)} → ${aiStatsFormatBucketLabel(last.t, aiStatsRange)} · ${filtered.length} matches in filter`
+    : 'Play AI vs CPU, Play vs AI, or AI Training to start logging.';
+  if (footnote) {
+    footnote.textContent = `Rewards push the bot toward eco (farms/mints/income), attack (damage & tower kills), and defense (killing incoming troops). ${rangeHint}`;
+  }
+}
+
+function exportAiStatsJson() {
+  const mem = survivalAiLoadMemory();
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version: mem.version,
+    matches: mem.matches,
+    vs: mem.vs,
+    rewards: mem.rewards,
+    history: mem.history,
+    wins: mem.wins,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tdg-ai-stats-${Date.now()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 
 const UNIT_MANUAL = {
   tank: 'Heavy war elephant with a native rider. Strong against Spreaders (immune to shock/knockback). Extremely weak against Wolves in packs.',
@@ -14642,7 +15041,7 @@ let aiTrainingStopRequested = false;
 
 function learnFreshMemory() {
   return {
-    version: 3,
+    version: 4,
     matches: 0,
     wins: { 0: 0, 1: 0, draw: 0 },
     paths: { defense: { a: 0, w: 0 }, farm: { a: 0, w: 0 }, attack: { a: 0, w: 0 } },
@@ -14652,7 +15051,152 @@ function learnFreshMemory() {
     scenarios: {},
     // What worked against what: foe archetype / unit → our response.
     counters: { vsArch: {}, vsUnit: {} },
+    // Lifetime W/L by opponent type (learning AI perspective).
+    vs: {
+      cpu: { w: 0, l: 0, d: 0 },
+      human: { w: 0, l: 0, d: 0 },
+      self: { w: 0, l: 0, d: 0 },
+    },
+    // Rolling match history for charts (capped).
+    history: [],
+    // Aggregate reward scores.
+    rewards: {
+      eco: { sum: 0, n: 0 },
+      atk: { sum: 0, n: 0 },
+      def: { sum: 0, n: 0 },
+      total: { sum: 0, n: 0 },
+    },
   };
+}
+
+const LEARN_HISTORY_MAX = 2500;
+
+/** Live per-side reward meters for the current match. */
+let learnMatchPerf = null;
+
+function learnResetMatchPerf() {
+  learnMatchPerf = {
+    0: { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0 },
+    1: { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0 },
+  };
+}
+
+function learnPerfSide(pid) {
+  if (!learnMatchPerf) learnResetMatchPerf();
+  if (pid !== 0 && pid !== 1) return null;
+  return learnMatchPerf[pid];
+}
+
+function learnNoteEco(pid, amount) {
+  const s = learnPerfSide(pid);
+  if (!s || !(amount > 0)) return;
+  s.ecoGold += amount;
+}
+
+function learnNoteAtk(pid, dmg, kind) {
+  const s = learnPerfSide(pid);
+  if (!s || !(dmg > 0)) return;
+  s.atkDmg += dmg;
+  if (kind === 'base') s.atkBase += dmg;
+  else if (kind === 'tower') s.atkTower += dmg;
+}
+
+function learnNoteDef(pid, killValue) {
+  const s = learnPerfSide(pid);
+  if (!s) return;
+  s.defKills += 1;
+  s.defKillValue += Math.max(0, killValue || 0);
+}
+
+/** Which opponent bucket this match belongs to (learning AI view). */
+function learnOpponentKind() {
+  if (isAiVsCpuTrainingMode()) return 'cpu';
+  if (isPlayVsAiMode()) return 'human';
+  if (isAiSelfPlayMode()) return 'self';
+  // Local Game: scripted enemy CPU.
+  if (gameMode === 'survival') return 'cpu';
+  return null;
+}
+
+function learnLearningPidForMatch() {
+  if (isAiVsCpuTrainingMode() || isAiSelfPlayMode()) return 0;
+  if (isPlayVsAiMode() || gameMode === 'survival') return 1;
+  return null;
+}
+
+function learnScoreMatchRewards(pid) {
+  const s = learnPerfSide(pid) || { ecoGold: 0, atkDmg: 0, atkBase: 0, atkTower: 0, defKills: 0, defKillValue: 0 };
+  const p = players[pid];
+  const farms = (p?.turrets || []).filter((t) => t.hp > 0 && t.towerType === 'farm').length;
+  const mints = (p?.turrets || []).filter((t) => t.hp > 0 && t.towerType === 'mint').length;
+  let incomeUp = 0;
+  try {
+    const eco = LIVE_ARMY?.economyRecord?.(p);
+    incomeUp = eco?.base?.income || 0;
+  } catch (e) { /* ignore */ }
+
+  const eco = Math.round(
+    s.ecoGold * 0.08
+    + farms * 18
+    + mints * 28
+    + incomeUp * 22
+  );
+  const towerKills = combatStats?.[pid]?.towerKills || 0;
+  const atk = Math.round(
+    s.atkBase * 0.55
+    + s.atkTower * 0.18
+    + Math.max(0, s.atkDmg - s.atkBase - s.atkTower) * 0.06
+    + towerKills * 35
+  );
+  const defn = Math.round(
+    s.defKills * 14
+    + s.defKillValue * 0.12
+  );
+  const total = Math.round(eco * 0.34 + atk * 0.38 + defn * 0.28);
+  return { eco, atk, def: defn, total, raw: { ...s, farms, mints, incomeUp } };
+}
+
+function learnPushHistory(entry) {
+  const mem = survivalAiLoadMemory();
+  if (!Array.isArray(mem.history)) mem.history = [];
+  mem.history.push(entry);
+  if (mem.history.length > LEARN_HISTORY_MAX) {
+    mem.history.splice(0, mem.history.length - LEARN_HISTORY_MAX);
+  }
+}
+
+function learnAccumulateReward(scores) {
+  const mem = survivalAiLoadMemory();
+  if (!mem.rewards) {
+    mem.rewards = {
+      eco: { sum: 0, n: 0 }, atk: { sum: 0, n: 0 }, def: { sum: 0, n: 0 }, total: { sum: 0, n: 0 },
+    };
+  }
+  for (const k of ['eco', 'atk', 'def', 'total']) {
+    if (!mem.rewards[k]) mem.rewards[k] = { sum: 0, n: 0 };
+    mem.rewards[k].sum += scores[k] || 0;
+    mem.rewards[k].n += 1;
+  }
+}
+
+/** Bias doctrine paths from which reward pillar dominated this match. */
+function learnCreditRewardPath(brain, scores, won) {
+  if (!brain || !scores) return;
+  const mem = survivalAiLoadMemory();
+  let best = 'attack';
+  let bestV = scores.atk;
+  if (scores.eco >= bestV) { best = 'farm'; bestV = scores.eco; }
+  if (scores.def >= bestV) { best = 'defense'; bestV = scores.def; }
+  if (!mem.paths[best]) mem.paths[best] = { a: 0, w: 0 };
+  mem.paths[best].a += 1;
+  // Stronger credit when the match was won AND that pillar scored well.
+  if (won && bestV >= 40) mem.paths[best].w += 1;
+  else if (won) mem.paths[best].w += 0.5;
+  // Soft-credit the path the brain actually ran if rewards were balanced.
+  if (brain.strategyPath && mem.paths[brain.strategyPath]) {
+    mem.paths[brain.strategyPath].a += 0.35;
+    if (won) mem.paths[brain.strategyPath].w += 0.35;
+  }
 }
 
 /** Per-match routes for BOTH sides — units, towers, plans, doctrine. */
@@ -14874,18 +15418,30 @@ function survivalAiLoadMemory() {
     if (!raw) raw = localStorage.getItem(SURVIVAL_AI_MEMORY_KEY_LEGACY);
     if (raw) {
       const parsed = JSON.parse(raw) || {};
-      if (parsed.version === 2 || parsed.version === 3) {
+      if (parsed.version === 2 || parsed.version === 3 || parsed.version === 4) {
         survivalAiMemory = Object.assign(learnFreshMemory(), parsed);
         if (!survivalAiMemory.scenarios) survivalAiMemory.scenarios = {};
         if (!survivalAiMemory.counters) survivalAiMemory.counters = { vsArch: {}, vsUnit: {} };
         if (!survivalAiMemory.counters.vsArch) survivalAiMemory.counters.vsArch = {};
         if (!survivalAiMemory.counters.vsUnit) survivalAiMemory.counters.vsUnit = {};
-        survivalAiMemory.version = 3;
+        if (!survivalAiMemory.vs) survivalAiMemory.vs = { cpu: { w: 0, l: 0, d: 0 }, human: { w: 0, l: 0, d: 0 }, self: { w: 0, l: 0, d: 0 } };
+        if (!Array.isArray(survivalAiMemory.history)) survivalAiMemory.history = [];
+        if (!survivalAiMemory.rewards) {
+          survivalAiMemory.rewards = {
+            eco: { sum: 0, n: 0 }, atk: { sum: 0, n: 0 }, def: { sum: 0, n: 0 }, total: { sum: 0, n: 0 },
+          };
+        }
+        survivalAiMemory.version = 4;
       } else {
         // Migrate v1 scenario-keyed archetype maps into scenarios.
         survivalAiMemory.scenarios = parsed;
         survivalAiMemory.counters = { vsArch: {}, vsUnit: {} };
-        survivalAiMemory.version = 3;
+        survivalAiMemory.vs = { cpu: { w: 0, l: 0, d: 0 }, human: { w: 0, l: 0, d: 0 }, self: { w: 0, l: 0, d: 0 } };
+        survivalAiMemory.history = [];
+        survivalAiMemory.rewards = {
+          eco: { sum: 0, n: 0 }, atk: { sum: 0, n: 0 }, def: { sum: 0, n: 0 }, total: { sum: 0, n: 0 },
+        };
+        survivalAiMemory.version = 4;
       }
     }
   } catch (e) {
@@ -15021,6 +15577,46 @@ function learnRecordMatchEnd() {
   learnEnrichRoutesFromBoard();
   if (winner === 0 || winner === 1) {
     learnCreditRoutePair(winner, 1 - winner);
+  }
+
+  // Reward system + win-rate history (learning AI perspective).
+  const learnPid = learnLearningPidForMatch();
+  const opp = learnOpponentKind();
+  if (learnPid != null && opp) {
+    const scores = learnScoreMatchRewards(learnPid);
+    learnAccumulateReward(scores);
+    let result = 'draw';
+    if (winner === learnPid) result = 'win';
+    else if (winner === 0 || winner === 1) result = 'loss';
+    if (!mem.vs) mem.vs = { cpu: { w: 0, l: 0, d: 0 }, human: { w: 0, l: 0, d: 0 }, self: { w: 0, l: 0, d: 0 } };
+    if (!mem.vs[opp]) mem.vs[opp] = { w: 0, l: 0, d: 0 };
+    if (result === 'win') mem.vs[opp].w += 1;
+    else if (result === 'loss') mem.vs[opp].l += 1;
+    else mem.vs[opp].d += 1;
+
+    learnPushHistory({
+      t: Date.now(),
+      opp,
+      result,
+      eco: scores.eco,
+      atk: scores.atk,
+      def: scores.def,
+      reward: scores.total,
+      mode: gameMode,
+    });
+
+    const brain = isCpuVsCpuMode()
+      ? simulatorAiBrains?.[learnPid]
+      : survivalAiBrain;
+    learnCreditRewardPath(brain, scores, result === 'win');
+  }
+
+  // Self-play: also score the other trainee so both sides feed rewards.
+  if (isAiSelfPlayMode() && (winner === 0 || winner === 1)) {
+    const other = 1 - (learnPid ?? 0);
+    const scores2 = learnScoreMatchRewards(other);
+    learnAccumulateReward(scores2);
+    learnCreditRewardPath(simulatorAiBrains?.[other], scores2, winner === other);
   }
 
   if (isAiVsCpuTrainingMode()) {
@@ -17589,6 +18185,7 @@ function getUnitFormationSlot(type, index, pid) {
 
 function setupSurvivalLive() {
   learnResetMatchRoutes();
+  learnResetMatchPerf();
   combatUnits = [];
   pellets = [];
   archerArrows = [];
@@ -17683,6 +18280,7 @@ function setupSurvivalLive() {
 
 function setupSimulator() {
   learnResetMatchRoutes();
+  learnResetMatchPerf();
   combatUnits = [];
   pellets = [];
   archerArrows = [];
@@ -18753,6 +19351,7 @@ function tickSurvivalHarvest(pid, type) {
     for (const tw of p.turrets) {
     if (tw.towerType !== type || tw.hp <= 0) continue;
     p.coins += amt;
+    learnNoteEco(pid, amt);
     if (type === 'farm' || type === 'mint') {
       tw.lifetimeIncome = (tw.lifetimeIncome || 0) + amt;
     }
@@ -18773,6 +19372,7 @@ function tickSurvivalBaseIncome() {
     if (baseAmt <= 0) continue;
     const baseColor = pid === 0 ? '#fcd34d' : '#fb923c';
     p.coins += baseAmt;
+    learnNoteEco(pid, baseAmt);
     const bp = basePos(pid);
     spawnFloatText(bp.x, bp.y - BASE_SIZE - 12, `+${baseAmt}`, baseColor);
   }
@@ -18790,6 +19390,7 @@ function tickSurvivalIncome() {
     for (const tw of p.turrets) {
       if (tw.towerType !== 'mint' || tw.hp <= 0) continue;
       p.coins += mintAmt;
+      learnNoteEco(pid, mintAmt);
       tw.lifetimeIncome = (tw.lifetimeIncome || 0) + mintAmt;
       spawnFloatText(tw.x, tw.y - 38, `+${mintAmt}`, mintColor);
       }
@@ -23823,6 +24424,10 @@ function onUnitKilled(u) {
   const defender = enemyId(u.owner);
   if (killer === null || killer === undefined || killer !== defender) return;
 
+  // Defense reward: destroying incoming enemy troops.
+  const killVal = Math.max(8, u.maxHp || u.hp || UNIT_TYPES[u.type]?.hp || 20);
+  learnNoteDef(killer, killVal);
+
   const st = combatStats[killer];
   st.kills++;
   st.killTimes.push(combatTime);
@@ -23860,7 +24465,7 @@ function onTowerDestroyed(tower, killerId) {
   }
 }
 
-function trackDamageDealt(attackerId, dmg, isBase) {
+function trackDamageDealt(attackerId, dmg, isBase, kind) {
   if (attackerId === null || attackerId === undefined) return;
   const st = combatStats[attackerId];
   st.totalDmgDealt += dmg;
@@ -23869,6 +24474,8 @@ function trackDamageDealt(attackerId, dmg, isBase) {
     checkTierAchievements(attackerId, 'base_dmg');
   }
   checkTierAchievements(attackerId, 'total_dmg');
+  const atkKind = isBase ? 'base' : (kind || 'unit');
+  learnNoteAtk(attackerId, dmg, atkKind);
 }
 
 function beamBoardLength(tx, ty, angle) {
@@ -32146,7 +32753,7 @@ function applyDamageToTarget(attacker, target, rawDamage) {
     const wasAlive = t.hp > 0;
     const dealt = applyHpLoss(t, dmg);
     t.lastHitBy = attacker.owner;
-    trackDamageDealt(attacker.owner, dealt, false);
+    trackDamageDealt(attacker.owner, dealt, false, 'tower');
     spawnParticles(t.x, t.y, def.color, 5);
     if (attacker.type === 'goblin' && (t.towerType === 'farm' || t.towerType === 'mint') && typeof LIVE_ARMY !== 'undefined') {
       const victimId = towerOwnerId(t);
@@ -33011,7 +33618,7 @@ function applyAngelReflectedPelletStructure(pellet, tower) {
   const dmg = Math.max(1, Math.round(base * (pellet.damageMult || 1) * 0.9));
   tower.lastHitBy = pellet.ownerId;
   const dealt = applyHpLoss(tower, dmg);
-  trackDamageDealt(pellet.ownerId, dealt, false);
+  trackDamageDealt(pellet.ownerId, dealt, false, 'tower');
   spawnParticles(tower.x, tower.y, pellet.color || '#38bdf8', 5);
   if (tower.hp <= 0) {
     const owner = players.find((pl) => pl.turrets.includes(tower));
@@ -34810,7 +35417,7 @@ function detonateCatapultRock(rock) {
       const dmg = rock.splashDamage * 0.7 * falloff;
       tw.lastHitBy = rock.ownerId;
       applyHpLoss(tw, dmg);
-      trackDamageDealt(rock.ownerId, dmg, false);
+      trackDamageDealt(rock.ownerId, dmg, false, 'tower');
       if (tw.hp <= 0) {
         ep.rubble.push(createTowerRuin(tw));
         onTowerDestroyed(tw, rock.ownerId);
@@ -35139,7 +35746,7 @@ function applyArcherArrowStructureHit(arrow, tower) {
   const wasAlive = tower.hp > 0;
   tower.lastHitBy = arrow.ownerId;
   const dealt = applyHpLoss(tower, dmg);
-  trackDamageDealt(arrow.ownerId, dealt, false);
+  trackDamageDealt(arrow.ownerId, dealt, false, 'tower');
   spawnParticles(tower.x, tower.y, arrow.tip || '#92400e', 5);
   spawnFloatText(tower.x, tower.y - 18, `-${dealt}`, arrow.color || '#fef3c7');
   if (wasAlive && tower.hp <= 0) {
@@ -36334,6 +36941,7 @@ function endCombat() {
     const inc = i === 0 ? income0 : income1;
     const bak = i === 0 ? backup0 : backup1;
     p.coins += inc + bak + battleBonus + mintInc;
+    learnNoteEco(i, Math.max(0, inc) + Math.max(0, mintInc));
     p._summaryBattle = battleBonus;
     p._summaryMint = mintInc;
   }
@@ -36980,6 +37588,7 @@ document.getElementById('banner-btn').addEventListener('click', () => {
     Object.keys(free2pKeys).forEach(k => { free2pKeys[k] = false; });
     resetGame();
     document.getElementById('rulebook-screen').classList.add('hidden');
+    document.getElementById('ai-stats-screen')?.classList.add('hidden');
     document.getElementById('manual-screen').classList.add('hidden');
     document.getElementById('menu-screen').classList.remove('hidden');
     return;
@@ -37883,6 +38492,32 @@ document.getElementById('btn-play-vs-ai')?.addEventListener('click', () => {
   startPlayVsAi();
 });
 
+document.getElementById('btn-ai-stats')?.addEventListener('click', () => {
+  openAiStats();
+});
+document.getElementById('btn-ai-stats-back')?.addEventListener('click', () => {
+  closeAiStats();
+});
+document.getElementById('btn-ai-stats-export')?.addEventListener('click', () => {
+  exportAiStatsJson();
+});
+document.querySelectorAll('.ai-stats-tab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ai-stats-tab').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    aiStatsOppFilter = btn.getAttribute('data-ai-opp') || 'all';
+    renderAiStats();
+  });
+});
+document.querySelectorAll('.ai-stats-range').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ai-stats-range').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    aiStatsRange = btn.getAttribute('data-ai-range') || 'minute';
+    renderAiStats();
+  });
+});
+
 document.getElementById('btn-stop-ai-train')?.addEventListener('click', () => {
   requestStopAiTraining();
 });
@@ -37904,6 +38539,7 @@ function startSandboxLive() {
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('manual-screen').classList.add('hidden');
     document.getElementById('rulebook-screen').classList.add('hidden');
+    document.getElementById('ai-stats-screen')?.classList.add('hidden');
     showBanner(
       '🧪 Sandbox',
       'Unlimited gold on both sides (use ∞ ON / Finite next to P1·P2 — Finite resets both to 0).\nGold always shows P1 and P2. Use P1 / P2 (or Space) to switch sides.',
@@ -37929,6 +38565,7 @@ document.getElementById('btn-free').addEventListener('click', () => {
   document.getElementById('menu-screen').classList.add('hidden');
   document.getElementById('manual-screen').classList.add('hidden');
   document.getElementById('rulebook-screen').classList.add('hidden');
+    document.getElementById('ai-stats-screen')?.classList.add('hidden');
   setupFreeMode();
 });
 
@@ -37940,6 +38577,7 @@ document.getElementById('btn-free2p').addEventListener('click', () => {
   document.getElementById('menu-screen').classList.add('hidden');
   document.getElementById('manual-screen').classList.add('hidden');
   document.getElementById('rulebook-screen').classList.add('hidden');
+    document.getElementById('ai-stats-screen')?.classList.add('hidden');
   setupFree2pMode();
 });
 
