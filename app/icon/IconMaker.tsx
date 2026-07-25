@@ -131,17 +131,6 @@ function IconPreview({
   return <p className="icon-empty">No preview</p>;
 }
 
-async function mapPool<T>(items: T[], concurrency: number, worker: (item: T, index: number) => Promise<void>) {
-  let next = 0;
-  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (next < items.length) {
-      const index = next;
-      next += 1;
-      await worker(items[index], index);
-    }
-  });
-  await Promise.all(runners);
-}
 
 export default function IconMaker() {
   const formId = useId();
@@ -354,9 +343,11 @@ export default function IconMaker() {
       setGenerating(true);
 
       const activeCollectionId = typeof data.collectionId === 'string' ? data.collectionId : null;
-      await mapPool(planned, 2, async (icon) => {
+      // One icon at a time, start-to-finish, to avoid overloading image/API providers.
+      for (const icon of planned) {
         await generateOne(icon, activeCollectionId);
-      });
+        await new Promise((r) => setTimeout(r, 800));
+      }
 
       if (sessionId) void loadPast(sessionId);
       flash('Icon set complete — browse them below');
