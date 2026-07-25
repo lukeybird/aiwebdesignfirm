@@ -13,18 +13,20 @@ export const DEFAULT_ICON_SIZE = 512;
 export const ICON_STYLES = ['outline', 'filled', 'duotone', 'glyph'] as const;
 export const ICON_SIZES = [512] as const;
 
-const PROMPT_SYSTEM = `You write image prompts for a black-and-white app/logo icon generator.
+const PROMPT_SYSTEM = `You write production prompts for elite black-and-white app/logo icons.
 
-Return ONLY the prompt text. No quotes, no markdown, no explanation.
+Return ONLY the image prompt text. No quotes, no markdown, no explanation.
 
-Rules for the prompt you write:
-- One simple icon/logo mark, centered
-- Solid black shapes on a pure white background
-- Flat, high contrast, no gray, no gradients, no shadows, no photorealism
-- No text unless the user explicitly asked for letters/numbers
-- No photorealistic textures, no 3D, no mockups, no phone frames
-- Suitable for vector tracing (clean silhouette / bold glyph)
-- Include: "minimal flat icon, solid black on pure white background, high contrast, centered, no gray"`;
+The prompt must force a usable icon:
+- Single centered subject, bold silhouette, instantly readable at small size
+- Pure black shapes on pure white background only
+- Flat vector look, crisp edges, no gray, no gradients, no shadows, no glow
+- No photorealism, no 3D, no texture, no mockups, no frames, no watermarks
+- No text/letters/numbers unless the brief explicitly requires them
+- Generous padding (~12-18% empty margin from edges)
+- Describe exact geometry: orientation, major shapes, relative proportions, what to omit
+- Prefer fewer shapes over ornate detail
+- End with: "minimal flat icon, solid black on pure white, high contrast silhouette, centered, vector style, no gray"`;
 
 export function claudeKey(): string {
   const key = process.env.CLAUDE_API_KEY;
@@ -64,8 +66,14 @@ export async function callClaudeJson(system: string, user: string, maxTokens = 1
 export async function refineIconPrompt(description: string, style: string): Promise<string> {
   const answer = await callClaudeJson(
     PROMPT_SYSTEM,
-    `Style preference: ${style}\nUser icon description: ${description}`,
-    220,
+    [
+      `Rendering style preference: ${style}`,
+      'Turn this production brief into one precise image-generation prompt.',
+      'Preserve the exact subject and construction details. Do not invent unrelated objects.',
+      '',
+      description,
+    ].join('\n'),
+    420,
   );
   return answer.replace(/^["'\s]+|["'\s]+$/g, '').trim();
 }
@@ -136,11 +144,14 @@ async function generateRasterPng(prompt: string): Promise<{ buffer: Buffer; prov
 }
 
 async function thresholdPng(input: Buffer): Promise<Buffer> {
+  // Slight blur + harder threshold cleans soft AI edges before tracing
   return sharp(input)
-    .resize(RENDER_SIZE, RENDER_SIZE, { fit: 'cover', position: 'centre' })
+    .resize(RENDER_SIZE, RENDER_SIZE, { fit: 'contain', background: '#ffffff', position: 'centre' })
+    .flatten({ background: '#ffffff' })
     .grayscale()
     .normalize()
-    .threshold(140)
+    .blur(0.6)
+    .threshold(150)
     .png()
     .toBuffer();
 }
@@ -208,9 +219,9 @@ async function traceToSvg(bwPng: Buffer, size: number): Promise<string> {
     data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength),
   };
   const traced = ImageTracer.imagedataToSVG(imageData, {
-    ltres: 0.8,
-    qtres: 0.8,
-    pathomit: 8,
+    ltres: 1.0,
+    qtres: 1.0,
+    pathomit: 16,
     colorsampling: 0,
     numberofcolors: 2,
     mincolorratio: 0,

@@ -3,30 +3,50 @@ import { createIconCollection, listIconCollections } from '@/lib/icon-db';
 import { callClaudeJson, DEFAULT_ICON_SIZE, ICON_STYLES, slugifyIconName } from '@/lib/icon-pipeline';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 const SET_COUNT = 12;
 
-const PLAN_SYSTEM = `You design icon set concepts for a black-and-white icon generator.
+const STRATEGY_SYSTEM = `You are a senior brand/icon strategist for an agency-quality icon system.
 
-Return ONLY valid JSON (no markdown) with this shape:
+Think in this exact order, then answer with JSON only (no markdown):
+
+1) What does this category need to communicate as an agency / brand system?
+2) Which distinct ideas should icons carry so the set feels complete and useful?
+3) How can each idea be reduced to the simplest, most beautiful silhouette?
+4) What exact visual details must each icon include (and exclude)?
+
+Return ONLY valid JSON:
 {
+  "agencyBrief": "2-4 sentences: what this category must communicate",
+  "styleBible": {
+    "look": "one sentence describing the shared visual language",
+    "rules": [
+      "shared rule 1",
+      "shared rule 2",
+      "shared rule 3",
+      "shared rule 4"
+    ]
+  },
   "icons": [
     {
       "name": "Baseball Bat",
-      "description": "A simple baseball bat icon, angled diagonally"
+      "meaning": "Why this icon exists in the set / what idea it communicates",
+      "simplicity": "How it stays simple and beautiful",
+      "details": "Exact construction: orientation, key shapes, proportions, what to omit, padding feel",
+      "description": "One dense production brief the image model will follow for this single icon"
     }
   ]
 }
 
-Rules:
+Hard rules:
 - Exactly ${SET_COUNT} icons
-- Each name is short (2-4 words), title case, unique, filename-friendly
-- Each description is one clear sentence of what the icon should depict
-- All icons must clearly belong to the given category
-- Prefer distinct subjects (not 12 slight variations of the same thing)
-- No text/letters inside icons unless the category requires it
-- Keep shapes simple enough for silhouette / vector tracing`;
+- Names: short Title Case, unique, filename-friendly (2-4 words)
+- Icons must be distinct subjects (not slight variations)
+- Every icon must serve communication, not decoration
+- Favor bold, readable silhouettes that work at small sizes
+- No text/letters inside icons unless the category truly requires it
+- description must be concrete and geometric, not poetic`;
 
 function safeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -42,6 +62,35 @@ function extractJson(raw: string): unknown {
     if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
     throw new Error('Could not parse icon plan JSON');
   }
+}
+
+function buildProductionBrief(input: {
+  category: string;
+  style: string;
+  agencyBrief: string;
+  styleBibleLook: string;
+  styleRules: string[];
+  name: string;
+  meaning: string;
+  simplicity: string;
+  details: string;
+  description: string;
+}): string {
+  const rules = input.styleRules.filter(Boolean).slice(0, 6).map((r) => `- ${r}`).join('\n');
+  return [
+    `Category: ${input.category}`,
+    `Shared style: ${input.style} · ${input.styleBibleLook}`,
+    `Agency communication: ${input.agencyBrief}`,
+    rules ? `Style bible:\n${rules}` : '',
+    `Icon name: ${input.name}`,
+    `Communicates: ${input.meaning}`,
+    `Keep it simple: ${input.simplicity}`,
+    `Exact details: ${input.details}`,
+    `Production brief: ${input.description}`,
+    'Render as one centered black silhouette icon on pure white. No gray, no shadows, no text, no photorealism.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export async function GET(request: NextRequest) {
@@ -76,11 +125,41 @@ export async function POST(request: NextRequest) {
     }
 
     const raw = await callClaudeJson(
-      PLAN_SYSTEM,
-      `Category: ${category}\nStyle: ${style}\nCreate exactly ${SET_COUNT} icon ideas.`,
-      1600,
+      STRATEGY_SYSTEM,
+      [
+        `Category / client theme: ${category}`,
+        `Preferred rendering style: ${style}`,
+        `Produce exactly ${SET_COUNT} icons.`,
+        'Follow the thinking order strictly: communicate → ideas → simplicity → exact details → production briefs.',
+      ].join('\n'),
+      3500,
     );
-    const parsed = extractJson(raw) as { icons?: Array<{ name?: string; description?: string }> };
+
+    const parsed = extractJson(raw) as {
+      agencyBrief?: string;
+      styleBible?: { look?: string; rules?: unknown };
+      icons?: Array<{
+        name?: string;
+        meaning?: string;
+        simplicity?: string;
+        details?: string;
+        description?: string;
+      }>;
+    };
+
+    const agencyBrief = safeText(parsed.agencyBrief) || `A clear, professional icon system for ${category}.`;
+    const styleBibleLook =
+      safeText(parsed.styleBible?.look) ||
+      'Bold, geometric black silhouettes with generous padding and consistent weight.';
+    const styleRules = Array.isArray(parsed.styleBible?.rules)
+      ? parsed.styleBible!.rules!.map((r) => safeText(r)).filter(Boolean)
+      : [
+          'Consistent optical weight across the set',
+          'Centered subject with ~12-18% padding',
+          'No tiny details that disappear at small sizes',
+          'One idea per icon',
+        ];
+
     const ideasRaw = Array.isArray(parsed?.icons) ? parsed.icons : [];
     if (ideasRaw.length < 8) {
       return NextResponse.json({ error: 'Icon planner returned too few ideas. Try again.' }, { status: 502 });
@@ -92,20 +171,52 @@ export async function POST(request: NextRequest) {
       let slug = slugifyIconName(name);
       if (usedSlugs.has(slug)) slug = `${slug}-${index + 1}`;
       usedSlugs.add(slug);
+
+      const meaning = safeText(idea.meaning) || `Represents a core ${category} idea`;
+      const simplicity = safeText(idea.simplicity) || 'Reduce to essential silhouette shapes only';
+      const details = safeText(idea.details) || `Centered ${name.toLowerCase()} mark, clear proportions`;
+      const description =
+        safeText(idea.description) || `Minimal black ${name.toLowerCase()} icon on white`;
+
       return {
         name,
         slug,
-        description: safeText(idea.description) || `${category} icon: ${name}`,
+        summary: meaning,
+        description: buildProductionBrief({
+          category,
+          style,
+          agencyBrief,
+          styleBibleLook,
+          styleRules,
+          name,
+          meaning,
+          simplicity,
+          details,
+          description,
+        }),
       };
     });
 
-    // Pad to 12 if model returned 8-11
     while (ideas.length < SET_COUNT) {
       const n = ideas.length + 1;
+      const name = `${category} Mark ${n}`;
+      const meaning = `Supporting ${category} concept ${n}`;
       ideas.push({
-        name: `${category} Mark ${n}`,
+        name,
         slug: slugifyIconName(`${category}-mark-${n}`),
-        description: `A simple ${category} related icon variation ${n}`,
+        summary: meaning,
+        description: buildProductionBrief({
+          category,
+          style,
+          agencyBrief,
+          styleBibleLook,
+          styleRules,
+          name,
+          meaning,
+          simplicity: 'One bold shape family only',
+          details: 'Centered, high-contrast, no ornament',
+          description: `A simple ${category} related icon variation ${n}`,
+        }),
       });
     }
 
@@ -122,7 +233,6 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error('Collection save failed:', err);
       saveError = err instanceof Error ? err.message : 'Failed to save collection';
-      // Still return planned ideas so generation can proceed client-side without DB
       collection = {
         id: `local-${Date.now()}`,
         sessionId,
@@ -157,12 +267,15 @@ export async function POST(request: NextRequest) {
       category: collection.category,
       style: collection.style,
       size: collection.size,
+      agencyBrief,
+      styleBible: { look: styleBibleLook, rules: styleRules },
       saved: !saveError && !String(collection.id).startsWith('local-'),
       saveError,
-      icons: collection.icons.map((icon) => ({
+      icons: collection.icons.map((icon, index) => ({
         id: icon.id,
         name: icon.name,
         slug: icon.slug,
+        summary: ideas[index]?.summary || icon.name,
         description: icon.prompt,
         status: icon.status || 'pending',
         sortOrder: icon.sortOrder,

@@ -10,7 +10,7 @@ import {
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const MAX_PROMPT_CHARS = 500;
+const MAX_PROMPT_CHARS = 4000;
 
 function safeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -51,7 +51,13 @@ export async function POST(request: NextRequest) {
 
     const art = await createTracedIcon({
       description: changeRequest
-        ? `${prompt}. Revision requested: ${changeRequest}. Keep it a simple black-and-white icon.`
+        ? [
+            prompt,
+            '',
+            'USER REVISION (must follow precisely while keeping one simple black-on-white icon):',
+            changeRequest,
+            'Preserve the same subject unless the revision explicitly changes it. Apply only the requested change. Keep the silhouette bold, centered, and free of gray/shadows/text.',
+          ].join('\n')
         : prompt,
       style,
       size,

@@ -27,50 +27,50 @@ export const TOURNAMENT_STAGES: Array<{
 }> = [
   {
     id: 'ideas',
-    label: 'Discovering icon types',
-    detail: 'Asking what icons a business in this category usually needs (96 ideas).',
+    label: 'What must this category communicate?',
+    detail: 'Agency brief first: what a site in this category needs to say, then 96 icon ideas that carry those messages.',
     estimatedSeconds: 25,
   },
   {
     id: 'round1',
-    label: 'Round 1 — usefulness tournament',
-    detail: 'Pairing all 96 at random. The more useful / known website icon wins each match (→ 48).',
+    label: 'Round 1 — communication usefulness',
+    detail: 'Pairing all 96. Icons that better communicate core agency/brand needs win (→ 48).',
     estimatedSeconds: 48 * 3,
   },
   {
     id: 'enrich',
-    label: 'Deepening the 48 ideas',
-    detail: 'Expanding each surviving idea into a clearer, stronger concept with a description.',
+    label: 'Deepening ideas',
+    detail: 'For each of the 48: what it communicates, why it belongs, and a stronger concept brief.',
     estimatedSeconds: 48 * 3.5,
   },
   {
     id: 'round2',
-    label: 'Round 2 — best idea tournament',
-    detail: 'Pairing the 48 enriched ideas. The stronger concept wins (→ 24).',
+    label: 'Round 2 — strongest ideas',
+    detail: 'Pairing the 48. Clearer, more distinctive, more useful concepts win (→ 24).',
     estimatedSeconds: 24 * 3,
   },
   {
     id: 'visualize',
-    label: 'Simplifying the look',
-    detail: 'For each of the 24, deciding the simplest possible visual so anyone can recognize it.',
+    label: 'Simple & beautiful details',
+    detail: 'For each of the 24: reduce to the simplest beautiful silhouette and lock exact construction details.',
     estimatedSeconds: 24 * 3.5,
   },
   {
     id: 'round3',
-    label: 'Round 3 — simplicity tournament',
-    detail: 'Pairing the 24. The easiest-to-understand vector concept wins (→ 12).',
+    label: 'Round 3 — simplest beautiful mark',
+    detail: 'Pairing the 24. The cleanest, most recognizable black-and-white glyph wins (→ 12).',
     estimatedSeconds: 12 * 3,
   },
   {
     id: 'render',
     label: 'Drawing & tracing SVGs',
-    detail: 'Making each final icon as an image, then converting to SVG — one at a time.',
+    detail: 'One carefully detailed production brief per icon → image → crisp SVG, sequentially.',
     estimatedSeconds: 12 * 12,
   },
   {
     id: 'done',
     label: 'Set complete',
-    detail: 'Your final tournament winners are ready to browse and download.',
+    detail: 'Final icons are ready. Use Change on any icon to remake it with your notes.',
     estimatedSeconds: 0,
   },
 ];
@@ -155,4 +155,26 @@ export function slugifyTitle(input: string): string {
       .replace(/^-+|-+$/g, '')
       .slice(0, 48) || 'icon'
   );
+}
+
+/** Dense brief sent to the image → SVG pipeline for maximum fidelity. */
+export function buildIconProductionBrief(input: {
+  category: string;
+  title: string;
+  summary?: string;
+  description?: string;
+  look?: string;
+}): string {
+  return [
+    `Category / agency context: ${input.category}`,
+    `Icon name: ${input.title}`,
+    input.summary ? `Communicates: ${input.summary}` : '',
+    input.description ? `Concept: ${input.description}` : '',
+    input.look ? `Exact visual construction: ${input.look}` : '',
+    'Craft one centered black-on-white icon mark.',
+    'Prioritize: bold silhouette, few shapes, instant recognition at small size, generous padding (~12-18%).',
+    'Omit: gray, gradients, shadows, texture, photorealism, 3D, mockups, frames, watermarks, and text unless essential.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

@@ -612,6 +612,14 @@
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
+.icon-strategy-brief {
+  margin: 0.65rem 0 0;
+  max-width: 42rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .icon-change-box {
   display: grid;
   gap: 0.45rem;

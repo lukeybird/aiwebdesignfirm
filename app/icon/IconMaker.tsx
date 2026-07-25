@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
+  buildIconProductionBrief,
   estimateRemainingSeconds,
   formatEta,
   pairIdeas,
@@ -17,10 +18,11 @@ type FinalIcon = {
   title: string;
   slug: string;
   look: string;
+  summary?: string;
   description?: string;
   svg?: string | null;
   pngBase64?: string | null;
-  status: 'pending' | 'drawing' | 'ready' | 'failed';
+  status: 'pending' | 'drawing' | 'ready' | 'failed' | 'changing';
   error?: string | null;
 };
 
@@ -139,6 +141,9 @@ export default function IconMaker() {
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [pool, setPool] = useState<TournamentIdea[]>([]);
   const [finalists, setFinalists] = useState<FinalIcon[]>([]);
+  const [agencyBrief, setAgencyBrief] = useState<string | null>(null);
+  const [changingId, setChangingId] = useState<string | null>(null);
+  const [changeText, setChangeText] = useState('');
   const [savedSets, setSavedSets] = useState<
     Array<{ id: string; category: string; createdAt: string; icons: FinalIcon[] }>
   >([]);
@@ -197,20 +202,26 @@ export default function IconMaker() {
     setFinalists([]);
     setPool([]);
     setLogs([]);
+    setAgencyBrief(null);
+    setChangingId(null);
+    setChangeText('');
 
     try {
       // 1) 96 ideas
-      mark('ideas', 0, 1, 'Asking Claude for the 96 most common icon types…');
-      pushLog('ideas', `Starting discovery for “${topic}”.`);
+      mark('ideas', 0, 1, 'Deciding what this category must communicate, then listing 96 icons…');
+      pushLog('ideas', `Starting agency discovery for “${topic}”.`);
       const ideasRes = await tournamentCall({ action: 'ideas', category: topic, uiStage: 'ideas' });
       if (abortRef.current) return;
       const ideas = (ideasRes.icons as TournamentIdea[]) || [];
       if (ideas.length < 96) {
         throw Object.assign(new Error(`Only received ${ideas.length}/96 ideas.`), { stage: 'ideas' });
       }
+      if (typeof ideasRes.agencyBrief === 'string' && ideasRes.agencyBrief.trim()) {
+        setAgencyBrief(ideasRes.agencyBrief.trim());
+      }
       setPool(ideas);
       mark('ideas', 1, 1, `Got ${ideas.length} icon types.`);
-      pushLog('ideas', `Collected ${ideas.length} common icon types.`, 'ok');
+      pushLog('ideas', `Collected ${ideas.length} communication-driven icon types.`, 'ok');
       await sleep(400);
 
       // 2) Round 1 usefulness → 48
@@ -375,6 +386,7 @@ export default function IconMaker() {
         title: idea.title,
         slug: slugifyTitle(idea.title),
         look: idea.look || idea.description || idea.summary,
+        summary: idea.summary,
         description: idea.description || idea.summary,
         status: 'pending',
       }));
@@ -391,11 +403,18 @@ export default function IconMaker() {
         );
         mark('render', i, finals.length, `Drawing SVG ${i + 1}/${finals.length}: ${icon.title}`);
         try {
+          const prompt = buildIconProductionBrief({
+            category: topic,
+            title: icon.title,
+            summary: icon.summary,
+            description: icon.description,
+            look: icon.look,
+          });
           const res = await fetch('/api/icon/generate', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
-              prompt: icon.look,
+              prompt,
               name: icon.title,
               slug: icon.slug,
               style: 'filled',
@@ -483,6 +502,76 @@ export default function IconMaker() {
     }
   }
 
+  async function applyChange(icon: FinalIcon) {
+    const request = changeText.trim();
+    if (!request || running) return;
+    setError(null);
+    setFinalists((prev) =>
+      prev.map((f) => (f.id === icon.id ? { ...f, status: 'changing', error: null } : f)),
+    );
+    try {
+      const prompt = buildIconProductionBrief({
+        category: category.trim() || 'general',
+        title: icon.title,
+        summary: icon.summary,
+        description: icon.description,
+        look: icon.look,
+      });
+      const res = await fetch('/api/icon/generate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          name: icon.title,
+          slug: icon.slug,
+          style: 'filled',
+          size: 512,
+          sessionId,
+          changeRequest: request,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : `Remake failed (HTTP ${res.status})`);
+      }
+      const updated: FinalIcon = {
+        ...icon,
+        svg: typeof data.svg === 'string' ? data.svg : icon.svg,
+        pngBase64: typeof data.pngBase64 === 'string' ? data.pngBase64 : icon.pngBase64,
+        look: `${icon.look} (revised: ${request})`,
+        status: 'ready',
+        error: null,
+      };
+      setFinalists((prev) => {
+        const next = prev.map((f) => (f.id === icon.id ? updated : f));
+        setSavedSets((sets) => {
+          const synced = sets.map((set) =>
+            set.category === category.trim()
+              ? { ...set, icons: set.icons.map((f) => (f.id === icon.id ? updated : f)) }
+              : set,
+          );
+          try {
+            window.localStorage.setItem(SETS_KEY, JSON.stringify(synced));
+          } catch {
+            // ignore
+          }
+          return synced;
+        });
+        return next;
+      });
+      setChangingId(null);
+      setChangeText('');
+      pushLog('change', `Remade ${icon.title}: ${request}`, 'ok');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Remake failed';
+      setFinalists((prev) =>
+        prev.map((f) => (f.id === icon.id ? { ...f, status: 'failed', error: message } : f)),
+      );
+      setError(message);
+      pushLog('change', message, 'error');
+    }
+  }
+
   async function downloadZip() {
     const ready = finalists.filter((f) => f.svg);
     if (!ready.length) return;
@@ -537,9 +626,9 @@ export default function IconMaker() {
         <p className="icon-kicker">Icon tournament</p>
         <h1 className="icon-title">Icon</h1>
         <p className="icon-lede">
-          Enter a business category. We gather <strong>96</strong> common icon needs, run usefulness and idea
-          tournaments down to <strong>24</strong>, simplify each look, run a simplicity tournament to{' '}
-          <strong>12</strong>, then draw each SVG one at a time.
+          Enter a category. We decide what it must communicate as an agency, which icons carry those ideas,
+          how to make each mark simple and beautiful, lock exact details, then draw twelve 512×512 SVGs.
+          Use <strong>Change</strong> on any finished icon to remake it with your notes.
         </p>
 
         <form className="icon-form" onSubmit={runTournament}>
@@ -578,6 +667,7 @@ export default function IconMaker() {
 
         <div className="icon-progress-panel">
           <p className="icon-status-line">{statusText}</p>
+          {agencyBrief ? <p className="icon-strategy-brief">{agencyBrief}</p> : null}
           {stageMeta && stage !== 'idle' ? <p className="icon-hint">{stageMeta.detail}</p> : null}
           <div className="icon-progress-bar" aria-hidden>
             <span style={{ width: `${progressPct}%` }} />
@@ -650,6 +740,7 @@ export default function IconMaker() {
               <p className="icon-library-meta">
                 {finalists.filter((f) => f.status === 'ready').length}/{finalists.length} SVGs ready
               </p>
+              {agencyBrief ? <p className="icon-strategy-brief">{agencyBrief}</p> : null}
             </div>
             <button
               type="button"
@@ -666,10 +757,16 @@ export default function IconMaker() {
                 <div className="icon-set-art">
                   {icon.status === 'ready' ? (
                     <IconPreview svg={icon.svg} pngBase64={icon.pngBase64} alt={icon.title} />
-                  ) : icon.status === 'drawing' || icon.status === 'pending' ? (
+                  ) : icon.status === 'drawing' || icon.status === 'pending' || icon.status === 'changing' ? (
                     <div className="icon-loading compact">
                       <span className="icon-pulse" />
-                      <p>{icon.status === 'drawing' ? 'Drawing…' : 'Queued…'}</p>
+                      <p>
+                        {icon.status === 'changing'
+                          ? 'Updating…'
+                          : icon.status === 'drawing'
+                            ? 'Drawing…'
+                            : 'Queued…'}
+                      </p>
                     </div>
                   ) : (
                     <p className="icon-empty">Failed</p>
@@ -677,7 +774,7 @@ export default function IconMaker() {
                 </div>
                 <div className="icon-set-meta">
                   <h3>{icon.title}</h3>
-                  <p>{icon.look}</p>
+                  <p>{icon.summary || icon.description || icon.look}</p>
                   <code>{icon.slug}.svg</code>
                 </div>
                 <div className="icon-set-actions">
@@ -695,7 +792,58 @@ export default function IconMaker() {
                   >
                     Download SVG
                   </button>
+                  {icon.status === 'ready' || icon.status === 'failed' ? (
+                    <button
+                      type="button"
+                      className="icon-download-primary"
+                      disabled={running}
+                      onClick={() => {
+                        setChangingId(icon.id);
+                        setChangeText('');
+                      }}
+                    >
+                      Change
+                    </button>
+                  ) : null}
                 </div>
+                {changingId === icon.id ? (
+                  <div className="icon-change-box">
+                    <label className="icon-label" htmlFor={`change-${icon.id}`}>
+                      What should change about this icon?
+                    </label>
+                    <textarea
+                      id={`change-${icon.id}`}
+                      className="icon-change-input"
+                      rows={3}
+                      maxLength={800}
+                      placeholder="e.g. thicker handle, remove stitching, simpler silhouette"
+                      value={changeText}
+                      onChange={(e) => setChangeText(e.target.value)}
+                      disabled={running || icon.status === 'changing'}
+                    />
+                    <div className="icon-set-actions">
+                      <button
+                        type="button"
+                        className="icon-download-primary"
+                        disabled={running || icon.status === 'changing' || !changeText.trim()}
+                        onClick={() => void applyChange(icon)}
+                      >
+                        Remake icon
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-download-secondary"
+                        disabled={running || icon.status === 'changing'}
+                        onClick={() => {
+                          setChangingId(null);
+                          setChangeText('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 {icon.error ? <p className="icon-error tiny">{icon.error}</p> : null}
               </article>
             ))}
