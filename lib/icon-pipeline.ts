@@ -27,8 +27,8 @@ Rules for the prompt you write:
 - Include: "minimal flat icon, solid black on pure white background, high contrast, centered, no gray"`;
 
 export function claudeKey(): string {
-  const key = process.env.CLAUDE_API_KEY_ICON || process.env.CLAUDE_API_KEY;
-  if (!key) throw new Error('CLAUDE_API_KEY_ICON is not configured');
+  const key = process.env.CLAUDE_API_KEY;
+  if (!key) throw new Error('CLAUDE_API_KEY is not configured');
   return key;
 }
 
