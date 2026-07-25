@@ -16,8 +16,9 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: 'Icon Maker',
-  description: 'Enter a category to generate a named set of SVG icons for your website.',
+  title: 'Icon Tournament',
+  description:
+    'Tournament-select the best website icons for a business category, then draw each as SVG one at a time.',
 };
 
 export default function IconPage() {
