@@ -620,6 +620,20 @@
   line-height: 1.45;
 }
 
+.icon-strategy-style {
+  margin: 0.35rem 0 0;
+  max-width: 42rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.icon-note {
+  margin: 0.5rem 0 0;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
 .icon-change-box {
   display: grid;
   gap: 0.45rem;

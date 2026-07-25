@@ -16,9 +16,9 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: 'Icon Tournament',
+  title: 'Icon Lab',
   description:
-    'Tournament-select the best website icons for a business category, then draw each as SVG one at a time.',
+    'Plan agency-quality icon sets from category communication, then draw precise black-and-white SVGs you can remake.',
 };
 
 export default function IconPage() {
