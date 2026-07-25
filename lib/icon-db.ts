@@ -424,59 +424,52 @@ export async function getIconCollection(id: string): Promise<IconCollection | nu
 export async function listIconCollections(options?: {
   sessionId?: string | null;
   limit?: number;
+  keyword?: string | null;
 }): Promise<Array<Omit<IconCollection, 'icons'> & { iconCount: number; readyCount: number }>> {
   await ensureIconTables();
   const limit = Math.min(Math.max(options?.limit ?? 12, 1), 50);
   const sessionId = options?.sessionId?.trim() || null;
+  const keyword = options?.keyword?.trim().toLowerCase() || null;
+  const like = keyword ? `%${keyword}%` : null;
 
-  const rows = sessionId
-    ? await sql<
-        {
-          id: string;
-          session_id: string | null;
-          category: string;
-          style: string | null;
-          size: number | null;
-          status: string;
-          created_at: Date | string;
-          icon_count: string;
-          ready_count: string;
-        }[]
-      >`
-        SELECT
-          c.id, c.session_id, c.category, c.style, c.size, c.status, c.created_at,
-          COUNT(i.id)::text AS icon_count,
-          COUNT(i.id) FILTER (WHERE i.status = 'ready')::text AS ready_count
-        FROM icon_collections c
-        LEFT JOIN generated_icons i ON i.collection_id = c.id
-        WHERE c.session_id = ${sessionId}
-        GROUP BY c.id
-        ORDER BY c.created_at DESC
-        LIMIT ${limit}
-      `
-    : await sql<
-        {
-          id: string;
-          session_id: string | null;
-          category: string;
-          style: string | null;
-          size: number | null;
-          status: string;
-          created_at: Date | string;
-          icon_count: string;
-          ready_count: string;
-        }[]
-      >`
-        SELECT
-          c.id, c.session_id, c.category, c.style, c.size, c.status, c.created_at,
-          COUNT(i.id)::text AS icon_count,
-          COUNT(i.id) FILTER (WHERE i.status = 'ready')::text AS ready_count
-        FROM icon_collections c
-        LEFT JOIN generated_icons i ON i.collection_id = c.id
-        GROUP BY c.id
-        ORDER BY c.created_at DESC
-        LIMIT ${limit}
-      `;
+  const rows = await sql<
+    {
+      id: string;
+      session_id: string | null;
+      category: string;
+      style: string | null;
+      size: number | null;
+      status: string;
+      created_at: Date | string;
+      icon_count: string;
+      ready_count: string;
+    }[]
+  >`
+    SELECT
+      c.id, c.session_id, c.category, c.style, c.size, c.status, c.created_at,
+      COUNT(i.id)::text AS icon_count,
+      COUNT(i.id) FILTER (WHERE i.status = 'ready')::text AS ready_count
+    FROM icon_collections c
+    LEFT JOIN generated_icons i ON i.collection_id = c.id
+    WHERE
+      (${sessionId}::text IS NULL OR c.session_id = ${sessionId})
+      AND (
+        ${like}::text IS NULL
+        OR LOWER(c.category) LIKE ${like}
+        OR EXISTS (
+          SELECT 1 FROM generated_icons gi
+          WHERE gi.collection_id = c.id
+            AND (
+              LOWER(COALESCE(gi.name, '')) LIKE ${like}
+              OR LOWER(COALESCE(gi.slug, '')) LIKE ${like}
+              OR LOWER(gi.prompt) LIKE ${like}
+            )
+        )
+      )
+    GROUP BY c.id
+    ORDER BY c.created_at DESC
+    LIMIT ${limit}
+  `;
 
   return rows.map((row) => ({
     id: row.id,

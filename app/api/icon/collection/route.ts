@@ -47,7 +47,8 @@ function extractJson(raw: string): unknown {
 export async function GET(request: NextRequest) {
   try {
     const sessionId = request.nextUrl.searchParams.get('sessionId')?.trim() || null;
-    const collections = await listIconCollections({ sessionId, limit: 12 });
+    const keyword = request.nextUrl.searchParams.get('q')?.trim() || null;
+    const collections = await listIconCollections({ sessionId, limit: 40, keyword });
     return NextResponse.json({ collections });
   } catch (error) {
     console.error('Collection list error:', error);

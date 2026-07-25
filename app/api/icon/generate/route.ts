@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     const collectionId = safeText(body.collectionId) || null;
     const iconId = safeText(body.iconId) || null;
     const sortOrder = Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : null;
+    const changeRequest = safeText(body.changeRequest);
 
     if (!prompt) {
       return NextResponse.json({ error: 'Describe the icon you want.' }, { status: 400 });
@@ -38,11 +39,28 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (changeRequest.length > MAX_PROMPT_CHARS) {
+      return NextResponse.json(
+        { error: `Change request is too long (max ${MAX_PROMPT_CHARS} chars).` },
+        { status: 400 },
+      );
+    }
     if (!(ICON_STYLES as readonly string[]).includes(style)) {
       return NextResponse.json({ error: 'Invalid style.' }, { status: 400 });
     }
 
-    const art = await createTracedIcon({ description: prompt, style, size });
+    const art = await createTracedIcon({
+      description: changeRequest
+        ? `${prompt}. Revision requested: ${changeRequest}. Keep it a simple black-and-white icon.`
+        : prompt,
+      style,
+      size,
+    });
+
+    // Persist the effective description when revising
+    const promptToStore = changeRequest
+      ? `${prompt} (revised: ${changeRequest})`
+      : prompt;
 
     let savedId: string | null = null;
     let createdAt: string | null = null;
@@ -55,7 +73,7 @@ export async function POST(request: NextRequest) {
         name,
         slug,
         sortOrder,
-        prompt,
+        prompt: promptToStore,
         refinedPrompt: art.refinedPrompt,
         style,
         size,
@@ -93,6 +111,7 @@ export async function POST(request: NextRequest) {
       provider: art.provider,
       refinedPrompt: art.refinedPrompt,
       pipeline: art.pipeline,
+      prompt: promptToStore,
       createdAt,
     });
   } catch (error) {
