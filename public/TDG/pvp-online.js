@@ -11,6 +11,7 @@
   let gameWsUrl = null;
   let serverAuthEnabled = false;
   let socketReady = false;
+  let queueMode = 'standard'; // 'standard' | 'limited' 
   const HEARTBEAT_INTERVAL_MS = 10000;
   const pendingSocketMessages = [];
 
@@ -297,11 +298,22 @@
     });
   }
 
-  function showNameScreen() {
+  function showNameScreen(mode) {
+    queueMode = mode === 'limited' ? 'limited' : 'standard';
     hide($('menu-screen'));
     hide($('online-queue-screen'));
     hide($('online-match-screen'));
+    hide($('limited-draft-screen'));
     show($('online-name-screen'));
+    const title = $('online-name-title');
+    const desc = $('online-name-desc');
+    if (queueMode === 'limited') {
+      if (title) title.textContent = '🃏 Limited PvP';
+      if (desc) desc.textContent = 'Snake-draft 10 cards each, then fight online. Limited players only match other Limited players.';
+    } else {
+      if (title) title.textContent = '🌐 Online PvP';
+      if (desc) desc.textContent = 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.';
+    }
     const stored = loadStoredSession();
     const input = $('online-name-input');
     if (input && stored?.playerName) input.value = stored.playerName;
@@ -330,6 +342,7 @@
     hide($('online-name-screen'));
     hide($('online-queue-screen'));
     hide($('online-match-screen'));
+    hide($('limited-draft-screen'));
     hide($('countdown-overlay'));
   }
 
@@ -376,6 +389,11 @@
 
   function subscribeToRoomChannel(roomId) {
     // Legacy Pusher room path (fallback when game WS is not configured).
+    if (roomChannel) {
+      roomChannel.unbind_all();
+      pusher?.unsubscribe(roomChannel.name);
+      roomChannel = null;
+    }
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
       if (!window.__TDG?.isSurvivalPvp?.()) return;
@@ -383,6 +401,7 @@
       window.__TDG.applyAuthoritativeState?.(payload.state);
     });
     roomChannel.bind('action', (payload) => {
+      if (window.__TDG?.handleLimitedDraftRemote?.(payload.from, payload.action)) return;
       if (!window.__TDG?.isSurvivalPvp?.()) return;
       window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
     });
@@ -404,6 +423,8 @@
     hideOnlineScreens();
     hide($('menu-screen'));
 
+    const limited = Boolean(match.limited || queueMode === 'limited' || session?.limited);
+
     if (useServerAuth) {
       try {
         await connectGameSocket(match);
@@ -415,22 +436,43 @@
     } else {
       subscribeToRoomChannel(match.roomId);
     }
+    // Limited draft syncs over the Pusher room channel even when game WS is up.
+    if (limited && !roomChannel) {
+      subscribeToRoomChannel(match.roomId);
+    }
 
     const startsAt = match.startsAt || Date.now() + 4000;
-    runCountdown(startsAt, () => {
-      window.__TDG.setupSurvivalLivePvp({
+
+    function beginCombat(limitedPicks) {
+      runCountdown(Date.now() + 3200, () => {
+        window.__TDG.setupSurvivalLivePvp({
+          player0Name: p0,
+          player1Name: p1,
+          myPlayerId: myId,
+          isHost: match.isHost,
+          roomId: match.roomId,
+          sessionToken: match.sessionToken,
+          opponentName: match.opponentName,
+          startsAt,
+          serverAuth: Boolean(match.serverAuth && gameSocket),
+          authoritySlot: match.authoritySlot === 1 ? 1 : 0,
+          limited,
+          limitedPicks,
+        });
+      });
+    }
+
+    if (limited) {
+      window.__TDG.startLimitedDraftSession({
+        myPlayerId: myId,
         player0Name: p0,
         player1Name: p1,
-        myPlayerId: myId,
-        isHost: match.isHost,
-        roomId: match.roomId,
-        sessionToken: match.sessionToken,
-        opponentName: match.opponentName,
-        startsAt,
-        serverAuth: Boolean(match.serverAuth && gameSocket),
-        authoritySlot: match.authoritySlot === 1 ? 1 : 0,
+        onComplete: beginCombat,
       });
-    });
+      return;
+    }
+
+    runCountdown(startsAt, () => beginCombat(null));
   }
 
   function handleMatchFound(data) {
@@ -446,6 +488,7 @@
       joinTicket: data.joinTicket || session?.joinTicket || null,
       serverAuth: data.serverAuth ?? Boolean(data.joinTicket),
       authoritySlot: data.authoritySlot === 1 ? 1 : 0,
+      limited: Boolean(data.limited || queueMode === 'limited' || session?.limited),
     };
     saveSession(match);
     showMatchScreen(match.playerName, match.opponentName);
@@ -457,6 +500,7 @@
     const body = {
       name,
       sessionToken: existing?.sessionToken,
+      mode: queueMode === 'limited' ? 'limited' : 'standard',
     };
     const result = await fetchJson('/api/tdg-pvp/join', {
       method: 'POST',
@@ -475,6 +519,7 @@
       joinTicket: result.joinTicket || null,
       serverAuth: result.serverAuth || false,
       authoritySlot: result.authoritySlot === 1 ? 1 : 0,
+      limited: Boolean(result.limited || queueMode === 'limited'),
     });
 
     await ensurePusher();
@@ -486,6 +531,7 @@
       setTimeout(() => startOnlineMatch({
         ...result,
         playerName: result.playerName || name,
+        limited: Boolean(result.limited || queueMode === 'limited'),
       }), 1400);
       return;
     }
@@ -515,10 +561,12 @@
   async function sendAction(action) {
     if (!session?.roomId || !session?.sessionToken) return;
 
-    // Preferred path: authoritative game WebSocket
-    if (gameSocket && (socketReady || gameSocket.readyState === WebSocket.OPEN)) {
+    const nested = action?.action && action.action.type ? action.action : action;
+    const isDraftPick = nested?.type === 'limited_draft_pick' || action?.type === 'limited_draft_pick';
+
+    // Preferred path: authoritative game WebSocket (draft picks stay on Pusher/HTTP)
+    if (!isDraftPick && gameSocket && (socketReady || gameSocket.readyState === WebSocket.OPEN)) {
       const aid = action?.aid;
-      const nested = action?.action && action.action.type ? action.action : action;
       socketSend({
         type: 'input',
         aid: aid || nested?.__aid || `${session.playerId}-${Date.now()}`,
@@ -648,7 +696,8 @@
   }
 
   function bindUi() {
-    $('btn-online-pvp')?.addEventListener('click', showNameScreen);
+    $('btn-online-pvp')?.addEventListener('click', () => showNameScreen('standard'));
+    $('btn-limited-pvp')?.addEventListener('click', () => showNameScreen('limited'));
     $('btn-online-name-back')?.addEventListener('click', () => {
       hide($('online-name-screen'));
       show($('menu-screen'));

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     await ensureTdgPvpTables();
 
     const row = await findQueueRowByToken(sessionToken);
-    if (row?.room_id && row.status === 'matched' && row.player_slot !== null) {
+    if (row?.room_id && (row.status === 'matched' || row.status === 'matched_limited') && row.player_slot !== null) {
       await recordDisconnect(row.room_id, row.player_slot);
     }
 

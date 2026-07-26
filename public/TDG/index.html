@@ -157,6 +157,7 @@
     #game-stage:has(#online-name-screen:not(.hidden)) #hud-top,
     #game-stage:has(#online-queue-screen:not(.hidden)) #hud-top,
     #game-stage:has(#online-match-screen:not(.hidden)) #hud-top,
+    #game-stage:has(#limited-draft-screen:not(.hidden)) #hud-top,
     #game-stage:has(#survival-difficulty-screen:not(.hidden)) #hud-top,
     #game-stage:has(#manual-screen:not(.hidden)) #hud-top,
     #game-stage:has(#rulebook-screen:not(.hidden)) #hud-top {
@@ -1394,7 +1395,8 @@
 
     #online-name-screen,
     #online-queue-screen,
-    #online-match-screen {
+    #online-match-screen,
+    #limited-draft-screen {
       position: absolute;
       inset: 0;
       background: rgba(10, 14, 10, 0.92);
@@ -1407,7 +1409,137 @@
 
     #online-name-screen.hidden,
     #online-queue-screen.hidden,
-    #online-match-screen.hidden { display: none; }
+    #online-match-screen.hidden,
+    #limited-draft-screen.hidden { display: none; }
+
+    .limited-draft-panel {
+      background: linear-gradient(160deg, #1a2a1a, #101810);
+      border: 3px solid #c9a227;
+      border-radius: 16px;
+      width: min(920px, 96%);
+      max-height: min(92vh, 860px);
+      padding: 18px 16px 14px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .limited-draft-header { text-align: center; }
+    .limited-draft-header h2 { margin-bottom: 4px; font-size: 1.35rem; color: #f0d878; }
+    .limited-draft-header p { opacity: 0.8; font-size: 0.9rem; line-height: 1.4; }
+
+    .limited-draft-sides {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .limited-draft-side {
+      background: rgba(0,0,0,0.28);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 8px;
+      min-height: 72px;
+    }
+
+    .limited-draft-side.you { border-color: rgba(78, 205, 196, 0.45); }
+    .limited-draft-side.them { border-color: rgba(255, 142, 83, 0.45); }
+    .limited-draft-side.is-turn { box-shadow: 0 0 0 2px rgba(240, 216, 120, 0.55); }
+
+    .limited-draft-side-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+
+    .limited-draft-picks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      min-height: 36px;
+    }
+
+    .limited-draft-pick-chip {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: #0d120d;
+    }
+
+    .limited-draft-pick-chip img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .limited-draft-pool {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      gap: 8px;
+      overflow-y: auto;
+      padding: 4px 2px 8px;
+      flex: 1 1 auto;
+    }
+
+    .limited-draft-card {
+      position: relative;
+      border: 2px solid rgba(255,255,255,0.14);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      padding: 0;
+      overflow: hidden;
+      cursor: default;
+      opacity: 0.55;
+      transition: transform 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+    }
+
+    .limited-draft-card.is-available {
+      opacity: 1;
+      cursor: pointer;
+    }
+
+    .limited-draft-card.is-available:hover {
+      transform: translateY(-2px);
+      border-color: #f0d878;
+    }
+
+    .limited-draft-card.is-taken {
+      opacity: 0.28;
+      filter: grayscale(0.7);
+      pointer-events: none;
+    }
+
+    .limited-draft-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+
+    .limited-draft-card-meta {
+      padding: 5px 6px 7px;
+      text-align: center;
+    }
+
+    .limited-draft-card-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .limited-draft-card-kind {
+      font-size: 0.62rem;
+      opacity: 0.65;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
 
     .online-panel {
       background: linear-gradient(160deg, #1a2a1a, #101810);
@@ -7033,6 +7165,7 @@
         <div class="menu-btn-row">
           <button class="banner-btn" id="btn-survival">⚔️ Local Game</button>
           <button class="banner-btn" id="btn-online-pvp">🌐 Online PvP</button>
+          <button class="banner-btn" id="btn-limited-pvp">🃏 Limited PvP</button>
         </div>
         <div class="menu-corner-dock" id="menu-corner-dock">
           <div class="menu-modes-pop hidden" id="menu-modes-pop" role="menu" aria-label="Other game modes">
@@ -7081,8 +7214,8 @@
       </div>
       <div id="online-name-screen" class="hidden">
         <div class="online-panel">
-          <h2>🌐 Online PvP</h2>
-          <p>Enter your name, join the queue, and battle a real opponent in Live Battle mode.</p>
+          <h2 id="online-name-title">🌐 Online PvP</h2>
+          <p id="online-name-desc">Enter your name, join the queue, and battle a real opponent in Live Battle mode.</p>
           <input id="online-name-input" type="text" maxlength="32" placeholder="Your display name" autocomplete="nickname" />
           <div class="menu-btn-row">
             <button class="banner-btn" id="btn-online-find" type="button">Find Match</button>
@@ -7107,6 +7240,25 @@
             <div class="player-tag them" id="online-them-name">Opponent</div>
           </div>
           <p>Get ready…</p>
+        </div>
+      </div>
+      <div id="limited-draft-screen" class="hidden">
+        <div class="limited-draft-panel">
+          <div class="limited-draft-header">
+            <h2>🃏 Limited PvP — Snake Draft</h2>
+            <p id="limited-draft-status">Each player picks 10 cards. Snake order: 1–2–2–1…</p>
+          </div>
+          <div class="limited-draft-sides">
+            <div class="limited-draft-side you">
+              <div class="limited-draft-side-title" id="limited-draft-you-title">You (0/10)</div>
+              <div class="limited-draft-picks" id="limited-draft-you-picks"></div>
+            </div>
+            <div class="limited-draft-side them">
+              <div class="limited-draft-side-title" id="limited-draft-them-title">Opponent (0/10)</div>
+              <div class="limited-draft-picks" id="limited-draft-them-picks"></div>
+            </div>
+          </div>
+          <div class="limited-draft-pool" id="limited-draft-pool"></div>
         </div>
       </div>
       <div id="countdown-overlay" class="hidden">
@@ -7304,7 +7456,7 @@ const UNIT_TYPES = {
     color: '#e2e8f0', accent: '#94a3b8', size: 20,
     behavior: 'hunter', prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: true,
   },
-  peka:    { name: 'Dragon',  hp: 550, speed: 42,  damage: 44, attackRate: 0.45, range: 120, cost: 500, color: '#b91c1c', accent: '#7f1d1d', size: 48, behavior: 'dragon', flying: true, targetsUnits: true, targetsTowers: true, targetsBase: true },
+  peka:    { name: 'Dragon',  hp: 550, speed: 42,  damage: 44, attackRate: 0.45, range: 200, cost: 500, color: '#b91c1c', accent: '#7f1d1d', size: 48, behavior: 'dragon', flying: true, targetsUnits: true, targetsTowers: true, targetsBase: true },
   bloop: {
     name: 'Bloop', hp: 108, speed: 58, damage: 13, attackRate: 0.88, range: 27, cost: 15,
     color: '#E879F9', accent: '#C026D3', size: 21, miniSize: 14,
@@ -7550,7 +7702,7 @@ function buyCommanderUpgrade(pid, tier) {
   c.tier = tier;
   addLog(`🎖️ ${p.name}: Commander → up to ${commanderCap(p)} units`);
   if (tier === 1 && pid === getLocalPlayerId()) {
-    addLog('🎖️ Arrow orders: ←/→ move · ↑ attack · ↓ hold · Shift+↑/↓ or </> changes troop count');
+    addLog('🎖️ Commander unlocked — Shift+↑/↓ or </> changes troop count. Buy Special Commands for ←/→/↑/↓ orders.');
   }
   if (pid === getLocalPlayerId()) {
     commanderCount = Math.min(commanderCount, commanderCap(p));
@@ -7573,7 +7725,10 @@ function buyCommanderSpecialCommands(pid) {
   c.specialCommands = true;
   c.stance = c.stance || 'attack';
   addLog(`🎖️ ${p.name}: unlocked Special Commands — Attack / Retreat / Hold`);
-  if (pid === getLocalPlayerId()) updateCommanderPanelUI();
+  if (pid === getLocalPlayerId()) {
+    addLog('🎖️ Arrow orders: ←/→ move · ↑ attack · ↓ hold');
+    updateCommanderPanelUI();
+  }
   updateIncomeUpgradeUI(true);
   updateUI();
   notifyEnemyAction(pid, 'commander', 'Special Commands unlocked', 'The opponent can now order troops to attack, retreat, or hold.');
@@ -7583,7 +7738,7 @@ function buyCommanderSpecialCommands(pid) {
 function setCommanderStance(pid, stance) {
   if (!COMMANDER_STANCES.includes(stance)) return false;
   const p = players[pid];
-  if (!commanderUnlocked(p)) return false;
+  if (!commanderHasSpecialCommands(p)) return false;
   getCommander(p).stance = stance;
   if (pid === getLocalPlayerId()) {
     syncCommanderControlsUI();
@@ -7634,6 +7789,8 @@ function handleCommanderArrowKey(e) {
     commanderAdjustCount(countDelta);
     return true;
   }
+  // Stance arrows require Special Commands (not just Commander unlock).
+  if (!commanderHasSpecialCommands(players[pid])) return false;
   const stance = commanderStanceForArrow(e.code, pid);
   if (!stance) return false;
 
@@ -8438,7 +8595,7 @@ function unitAnimSample(type, opts = {}) {
     }
   }
 
-  // Dragon fire breath plays the atk strip while breathAnim is live.
+  // Dragon meteor cast plays the atk strip while breathAnim is live.
   if (type === 'peka' && (opts.breathAnim || 0) > 0) {
     const breathKeys = unitAnimAvailableKeys(`${type}-atk`, 8);
     if (breathKeys.length) {
@@ -10022,7 +10179,7 @@ const UNIT_MANUAL = {
   sniper: 'Long-range soldier. Strong when an Elephant soaks damage in front. Extremely weak vs Wolves — their hard counter. Prioritizes Dragons.',
   bowman: 'Mobile archer. Fires arcing arrows like Archer Towers (2× Attack on hit). Long reach, low raw damage; can shoot Wolves but only for 1/4 damage. Wolves hunt them like Snipers. Prioritizes Dragons.',
   swordsman: 'Polished plate footsoldier. Matches Archer pace, fights in the press with steel. Takes only half damage from arrows. Strong vs Wolves, softer into Elephant hide than Knights on horseback.',
-  peka: 'Epic flying dragon. Hunts Goblins first, ignores Snipers. Weak to Turrets and Snipers. Fire breath stacks on the ground.',
+  peka: 'Epic flying dragon. Hunts Goblins first, ignores Snipers. Weak to Turrets and Snipers. Lobs meteor blasts that explode for area damage and leave a weaker fire field behind.',
   yeti: 'Hero ice giant. Only one on the field. A blizzard whirls around it — slight damage, half speed, and disoriented attacks for enemies inside. Scratches with frosty claws (area damage). Every 10s it leaps onto the nearest troop with a slam. Puts out nearby fire. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s.',
   angel: 'Hero of wrath. Only one on the field. From the sky it looses a quiver of holy arrows (3, or 6/9 from the barracks bazaar) — preferring distinct targets, looping if few remain. One nearby troop → dives to cut it down, then rises again. Keeps hunting enemy units (and towers) — never rushes the enemy base. Landing blast stuns 0.5s. Wings block up to 3 projectiles and hurl them back. Barracks bazaar: Fire Arrows (seal at 3) or More Arrows (6), then Electric (stay at 6) or Max Quiver (9).',
   bloop: 'Cheap jelly rush unit. Ignores fights and beelines for the enemy base. Splits into two mini-Bloops when killed. Killing enemy Bloops earns you gold bounties!',
@@ -10081,6 +10238,7 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
+    <div class="manual-card"><h4>🃏 Limited PvP</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards are available that match — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>
     <div class="manual-card"><h4>🎮 Free Mode</h4><p>Control a super-tank on a huge open battlefield! Arrow keys move and rotate, Space shoots. The camera follows you. Enemies only chase you when you get within detection range. Clear all hostiles to win.</p></div>
   </div>`;
@@ -10807,7 +10965,7 @@ function barracksUnlockMeta(ut) {
     swordsman: `Unlock Swordsmen (${cost} gold). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Shiny plate footsoldiers — same pace as Archers, strong melee line.`,
     yeti: `Unlock Yeti hero (${cost} gold). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Personal blizzard: slight damage, half move speed, and confused attack aim. Claw scratch hits in an area. Leaps onto the nearest troop every 10s. Puts out nearby fire. Wolves that bite it freeze solid 5s then keep permanent frost. Death freezes nearby 3s; frozen take ×3 damage.`,
     angel: `Unlock Angel hero (${cost} gold). Deploy ${base.cost} gold. Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Aerial quiver (3/6/9), landing stun, sword until a kill, wing reflects. Bazaar: Fire (3) vs More Arrows (6) → Electric or Max Quiver (9).`,
-    peka: `Unlock Dragons (${cost} gold). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies; breathes lasting fire at range; uses a heavy 2.25× claw swipe against one close target; chases Goblins first; weak to Turrets & Snipers.`,
+    peka: `Unlock Dragons (${cost} gold). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies farther out; lob meteor blasts that explode for area damage and leave mild ground fire; uses a heavy 2.25× claw swipe up close; chases Goblins first; weak to Turrets & Snipers.`,
   };
   return {
     title: `Unlock ${label}`,
@@ -11351,6 +11509,7 @@ function buyBarracksUpgrade(pid, kind, unitType, stat, skillId) {
   let warningTitle = '';
   let warningDetail = '';
   if (kind === 'unlock') {
+    if (!playerHasLimitedCard(pid, 'unit', unitType)) return false;
     const cost = LIVE_ARMY.unitUnlockCost(unitType);
     if (rec.unlocked || p.coins < cost) return false;
     p.coins -= cost;
@@ -11403,6 +11562,7 @@ function buyEngineersUpgrade(pid, kind, towerType, branch) {
   if (!LIVE_ARMY.hasEngineers(p)) return false;
   // Tower Depot unlocks tower types only — no global per-type mastery trees.
   if (kind !== 'unlock') return false;
+  if (!playerHasLimitedCard(pid, 'tower', towerType)) return false;
   const eng = LIVE_ARMY.engineersRecord(p);
   eng.built = true;
   const rec = LIVE_ARMY.towerRecord(p, towerType);
@@ -12076,6 +12236,7 @@ function updateBarracksUpgradeUI(force) {
 
   const units = LIVE_ARMY.UNIT_ORDER
     .filter((ut) => UNIT_TYPES[ut])
+    .filter((ut) => playerHasLimitedCard(getLocalPlayerId(), 'unit', ut))
     .slice()
     .sort((a, b) => LIVE_ARMY.unitUnlockCost(a) - LIVE_ARMY.unitUnlockCost(b)
       || (LIVE_ARMY.UNIT_LABELS[a] || a).localeCompare(LIVE_ARMY.UNIT_LABELS[b] || b));
@@ -12221,7 +12382,9 @@ function updateEngineersUpgradeUI(force) {
   }
   if (p.liveArmy?.engineers) p.liveArmy.engineers.built = true;
 
-  const towers = LIVE_ARMY.COMBAT_TOWERS.filter((tt) => TOWER_TYPES[tt]);
+  const towers = LIVE_ARMY.COMBAT_TOWERS
+    .filter((tt) => TOWER_TYPES[tt])
+    .filter((tt) => playerHasLimitedCard(pid, 'tower', tt));
 
   let html = '<div class="brk-troop-list">';
   for (const tt of towers) {
@@ -12438,6 +12601,7 @@ function updateLaboratoryUI(force) {
 
   let html = '<div class="brk-troop-list">';
   for (const spellId of LIVE_ARMY.SPELL_IDS) {
+    if (!playerHasLimitedCard(pid, 'spell', spellId)) continue;
     const label = LIVE_ARMY.SPELL_LABELS[spellId] || spellId;
     const unlocked = LIVE_ARMY.spellUnlocked(p, spellId);
     const unlockCost = LIVE_ARMY.spellUnlockCost(spellId);
@@ -12615,6 +12779,7 @@ function drawSpellRadiusPreview(spellId, x, y, pid) {
 
 function buyLaboratorySpell(pid, spellId) {
   if (!LIVE_ARMY?.isActive()) return false;
+  if (!playerHasLimitedCard(pid, 'spell', spellId)) return false;
   const p = players[pid];
   const prevLvl = LIVE_ARMY.spellLevel(p, spellId);
   if (!LIVE_ARMY.buySpellUpgrade(p, spellId)) return false;
@@ -13007,7 +13172,8 @@ function updateSpellEffects(dt) {
     if (m.trail.length > 14) m.trail.shift();
     for (const p of m.trail) p.a *= 0.88;
     if (m.life <= 0) {
-      detonateFireball(m);
+      if (m.source === 'dragon') detonateDragonMeteor(m);
+      else detonateFireball(m);
       meteors.splice(i, 1);
     }
   }
@@ -13111,14 +13277,16 @@ function updateSpellEffects(dt) {
 function drawSpellEffects() {
   for (const m of meteors) {
     ctx.save();
+    const isDragon = m.source === 'dragon';
+    const trailRgb = isDragon ? '248, 113, 113' : '251, 146, 60';
     // Fiery curved trail
     if (m.trail?.length > 1) {
       for (let i = 1; i < m.trail.length; i++) {
         const a = m.trail[i];
         const b = m.trail[i - 1];
-        const alpha = (a.a || 0.4) * 0.55;
-        ctx.strokeStyle = `rgba(251, 146, 60, ${alpha})`;
-        ctx.lineWidth = 3 + i * 0.35;
+        const alpha = (a.a || 0.4) * (isDragon ? 0.7 : 0.55);
+        ctx.strokeStyle = `rgba(${trailRgb}, ${alpha})`;
+        ctx.lineWidth = (isDragon ? 4 : 3) + i * 0.35;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(b.x, b.y);
@@ -13132,25 +13300,67 @@ function drawSpellEffects() {
     ctx.translate(m.x, m.y);
     ctx.rotate(ang);
     // Meteor core + flame tail pointing opposite travel
-    const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 16);
-    glow.addColorStop(0, '#fef08a');
-    glow.addColorStop(0.45, '#fb923c');
-    glow.addColorStop(1, 'rgba(249, 115, 22, 0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(0, 0, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#fef08a';
-    ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(249, 115, 22, 0.85)';
-    ctx.beginPath();
-    ctx.moveTo(-6, -5);
-    ctx.lineTo(-22, 0);
-    ctx.lineTo(-6, 5);
-    ctx.closePath();
-    ctx.fill();
+    if (isDragon) {
+      const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 20);
+      glow.addColorStop(0, m.fireCore || '#fef08a');
+      glow.addColorStop(0.4, m.fireColor || '#ef4444');
+      glow.addColorStop(1, 'rgba(127, 29, 29, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.fill();
+      // Rock body
+      ctx.fillStyle = '#57534e';
+      ctx.beginPath();
+      ctx.moveTo(8, -3);
+      ctx.lineTo(4, -9);
+      ctx.lineTo(-5, -8);
+      ctx.lineTo(-9, -1);
+      ctx.lineTo(-6, 7);
+      ctx.lineTo(3, 8);
+      ctx.lineTo(9, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#78716c';
+      ctx.beginPath();
+      ctx.moveTo(3, -5);
+      ctx.lineTo(-2, -4);
+      ctx.lineTo(-1, 1);
+      ctx.lineTo(4, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = m.fireCore || '#fde047';
+      ctx.beginPath();
+      ctx.arc(-1, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(249, 115, 22, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo(-7, -6);
+      ctx.lineTo(-28, 0);
+      ctx.lineTo(-7, 6);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 16);
+      glow.addColorStop(0, '#fef08a');
+      glow.addColorStop(0.45, '#fb923c');
+      glow.addColorStop(1, 'rgba(249, 115, 22, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(249, 115, 22, 0.85)';
+      ctx.beginPath();
+      ctx.moveTo(-6, -5);
+      ctx.lineTo(-22, 0);
+      ctx.lineTo(-6, 5);
+      ctx.closePath();
+      ctx.fill();
+    }
     ctx.restore();
   }
   for (const b of spellBolts) {
@@ -13915,7 +14125,7 @@ function commanderSkillTracksHtml(p) {
     theme: 'loot',
     icon: '🎖️',
     title: 'Commander',
-    tooltip: `Exact effect: unlock Commander for ${unlockCost} gold. Lets you deploy up to 3 units per click and command all troops with arrows: left/right move toward that side, up attacks, down holds.`,
+    tooltip: `Exact effect: unlock Commander for ${unlockCost} gold. Lets you deploy up to 3 units per click. Adjust troop count with Shift+↑/↓ or </>. Buy Special Commands to unlock arrow stance orders.`,
     isUnlock: true,
     unlocked: cmdTier >= 1,
     afford: cmdTier < 1 && p.coins >= unlockCost,
@@ -13950,7 +14160,7 @@ function commanderSkillTracksHtml(p) {
     });
   });
 
-  const specialTip = `Exact effect: unlock Special Commands for ${COMMANDER_SPECIAL_COST} gold. Adds an on-screen order button to cycle Attack (normal), Retreat (fall back), and Hold (stay put — ranged units can still shoot).`;
+  const specialTip = `Exact effect: unlock Special Commands for ${COMMANDER_SPECIAL_COST} gold. Enables arrow orders (←/→ move, ↑ attack, ↓ hold) and an on-screen button to cycle Attack / Retreat / Hold (ranged units can still shoot while Holding).`;
   const canBuySpecial = !hasSpecial && cmdTier >= 1;
   const specialNode = dramaticSkillNodeHtml({
     theme: 'hq',
@@ -19246,6 +19456,7 @@ function setupSurvivalLivePvp(opts) {
     sessionToken,
     opponentName,
     startMs: startsAt || Date.now(),
+    limited: !!opts.limited,
   };
   pvpLock = {
     frame: 0,
@@ -19311,6 +19522,7 @@ function setupSurvivalLivePvp(opts) {
     p.heroRespawnCd = {};
     p.hotbarDeployCd = {};
     p.hotbarDeployCdMax = {};
+    p.limitedRoster = null;
   }
   commanderCount = 1;
   commanderFormation = 'front';
@@ -19326,15 +19538,255 @@ function setupSurvivalLivePvp(opts) {
       syncBaseDefenseTurrets(i);
     }
   }
+  if (opts.limited && opts.limitedPicks) {
+    applyLimitedDraftRosters(opts.limitedPicks);
+    for (let pid = 0; pid < 2; pid++) {
+      const picks = opts.limitedPicks[pid] || [];
+      for (const card of picks) {
+        if (card?.id) tryAutoAssignHotbarTool(card.id, pid);
+      }
+    }
+  }
   commitPublicSnapshots();
   resetCombatTracking();
   document.getElementById('bottom-panel').classList.remove('hidden');
   selectedTool = firstEnabledDeployTool();
-  addLog(`⚔️ Online PvP — ${player0Name} vs ${player1Name}${pvpOnline.isHost ? ' (host)' : ''}`);
+  addLog(
+    opts.limited
+      ? `🃏 Limited PvP — ${player0Name} vs ${player1Name}${pvpOnline.isHost ? ' (host)' : ''}`
+      : `⚔️ Online PvP — ${player0Name} vs ${player1Name}${pvpOnline.isHost ? ' (host)' : ''}`,
+  );
+  if (opts.limited) {
+    addLog('🃏 Only your drafted cards can be unlocked this match.');
+  }
   updateUI();
   // Host pushes an immediate authoritative baseline so the client starts synced.
   if (pvpOnline.isHost) pvpBroadcastAuthState(true);
 }
+
+// ─── Limited PvP snake draft ─────────────────────────────────────────────────
+const LIMITED_DRAFT_PICKS_EACH = 10;
+let limitedDraft = null; // { pool, taken, picks: [[],[]], pickIndex, myPlayerId, names, onComplete }
+
+function isLimitedPvp() {
+  return !!(isSurvivalPvp() && pvpOnline?.limited);
+}
+
+function limitedDraftPickerForIndex(pickIndex) {
+  const pair = Math.floor(pickIndex / 2);
+  const within = pickIndex % 2;
+  return pair % 2 === 0 ? within : 1 - within;
+}
+
+function buildLimitedDraftPool() {
+  const pool = [];
+  const units = (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.UNIT_ORDER)
+    ? LIVE_ARMY.UNIT_ORDER.slice()
+    : Object.keys(UNIT_TYPES);
+  for (const id of units) {
+    if (!UNIT_TYPES[id]) continue;
+    pool.push({
+      key: `unit:${id}`,
+      kind: 'unit',
+      id,
+      label: (LIVE_ARMY?.UNIT_LABELS?.[id]) || UNIT_TYPES[id]?.name || id,
+    });
+  }
+  const towers = (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.COMBAT_TOWERS)
+    ? LIVE_ARMY.COMBAT_TOWERS.slice()
+    : ['turret', 'laser', 'spread', 'archer', 'catapult'];
+  for (const id of towers) {
+    if (!TOWER_TYPES[id]) continue;
+    pool.push({
+      key: `tower:${id}`,
+      kind: 'tower',
+      id,
+      label: (LIVE_ARMY?.TOWER_LABELS?.[id]) || TOWER_TYPES[id]?.name || id,
+    });
+  }
+  const spells = (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.SPELL_IDS)
+    ? LIVE_ARMY.SPELL_IDS.slice()
+    : ['fireball', 'slime', 'heal', 'slow', 'rage'];
+  for (const id of spells) {
+    pool.push({
+      key: `spell:${id}`,
+      kind: 'spell',
+      id,
+      label: (LIVE_ARMY?.SPELL_LABELS?.[id]) || id,
+    });
+  }
+  return pool;
+}
+
+function playerHasLimitedCard(pid, kind, id) {
+  const roster = players[pid]?.limitedRoster;
+  if (!roster) return true; // unrestricted modes
+  if (kind === 'unit') return roster.units.has(id);
+  if (kind === 'tower') return roster.towers.has(id);
+  if (kind === 'spell') return roster.spells.has(id);
+  return false;
+}
+
+function applyLimitedDraftRosters(picksByPlayer) {
+  for (let pid = 0; pid < 2; pid++) {
+    const p = players[pid];
+    if (!p) continue;
+    const roster = { units: new Set(), towers: new Set(), spells: new Set() };
+    const picks = picksByPlayer?.[pid] || [];
+    for (const card of picks) {
+      if (!card) continue;
+      if (card.kind === 'unit') {
+        roster.units.add(card.id);
+        const rec = LIVE_ARMY.unitRecord(p, card.id);
+        if (rec) rec.unlocked = true;
+      } else if (card.kind === 'tower') {
+        roster.towers.add(card.id);
+        const rec = LIVE_ARMY.towerRecord(p, card.id);
+        if (rec) rec.unlocked = true;
+      } else if (card.kind === 'spell') {
+        roster.spells.add(card.id);
+        const lab = LIVE_ARMY.laboratoryRecord?.(p);
+        if (lab?.spells) {
+          if (!lab.spells[card.id]) lab.spells[card.id] = { level: 0 };
+          lab.spells[card.id].level = Math.max(lab.spells[card.id].level || 0, 1);
+        }
+      }
+    }
+    p.limitedRoster = roster;
+  }
+}
+
+function limitedDraftKindLabel(kind) {
+  if (kind === 'unit') return 'Troop';
+  if (kind === 'tower') return 'Tower';
+  if (kind === 'spell') return 'Spell';
+  return kind;
+}
+
+function renderLimitedDraftUI() {
+  const d = limitedDraft;
+  if (!d) return;
+  const totalNeeded = LIMITED_DRAFT_PICKS_EACH * 2;
+  const done = d.pickIndex >= totalNeeded;
+  const turnPid = done ? -1 : limitedDraftPickerForIndex(d.pickIndex);
+  const myTurn = !done && turnPid === d.myPlayerId;
+
+  const status = document.getElementById('limited-draft-status');
+  if (status) {
+    if (done) status.textContent = 'Draft complete — battle starting…';
+    else if (myTurn) status.textContent = `Your pick (${d.picks[d.myPlayerId].length + 1}/${LIMITED_DRAFT_PICKS_EACH}) — snake order`;
+    else status.textContent = `Waiting for ${d.names[turnPid] || 'opponent'} to pick…`;
+  }
+
+  const youTitle = document.getElementById('limited-draft-you-title');
+  const themTitle = document.getElementById('limited-draft-them-title');
+  const oppId = d.myPlayerId === 0 ? 1 : 0;
+  if (youTitle) youTitle.textContent = `${d.names[d.myPlayerId] || 'You'} (${d.picks[d.myPlayerId].length}/${LIMITED_DRAFT_PICKS_EACH})`;
+  if (themTitle) themTitle.textContent = `${d.names[oppId] || 'Opponent'} (${d.picks[oppId].length}/${LIMITED_DRAFT_PICKS_EACH})`;
+
+  const youSide = document.querySelector('#limited-draft-screen .limited-draft-side.you');
+  const themSide = document.querySelector('#limited-draft-screen .limited-draft-side.them');
+  youSide?.classList.toggle('is-turn', turnPid === d.myPlayerId);
+  themSide?.classList.toggle('is-turn', turnPid === oppId);
+
+  const fillPicks = (el, picks) => {
+    if (!el) return;
+    el.innerHTML = picks.map((c) => (
+      `<div class="limited-draft-pick-chip" title="${escapeHtml(c.label)}">`
+      + `<img src="/TDG/portraits/${encodeURIComponent(c.id)}.webp" alt="" />`
+      + `</div>`
+    )).join('');
+  };
+  fillPicks(document.getElementById('limited-draft-you-picks'), d.picks[d.myPlayerId]);
+  fillPicks(document.getElementById('limited-draft-them-picks'), d.picks[oppId]);
+
+  const poolEl = document.getElementById('limited-draft-pool');
+  if (!poolEl) return;
+  poolEl.innerHTML = d.pool.map((card) => {
+    const taken = d.taken.has(card.key);
+    const cls = taken ? 'is-taken' : (myTurn ? 'is-available' : '');
+    return `<button type="button" class="limited-draft-card ${cls}" data-draft-key="${escapeHtml(card.key)}" ${(!myTurn || taken) ? 'disabled' : ''}>`
+      + `<img src="/TDG/portraits/${encodeURIComponent(card.id)}.webp" alt="" loading="lazy" />`
+      + `<div class="limited-draft-card-meta">`
+      + `<div class="limited-draft-card-name">${escapeHtml(card.label)}</div>`
+      + `<div class="limited-draft-card-kind">${escapeHtml(limitedDraftKindLabel(card.kind))}</div>`
+      + `</div></button>`;
+  }).join('');
+}
+
+function finishLimitedDraft() {
+  const d = limitedDraft;
+  if (!d) return;
+  const picks = [
+    d.picks[0].map((c) => ({ kind: c.kind, id: c.id, label: c.label })),
+    d.picks[1].map((c) => ({ kind: c.kind, id: c.id, label: c.label })),
+  ];
+  const onComplete = d.onComplete;
+  limitedDraft = null;
+  document.getElementById('limited-draft-screen')?.classList.add('hidden');
+  if (typeof onComplete === 'function') onComplete(picks);
+}
+
+function commitLimitedDraftPick(cardKey, fromPlayerId) {
+  const d = limitedDraft;
+  if (!d || d.taken.has(cardKey)) return false;
+  const totalNeeded = LIMITED_DRAFT_PICKS_EACH * 2;
+  if (d.pickIndex >= totalNeeded) return false;
+  const turnPid = limitedDraftPickerForIndex(d.pickIndex);
+  if (fromPlayerId !== turnPid) return false;
+  const card = d.pool.find((c) => c.key === cardKey);
+  if (!card) return false;
+  d.taken.add(cardKey);
+  d.picks[turnPid].push(card);
+  d.pickIndex += 1;
+  renderLimitedDraftUI();
+  if (d.pickIndex >= totalNeeded) {
+    setTimeout(finishLimitedDraft, 450);
+  }
+  return true;
+}
+
+function handleLimitedDraftRemote(fromPlayerId, action) {
+  if (!limitedDraft || !action || action.type !== 'limited_draft_pick') return false;
+  commitLimitedDraftPick(action.cardKey, fromPlayerId);
+  return true;
+}
+
+function startLimitedDraftSession(opts) {
+  const myPlayerId = opts.myPlayerId === 1 ? 1 : 0;
+  limitedDraft = {
+    pool: buildLimitedDraftPool(),
+    taken: new Set(),
+    picks: [[], []],
+    pickIndex: 0,
+    myPlayerId,
+    names: [
+      opts.player0Name || 'Player 1',
+      opts.player1Name || 'Player 2',
+    ],
+    onComplete: opts.onComplete,
+  };
+  document.getElementById('menu-screen')?.classList.add('hidden');
+  document.getElementById('online-match-screen')?.classList.add('hidden');
+  document.getElementById('online-queue-screen')?.classList.add('hidden');
+  document.getElementById('online-name-screen')?.classList.add('hidden');
+  document.getElementById('limited-draft-screen')?.classList.remove('hidden');
+  renderLimitedDraftUI();
+}
+
+document.getElementById('limited-draft-pool')?.addEventListener('click', (e) => {
+  const btn = e.target.closest?.('[data-draft-key]');
+  if (!btn || !limitedDraft) return;
+  const key = btn.getAttribute('data-draft-key');
+  if (!key) return;
+  const turnPid = limitedDraftPickerForIndex(limitedDraft.pickIndex);
+  if (turnPid !== limitedDraft.myPlayerId) return;
+  if (!commitLimitedDraftPick(key, limitedDraft.myPlayerId)) return;
+  if (window.TDG_PVP?.sendAction) {
+    window.TDG_PVP.sendAction({ type: 'limited_draft_pick', cardKey: key });
+  }
+});
+
 
 function serializeTower(t) {
   return {
@@ -34502,15 +34954,20 @@ function applyAngelReflectedPelletBase(pellet, p) {
   return true;
 }
 
-const DRAGON_BREATH_INTERVAL = 2;
-const DRAGON_STANDOFF = 100;
-const DRAGON_BREATH_RANGE = 165;
+const DRAGON_BREATH_INTERVAL = 2.15;
+const DRAGON_STANDOFF = 155;
+const DRAGON_BREATH_RANGE = 220;
 const DRAGON_SCRATCH_RANGE = 82;
 const DRAGON_SCRATCH_DAMAGE_MULT = 2.25;
 const DRAGON_SCRATCH_ANIM_TIME = 0.56;
-const DRAGON_FIRE_LIFE = 18;
-const DRAGON_FIRE_DPS = 2.4;
-const DRAGON_FIRE_PATCHES = 6;
+/** Lingering ground fire after a meteor impact — intentionally mild vs the blast. */
+const DRAGON_FIRE_LIFE = 9;
+const DRAGON_FIRE_DPS = 0.65;
+const DRAGON_FIRE_PATCHES = 4;
+const DRAGON_METEOR_AOE = 82;
+const DRAGON_METEOR_DMG_MULT = 1.9;
+const DRAGON_METEOR_MIN_FALLOFF = 0.4;
+const DRAGON_METEOR_KB = 110;
 /** Trail fire left by burning units: contact DPS only, no ignite, no path avoidance. */
 const TRAIL_FIRE_DPS = 1.0;
 const TRAIL_FIRE_LIFE = DRAGON_FIRE_LIFE * 0.55;
@@ -35113,62 +35570,131 @@ function dragonBreathe(u) {
   const v = dragonVariant(u.id);
   const prey = findDragonClosestTarget(u);
   const enemy = enemyId(u.owner);
-  if (prey) {
-    const tp = dragonTargetPos(prey, enemy);
-    u.facing = Math.atan2(tp.y - u.y, tp.x - u.x);
-  }
-  u.breathAnim = 0.48;
-  const facing = u.facing ?? (u.owner === 0 ? 0 : Math.PI);
+  if (!prey || prey.dist > DRAGON_BREATH_RANGE * 1.08) return false;
+  const tp = dragonTargetPos(prey, enemy);
+  u.facing = Math.atan2(tp.y - u.y, tp.x - u.x);
+  u.breathAnim = 0.42;
   const mouth = dragonMouthPos(u);
-  const reach = DRAGON_BREATH_RANGE;
   const dmgMult = v.dmgMult || 1;
-  const colors = { fire: v.fire, core: v.fireCore, lightning: !!v.lightning };
-
-  beams.push({
-    x1: mouth.x, y1: mouth.y,
-    x2: mouth.x + Math.cos(facing) * reach,
-    y2: mouth.y + Math.sin(facing) * reach,
-    color: v.fire, core: v.fireCore,
-    life: 0.48, maxLife: 0.48, style: 'dragon_breath', width: 14,
+  const tx = clamp(tp.x + rand(-10, 10), 30, W - 30);
+  const ty = clamp(tp.y + rand(-10, 10), LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
+  const midX = mouth.x + (tx - mouth.x) * 0.45;
+  const midY = mouth.y + (ty - mouth.y) * 0.45 - Math.min(70, Math.hypot(tx - mouth.x, ty - mouth.y) * 0.18);
+  const flight = Math.max(0.28, Math.min(0.55, Math.hypot(tx - mouth.x, ty - mouth.y) / 520));
+  meteors.push({
+    id: uid(),
+    source: 'dragon',
+    ownerId: u.owner,
+    sx: mouth.x, sy: mouth.y,
+    cx: midX, cy: midY,
+    tx, ty,
+    x: mouth.x, y: mouth.y,
+    prevX: mouth.x, prevY: mouth.y,
+    life: flight,
+    maxLife: flight,
+    radius: DRAGON_METEOR_AOE,
+    damage: getUnitDamage(u) * DRAGON_METEOR_DMG_MULT * dmgMult,
+    knockback: DRAGON_METEOR_KB,
+    fireColor: v.fire,
+    fireCore: v.fireCore,
+    lightning: !!v.lightning,
+    dmgMult,
+    trail: [],
   });
+  spawnParticles(mouth.x, mouth.y, v.fireCore || '#fde047', 6);
+  return true;
+}
 
-  // Immediate burn + ignite on everything caught in the breath cone.
-  for (const hit of unitsInBreathCone(mouth.x, mouth.y, facing, reach, 22)) {
-    igniteUnit(hit.unit, u.owner, dmgMult, 2, colors);
+/** Meteor impact: solid area damage, then mild lingering fire (no ignite stacks). */
+function detonateDragonMeteor(m) {
+  const enemy = enemyId(m.ownerId);
+  const radius = m.radius || DRAGON_METEOR_AOE;
+  const colors = { fire: m.fireColor || '#f97316', core: m.fireCore || '#fde047', lightning: !!m.lightning };
+
+  for (const u of combatUnits) {
+    if (u.owner !== enemy || u.hp <= 0) continue;
+    if (isDragonUnit(u)) continue; // dragons don't cook each other with meteors
+    const d = Math.hypot(u.x - m.tx, u.y - m.ty);
+    const hitR = radius + getUnitSize(u);
+    if (d > hitR) continue;
+    const falloff = Math.max(DRAGON_METEOR_MIN_FALLOFF, 1 - d / (hitR + 1));
+    const dmg = (m.damage || 0) * falloff;
+    u.lastHitBy = m.ownerId;
+    applyHpLoss(u, dmg);
+    trackDamageDealt(m.ownerId, dmg, false);
+    learnNoteUnitDmg(m.ownerId, 'peka', dmg, false);
+    if (u.type !== 'tank') {
+      const ang = Math.atan2(u.y - m.ty, u.x - m.tx) || 0;
+      const kb = (m.knockback || DRAGON_METEOR_KB) * falloff;
+      u.vx = (u.vx || 0) + Math.cos(ang) * kb;
+      u.vy = (u.vy || 0) + Math.sin(ang) * kb;
+      u.x = clamp(u.x + Math.cos(ang) * 6, 30, W - 30);
+      u.y = clamp(u.y + Math.sin(ang) * 6, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
+    }
+    spawnParticles(u.x, u.y, colors.core, 5);
   }
 
+  const ep = players[enemy];
+  if (ep) {
+    for (const tw of [...ep.turrets]) {
+      if (tw.hp <= 0) continue;
+      const twSize = towerDef(tw.towerType, enemy)?.size || 20;
+      const d = Math.hypot(tw.x - m.tx, tw.y - m.ty);
+      if (d > radius + twSize) continue;
+      const falloff = Math.max(DRAGON_METEOR_MIN_FALLOFF, 1 - d / (radius + 1));
+      const dmg = (m.damage || 0) * 0.9 * falloff;
+      tw.lastHitBy = m.ownerId;
+      applyHpLoss(tw, dmg);
+      trackDamageDealt(m.ownerId, dmg, false, 'tower');
+      spawnParticles(tw.x, tw.y, colors.fire, 5);
+      if (tw.hp <= 0) {
+        ep.rubble.push(createTowerRuin(tw));
+        onTowerDestroyed(tw, m.ownerId);
+        ep.turrets = ep.turrets.filter((tt) => tt !== tw);
+      }
+    }
+    const bp = basePos(enemy);
+    const bd = Math.hypot(bp.x - m.tx, bp.y - m.ty);
+    if (bd <= radius + BASE_SIZE * 0.55) {
+      const falloff = Math.max(DRAGON_METEOR_MIN_FALLOFF, 1 - bd / (radius + BASE_SIZE));
+      const dmg = (m.damage || 0) * 0.75 * falloff;
+      ep.baseHp = wholeHp(ep.baseHp - dmg);
+      ep.baseDamageThisRound = (ep.baseDamageThisRound || 0) + dmg;
+      pulseBaseShake(ep);
+      trackDamageDealt(m.ownerId, dmg, true);
+      learnNoteUnitDmg(m.ownerId, 'peka', dmg, true);
+    }
+  }
+
+  blasts.push({
+    x: m.tx, y: m.ty, maxR: radius * 0.95, life: 0.38, maxLife: 0.38,
+    color: colors.fire,
+  });
+  spawnFloatText(m.tx, m.ty - 18, 'METEOR!', colors.core);
+  spawnParticles(m.tx, m.ty, colors.core, 16);
+
+  // Mild fire carpet — contact DPS only, no ignite chaining.
+  const dmgMult = m.dmgMult || 1;
   for (let i = 0; i < DRAGON_FIRE_PATCHES; i++) {
-    const along = 20 + (i / Math.max(1, DRAGON_FIRE_PATCHES - 1)) * (reach - 30) + rand(-6, 6);
-    const spread = rand(-0.14, 0.14);
-    const a = facing + spread;
-    const px = clamp(mouth.x + Math.cos(a) * along, 30, W - 30);
-    const py = clamp(mouth.y + Math.sin(a) * along, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
-    const drift = 35 + rand(0, 22);
+    const ang = (Math.PI * 2 * i) / DRAGON_FIRE_PATCHES + rand(-0.2, 0.2);
+    const rad = rand(6, radius * 0.42);
+    const px = clamp(m.tx + Math.cos(ang) * rad, 30, W - 30);
+    const py = clamp(m.ty + Math.sin(ang) * rad, LAND_TOP + LAND_PAD, LAND_BOTTOM - LAND_PAD);
     fireFields.push({
       x: px, y: py,
-      vx: Math.cos(a) * drift,
-      vy: Math.sin(a) * drift,
-      r: 8 + rand(0, 3),
-      owner: u.owner,
-      life: DRAGON_FIRE_LIFE,
+      vx: Math.cos(ang) * rand(4, 14),
+      vy: Math.sin(ang) * rand(4, 14),
+      r: 7 + rand(0, 3),
+      owner: m.ownerId,
+      life: DRAGON_FIRE_LIFE * (0.85 + rand(0, 0.25)),
       maxLife: DRAGON_FIRE_LIFE,
       dps: DRAGON_FIRE_DPS * dmgMult,
-      color: v.fire, core: v.fireCore, lightning: !!v.lightning,
+      color: colors.fire, core: colors.core, lightning: !!m.lightning,
       phase: rand(0, Math.PI * 2),
       seed: rand(0, 100),
       source: 'dragon',
+      noIgnite: true,
     });
-  }
-
-  for (let i = 0; i < 14; i++) {
-    const spread = rand(-0.22, 0.22);
-    const a = facing + spread;
-    const distAlong = rand(10, reach);
-    spawnParticles(
-      mouth.x + Math.cos(a) * distAlong,
-      mouth.y + Math.sin(a) * distAlong,
-      v.fireCore, 1,
-    );
   }
 }
 
@@ -35196,7 +35722,8 @@ function updateFireFields(dt) {
       if (u.hp <= 0 || isDragonUnit(u) || u.type === 'yeti') continue; // dragons & yetis are fireproof
       if (dist(f, u) <= f.r + getUnitSize(u) * 0.5) {
         applyBurnDamage(u, tick, f.owner);
-        if (!isTrail && (u._igniteFieldCd || 0) <= combatTime) {
+        // Dragon meteor residue is mild contact fire only — no ignite stacks.
+        if (!isTrail && !f.noIgnite && (u._igniteFieldCd || 0) <= combatTime) {
           u._igniteFieldCd = combatTime + 0.45;
           igniteUnit(u, f.owner, 1, 1, { fire: f.color, core: f.core });
         }
@@ -37611,17 +38138,21 @@ function updateCombat(dt) {
       }
     }
 
-    // Dragons breathe fire at the closest enemy.
+    // Dragons claw up close or lob meteor blasts at range.
     if (unitDef(u.type, u.owner).behavior === 'dragon' && !isZombieUnit(u)) {
       const spellAction = unitSpellAttackMult(u);
       u.breathCd = (u.breathCd == null ? DRAGON_BREATH_INTERVAL : u.breathCd) - dt * spellAction;
       if ((u.breathAnim || 0) > 0) u.breathAnim = Math.max(0, u.breathAnim - dt * spellAction);
       const scratching = updateDragonScratch(u, dt * spellAction);
       if (u.breathCd <= 0 && !scratching && !isUnitFullyParalyzed(u)) {
-        u.breathCd = DRAGON_BREATH_INTERVAL;
         const prey = findDragonClosestTarget(u);
-        if (prey && prey.dist <= DRAGON_SCRATCH_RANGE) beginDragonScratch(u, prey);
-        else dragonBreathe(u);
+        if (prey && prey.dist <= DRAGON_SCRATCH_RANGE) {
+          u.breathCd = DRAGON_BREATH_INTERVAL;
+          beginDragonScratch(u, prey);
+        } else if (prey && prey.dist <= DRAGON_BREATH_RANGE) {
+          u.breathCd = DRAGON_BREATH_INTERVAL;
+          dragonBreathe(u);
+        }
       }
       steerUnit(u, dt);
       continue;
@@ -38265,7 +38796,7 @@ function updateUI() {
   if (gameMode === 'survival' || gameMode === 'survival-pvp' || isSandboxMode() || isPlayVsAiMode()) {
     roundLabel.textContent = 'Mode';
     roundEl.textContent = isSurvivalPvp()
-      ? 'Online PvP'
+      ? (isLimitedPvp() ? 'Limited PvP' : 'Online PvP')
       : (isSandboxMode() ? 'Sandbox' : (isPlayVsAiMode() ? 'Play vs AI' : survivalDifficultyModeLabel()));
   } else if (isAiTrainingMode()) {
     roundLabel.textContent = isAiVsCpuTrainingMode() ? 'AI↔CPU' : 'Train';
@@ -38293,7 +38824,7 @@ function updateUI() {
     : gameMode === 'survival'
     ? `⚔️ Live Battle (${survivalDifficultyModeLabel()})`
     : gameMode === 'survival-pvp'
-      ? '⚔️ Online PvP'
+      ? (isLimitedPvp() ? '🃏 Limited PvP' : '⚔️ Online PvP')
       : isAiVsCpuTrainingMode()
         ? '🥊 AI vs CPU'
         : isAiSelfPlayMode()
@@ -40256,7 +40787,7 @@ function initLiveFeatherCursor() {
     const sway = Math.sin(now * 0.026) * 5.8 * Math.max(0.22, motion);
     rotation += (targetRotation + sway - rotation) * 0.24;
     const flutterScale = 1 + Math.sin(now * 0.019) * 0.035 * motion;
-    feather.style.transform = `rotate(${rotation.toFixed(2)}deg) scale(${flutterScale.toFixed(3)})`;
+    feather.style.transform = `rotate(${(-rotation).toFixed(2)}deg) scale(${flutterScale.toFixed(3)}) scaleX(-1)`;
     updateCursorState();
     requestAnimationFrame(animateFeatherCursor);
   }
@@ -40278,6 +40809,8 @@ window.__TDG = {
   applyServerTick,
   applyServerWorld,
   isSurvivalPvp,
+  startLimitedDraftSession,
+  handleLimitedDraftRemote,
 };
 
 resetGame();

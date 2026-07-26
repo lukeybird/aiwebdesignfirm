@@ -21,11 +21,20 @@ function makeRoomId() {
   return randomBytes(12).toString('hex');
 }
 
-async function findLiveWaitingPartner(excludeToken?: string) {
+function normalizeQueueMode(mode?: string) {
+  return mode === 'limited' ? 'limited' : 'standard';
+}
+
+function waitingStatusForMode(mode: 'standard' | 'limited') {
+  return mode === 'limited' ? 'waiting_limited' : 'waiting';
+}
+
+async function findLiveWaitingPartner(excludeToken: string | undefined, mode: 'standard' | 'limited') {
+  const waitingStatus = waitingStatusForMode(mode);
   const waitingRows = (await sql`
     SELECT id, session_token, player_name
     FROM tdg_pvp_queue
-    WHERE status = 'waiting'
+    WHERE status = ${waitingStatus}
       AND last_seen_at >= NOW() - INTERVAL '30 seconds'
       AND session_token <> ${excludeToken ?? ''}
     ORDER BY created_at ASC
@@ -38,7 +47,7 @@ async function tryResumeExistingSession(existingToken: string) {
   const row = await findQueueRowByToken(existingToken);
   if (!row) return null;
 
-  if (row.status === 'matched' && row.room_id && row.player_slot !== null) {
+  if ((row.status === 'matched' || row.status === 'matched_limited') && row.room_id && row.player_slot !== null) {
     const opponent = row.opponent_token
       ? await findQueueRowByToken(row.opponent_token)
       : null;
@@ -76,15 +85,17 @@ async function tryResumeExistingSession(existingToken: string) {
       startsAt,
       joinTicket,
       serverAuth: Boolean(joinTicket),
+      limited: row.status === 'matched_limited',
     });
   }
 
-  if (row.status === 'waiting') {
+  if (row.status === 'waiting' || row.status === 'waiting_limited') {
     await touchQueueSession(existingToken);
     return NextResponse.json({
       status: 'waiting',
       sessionToken: row.session_token,
       playerName: row.player_name,
+      limited: row.status === 'waiting_limited',
     });
   }
 
@@ -93,10 +104,13 @@ async function tryResumeExistingSession(existingToken: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { name?: string; sessionToken?: string };
+    const body = (await request.json()) as { name?: string; sessionToken?: string; mode?: string };
     const name = typeof body.name === 'string' ? body.name.trim().slice(0, 32) : '';
     const existingToken =
       typeof body.sessionToken === 'string' ? body.sessionToken.trim().slice(0, 64) : '';
+    const queueMode = normalizeQueueMode(body.mode);
+    const waitingStatus = waitingStatusForMode(queueMode);
+    const isLimited = queueMode === 'limited';
 
     if (!name || name.length < 2) {
       return NextResponse.json({ error: 'Enter a name (at least 2 characters).' }, { status: 400 });
@@ -112,19 +126,19 @@ export async function POST(request: NextRequest) {
       if (resumed) return resumed;
     }
 
-    const waiting = await findLiveWaitingPartner(sessionToken);
+    const waiting = await findLiveWaitingPartner(sessionToken, queueMode);
     if (waiting) {
       const roomId = makeRoomId();
       const updated = (await sql`
         UPDATE tdg_pvp_queue
-        SET status = 'matched',
+        SET status = ${isLimited ? 'matched_limited' : 'matched'},
             room_id = ${roomId},
             player_slot = 0,
             opponent_name = ${name},
             opponent_token = ${sessionToken},
             last_seen_at = CURRENT_TIMESTAMP
         WHERE id = ${waiting.id}
-          AND status = 'waiting'
+          AND status = ${waitingStatus}
           AND last_seen_at >= NOW() - INTERVAL '30 seconds'
         RETURNING session_token, player_name
       `) as unknown as Array<{ session_token: string; player_name: string }>;
@@ -138,7 +152,7 @@ export async function POST(request: NextRequest) {
           INSERT INTO tdg_pvp_queue (
             session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, last_seen_at
           ) VALUES (
-            ${sessionToken}, ${name}, 'matched', ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
+            ${sessionToken}, ${name}, ${isLimited ? 'matched_limited' : 'matched'}, ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
           )
           ON CONFLICT (session_token) DO UPDATE SET
             player_name = EXCLUDED.player_name,
@@ -180,6 +194,7 @@ export async function POST(request: NextRequest) {
             isHost: true,
             joinTicket: hostTicket,
             serverAuth: Boolean(hostTicket),
+            limited: isLimited,
           }),
           safeTrigger(`tdg-player-${sessionToken}`, 'match_found', {
             ...matchPayload,
@@ -188,6 +203,7 @@ export async function POST(request: NextRequest) {
             isHost: false,
             joinTicket: guestTicket,
             serverAuth: Boolean(guestTicket),
+            limited: isLimited,
           }),
         ]);
 
@@ -202,16 +218,17 @@ export async function POST(request: NextRequest) {
           startsAt: matchPayload.startsAt,
           joinTicket: guestTicket,
           serverAuth: Boolean(guestTicket),
+          limited: isLimited,
         });
       }
     }
 
     await sql`
       INSERT INTO tdg_pvp_queue (session_token, player_name, status, last_seen_at)
-      VALUES (${sessionToken}, ${name}, 'waiting', CURRENT_TIMESTAMP)
+      VALUES (${sessionToken}, ${name}, ${waitingStatus}, CURRENT_TIMESTAMP)
       ON CONFLICT (session_token) DO UPDATE SET
         player_name = EXCLUDED.player_name,
-        status = 'waiting',
+        status = ${waitingStatus},
         room_id = NULL,
         player_slot = NULL,
         opponent_name = NULL,
@@ -224,6 +241,7 @@ export async function POST(request: NextRequest) {
       status: 'waiting',
       sessionToken,
       playerName: name,
+      limited: isLimited,
     });
   } catch (error) {
     console.error('tdg-pvp join error:', error);
