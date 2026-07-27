@@ -11,7 +11,6 @@
   const SHOP = 5;
   const START_HP = 100;
   const START_GOLD = 10;
-  const PLAN_SEC = 55;
   const REROLL = 2;
   const XP_COST = 4;
   const XP_PER_BUY = 4;
@@ -74,25 +73,29 @@
     warrior: {
       name: 'Warrior', units: ['striker', 'swordsman', 'tank'],
       breakpoints: [2, 4],
-      desc: '+HP',
+      desc: 'Frontline fighters gain bonus max HP.',
+      tiers: ['2: +18% HP', '4: +35% HP'],
       apply: (st, tier) => { st.hp = Math.round(st.hp * (1 + [0.18, 0.35][tier])); },
     },
     hunter: {
       name: 'Hunter', units: ['sniper', 'bowman', 'wolf_hunter'],
       breakpoints: [2, 4],
-      desc: '+Damage',
+      desc: 'Sharpshooters deal bonus damage.',
+      tiers: ['2: +18% damage', '4: +35% damage'],
       apply: (st, tier) => { st.damage = Math.round(st.damage * (1 + [0.18, 0.35][tier])); },
     },
     beast: {
       name: 'Beast', units: ['speed', 'wolf_hunter', 'yeti'],
       breakpoints: [2, 3],
-      desc: '+Attack speed',
+      desc: 'Wild units attack faster.',
+      tiers: ['2: +15% attack speed', '3: +30% attack speed'],
       apply: (st, tier) => { st.attackRate *= (1 + [0.15, 0.3][tier]); },
     },
     mystic: {
       name: 'Mystic', units: ['angel', 'yeti', 'farmer'],
       breakpoints: [2, 3],
-      desc: '+HP & sustain',
+      desc: 'Mystic units gain bonus HP.',
+      tiers: ['2: +12% HP', '3: +25% HP'],
       apply: (st, tier) => { st.hp = Math.round(st.hp * (1 + [0.12, 0.25][tier])); },
     },
   };
@@ -107,6 +110,7 @@
   let portraitCache = {};
   let drag = null;
   let uiBound = false;
+  let selected = null; // { area:'board'|'bench'|'shop', r?, c?, idx?, type?, star? }
 
   function $(id) { return document.getElementById(id); }
 
@@ -713,19 +717,19 @@
 
   function startRound() {
     state.phase = 'planning';
-    state.planningLeft = PLAN_SEC;
     state.combatUnits = [];
     state.projectiles = [];
     state.floatTexts = [];
     state.combatFinished = false;
     state.resultApplied = false;
     state.pendingResult = null;
+    selected = null;
     for (const p of state.players) {
       p.ready = false;
       p.gold += incomeFor(p);
       rollShop(p);
     }
-    pushMsg(`Round ${state.round} — shop, merge 3 copies, place your army`);
+    pushMsg(`Round ${state.round} — shop, merge 3 copies, place your army. Ready when set.`);
     setShellMode('planning');
     renderHud();
   }
@@ -977,35 +981,61 @@
   function endDrag(cancel) {
     if (!drag) return;
     const from = drag.from;
+    const wasPending = !!drag.pending;
     drag.ghost?.remove();
     const under = drag.lastEl;
     drag = null;
     clearDropHighlights();
     document.body.classList.remove('tft-is-dragging');
-    if (cancel) return;
+    if (cancel || wasPending) {
+      if (!cancel) renderHud();
+      return;
+    }
     const to = parseDropTarget(under);
-    if (!to) return;
+    if (!to) { renderHud(); return; }
     if (to.area === 'sell') { trySell(from); return; }
     tryMoveOrSwap(from, to);
   }
 
   function startDrag(from, unit, e) {
-    if (state.phase !== 'planning' || me().ready) return;
     if (drag) endDrag(true);
     drag = {
       from,
       unit,
-      ghost: createGhost(unit, e.clientX, e.clientY),
+      pending: true,
+      ghost: null,
       pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
       lastEl: null,
     };
-    document.body.classList.add('tft-is-dragging');
-    markSource(from);
     try { e.target.setPointerCapture?.(e.pointerId); } catch { /* */ }
   }
 
+  function activateDrag(e) {
+    if (!drag || !drag.pending || me().ready) return;
+    drag.pending = false;
+    drag.ghost = createGhost(drag.unit, e.clientX, e.clientY);
+    document.body.classList.add('tft-is-dragging');
+    markSource(drag.from);
+  }
+
+  function highlightSelection() {
+    document.querySelectorAll('.tft-board-cell.is-selected, .tft-bench-slot.is-selected, .tft-shop-card.is-inspect')
+      .forEach((el) => el.classList.remove('is-selected', 'is-inspect'));
+    if (!selected) return;
+    if (selected.area === 'board') {
+      document.querySelector(`#tft-board .tft-board-cell[data-r="${selected.r}"][data-c="${selected.c}"]`)
+        ?.classList.add('is-selected');
+    } else if (selected.area === 'bench') {
+      document.querySelector(`#tft-bench [data-bench="${selected.idx}"]`)?.classList.add('is-selected');
+    } else if (selected.area === 'shop') {
+      document.querySelector(`#tft-shop [data-shop="${selected.idx}"]`)?.classList.add('is-inspect');
+    }
+  }
+
   function onPointerDown(e) {
-    if (!active || state?.phase !== 'planning' || me().ready) return;
+    if (!active || state?.phase !== 'planning') return;
     if (e.button !== undefined && e.button !== 0) return;
     const board = e.target.closest?.('#tft-board .tft-board-cell');
     if (board?.querySelector('.tft-unit-chip')) {
@@ -1014,7 +1044,10 @@
       const unit = me().board[r][c];
       if (!unit) return;
       e.preventDefault();
-      startDrag({ area: 'board', r, c }, unit, e);
+      selected = { area: 'board', r, c };
+      renderInspectPanel();
+      highlightSelection();
+      if (!me().ready) startDrag({ area: 'board', r, c }, unit, e);
       return;
     }
     const bench = e.target.closest?.('#tft-bench [data-bench]');
@@ -1023,12 +1056,21 @@
       const unit = me().bench[idx];
       if (!unit) return;
       e.preventDefault();
-      startDrag({ area: 'bench', idx }, unit, e);
+      selected = { area: 'bench', idx };
+      renderInspectPanel();
+      highlightSelection();
+      if (!me().ready) startDrag({ area: 'bench', idx }, unit, e);
     }
   }
 
   function onPointerMove(e) {
     if (!drag || (drag.pointerId != null && e.pointerId !== drag.pointerId)) return;
+    if (drag.pending) {
+      const dist = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
+      if (dist < 8) return;
+      activateDrag(e);
+    }
+    if (!drag?.ghost) return;
     drag.ghost.style.left = `${e.clientX}px`;
     drag.ghost.style.top = `${e.clientY}px`;
     drag.lastEl = document.elementFromPoint(e.clientX, e.clientY);
@@ -1037,6 +1079,11 @@
   function onPointerUp(e) {
     if (!drag) return;
     if (drag.pointerId != null && e.pointerId !== drag.pointerId) return;
+    if (drag.pending) {
+      drag = null;
+      renderHud();
+      return;
+    }
     drag.lastEl = document.elementFromPoint(e.clientX, e.clientY) || drag.lastEl;
     endDrag(false);
   }
@@ -1054,6 +1101,78 @@
       + `</div>`;
   }
 
+  function traitsForType(type) {
+    return Object.entries(TRAITS)
+      .filter(([, tr]) => tr.units.includes(type))
+      .map(([id, tr]) => ({ id, name: tr.name }));
+  }
+
+  function selectedUnit() {
+    if (!selected || !state) return null;
+    const p = me();
+    if (selected.area === 'board') return p.board[selected.r]?.[selected.c] || null;
+    if (selected.area === 'bench') return p.bench[selected.idx] || null;
+    if (selected.area === 'shop') {
+      const type = p.shop[selected.idx];
+      return type ? { type, star: 1, id: `shop-${selected.idx}` } : null;
+    }
+    if (selected.area === 'preview' && selected.type) {
+      return { type: selected.type, star: selected.star || 1, id: 'preview' };
+    }
+    return null;
+  }
+
+  function clearSelectionIfGone() {
+    if (!selected) return;
+    if (!selectedUnit()) selected = null;
+  }
+
+  function formatRole(role) {
+    if (role === 'ranged') return 'Ranged';
+    if (role === 'tank') return 'Tank';
+    if (role === 'carry') return 'Carry';
+    return 'Melee';
+  }
+
+  function renderInspectPanel() {
+    const el = $('tft-inspect');
+    if (!el) return;
+    clearSelectionIfGone();
+    const unit = selectedUnit();
+    if (!unit) {
+      el.innerHTML = '<div class="tft-inspect-empty">Select a unit to see its stats</div>';
+      return;
+    }
+    const star = unit.star || 1;
+    const base = scaledStats(unit.type, star);
+    const counts = traitCounts(me());
+    const withTraits = applyTraitsToStats({ ...base }, counts);
+    const traitNames = traitsForType(unit.type).map((t) => t.name);
+    const dps = Math.round(withTraits.damage * withTraits.attackRate);
+    el.innerHTML = `
+      <div class="tft-inspect-head">
+        <img src="/TDG/portraits/${unit.type}.webp" alt="" />
+        <div>
+          <div class="tft-inspect-title">${escapeHtml(base.name)} ${starLabel(star)}</div>
+          <div class="tft-inspect-sub">${formatRole(base.role)} · Cost ${base.cost}g · Sell ${sellValue(unit)}g</div>
+        </div>
+      </div>
+      <div class="tft-inspect-grid">
+        <div><span>HP</span><br><strong>${withTraits.hp}</strong></div>
+        <div><span>Damage</span><br><strong>${withTraits.damage}</strong></div>
+        <div><span>Atk speed</span><br><strong>${withTraits.attackRate.toFixed(2)}/s</strong></div>
+        <div><span>DPS</span><br><strong>${dps}</strong></div>
+        <div><span>Range</span><br><strong>${withTraits.range}</strong></div>
+        <div><span>Move</span><br><strong>${withTraits.speed}</strong></div>
+      </div>
+      <div class="tft-inspect-traits">
+        ${traitNames.length ? `Traits: ${traitNames.join(', ')}` : 'No traits'}
+        ${withTraits.hp !== base.hp || withTraits.damage !== base.damage || Math.abs(withTraits.attackRate - base.attackRate) > 0.001
+          ? `<br><span style="opacity:0.75">Active trait bonuses applied</span>` : ''}
+      </div>
+    `;
+  }
+
   function countOwned(p, type, star) {
     return listArmy(p).filter((x) => x.unit.type === type && (x.unit.star || 1) === star).length;
   }
@@ -1067,7 +1186,7 @@
 
     setText('tft-round-label', `Round ${state.round}`);
     setText('tft-phase-label',
-      planning ? `Planning · ${Math.ceil(state.planningLeft)}s`
+      planning ? 'Planning'
         : state.phase === 'combat' ? `Fight · ${Math.ceil(state.combatElapsed || 0)}s`
           : state.phase === 'result' ? 'Round result'
             : 'Game Over');
@@ -1090,7 +1209,9 @@
         const afford = p.gold >= cost && emptyBenchSlot(p) >= 0;
         const owned1 = countOwned(p, type, 1);
         const mergeHint = owned1 >= 2 ? 'tft-shop-merge' : '';
-        return `<button type="button" class="tft-shop-card ${mergeHint}${afford ? '' : ' is-disabled'}" data-shop="${i}" ${afford && planning && !p.ready ? '' : 'disabled'}>`
+        const inspect = selected?.area === 'shop' && selected.idx === i ? ' is-inspect' : '';
+        // Keep clickable while planning so players can inspect stats even if they can't afford it.
+        return `<button type="button" class="tft-shop-card ${mergeHint}${inspect}${afford ? '' : ' is-disabled'}" data-shop="${i}" ${planning ? '' : 'disabled'}>`
           + `<img src="/TDG/portraits/${type}.webp" alt="" draggable="false" />`
           + `<span class="tft-shop-name">${escapeHtml(def.name)}</span>`
           + `<span class="tft-shop-cost">${cost}g</span>`
@@ -1107,7 +1228,8 @@
           const u = p.board[r][c];
           const front = c === 0 ? ' is-front' : '';
           const back = c === COLS - 1 ? ' is-back' : '';
-          html += `<div class="tft-board-cell${u ? ' has-unit' : ''}${front}${back}" data-r="${r}" data-c="${c}" title="${c === 0 ? 'Frontline (near mid)' : c === COLS - 1 ? 'Backline' : ''}">`;
+          const sel = selected?.area === 'board' && selected.r === r && selected.c === c ? ' is-selected' : '';
+          html += `<div class="tft-board-cell${u ? ' has-unit' : ''}${front}${back}${sel}" data-r="${r}" data-c="${c}" title="${c === 0 ? 'Frontline (near mid)' : c === COLS - 1 ? 'Backline' : ''}">`;
           if (u) html += unitChipHtml(u);
           html += '</div>';
         }
@@ -1131,9 +1253,10 @@
 
     const benchEl = $('tft-bench');
     if (benchEl) {
-      benchEl.innerHTML = p.bench.map((u, i) => (
-        `<div class="tft-bench-slot${u ? ' has-unit' : ''}" data-bench="${i}">${u ? unitChipHtml(u) : ''}</div>`
-      )).join('');
+      benchEl.innerHTML = p.bench.map((u, i) => {
+        const sel = selected?.area === 'bench' && selected.idx === i ? ' is-selected' : '';
+        return `<div class="tft-bench-slot${u ? ' has-unit' : ''}${sel}" data-bench="${i}">${u ? unitChipHtml(u) : ''}</div>`;
+      }).join('');
     }
 
     const traitsEl = $('tft-traits');
@@ -1143,9 +1266,16 @@
         const n = counts[id] || 0;
         const on = n >= tr.breakpoints[0];
         const next = tr.breakpoints.find((b) => n < b) || tr.breakpoints[tr.breakpoints.length - 1];
-        return `<span class="tft-trait${on ? ' is-active' : ''}" title="${tr.desc}">${tr.name} ${n}/${next}</span>`;
+        return `<div class="tft-trait${on ? ' is-active' : ''}" data-trait="${id}">`
+          + `<span class="tft-trait-name">${escapeHtml(tr.name)}</span>`
+          + `<span class="tft-trait-count">${n}/${next}</span>`
+          + `<span class="tft-trait-desc">${escapeHtml(tr.desc)}</span>`
+          + `<span class="tft-trait-tiers">${escapeHtml((tr.tiers || []).join(' · '))}</span>`
+          + `</div>`;
       }).join('');
     }
+
+    renderInspectPanel();
 
     const readyBtn = $('tft-ready-btn');
     if (readyBtn) {
@@ -1375,13 +1505,6 @@
   function tick(dt) {
     if (!active || !state) return;
     if (state.phase === 'planning') {
-      state.planningLeft -= dt;
-      if (state.planningLeft <= 0) {
-        if (!me().ready) setReady(true);
-        if (match.isHost && state.phase === 'planning') beginCombat({ force: true });
-      } else if (Math.floor(state.planningLeft) !== Math.floor(state.planningLeft + dt)) {
-        renderHud();
-      }
       drawPlanningPreview();
     } else if (state.phase === 'combat') {
       tickCombat(dt);
@@ -1404,8 +1527,11 @@
 
     $('tft-shop')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-shop]');
-      if (!btn) return;
-      tryBuy(Number(btn.getAttribute('data-shop')));
+      if (!btn || state?.phase !== 'planning') return;
+      const idx = Number(btn.getAttribute('data-shop'));
+      selected = { area: 'shop', idx };
+      if (!me().ready) tryBuy(idx);
+      renderHud();
     });
     $('tft-reroll-btn')?.addEventListener('click', () => tryReroll());
     $('tft-xp-btn')?.addEventListener('click', () => tryBuyXp());
@@ -1458,7 +1584,6 @@
       phase: 'planning',
       round: 1,
       players: [freshPlayer(0, match.player0Name), freshPlayer(1, match.player1Name)],
-      planningLeft: PLAN_SEC,
       combatUnits: [],
       projectiles: [],
       floatTexts: [],
@@ -1466,6 +1591,7 @@
       combatFinished: false,
       resultApplied: false,
     };
+    selected = null;
     active = true;
     canvas = $('tft-combat-canvas');
     ctx = canvas?.getContext('2d') || null;

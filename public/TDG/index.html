@@ -1578,7 +1578,7 @@
     .tft-hp-block.you strong { color: #4ECDC4; }
     .tft-hp-block.them strong { color: #FF8E53; }
 
-    .tft-body { flex: 1; display: grid; grid-template-columns: 220px 1fr; min-height: 0; }
+    .tft-body { flex: 1; display: grid; grid-template-columns: 260px 1fr; min-height: 0; }
 
     .tft-sidebar {
       padding: 12px;
@@ -1592,15 +1592,74 @@
     .tft-stat label { display: block; font-size: 0.72rem; opacity: 0.65; text-transform: uppercase; }
     .tft-stat strong { font-size: 1.25rem; font-family: 'Orbitron', sans-serif; }
 
-    .tft-traits { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tft-traits-block .tft-label { margin-bottom: 6px; }
+    .tft-traits { display: flex; flex-direction: column; gap: 6px; }
     .tft-trait {
-      font-size: 0.68rem;
-      padding: 3px 7px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.06);
+      font-size: 0.72rem;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
+      line-height: 1.35;
     }
-    .tft-trait.is-active { border-color: #c9a227; color: #f0d878; }
+    .tft-trait.is-active { border-color: #c9a227; background: rgba(201,162,39,0.12); }
+    .tft-trait-name { font-weight: 800; color: #e8ebe0; }
+    .tft-trait.is-active .tft-trait-name { color: #f0d878; }
+    .tft-trait-count { opacity: 0.7; font-weight: 600; margin-left: 4px; }
+    .tft-trait-desc { display: block; margin-top: 2px; opacity: 0.78; font-size: 0.68rem; }
+    .tft-trait-tiers { display: block; margin-top: 3px; opacity: 0.62; font-size: 0.64rem; }
+
+    .tft-inspect {
+      border: 1px solid rgba(201,212,184,0.22);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(0,0,0,0.28);
+      min-height: 120px;
+    }
+    .tft-inspect-empty {
+      font-size: 0.75rem;
+      opacity: 0.55;
+      line-height: 1.35;
+      padding: 8px 2px;
+    }
+    .tft-inspect-head {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .tft-inspect-head img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid rgba(240,216,120,0.45);
+    }
+    .tft-inspect-title { font-weight: 800; font-size: 0.95rem; line-height: 1.15; }
+    .tft-inspect-sub { font-size: 0.68rem; opacity: 0.7; margin-top: 2px; }
+    .tft-inspect-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+      font-size: 0.72rem;
+    }
+    .tft-inspect-grid span { opacity: 0.6; }
+    .tft-inspect-grid strong { font-family: 'Orbitron', sans-serif; font-size: 0.78rem; }
+    .tft-inspect-traits {
+      margin-top: 8px;
+      font-size: 0.68rem;
+      opacity: 0.8;
+      line-height: 1.35;
+    }
+    .tft-board-cell.is-selected,
+    .tft-bench-slot.is-selected {
+      border-color: #f0d878 !important;
+      box-shadow: inset 0 0 0 1px rgba(240,216,120,0.55), 0 0 10px rgba(240,216,120,0.2);
+    }
+    .tft-shop-card.is-inspect {
+      border-color: #f0d878;
+      box-shadow: 0 0 10px rgba(240,216,120,0.25);
+    }
 
     .tft-actions { display: flex; flex-direction: column; gap: 6px; }
     .tft-btn {
@@ -7616,14 +7675,20 @@
               <div class="tft-stat"><label>Gold</label><strong id="tft-gold">10</strong></div>
               <div class="tft-stat"><label>Commander</label><strong id="tft-level">Lv 1</strong></div>
               <div class="tft-stat"><label>Board</label><strong id="tft-board-cap">0/1</strong></div>
-              <div class="tft-traits" id="tft-traits"></div>
+              <div class="tft-traits-block">
+                <div class="tft-label">Traits</div>
+                <div class="tft-traits" id="tft-traits"></div>
+              </div>
+              <div class="tft-inspect" id="tft-inspect">
+                <div class="tft-inspect-empty">Select a unit to see its stats</div>
+              </div>
               <div class="tft-actions">
                 <button type="button" class="tft-btn" id="tft-reroll-btn">Reroll (2g)</button>
                 <button type="button" class="tft-btn" id="tft-xp-btn">Buy XP (4g)</button>
                 <button type="button" class="tft-btn primary" id="tft-ready-btn">Ready</button>
               </div>
               <div class="tft-log" id="tft-log"></div>
-              <p class="tft-hint">Buy units · merge 3 of the same ★ into the next star · column 1 is frontline (near mid). Left fights Right.</p>
+              <p class="tft-hint">Buy units · merge 3 of the same ★ · column 1 is frontline. Both players Ready to fight — no round timer.</p>
             </aside>
             <main class="tft-main">
               <div class="tft-shop-row tft-plan-only">
@@ -10633,7 +10698,7 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
-    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler: shop by cost tier, merge 3 copies into a higher star, place on a left/right board (column 1 = frontline). Traits stack. Fights use your unit sprites — last HP standing wins.</p></div>
+    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler: shop by cost tier, merge 3 copies into a higher star, place on a left/right board (column 1 = frontline). Traits show their buffs in the sidebar — select a unit to inspect HP, damage, range, and more. Both players Ready when set (no round timer). Fights use your unit sprites.</p></div>
     <div class="manual-card"><h4>🃏 Limited PvP</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>
     <div class="manual-card"><h4>🎮 Free Mode</h4><p>Control a super-tank on a huge open battlefield! Arrow keys move and rotate, Space shoots. The camera follows you. Enemies only chase you when you get within detection range. Clear all hostiles to win.</p></div>
