@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { safeTrigger } from '@/lib/pusher';
-import { ensureTdgPvpTables, touchQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
+import {
+  ensureTdgPvpTables,
+  touchQueueSession,
+  upsertMatchState,
+  verifyRoomPlayer,
+} from '@/lib/tdg-pvp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +30,12 @@ export async function POST(request: NextRequest) {
     }
 
     await touchQueueSession(sessionToken);
+    // Persist for refresh / ?game= rejoin, then fan out live.
+    try {
+      await upsertMatchState(roomId, body.state, player.player_slot);
+    } catch (err) {
+      console.warn('tdg-pvp match state upsert failed', err);
+    }
 
     await safeTrigger(`tdg-room-${roomId}`, 'state', {
       state: body.state,

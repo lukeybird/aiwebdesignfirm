@@ -57,13 +57,15 @@ async function tryResumeExistingSession(existingToken: string) {
       : null;
     const opponentAlive = opponent ? await isQueueSessionAlive(opponent) : false;
 
-    if (!opponentAlive) {
+    // Keep the room if the opponent row still exists (even if briefly stale) —
+    // refreshes use /rejoin + match_state. Only tear down when opponent is gone.
+    if (!opponent) {
       await removeQueueSession(existingToken);
       return null;
     }
 
     await touchQueueSession(existingToken);
-    if (opponent?.session_token) await touchQueueSession(opponent.session_token);
+    if (opponent.session_token) await touchQueueSession(opponent.session_token);
 
     const startsAt = Date.now() + 4500;
     const joinTicket =
@@ -91,6 +93,7 @@ async function tryResumeExistingSession(existingToken: string) {
       serverAuth: Boolean(joinTicket),
       limited: row.status === 'matched_limited',
       tft: row.status === 'matched_tft',
+      opponentAlive,
     });
   }
 

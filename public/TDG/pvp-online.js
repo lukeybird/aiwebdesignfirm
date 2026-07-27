@@ -1,6 +1,7 @@
 (function () {
   const STORAGE_KEY = 'tdg_pvp_session';
   const LIVE_STATE_KEY = 'tdg_pvp_live_state';
+  const ROOM_SESSION_PREFIX = 'tdg_pvp_room_';
 
   let pusher = null;
   let playerChannel = null;
@@ -163,14 +164,55 @@
     }
   }
 
+  function loadRoomSession(roomId) {
+    if (!roomId) return null;
+    try {
+      const raw = localStorage.getItem(ROOM_SESSION_PREFIX + roomId);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveRoomSession(data) {
+    if (!data?.roomId || !data?.sessionToken) return;
+    try {
+      localStorage.setItem(ROOM_SESSION_PREFIX + data.roomId, JSON.stringify({
+        sessionToken: data.sessionToken,
+        playerName: data.playerName,
+        playerId: data.playerId,
+        isHost: data.isHost,
+        limited: !!data.limited,
+        tft: !!data.tft,
+        opponentName: data.opponentName,
+        limitedPicks: data.limitedPicks || null,
+        reportedGameOver: !!data.reportedGameOver,
+      }));
+    } catch {
+      // ignore quota / private mode
+    }
+  }
+
+  function clearRoomSession(roomId) {
+    if (!roomId) return;
+    try {
+      localStorage.removeItem(ROOM_SESSION_PREFIX + roomId);
+    } catch {
+      // ignore
+    }
+  }
+
   function saveSession(data) {
     session = data;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    saveRoomSession(data);
   }
 
   function clearSession() {
+    const roomId = session?.roomId || loadStoredSession()?.roomId || readGameIdFromUrl();
     session = null;
     sessionStorage.removeItem(STORAGE_KEY);
+    if (roomId) clearRoomSession(roomId);
   }
 
   async function fetchJson(url, options) {
@@ -606,7 +648,9 @@
       ? Date.now() + 800
       : (match.startsAt || Date.now() + 4000);
 
-    const savedState = resume ? loadLiveState(match.roomId, mode) : null;
+    const savedState = resume
+      ? (match.serverState || loadLiveState(match.roomId, mode) || null)
+      : null;
 
     function beginCombat(limitedPicks) {
       if (limitedPicks && session) {
@@ -752,11 +796,14 @@
   async function tryResumeFromUrl() {
     if (resumeInFlight) return false;
     const gameId = readGameIdFromUrl();
-    const stored = loadStoredSession();
-    if (!gameId || !stored?.sessionToken) return false;
+    if (!gameId) return false;
+
+    const stored = loadStoredSession() || loadRoomSession(gameId);
+    if (!stored?.sessionToken) return false;
     if (stored.reportedGameOver) {
       clearGameUrl();
       clearLiveState();
+      clearRoomSession(gameId);
       return false;
     }
     if (stored.roomId && stored.roomId !== gameId) return false;
@@ -776,10 +823,10 @@
       if (you) you.textContent = stored.playerName || 'You';
       if (them) them.textContent = stored.opponentName || 'Opponent';
 
-      const result = await fetchJson('/api/tdg-pvp/join', {
+      const result = await fetchJson('/api/tdg-pvp/rejoin', {
         method: 'POST',
         body: JSON.stringify({
-          name: stored.playerName || 'Player',
+          roomId: gameId,
           sessionToken: stored.sessionToken,
           mode: queueMode,
         }),
@@ -788,7 +835,7 @@
       const nextSession = {
         sessionToken: result.sessionToken,
         playerName: result.playerName || stored.playerName,
-        roomId: result.roomId || stored.roomId || gameId,
+        roomId: result.roomId || gameId,
         playerId: result.playerId ?? stored.playerId,
         opponentName: result.opponentName || stored.opponentName,
         isHost: result.isHost ?? stored.isHost,
@@ -803,6 +850,14 @@
       };
       saveSession(nextSession);
 
+      // Prefer authoritative server snapshot for this room.
+      if (result.state) {
+        saveLiveState(result.state, {
+          roomId: nextSession.roomId,
+          mode: nextSession.tft ? 'tft' : (nextSession.limited ? 'limited' : 'standard'),
+        });
+      }
+
       await ensurePusher();
       subscribeToPlayerChannel(result.sessionToken);
       startHeartbeat();
@@ -816,12 +871,8 @@
           limited: nextSession.limited,
           tft: nextSession.tft,
           resume: true,
+          serverState: result.state || null,
         });
-        return true;
-      }
-
-      if (result.status === 'waiting') {
-        showQueueScreen(result.playerName || stored.playerName || 'Player');
         return true;
       }
 
@@ -912,9 +963,7 @@
       const authSlot = session.authoritySlot === 1 ? 1 : 0;
       if (session.playerId !== authSlot) return;
       socketSend({ type: 'state', state });
-      // TFT also rides the Pusher room channel (actions already do) so shops
-      // land even if the guest only listens there or missed the WS frame.
-      if (state?.mode !== 'tft') return;
+      // Always also persist over HTTP so ?game= rejoin has a server snapshot.
     } else if (!(session.isHost || session.playerId === 0)) {
       return;
     }
