@@ -241,7 +241,7 @@
       xp: 0,
       winStreak: 0,
       lossStreak: 0,
-      shop: [],
+      shop: Array(SHOP).fill(null),
       bench: Array(BENCH).fill(null),
       board: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
       ready: false,
@@ -339,7 +339,7 @@
     if (snap.gold != null) p.gold = snap.gold;
     if (snap.level != null) p.level = snap.level;
     if (snap.xp != null) p.xp = snap.xp;
-    if (snap.shop) p.shop = snap.shop.slice();
+    if (Array.isArray(snap.shop)) p.shop = snap.shop.slice();
     if (snap.shopGen != null) p.shopGen = snap.shopGen;
     if (snap.ready != null) p.ready = !!snap.ready;
     if (snap.winStreak != null) p.winStreak = snap.winStreak;
@@ -408,6 +408,40 @@
     if (!force && now - lastAuthPublishAt < AUTH_SYNC_MS) return;
     lastAuthPublishAt = now;
     window.TDG_PVP?.sendState?.(serializeMatchState());
+  }
+
+  function shopHasCards(p) {
+    return Array.isArray(p?.shop) && p.shop.some((t) => !!t);
+  }
+
+  function requestHostSync() {
+    if (!active || isAuthority()) return;
+    broadcastAction({ type: 'tft_request_sync', playerId: match.playerId });
+  }
+
+  function publishPlanningSnapshot() {
+    if (!isAuthority()) return;
+    publishAuthState(true);
+    // Guest may join a beat late — republish so shop cards always land.
+    [250, 700, 1600].forEach((ms) => {
+      setTimeout(() => {
+        if (active && isAuthority() && state?.phase === 'planning') publishAuthState(true);
+      }, ms);
+    });
+  }
+
+  function ensureLocalShopVisible() {
+    const p = me();
+    if (!p) return;
+    if (!Array.isArray(p.shop) || p.shop.length !== SHOP) {
+      p.shop = Array(SHOP).fill(null);
+    }
+    if (!shopHasCards(p) && state.phase === 'planning' && !p.ready) {
+      // Temporary local shop so the top row isn't blank while host sync arrives.
+      if (p.gold <= 0) p.gold = START_GOLD;
+      rollShop(p);
+      renderHud();
+    }
   }
 
   function applyCombatUnitsFromAuth(list) {
@@ -495,9 +529,19 @@
         lp.winStreak = sp.winStreak || 0;
         lp.lossStreak = sp.lossStreak || 0;
 
-        // Own planning edits stay local until a round/phase boundary.
-        const takeEconomy = i !== match.playerId || phaseChange || snap.phase !== 'planning';
-        if (takeEconomy) applyArmySnapshot(lp, sp);
+        // Own board/bench edits stay local until a round/phase boundary.
+        // If the guest missed the first host snapshot, still pull shop/gold
+        // when the local shop row is empty.
+        const takeArmy = i !== match.playerId || phaseChange || snap.phase !== 'planning';
+        if (takeArmy) {
+          applyArmySnapshot(lp, sp);
+        } else if (!shopHasCards(lp) && Array.isArray(sp.shop)) {
+          lp.shop = sp.shop.slice();
+          if (sp.shopGen != null) lp.shopGen = sp.shopGen;
+          if (sp.gold != null) lp.gold = sp.gold;
+          if (sp.level != null) lp.level = sp.level;
+          if (sp.xp != null) lp.xp = sp.xp;
+        }
       }
     }
 
@@ -1077,7 +1121,7 @@
     pushMsg(`Round ${state.round} — shop, merge 3 copies, place your army. Ready when set.`);
     setShellMode('planning');
     renderHud();
-    if (isAuthority()) publishAuthState(true);
+    if (isAuthority()) publishPlanningSnapshot();
   }
 
   function endMatch(winnerSlot) {
@@ -1262,12 +1306,20 @@
       case 'tft_army_sync': {
         const targetId = action.playerId ?? fromPlayerId;
         const target = state.players[targetId];
-        if (target && targetId !== match.playerId) applyArmySnapshot(target, action.army);
+        if (target && targetId !== match.playerId) {
+          applyArmySnapshot(target, action.army);
+          // Host mirrors guest shop/board so both UIs stay consistent.
+          if (isAuthority()) publishAuthState(true);
+        }
         renderHud();
         return true;
       }
+      case 'tft_request_sync':
+        if (isAuthority()) publishAuthState(true);
+        return true;
       case 'tft_ready':
         if (p) p.ready = !!action.ready;
+        if (isAuthority()) publishAuthState(true);
         renderHud();
         checkPlanningEnd();
         return true;
@@ -1592,7 +1644,10 @@
 
     const shopEl = $('tft-shop');
     if (shopEl) {
-      shopEl.innerHTML = p.shop.map((type, i) => {
+      const shopSlots = Array.isArray(p.shop) && p.shop.length === SHOP
+        ? p.shop
+        : Array(SHOP).fill(null);
+      shopEl.innerHTML = shopSlots.map((type, i) => {
         if (!type) return `<div class="tft-shop-card is-empty"></div>`;
         const def = baseStats(type);
         const cost = unitCost(type);
@@ -2066,12 +2121,27 @@
     UNIT_POOL.forEach(getPortrait);
     bindUi();
     // Host owns round 1 economy/shop; guest waits for the first auth snapshot.
-    if (isAuthority()) startRound();
-    else {
+    if (isAuthority()) {
+      startRound();
+    } else {
       state.phase = 'planning';
       setShellMode('planning');
-      pushMsg('Synced match — waiting for host…');
+      // Apply any state that arrived before TFT finished booting.
+      const buffered = window.TDG_PVP?.getLastTftAuthState?.();
+      if (buffered) applyAuthState(buffered);
+      ensureLocalShopVisible();
+      pushMsg(shopHasCards(me()) ? `Round ${state.round} — shop is ready` : 'Synced match — loading shop…');
       renderHud();
+      requestHostSync();
+      [400, 1200, 2800].forEach((ms) => {
+        setTimeout(() => {
+          if (!active || isAuthority() || state?.phase !== 'planning') return;
+          if (!gotAuthSnapshot || !shopHasCards(me())) {
+            requestHostSync();
+            ensureLocalShopVisible();
+          }
+        }, ms);
+      });
     }
 
     lastTs = performance.now();

@@ -14,6 +14,22 @@
   let queueMode = 'standard'; // 'standard' | 'limited' | 'tft'
   const HEARTBEAT_INTERVAL_MS = 10000;
   const pendingSocketMessages = [];
+  /** Last TFT auth snapshot — kept so a late-booting guest still gets shops. */
+  let lastTftAuthState = null;
+
+  function rememberTftAuthState(state) {
+    if (state && state.mode === 'tft') lastTftAuthState = state;
+  }
+
+  function deliverTftAuthState(state) {
+    if (!state || state.mode !== 'tft') return false;
+    rememberTftAuthState(state);
+    if (window.TFT_ONLINE?.isActive?.()) {
+      window.TFT_ONLINE.applyAuthState?.(state);
+      return true;
+    }
+    return false;
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -213,12 +229,9 @@
       return;
     }
 
-    if (msg.type === 'world') {
-      if (window.TFT_ONLINE?.isActive?.()) {
-        window.TFT_ONLINE.applyAuthState?.(msg.state);
-        return;
-      }
-      window.__TDG?.applyServerWorld?.(msg);
+    if (msg.type === 'world' || msg.type === 'state') {
+      if (deliverTftAuthState(msg.state)) return;
+      if (msg.type === 'world') window.__TDG?.applyServerWorld?.(msg);
       return;
     }
 
@@ -409,9 +422,12 @@
     }
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
-      if (window.TFT_ONLINE?.isActive?.()) {
-        if (session?.isHost || session?.playerId === 0) return;
-        window.TFT_ONLINE.applyAuthState?.(payload.state);
+      if (payload?.state?.mode === 'tft') {
+        if (session?.isHost || session?.playerId === 0) {
+          rememberTftAuthState(payload.state);
+          return;
+        }
+        deliverTftAuthState(payload.state);
         return;
       }
       if (!window.__TDG?.isSurvivalPvp?.()) return;
@@ -636,16 +652,20 @@
 
   async function sendState(state) {
     if (!session?.roomId || !session?.sessionToken) return;
+    rememberTftAuthState(state);
 
     // Server-auth: designated authority publishes full world via WebSocket.
     if (session.serverAuth && gameSocket) {
       const authSlot = session.authoritySlot === 1 ? 1 : 0;
       if (session.playerId !== authSlot) return;
       socketSend({ type: 'state', state });
+      // TFT also rides the Pusher room channel (actions already do) so shops
+      // land even if the guest only listens there or missed the WS frame.
+      if (state?.mode !== 'tft') return;
+    } else if (!(session.isHost || session.playerId === 0)) {
       return;
     }
 
-    if (!(session.isHost || session.playerId === 0)) return;
     const body = JSON.stringify({
       roomId: session.roomId,
       sessionToken: session.sessionToken,
@@ -714,6 +734,7 @@
     disconnectChannels();
     closeGameSocket();
     clearSession();
+    lastTftAuthState = null;
     pusher?.disconnect();
     pusher = null;
   }
@@ -783,6 +804,7 @@
     leaveQueue,
     forfeitMatch,
     usesServerAuth: () => Boolean(session?.serverAuth && gameSocket),
+    getLastTftAuthState: () => lastTftAuthState,
   };
 
   bindUi();

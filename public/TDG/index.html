@@ -1587,11 +1587,19 @@
       flex-direction: column;
       gap: 10px;
       overflow-y: auto;
+      min-height: 0;
     }
 
+    .tft-stat { flex-shrink: 0; }
     .tft-stat label { display: block; font-size: 0.72rem; opacity: 0.65; text-transform: uppercase; }
     .tft-stat strong { font-size: 1.25rem; font-family: 'Orbitron', sans-serif; }
 
+    .tft-traits-block {
+      flex: 0 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      max-height: min(28vh, 220px);
+    }
     .tft-traits-block .tft-label { margin-bottom: 6px; }
     .tft-traits { display: flex; flex-direction: column; gap: 6px; }
     .tft-trait {
@@ -1610,11 +1618,13 @@
     .tft-trait-tiers { display: block; margin-top: 3px; opacity: 0.62; font-size: 0.64rem; }
 
     .tft-inspect {
+      flex-shrink: 0;
       border: 1px solid rgba(201,212,184,0.22);
       border-radius: 10px;
       padding: 8px;
       background: rgba(0,0,0,0.28);
-      min-height: 120px;
+      min-height: 72px;
+      overflow: visible;
     }
     .tft-inspect-empty {
       font-size: 0.75rem;
@@ -1661,10 +1671,17 @@
       box-shadow: 0 0 10px rgba(240,216,120,0.25);
     }
 
-    .tft-actions { display: flex; flex-direction: column; gap: 6px; }
+    .tft-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
     .tft-btn {
       border: 2px solid rgba(201,212,184,0.35);
-      background: rgba(0,0,0,0.35);
+      background: rgba(0,0,0,0.55);
       color: #e8ebe0;
       border-radius: 10px;
       padding: 8px 10px;
@@ -1676,9 +1693,15 @@
     .tft-btn.secondary { opacity: 0.85; }
     .tft-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .tft-log { flex: 1; min-height: 80px; font-size: 0.78rem; opacity: 0.85; overflow-y: auto; }
+    .tft-log {
+      flex: 1 1 auto;
+      min-height: 64px;
+      font-size: 0.78rem;
+      opacity: 0.85;
+      overflow-y: auto;
+    }
     .tft-log-line { margin-bottom: 4px; line-height: 1.3; }
-    .tft-hint { font-size: 0.72rem; opacity: 0.55; line-height: 1.35; }
+    .tft-hint { flex-shrink: 0; font-size: 0.72rem; opacity: 0.55; line-height: 1.35; }
 
     .tft-main {
       padding: 12px;
@@ -1929,7 +1952,7 @@
     .tft-shell.is-combat .tft-log,
     .tft-shell.is-combat .tft-hint,
     .tft-shell.is-combat .tft-traits-block { display: none; }
-    .tft-shell.is-combat .tft-inspect { min-height: 0; }
+    .tft-shell.is-combat .tft-inspect { min-height: 0; flex-shrink: 0; }
     .tft-shell.is-planning .tft-combat-wrap {
       min-height: 180px;
       opacity: 0.9;
@@ -1982,7 +2005,12 @@
 
     @media (max-width: 900px) {
       .tft-body { grid-template-columns: 1fr; }
-      .tft-sidebar { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); max-height: 34vh; }
+      .tft-sidebar {
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        max-height: 42vh;
+      }
+      .tft-traits-block { max-height: min(18vh, 140px); }
       .tft-boards-row { grid-template-columns: 1fr; }
     }
 
