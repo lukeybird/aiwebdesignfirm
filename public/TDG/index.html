@@ -1631,66 +1631,197 @@
     }
 
     .tft-label { font-size: 0.75rem; text-transform: uppercase; opacity: 0.65; margin-bottom: 4px; letter-spacing: 0.06em; }
+    .tft-label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+    .tft-label-row .tft-label { margin-bottom: 0; }
+
+    .tft-boards-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
 
     .tft-shop { display: flex; flex-wrap: wrap; gap: 8px; }
     .tft-shop-card {
-      width: 88px;
+      width: 92px;
       border: 2px solid rgba(255,255,255,0.15);
       border-radius: 12px;
       background: rgba(0,0,0,0.35);
       padding: 6px;
       cursor: pointer;
       text-align: center;
+      transition: transform 0.12s ease, border-color 0.12s ease;
     }
+    .tft-shop-card:not(:disabled):hover { transform: translateY(-2px); border-color: #f0d878; }
     .tft-shop-card.is-disabled { opacity: 0.45; cursor: not-allowed; }
+    .tft-shop-card.is-empty {
+      opacity: 0.2;
+      min-height: 96px;
+      pointer-events: none;
+      border-style: dashed;
+    }
     .tft-shop-card img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }
     .tft-shop-name { display: block; font-size: 0.72rem; font-weight: 700; }
     .tft-shop-cost { display: block; font-size: 0.68rem; color: #f0d878; }
 
     .tft-board {
       display: grid;
-      grid-template-columns: repeat(4, 64px);
-      grid-template-rows: repeat(4, 64px);
+      grid-template-columns: repeat(4, minmax(56px, 68px));
+      grid-template-rows: repeat(4, minmax(56px, 68px));
       gap: 6px;
     }
+    .tft-board.is-opp-grid { opacity: 0.92; }
     .tft-board-cell {
-      width: 64px;
-      height: 64px;
+      width: 100%;
+      height: 100%;
+      min-width: 56px;
+      min-height: 56px;
       border: 2px dashed rgba(124,184,124,0.35);
       border-radius: 10px;
       background: rgba(0,0,0,0.25);
       display: flex;
       align-items: center;
       justify-content: center;
+      touch-action: none;
+      transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
     }
-    .tft-board-cell img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; pointer-events: none; }
+    .tft-board-cell.is-opp { border-color: rgba(255,142,83,0.3); }
+    .tft-board-cell.has-unit { border-style: solid; border-color: rgba(201,212,184,0.4); cursor: grab; }
+    .tft-board-cell.tft-drop-ok { border-color: #7cb87c; background: rgba(124,184,124,0.18); box-shadow: inset 0 0 0 1px rgba(124,184,124,0.4); }
+    .tft-board-cell.tft-drop-bad { border-color: #e76f51; background: rgba(231,111,81,0.15); }
+    .tft-board-cell.tft-dragging-source { opacity: 0.35; }
+
+    .tft-unit-chip {
+      position: relative;
+      width: 86%;
+      height: 86%;
+      border-radius: 9px;
+      overflow: hidden;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+    .tft-unit-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tft-unit-cost {
+      position: absolute;
+      right: 3px;
+      bottom: 2px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #f0d878;
+      text-shadow: 0 1px 2px #000;
+      background: rgba(0,0,0,0.45);
+      border-radius: 4px;
+      padding: 0 3px;
+    }
 
     .tft-bench {
       display: grid;
-      grid-template-columns: repeat(9, 56px);
+      grid-template-columns: repeat(9, minmax(48px, 56px));
       gap: 6px;
     }
     .tft-bench-slot {
-      width: 56px;
-      height: 56px;
+      width: 100%;
+      aspect-ratio: 1;
       border: 2px solid rgba(255,255,255,0.12);
       border-radius: 10px;
       background: rgba(0,0,0,0.3);
       display: flex;
       align-items: center;
       justify-content: center;
+      touch-action: none;
+      transition: border-color 0.12s ease, background 0.12s ease;
     }
-    .tft-bench-slot img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; pointer-events: none; }
+    .tft-bench-slot.has-unit { cursor: grab; border-color: rgba(201,212,184,0.35); }
+    .tft-bench-slot.tft-drop-ok { border-color: #7cb87c; background: rgba(124,184,124,0.16); }
+    .tft-bench-slot.tft-dragging-source { opacity: 0.35; }
+
+    .tft-sell-zone {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 2px dashed rgba(231,111,81,0.45);
+      color: #ffb4a2;
+      background: rgba(231,111,81,0.08);
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+    .tft-sell-zone.tft-drop-ok {
+      border-style: solid;
+      border-color: #e76f51;
+      background: rgba(231,111,81,0.28);
+      box-shadow: 0 0 12px rgba(231,111,81,0.35);
+    }
 
     .tft-combat-wrap {
       flex: 1;
-      min-height: 180px;
+      min-height: 200px;
       border: 2px solid rgba(201,212,184,0.2);
       border-radius: 12px;
       overflow: hidden;
       background: #0d120d;
+      position: relative;
+      display: flex;
+      flex-direction: column;
     }
-    #tft-combat-canvas { width: 100%; height: 100%; display: block; min-height: 180px; }
+    .tft-combat-banner {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    #tft-combat-canvas { width: 100%; height: 100%; display: block; min-height: 200px; flex: 1; }
+
+    .tft-drag-ghost {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 64px;
+      height: 76px;
+      transform: translate(-50%, -60%);
+      pointer-events: none;
+      z-index: 100001;
+      text-align: center;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.55));
+    }
+    .tft-drag-ghost img {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 2px solid #f0d878;
+      display: block;
+      margin: 0 auto;
+    }
+    .tft-drag-ghost span {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #f0d878;
+      text-shadow: 0 1px 3px #000;
+    }
+    body.tft-is-dragging, body.tft-is-dragging * { cursor: grabbing !important; }
+
+    .tft-shell.is-combat .tft-plan-only { display: none; }
+    .tft-shell.is-combat .tft-combat-wrap {
+      min-height: min(58vh, 520px);
+      border-color: rgba(240,216,120,0.35);
+      box-shadow: 0 0 28px rgba(240,216,120,0.12);
+    }
+    .tft-shell.is-combat .tft-combat-banner { opacity: 0; }
+    .tft-shell.is-planning .tft-combat-wrap { min-height: 180px; opacity: 0.85; }
+    .tft-btn.primary.is-waiting { opacity: 0.7; }
+
+    @media (max-width: 900px) {
+      .tft-body { grid-template-columns: 1fr; }
+      .tft-sidebar { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); max-height: 34vh; }
+      .tft-boards-row { grid-template-columns: 1fr; }
+    }
 
     .online-panel {
       background: linear-gradient(160deg, #1a2a1a, #101810);
@@ -7442,22 +7573,32 @@
                 <button type="button" class="tft-btn primary" id="tft-ready-btn">Ready</button>
               </div>
               <div class="tft-log" id="tft-log"></div>
-              <p class="tft-hint">Drag units bench ↔ board. Right-click to sell.</p>
+              <p class="tft-hint">Drag units to the board (swap supported). Drop on Sell, or right-click to sell. Watch the live fight after Ready.</p>
             </aside>
             <main class="tft-main">
-              <div class="tft-shop-row">
+              <div class="tft-shop-row tft-plan-only">
                 <div class="tft-label">Shop</div>
                 <div class="tft-shop" id="tft-shop"></div>
               </div>
-              <div class="tft-board-wrap">
-                <div class="tft-label">Your board</div>
-                <div class="tft-board" id="tft-board"></div>
+              <div class="tft-boards-row tft-plan-only">
+                <div class="tft-board-wrap">
+                  <div class="tft-label">Your board <span id="tft-income-preview"></span></div>
+                  <div class="tft-board" id="tft-board"></div>
+                </div>
+                <div class="tft-board-wrap is-opp">
+                  <div class="tft-label">Enemy board</div>
+                  <div class="tft-board is-opp-grid" id="tft-opp-board"></div>
+                </div>
               </div>
-              <div class="tft-bench-wrap">
-                <div class="tft-label">Bench</div>
+              <div class="tft-bench-wrap tft-plan-only">
+                <div class="tft-label-row">
+                  <div class="tft-label">Bench</div>
+                  <div class="tft-sell-zone" id="tft-sell-zone">Sell zone · drop here</div>
+                </div>
                 <div class="tft-bench" id="tft-bench"></div>
               </div>
               <div class="tft-combat-wrap">
+                <div class="tft-combat-banner" id="tft-combat-banner">Battle arena</div>
                 <canvas id="tft-combat-canvas"></canvas>
               </div>
             </main>
