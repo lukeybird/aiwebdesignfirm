@@ -11,7 +11,7 @@
   let gameWsUrl = null;
   let serverAuthEnabled = false;
   let socketReady = false;
-  let queueMode = 'standard'; // 'standard' | 'limited' 
+  let queueMode = 'standard'; // 'standard' | 'limited' | 'tft'
   const HEARTBEAT_INTERVAL_MS = 10000;
   const pendingSocketMessages = [];
 
@@ -299,17 +299,21 @@
   }
 
   function showNameScreen(mode) {
-    queueMode = mode === 'limited' ? 'limited' : 'standard';
+    queueMode = mode === 'limited' ? 'limited' : (mode === 'tft' ? 'tft' : 'standard');
     hide($('menu-screen'));
     hide($('online-queue-screen'));
     hide($('online-match-screen'));
     hide($('limited-draft-screen'));
+    hide($('tft-game-screen'));
     show($('online-name-screen'));
     const title = $('online-name-title');
     const desc = $('online-name-desc');
     if (queueMode === 'limited') {
       if (title) title.textContent = '🃏 Limited PvP';
-      if (desc) desc.textContent = 'Snake-draft 10 cards each, then fight online. Limited players only match other Limited players.';
+      if (desc) desc.textContent = 'Snake-draft 10 cards each, then fight online. Drafted cards still cost gold to unlock. Limited players only match other Limited players.';
+    } else if (queueMode === 'tft') {
+      if (title) title.textContent = '⚔️ TFT Online';
+      if (desc) desc.textContent = 'Auto-battler online: shop each round, place units on your board, stack traits, and reduce enemy HP to zero.';
     } else {
       if (title) title.textContent = '🌐 Online PvP';
       if (desc) desc.textContent = 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.';
@@ -343,6 +347,7 @@
     hide($('online-queue-screen'));
     hide($('online-match-screen'));
     hide($('limited-draft-screen'));
+    hide($('tft-game-screen'));
     hide($('countdown-overlay'));
   }
 
@@ -402,6 +407,7 @@
     });
     roomChannel.bind('action', (payload) => {
       if (window.__TDG?.handleLimitedDraftRemote?.(payload.from, payload.action)) return;
+      if (window.TFT_ONLINE?.handleRemote?.(payload.from, payload.action)) return;
       if (!window.__TDG?.isSurvivalPvp?.()) return;
       window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
     });
@@ -424,6 +430,7 @@
     hide($('menu-screen'));
 
     const limited = Boolean(match.limited || queueMode === 'limited' || session?.limited);
+    const tft = Boolean(match.tft || queueMode === 'tft' || session?.tft);
 
     if (useServerAuth) {
       try {
@@ -437,7 +444,7 @@
       subscribeToRoomChannel(match.roomId);
     }
     // Limited draft syncs over the Pusher room channel even when game WS is up.
-    if (limited && !roomChannel) {
+    if ((limited || tft) && !roomChannel) {
       subscribeToRoomChannel(match.roomId);
     }
 
@@ -472,6 +479,19 @@
       return;
     }
 
+    if (tft) {
+      runCountdown(startsAt, () => {
+        window.TFT_ONLINE?.start({
+          player0Name: p0,
+          player1Name: p1,
+          myPlayerId: myId,
+          isHost: match.isHost,
+          roomId: match.roomId,
+        });
+      });
+      return;
+    }
+
     runCountdown(startsAt, () => beginCombat(null));
   }
 
@@ -489,6 +509,7 @@
       serverAuth: data.serverAuth ?? Boolean(data.joinTicket),
       authoritySlot: data.authoritySlot === 1 ? 1 : 0,
       limited: Boolean(data.limited || queueMode === 'limited' || session?.limited),
+      tft: Boolean(data.tft || queueMode === 'tft' || session?.tft),
     };
     saveSession(match);
     showMatchScreen(match.playerName, match.opponentName);
@@ -500,7 +521,7 @@
     const body = {
       name,
       sessionToken: existing?.sessionToken,
-      mode: queueMode === 'limited' ? 'limited' : 'standard',
+      mode: queueMode === 'limited' ? 'limited' : (queueMode === 'tft' ? 'tft' : 'standard'),
     };
     const result = await fetchJson('/api/tdg-pvp/join', {
       method: 'POST',
@@ -520,6 +541,7 @@
       serverAuth: result.serverAuth || false,
       authoritySlot: result.authoritySlot === 1 ? 1 : 0,
       limited: Boolean(result.limited || queueMode === 'limited'),
+      tft: Boolean(result.tft || queueMode === 'tft'),
     });
 
     await ensurePusher();
@@ -532,6 +554,7 @@
         ...result,
         playerName: result.playerName || name,
         limited: Boolean(result.limited || queueMode === 'limited'),
+        tft: Boolean(result.tft || queueMode === 'tft'),
       }), 1400);
       return;
     }
@@ -563,9 +586,10 @@
 
     const nested = action?.action && action.action.type ? action.action : action;
     const isDraftPick = nested?.type === 'limited_draft_pick' || action?.type === 'limited_draft_pick';
+    const isTftPick = String(nested?.type || action?.type || '').startsWith('tft_');
 
-    // Preferred path: authoritative game WebSocket (draft picks stay on Pusher/HTTP)
-    if (!isDraftPick && gameSocket && (socketReady || gameSocket.readyState === WebSocket.OPEN)) {
+    // Preferred path: authoritative game WebSocket (draft/TFT picks stay on Pusher/HTTP)
+    if (!isDraftPick && !isTftPick && gameSocket && (socketReady || gameSocket.readyState === WebSocket.OPEN)) {
       const aid = action?.aid;
       socketSend({
         type: 'input',
@@ -698,6 +722,7 @@
   function bindUi() {
     $('btn-online-pvp')?.addEventListener('click', () => showNameScreen('standard'));
     $('btn-limited-pvp')?.addEventListener('click', () => showNameScreen('limited'));
+    $('btn-tft-online')?.addEventListener('click', () => showNameScreen('tft'));
     $('btn-online-name-back')?.addEventListener('click', () => {
       hide($('online-name-screen'));
       show($('menu-screen'));

@@ -33,12 +33,12 @@ export async function touchQueueSession(token: string) {
 export async function cleanupStaleTdgQueue() {
   await sql`
     DELETE FROM tdg_pvp_queue
-    WHERE status IN ('waiting', 'waiting_limited')
+    WHERE status IN ('waiting', 'waiting_limited', 'waiting_tft')
       AND last_seen_at < NOW() - INTERVAL '30 seconds'
   `;
   await sql`
     DELETE FROM tdg_pvp_queue
-    WHERE status IN ('matched', 'matched_limited')
+    WHERE status IN ('matched', 'matched_limited', 'matched_tft')
       AND last_seen_at < NOW() - INTERVAL '2 minutes'
   `;
 }
@@ -111,7 +111,7 @@ export async function verifyRoomPlayer(roomId: string, sessionToken: string) {
     FROM tdg_pvp_queue
     WHERE room_id = ${roomId}
       AND session_token = ${sessionToken}
-      AND status IN ('matched', 'matched_limited')
+      AND status IN ('matched', 'matched_limited', 'matched_tft')
     LIMIT 1
   `) as unknown as Array<{ player_slot: number; player_name: string; status: string }>;
   return rows[0] ?? null;

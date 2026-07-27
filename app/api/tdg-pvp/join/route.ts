@@ -22,14 +22,18 @@ function makeRoomId() {
 }
 
 function normalizeQueueMode(mode?: string) {
-  return mode === 'limited' ? 'limited' : 'standard';
+  if (mode === 'limited') return 'limited';
+  if (mode === 'tft') return 'tft';
+  return 'standard';
 }
 
-function waitingStatusForMode(mode: 'standard' | 'limited') {
-  return mode === 'limited' ? 'waiting_limited' : 'waiting';
+function waitingStatusForMode(mode: 'standard' | 'limited' | 'tft') {
+  if (mode === 'limited') return 'waiting_limited';
+  if (mode === 'tft') return 'waiting_tft';
+  return 'waiting';
 }
 
-async function findLiveWaitingPartner(excludeToken: string | undefined, mode: 'standard' | 'limited') {
+async function findLiveWaitingPartner(excludeToken: string | undefined, mode: 'standard' | 'limited' | 'tft') {
   const waitingStatus = waitingStatusForMode(mode);
   const waitingRows = (await sql`
     SELECT id, session_token, player_name
@@ -47,7 +51,7 @@ async function tryResumeExistingSession(existingToken: string) {
   const row = await findQueueRowByToken(existingToken);
   if (!row) return null;
 
-  if ((row.status === 'matched' || row.status === 'matched_limited') && row.room_id && row.player_slot !== null) {
+  if ((row.status === 'matched' || row.status === 'matched_limited' || row.status === 'matched_tft') && row.room_id && row.player_slot !== null) {
     const opponent = row.opponent_token
       ? await findQueueRowByToken(row.opponent_token)
       : null;
@@ -86,16 +90,18 @@ async function tryResumeExistingSession(existingToken: string) {
       joinTicket,
       serverAuth: Boolean(joinTicket),
       limited: row.status === 'matched_limited',
+      tft: row.status === 'matched_tft',
     });
   }
 
-  if (row.status === 'waiting' || row.status === 'waiting_limited') {
+  if (row.status === 'waiting' || row.status === 'waiting_limited' || row.status === 'waiting_tft') {
     await touchQueueSession(existingToken);
     return NextResponse.json({
       status: 'waiting',
       sessionToken: row.session_token,
       playerName: row.player_name,
       limited: row.status === 'waiting_limited',
+      tft: row.status === 'waiting_tft',
     });
   }
 
@@ -111,6 +117,7 @@ export async function POST(request: NextRequest) {
     const queueMode = normalizeQueueMode(body.mode);
     const waitingStatus = waitingStatusForMode(queueMode);
     const isLimited = queueMode === 'limited';
+    const isTft = queueMode === 'tft';
 
     if (!name || name.length < 2) {
       return NextResponse.json({ error: 'Enter a name (at least 2 characters).' }, { status: 400 });
@@ -131,7 +138,7 @@ export async function POST(request: NextRequest) {
       const roomId = makeRoomId();
       const updated = (await sql`
         UPDATE tdg_pvp_queue
-        SET status = ${isLimited ? 'matched_limited' : 'matched'},
+        SET status = ${isTft ? 'matched_tft' : (isLimited ? 'matched_limited' : 'matched')},
             room_id = ${roomId},
             player_slot = 0,
             opponent_name = ${name},
@@ -152,7 +159,7 @@ export async function POST(request: NextRequest) {
           INSERT INTO tdg_pvp_queue (
             session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, last_seen_at
           ) VALUES (
-            ${sessionToken}, ${name}, ${isLimited ? 'matched_limited' : 'matched'}, ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
+            ${sessionToken}, ${name}, ${isTft ? 'matched_tft' : (isLimited ? 'matched_limited' : 'matched')}, ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
           )
           ON CONFLICT (session_token) DO UPDATE SET
             player_name = EXCLUDED.player_name,
@@ -195,6 +202,7 @@ export async function POST(request: NextRequest) {
             joinTicket: hostTicket,
             serverAuth: Boolean(hostTicket),
             limited: isLimited,
+            tft: isTft,
           }),
           safeTrigger(`tdg-player-${sessionToken}`, 'match_found', {
             ...matchPayload,
@@ -204,6 +212,7 @@ export async function POST(request: NextRequest) {
             joinTicket: guestTicket,
             serverAuth: Boolean(guestTicket),
             limited: isLimited,
+            tft: isTft,
           }),
         ]);
 
@@ -219,6 +228,7 @@ export async function POST(request: NextRequest) {
           joinTicket: guestTicket,
           serverAuth: Boolean(guestTicket),
           limited: isLimited,
+          tft: isTft,
         });
       }
     }
@@ -242,6 +252,7 @@ export async function POST(request: NextRequest) {
       sessionToken,
       playerName: name,
       limited: isLimited,
+      tft: isTft,
     });
   } catch (error) {
     console.error('tdg-pvp join error:', error);
