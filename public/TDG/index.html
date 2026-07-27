@@ -7638,7 +7638,7 @@
         <div class="menu-btn-row">
           <button class="banner-btn" id="btn-survival">⚔️ Local Game</button>
           <button class="banner-btn" id="btn-online-pvp">🌐 Online PvP</button>
-          <button class="banner-btn" id="btn-limited-pvp">🃏 Limited PvP</button>
+          <button class="banner-btn" id="btn-limited-pvp">🃏 Draft Battle</button>
           <button class="banner-btn" id="btn-tft-online">⚔️ TFT Online</button>
         </div>
         <div class="menu-corner-dock" id="menu-corner-dock">
@@ -7719,7 +7719,7 @@
       <div id="limited-draft-screen" class="hidden">
         <div class="limited-draft-panel">
           <div class="limited-draft-header">
-            <h2>🃏 Limited PvP — Snake Draft</h2>
+            <h2>🃏 Draft Battle — Snake Draft</h2>
             <p id="limited-draft-status">Each player picks 10 cards. Snake order: 1–2–2–1…</p>
           </div>
           <div class="limited-draft-sides">
@@ -10781,7 +10781,7 @@ function buildManualUI() {
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
     <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler: shop by cost tier, merge 3 copies into a higher star, place on a left/right board (column 1 = frontline). Traits show their buffs in the sidebar — select a unit to inspect HP, damage, range, and more. Both players Ready when set (no round timer). Fights use your unit sprites.</p></div>
-    <div class="manual-card"><h4>🃏 Limited PvP</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
+    <div class="manual-card"><h4>🃏 Draft Battle</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>
     <div class="manual-card"><h4>🎮 Free Mode</h4><p>Control a super-tank on a huge open battlefield! Arrow keys move and rotate, Space shoots. The camera follows you. Enemies only chase you when you get within detection range. Clear all hostiles to win.</p></div>
   </div>`;
@@ -20094,7 +20094,7 @@ function setupSurvivalLivePvp(opts) {
   selectedTool = firstEnabledDeployTool();
   addLog(
     opts.limited
-      ? `🃏 Limited PvP — ${player0Name} vs ${player1Name}${pvpOnline.isHost ? ' (host)' : ''}`
+      ? `🃏 Draft Battle — ${player0Name} vs ${player1Name}${pvpOnline.isHost ? ' (host)' : ''}`
       : `⚔️ Online PvP — ${player0Name} vs ${player1Name}${pvpOnline.isHost ? ' (host)' : ''}`,
   );
   if (opts.limited) {
@@ -21459,19 +21459,19 @@ function endSurvivalLive() {
   if (players[0].baseHp <= 0 && players[1].baseHp <= 0) {
     title = '🤝 Draw!';
     text = 'Both bases fell!';
-    btnText = isSurvivalPvp() ? 'Back to Menu' : 'Play Again';
+    btnText = isSurvivalPvp() ? 'Go home' : 'Play Again';
   } else if (players[myId].baseHp <= 0) {
     title = '💀 Defeat';
     text = isSurvivalPvp()
       ? `${players[enemy].name} destroyed your base!`
       : 'Your base was destroyed.\n\nTip: The enemy is chaotic — exploit their random builds and strike when they waste gold!';
-    btnText = isSurvivalPvp() ? 'Back to Menu' : 'Try Again';
+    btnText = isSurvivalPvp() ? 'Go home' : 'Try Again';
   } else {
     title = '🏆 Victory!';
     text = isSurvivalPvp()
       ? `You destroyed ${players[enemy].name}'s base!`
       : 'Enemy base destroyed!\n\nYou dominated the live battlefield.';
-    btnText = isSurvivalPvp() ? 'Back to Menu' : 'Play Again';
+    btnText = isSurvivalPvp() ? 'Go home' : 'Play Again';
   }
   phase = 'gameover';
   if (isSurvivalPvp() && window.TDG_PVP?.notifyGameOver) {
@@ -39324,7 +39324,7 @@ function updateUI() {
   if (gameMode === 'survival' || gameMode === 'survival-pvp' || isSandboxMode() || isPlayVsAiMode()) {
     roundLabel.textContent = 'Mode';
     roundEl.textContent = isSurvivalPvp()
-      ? (isLimitedPvp() ? 'Limited PvP' : 'Online PvP')
+      ? (isLimitedPvp() ? 'Draft Battle' : 'Online PvP')
       : (isSandboxMode() ? 'Sandbox' : (isPlayVsAiMode() ? 'Play vs AI' : survivalDifficultyModeLabel()));
   } else if (isAiTrainingMode()) {
     roundLabel.textContent = isAiVsCpuTrainingMode() ? 'AI↔CPU' : 'Train';
@@ -39352,7 +39352,7 @@ function updateUI() {
     : gameMode === 'survival'
     ? `⚔️ Live Battle (${survivalDifficultyModeLabel()})`
     : gameMode === 'survival-pvp'
-      ? (isLimitedPvp() ? '🃏 Limited PvP' : '⚔️ Online PvP')
+      ? (isLimitedPvp() ? '🃏 Draft Battle' : '⚔️ Online PvP')
       : isAiVsCpuTrainingMode()
         ? '🥊 AI vs CPU'
         : isAiSelfPlayMode()

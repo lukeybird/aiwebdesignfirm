@@ -1131,13 +1131,18 @@
     renderHud();
     if (isAuthority()) publishAuthState(true);
     window.TDG_PVP?.notifyGameOver?.({ winnerSlot, endReason: 'base_destroyed' });
-    setTimeout(() => {
-      cleanup();
-      $('tft-game-screen')?.classList.add('hidden');
-      $('menu-screen')?.classList.remove('hidden');
-      if (typeof phase !== 'undefined') phase = 'menu';
-      if (typeof gameMode !== 'undefined') gameMode = null;
-    }, 3600);
+  }
+
+  function goHomeFromTft() {
+    if (window.TDG_PVP?.goHome) {
+      window.TDG_PVP.goHome();
+      return;
+    }
+    cleanup(true);
+    $('tft-game-screen')?.classList.add('hidden');
+    $('menu-screen')?.classList.remove('hidden');
+    if (typeof phase !== 'undefined') phase = 'menu';
+    if (typeof gameMode !== 'undefined') gameMode = null;
   }
 
   function setShellMode(mode) {
@@ -1726,16 +1731,23 @@
 
     const readyBtn = $('tft-ready-btn');
     if (readyBtn) {
-      readyBtn.disabled = !planning;
-      if (state.phase === 'combat') readyBtn.textContent = 'Fighting…';
-      else if (state.phase === 'result') readyBtn.textContent = 'Round done';
-      else if (p.ready) readyBtn.textContent = 'Unready';
-      else readyBtn.textContent = boardCount(p) ? 'Ready' : 'Place a unit';
-      readyBtn.classList.toggle('is-waiting', planning && p.ready);
-      readyBtn.classList.toggle('needs-army', planning && !p.ready && boardCount(p) <= 0);
+      if (state.phase === 'gameover') {
+        readyBtn.disabled = false;
+        readyBtn.textContent = 'Go home';
+        readyBtn.classList.remove('is-waiting', 'needs-army');
+      } else {
+        readyBtn.disabled = !planning;
+        if (state.phase === 'combat') readyBtn.textContent = 'Fighting…';
+        else if (state.phase === 'result') readyBtn.textContent = 'Round done';
+        else if (p.ready) readyBtn.textContent = 'Unready';
+        else readyBtn.textContent = boardCount(p) ? 'Ready' : 'Place a unit';
+        readyBtn.classList.toggle('is-waiting', planning && p.ready);
+        readyBtn.classList.toggle('needs-army', planning && !p.ready && boardCount(p) <= 0);
+      }
     }
-    if ($('tft-reroll-btn')) $('tft-reroll-btn').disabled = !planning || p.ready || p.gold < REROLL;
-    if ($('tft-xp-btn')) $('tft-xp-btn').disabled = !planning || p.ready || p.gold < XP_COST || p.level >= MAX_LEVEL;
+    if ($('tft-reroll-btn')) $('tft-reroll-btn').disabled = !planning || p.ready || p.gold < REROLL || state.phase === 'gameover';
+    if ($('tft-xp-btn')) $('tft-xp-btn').disabled = !planning || p.ready || p.gold < XP_COST || p.level >= MAX_LEVEL || state.phase === 'gameover';
+    if ($('tft-forfeit-btn')) $('tft-forfeit-btn').disabled = state.phase === 'gameover';
   }
 
   // ─── Combat / arena draw (sprites) ─────────────────────────────────────────
@@ -2044,6 +2056,10 @@
     $('tft-reroll-btn')?.addEventListener('click', () => tryReroll());
     $('tft-xp-btn')?.addEventListener('click', () => tryBuyXp());
     $('tft-ready-btn')?.addEventListener('click', () => {
+      if (state?.phase === 'gameover') {
+        goHomeFromTft();
+        return;
+      }
       setReady(!me().ready);
     });
     $('tft-forfeit-btn')?.addEventListener('click', () => {
@@ -2120,14 +2136,42 @@
 
     UNIT_POOL.forEach(getPortrait);
     bindUi();
+    const resumeSnap = opts.resume && opts.savedState && opts.savedState.mode === 'tft'
+      ? opts.savedState
+      : null;
     // Host owns round 1 economy/shop; guest waits for the first auth snapshot.
     if (isAuthority()) {
-      startRound();
+      if (resumeSnap) {
+        // Restore local snapshot after refresh, then republish for the guest.
+        state.round = resumeSnap.round || 1;
+        state.phase = resumeSnap.phase || 'planning';
+        state.combatSeed = resumeSnap.combatSeed || 0;
+        state.combatElapsed = resumeSnap.combatElapsed || 0;
+        state.combatIntro = resumeSnap.combatIntro || 0;
+        state.combatFinished = !!resumeSnap.combatFinished;
+        state.resultApplied = !!resumeSnap.resultApplied;
+        state.resultTimer = resumeSnap.resultTimer || 0;
+        state.pendingResult = resumeSnap.pendingResult || null;
+        state.lastCombat = resumeSnap.lastCombat || null;
+        if (Array.isArray(resumeSnap.messages)) state.messages = resumeSnap.messages.slice();
+        if (Array.isArray(resumeSnap.players)) {
+          for (let i = 0; i < 2; i++) applyArmySnapshot(state.players[i], resumeSnap.players[i]);
+        }
+        if (Array.isArray(resumeSnap.combatUnits)) applyCombatUnitsFromAuth(resumeSnap.combatUnits);
+        if (Array.isArray(resumeSnap.projectiles)) state.projectiles = resumeSnap.projectiles.slice();
+        setShellMode(state.phase === 'gameover' ? 'gameover' : state.phase);
+        pushMsg(`Rejoined game · Round ${state.round}`);
+        renderHud();
+        if (state.phase === 'planning') publishPlanningSnapshot();
+        else publishAuthState(true);
+      } else {
+        startRound();
+      }
     } else {
       state.phase = 'planning';
       setShellMode('planning');
       // Apply any state that arrived before TFT finished booting.
-      const buffered = window.TDG_PVP?.getLastTftAuthState?.();
+      const buffered = resumeSnap || window.TDG_PVP?.getLastTftAuthState?.();
       if (buffered) applyAuthState(buffered);
       ensureLocalShopVisible();
       pushMsg(shopHasCards(me()) ? `Round ${state.round} — shop is ready` : 'Synced match — loading shop…');
