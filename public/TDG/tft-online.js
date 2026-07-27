@@ -19,10 +19,11 @@
   const LEVEL_XP = [0, 2, 2, 6, 10, 20, 36, 48, 64, 80];
   const COMBAT_MAX_SEC = 35;
   const COMBAT_SPEED = 1.05;
+  const COMBAT_INTRO = 0.9;
   /** Fixed logical arena so host combat is identical regardless of client canvas size. */
   const LOGIC_W = 800;
   const LOGIC_H = 400;
-  const AUTH_SYNC_MS = 120;
+  const AUTH_SYNC_MS = 100;
 
   // ★ multipliers (TFT-like): 1 → 2 → 3
   const STAR_MULT = { 1: 1, 2: 1.8, 3: 3.24 };
@@ -118,6 +119,9 @@
   let lastAuthPublishAt = 0;
   let authSyncAcc = 0;
   let gotAuthSnapshot = false;
+  let waitElapsed = 0;
+  let audioCtx = null;
+  let mergeBurstUntil = 0;
 
   function $(id) { return document.getElementById(id); }
 
@@ -141,6 +145,33 @@
       h = Math.imul(h, 16777619);
     }
     return h >>> 0;
+  }
+
+  function playTone(freq, dur = 0.08, type = 'triangle', gain = 0.04) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(gain, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    } catch { /* audio optional */ }
+  }
+
+  function sfx(kind) {
+    if (kind === 'buy') playTone(520, 0.07, 'sine', 0.035);
+    else if (kind === 'sell') playTone(220, 0.09, 'triangle', 0.04);
+    else if (kind === 'merge') { playTone(440, 0.06); setTimeout(() => playTone(660, 0.1, 'sine', 0.05), 60); }
+    else if (kind === 'ready') playTone(380, 0.1, 'square', 0.03);
+    else if (kind === 'hit') playTone(180, 0.045, 'sawtooth', 0.025);
+    else if (kind === 'ko') playTone(140, 0.16, 'triangle', 0.05);
+    else if (kind === 'fight') playTone(300, 0.12, 'square', 0.035);
   }
 
   function uid() {
@@ -353,6 +384,7 @@
       round: state.round,
       combatSeed: state.combatSeed || 0,
       combatElapsed: state.combatElapsed || 0,
+      combatIntro: state.combatIntro || 0,
       combatFinished: !!state.combatFinished,
       resultApplied: !!state.resultApplied,
       resultTimer: state.resultTimer || 0,
@@ -380,35 +412,48 @@
 
   function applyCombatUnitsFromAuth(list) {
     if (!Array.isArray(list)) return;
-    state.combatUnits = list.map((u) => ({
-      uid: u.uid,
-      owner: u.owner,
-      type: u.type,
-      star: u.star || 1,
-      name: u.name || u.type,
-      role: u.role || 'melee',
-      hp: u.hp,
-      maxHp: u.maxHp || u.hp,
-      x: u.x,
-      y: u.y,
-      facing: u.facing || 0,
-      alive: u.alive !== false,
-      deathT: u.deathT || 0,
-      size: u.size || 20,
-      color: u.color || '#94a3b8',
-      attackPhase: u.attackPhase || 'idle',
-      attackProgress: u.attackProgress || 0,
-      moveSpeed: u.moveSpeed || 0,
-      animT: u.animT || 0,
-      hitFlash: u.hitFlash || 0,
-      attackFlash: 0,
-      attackCd: 0,
-      damage: u.damage || 20,
-      attackRate: u.attackRate || 0.8,
-      range: u.range || 40,
-      speed: u.speed || 50,
-      targetUid: null,
-    }));
+    const prev = new Map((state.combatUnits || []).map((u) => [u.uid, u]));
+    state.combatUnits = list.map((u) => {
+      const old = prev.get(u.uid);
+      const hit = old && Number.isFinite(old.hp) && u.hp < old.hp - 0.4;
+      if (hit && isAuthority() === false) {
+        addFloat(old.x, old.y - (old.size || 20), `-${Math.round(old.hp - u.hp)}`, '#ffb4a2');
+        if (u.alive === false && old.alive) addFloat(old.x, old.y - 10, 'KO', '#f0d878');
+      }
+      return {
+        uid: u.uid,
+        owner: u.owner,
+        type: u.type,
+        star: u.star || 1,
+        name: u.name || u.type,
+        role: u.role || 'melee',
+        hp: u.hp,
+        maxHp: u.maxHp || u.hp,
+        x: old?.x ?? u.x,
+        y: old?.y ?? u.y,
+        _tx: u.x,
+        _ty: u.y,
+        facing: old?.facing ?? u.facing ?? 0,
+        _tfacing: u.facing || 0,
+        alive: u.alive !== false,
+        deathT: u.alive === false ? Math.max(old?.deathT || 0, u.deathT || 0) : 0,
+        size: u.size || 20,
+        color: u.color || '#94a3b8',
+        attackPhase: u.attackPhase || 'idle',
+        attackProgress: u.attackProgress || 0,
+        moveSpeed: u.moveSpeed || 0,
+        animT: old?.animT ?? u.animT ?? 0,
+        hitFlash: hit ? 1 : Math.max(0, old?.hitFlash || 0),
+        attackFlash: Math.max(0, old?.attackFlash || 0, u.attackFlash || 0),
+        attackCd: 0,
+        damage: u.damage || 20,
+        attackRate: u.attackRate || 0.8,
+        range: u.range || 40,
+        speed: u.speed || 50,
+        targetUid: null,
+        pendingHit: null,
+      };
+    });
   }
 
   /**
@@ -426,6 +471,7 @@
     state.round = snap.round ?? state.round;
     state.combatSeed = snap.combatSeed || state.combatSeed;
     state.combatElapsed = snap.combatElapsed || 0;
+    state.combatIntro = snap.combatIntro || 0;
     state.combatFinished = !!snap.combatFinished;
     state.resultApplied = !!snap.resultApplied;
     state.resultTimer = snap.resultTimer ?? state.resultTimer;
@@ -516,6 +562,13 @@
           if (announce) {
             const name = baseStats(type).name;
             pushMsg(`${p.name}: ${name} → ${starLabel(star + 1)}!`);
+            sfx('merge');
+            mergeBurstUntil = performance.now() + 700;
+            if (p.id === match.playerId) {
+              selected = boardKeep.area === 'board'
+                ? { area: 'board', r: boardKeep.r, c: boardKeep.c }
+                : { area: 'bench', idx: boardKeep.idx };
+            }
           }
           merged = true;
           any = true;
@@ -683,6 +736,7 @@
             attackPhase: 'idle',
             attackProgress: 0,
             moveSpeed: 0,
+            pendingHit: null,
             targetUid: null,
             alive: true,
             deathT: 0,
@@ -695,6 +749,7 @@
     state.projectiles = [];
     state.floatTexts = [];
     state.combatElapsed = 0;
+    state.combatIntro = COMBAT_INTRO;
     state.combatFinished = false;
     state.pendingResult = null;
   }
@@ -738,6 +793,36 @@
     state.combatElapsed += step;
     const layout = arenaLayout();
 
+    if ((state.combatIntro || 0) > 0) {
+      state.combatIntro = Math.max(0, state.combatIntro - step);
+      for (const u of state.combatUnits) {
+        u.animT += step;
+        u.moveSpeed = 0;
+      }
+      return;
+    }
+
+    // Soft separation so units don't fully stack.
+    for (let i = 0; i < state.combatUnits.length; i++) {
+      const a = state.combatUnits[i];
+      if (!a.alive) continue;
+      for (let j = i + 1; j < state.combatUnits.length; j++) {
+        const b = state.combatUnits[j];
+        if (!b.alive || a.owner !== b.owner) continue;
+        const d = dist(a, b);
+        const minD = (a.size + b.size) * 0.55;
+        if (d > 0.1 && d < minD) {
+          const push = (minD - d) * 0.35;
+          const nx = (a.x - b.x) / d;
+          const ny = (a.y - b.y) / d;
+          a.x += nx * push * 0.5;
+          a.y += ny * push * 0.5;
+          b.x -= nx * push * 0.5;
+          b.y -= ny * push * 0.5;
+        }
+      }
+    }
+
     for (const u of state.combatUnits) {
       u.animT += step;
       if (!u.alive) {
@@ -748,11 +833,29 @@
       u.attackFlash = Math.max(0, u.attackFlash - step * 3.5);
       u.hitFlash = Math.max(0, u.hitFlash - step * 5);
       u.attackCd = Math.max(0, u.attackCd - step);
+
       if (u.attackPhase !== 'idle') {
-        u.attackProgress = Math.min(1, u.attackProgress + step * 3.2);
+        u.attackProgress = Math.min(1, u.attackProgress + step * 3.4);
+        if (u.pendingHit && !u.pendingHit.done && u.attackProgress >= 0.5) {
+          u.pendingHit.done = true;
+          const target = findUnit(u.pendingHit.target);
+          if (target?.alive) {
+            target.hp -= u.pendingHit.damage;
+            target.hitFlash = 1;
+            addFloat(target.x, target.y - target.size, `-${u.pendingHit.damage}`, '#ffb4a2');
+            sfx('hit');
+            if (target.hp <= 0) {
+              target.alive = false;
+              target.deathT = 0;
+              addFloat(target.x, target.y - 10, 'KO', '#f0d878');
+              sfx('ko');
+            }
+          }
+        }
         if (u.attackProgress >= 1) {
           u.attackPhase = 'idle';
           u.attackProgress = 0;
+          u.pendingHit = null;
         }
       }
 
@@ -762,25 +865,30 @@
         continue;
       }
 
+      // Prefer nearer foes, slight bias to lower HP%.
       let best = foes[0];
-      let bestD = dist(u, best);
+      let bestScore = Infinity;
       for (const f of foes) {
         const d = dist(u, f);
-        if (d < bestD) { best = f; bestD = d; }
+        const hurt = 1 - Math.max(0, f.hp / Math.max(1, f.maxHp));
+        const score = d - hurt * 28;
+        if (score < bestScore) { best = f; bestScore = score; }
       }
+      const bestD = dist(u, best);
       u.targetUid = best.uid;
       u.facing = Math.atan2(best.y - u.y, best.x - u.x);
 
       const stopRange = Math.max(28, u.range * 0.88);
       if (bestD <= stopRange) {
         u.moveSpeed = 0;
-        if (u.attackCd <= 0) {
+        if (u.attackCd <= 0 && u.attackPhase === 'idle') {
           u.attackCd = 1 / Math.max(0.28, u.attackRate);
           u.attackFlash = 1;
           u.attackPhase = 'strike';
           u.attackProgress = 0;
           const ranged = u.range >= 90;
           if (ranged) {
+            u.pendingHit = null;
             state.projectiles.push({
               x: u.x,
               y: u.y - 10,
@@ -789,18 +897,11 @@
               to: best.uid,
               damage: u.damage,
               color: u.color,
-              life: 0.32,
-              maxLife: 0.32,
+              life: 0.28,
+              maxLife: 0.28,
             });
           } else {
-            best.hp -= u.damage;
-            best.hitFlash = 1;
-            addFloat(best.x, best.y - best.size, `-${u.damage}`, '#ffb4a2');
-            if (best.hp <= 0) {
-              best.alive = false;
-              best.deathT = 0;
-              addFloat(best.x, best.y - 10, 'KO', '#f0d878');
-            }
+            u.pendingHit = { target: best.uid, damage: u.damage, done: false };
           }
         }
       } else {
@@ -812,7 +913,6 @@
         u.x += vx;
         u.y += vy;
         u.moveSpeed = u.speed;
-        // Soft clamp: don't let units leave the arena
         u.x = Math.max(24, Math.min(layout.w - 24, u.x));
         u.y = Math.max(36, Math.min(layout.h - 24, u.y));
       }
@@ -822,18 +922,20 @@
       const p = state.projectiles[i];
       p.life -= step;
       const t = 1 - Math.max(0, p.life) / p.maxLife;
-      p.x += (p.tx - p.x) * Math.min(1, step * 9);
-      p.y += (p.ty - p.y) * Math.min(1, step * 9);
+      p.x += (p.tx - p.x) * Math.min(1, step * 10);
+      p.y += (p.ty - p.y) * Math.min(1, step * 10);
       if (t >= 0.9 || p.life <= 0) {
         const target = findUnit(p.to);
         if (target?.alive) {
           target.hp -= p.damage;
           target.hitFlash = 1;
           addFloat(target.x, target.y - target.size, `-${p.damage}`, '#7dd3fc');
+          sfx('hit');
           if (target.hp <= 0) {
             target.alive = false;
             target.deathT = 0;
             addFloat(target.x, target.y - 10, 'KO', '#f0d878');
+            sfx('ko');
           }
         }
         state.projectiles.splice(i, 1);
@@ -843,14 +945,42 @@
     for (let i = state.floatTexts.length - 1; i >= 0; i--) {
       const f = state.floatTexts[i];
       f.life -= step;
-      f.y -= 30 * step;
+      f.y -= 36 * step;
       if (f.life <= 0) state.floatTexts.splice(i, 1);
     }
 
     const alive0 = state.combatUnits.some((u) => u.alive && u.owner === 0);
     const alive1 = state.combatUnits.some((u) => u.alive && u.owner === 1);
-    if (!alive0 || !alive1 || state.combatElapsed >= COMBAT_MAX_SEC) {
+    if ((!alive0 || !alive1 || state.combatElapsed >= COMBAT_MAX_SEC) && state.combatElapsed > COMBAT_INTRO + 0.15) {
       finishLiveCombat();
+    }
+  }
+
+  function tickGuestCombatVisual(dt) {
+    const step = dt * COMBAT_SPEED;
+    state.combatElapsed = (state.combatElapsed || 0) + step;
+    for (const u of state.combatUnits || []) {
+      u.animT = (u.animT || 0) + step;
+      if (u._tx != null) {
+        const k = Math.min(1, step * 14);
+        u.x += (u._tx - u.x) * k;
+        u.y += (u._ty - u.y) * k;
+      }
+      if (u._tfacing != null) u.facing = u._tfacing;
+      u.hitFlash = Math.max(0, (u.hitFlash || 0) - step * 5);
+      u.attackFlash = Math.max(0, (u.attackFlash || 0) - step * 3.5);
+      if (!u.alive) u.deathT = Math.min(1, (u.deathT || 0) + step * 1.5);
+      else u.deathT = 0;
+    }
+    for (const p of state.projectiles || []) {
+      p.x += ((p.tx ?? p.x) - p.x) * Math.min(1, step * 10);
+      p.y += ((p.ty ?? p.y) - p.y) * Math.min(1, step * 10);
+    }
+    for (let i = (state.floatTexts || []).length - 1; i >= 0; i--) {
+      const f = state.floatTexts[i];
+      f.life -= step;
+      f.y -= 36 * step;
+      if (f.life <= 0) state.floatTexts.splice(i, 1);
     }
   }
 
@@ -918,6 +1048,7 @@
       if (isAuthority()) publishAuthState(true);
     });
     pushMsg('Battle — left vs right!');
+    sfx('fight');
     renderHud();
     if (isAuthority() && !opts.fromRemote) {
       broadcastAction({
@@ -981,7 +1112,10 @@
     const type = p.shop[shopIdx];
     if (!type) return false;
     const cost = unitCost(type);
-    if (p.gold < cost) return false;
+    if (p.gold < cost) {
+      pushMsg(`Need ${cost}g for ${baseStats(type).name}.`);
+      return false;
+    }
     const slot = emptyBenchSlot(p);
     if (slot < 0) {
       pushMsg('Bench full — sell or place a unit.');
@@ -990,9 +1124,12 @@
     p.gold -= cost;
     p.bench[slot] = makeUnit(type, 1);
     p.shop[shopIdx] = null;
+    selected = { area: 'bench', idx: slot };
+    sfx('buy');
     tryAutoMerge(p, true);
     syncArmy(p);
     renderHud();
+    flashGold();
     return true;
   }
 
@@ -1001,11 +1138,24 @@
     if (state.phase !== 'planning' || p.ready) return false;
     const unit = getUnitAt(p, ref);
     if (!unit) return false;
+    const gained = sellValue(unit);
     setUnitAt(p, ref, null);
-    p.gold += sellValue(unit);
+    p.gold += gained;
+    if (selected && sameRef(selected, ref)) selected = null;
+    pushMsg(`Sold for ${gained}g`);
+    sfx('sell');
     syncArmy(p);
     renderHud();
+    flashGold();
     return true;
+  }
+
+  function flashGold() {
+    const el = $('tft-gold')?.closest('.tft-stat');
+    if (!el) return;
+    el.classList.remove('tft-gold-flash');
+    void el.offsetWidth;
+    el.classList.add('tft-gold-flash');
   }
 
   function tryMoveOrSwap(from, to) {
@@ -1073,10 +1223,15 @@
   function setReady(val) {
     const p = me();
     if (state.phase !== 'planning') return;
+    if (val && boardCount(p) <= 0) {
+      pushMsg('Place at least one unit before Ready.');
+      return;
+    }
     p.ready = val;
-    // Sync army with ready so the host has both boards before combat.
+    waitElapsed = 0;
     syncArmy(p);
     broadcastAction({ type: 'tft_ready', ready: val, playerId: match.playerId });
+    if (val) sfx('ready');
     renderHud();
     checkPlanningEnd();
   }
@@ -1238,6 +1393,8 @@
     drag.ghost = createGhost(drag.unit, e.clientX, e.clientY);
     document.body.classList.add('tft-is-dragging');
     markSource(drag.from);
+    const sell = $('tft-sell-zone');
+    if (sell && drag.unit) sell.textContent = `Sell for ${sellValue(drag.unit)}g`;
   }
 
   function highlightSelection() {
@@ -1314,7 +1471,8 @@
     if (!unit) return '';
     const def = baseStats(unit.type);
     const star = unit.star || 1;
-    return `<div class="tft-unit-chip star-${star}" data-type="${unit.type}">`
+    const burst = performance.now() < mergeBurstUntil ? ' tft-merge-burst' : '';
+    return `<div class="tft-unit-chip star-${star}${burst}" data-type="${unit.type}">`
       + `<img src="/TDG/portraits/${unit.type}.webp" alt="" draggable="false" />`
       + `<span class="tft-star-badge">${starLabel(star)}</span>`
       + `<span class="tft-unit-cost">${def.cost}</span>`
@@ -1417,8 +1575,20 @@
     setText('tft-board-cap', `${boardCount(p)}/${boardCap(p)}`);
     setText('tft-you-name', p.name);
     setText('tft-them-name', o.name);
-    setText('tft-them-ready', o.ready ? 'Ready ✓' : 'Shopping…');
+    setText('tft-them-ready',
+      p.ready && o.ready ? 'Both ready'
+        : p.ready ? `Waiting on foe · ${Math.floor(waitElapsed)}s`
+          : o.ready ? 'Foe is ready ✓'
+            : 'Shopping…');
     setText('tft-income-preview', planning ? `+${incomeFor(p)}g next · merge 3× same ★` : '');
+
+    const sellZone = $('tft-sell-zone');
+    if (sellZone) {
+      const dragUnit = drag?.unit;
+      sellZone.textContent = dragUnit
+        ? `Sell for ${sellValue(dragUnit)}g`
+        : 'Sell zone · drop here';
+    }
 
     const shopEl = $('tft-shop');
     if (shopEl) {
@@ -1430,12 +1600,14 @@
         const owned1 = countOwned(p, type, 1);
         const mergeHint = owned1 >= 2 ? 'tft-shop-merge' : '';
         const inspect = selected?.area === 'shop' && selected.idx === i ? ' is-inspect' : '';
-        // Keep clickable while planning so players can inspect stats even if they can't afford it.
+        const buyHint = inspect
+          ? '<span class="tft-shop-owned">Click again to buy</span>'
+          : (owned1 ? `<span class="tft-shop-owned">${owned1}/3</span>` : '');
         return `<button type="button" class="tft-shop-card ${mergeHint}${inspect}${afford ? '' : ' is-disabled'}" data-shop="${i}" ${planning ? '' : 'disabled'}>`
           + `<img src="/TDG/portraits/${type}.webp" alt="" draggable="false" />`
           + `<span class="tft-shop-name">${escapeHtml(def.name)}</span>`
           + `<span class="tft-shop-cost">${cost}g</span>`
-          + (owned1 ? `<span class="tft-shop-owned">${owned1}/3</span>` : '')
+          + buyHint
           + `</button>`;
       }).join('');
     }
@@ -1502,8 +1674,10 @@
       readyBtn.disabled = !planning;
       if (state.phase === 'combat') readyBtn.textContent = 'Fighting…';
       else if (state.phase === 'result') readyBtn.textContent = 'Round done';
-      else readyBtn.textContent = p.ready ? 'Waiting…' : 'Ready';
+      else if (p.ready) readyBtn.textContent = 'Unready';
+      else readyBtn.textContent = boardCount(p) ? 'Ready' : 'Place a unit';
       readyBtn.classList.toggle('is-waiting', planning && p.ready);
+      readyBtn.classList.toggle('needs-army', planning && !p.ready && boardCount(p) <= 0);
     }
     if ($('tft-reroll-btn')) $('tft-reroll-btn').disabled = !planning || p.ready || p.gold < REROLL;
     if ($('tft-xp-btn')) $('tft-xp-btn').disabled = !planning || p.ready || p.gold < XP_COST || p.level >= MAX_LEVEL;
@@ -1526,6 +1700,11 @@
     ctx.fillRect(padX, padY, mid - padX - 20, h - padY * 2);
     ctx.fillStyle = 'rgba(255,142,83,0.08)';
     ctx.fillRect(mid + 20, padY, mid - padX - 20, h - padY * 2);
+    const laneH = (h - padY * 2) / ROWS;
+    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    for (let i = 1; i < ROWS; i++) {
+      ctx.fillRect(padX, padY + laneH * i, w - padX * 2, 1);
+    }
 
     ctx.strokeStyle = 'rgba(240,216,120,0.45)';
     ctx.lineWidth = 2;
@@ -1580,14 +1759,14 @@
 
   function drawUnitSpriteAt(u, alpha = 1) {
     if (!ctx) return;
-    const sz = Math.max(16, (u.size || 20) * (1 + ((u.star || 1) - 1) * 0.12));
+    const deadScale = u.alive === false ? Math.max(0.35, 1 - (u.deathT || 0) * 0.65) : 1;
+    const strikePunch = (u.attackPhase === 'strike' && (u.attackProgress || 0) < 0.55) ? 1.08 : 1;
+    const sz = Math.max(16, (u.size || 20) * (1 + ((u.star || 1) - 1) * 0.12) * deadScale * strikePunch);
     ctx.save();
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = alpha * (u.alive === false ? Math.max(0, 1 - (u.deathT || 0)) : 1);
 
-    // Always draw a portrait/body first so fights never look empty.
     drawPortraitFallback(u, sz);
 
-    // Then try the real TDG sprite kit on top (optional).
     const drawFn = window.__TDG?.drawUnitOnContext;
     if (drawFn) {
       try {
@@ -1605,7 +1784,15 @@
       }
     }
 
-    ctx.globalAlpha = alpha;
+    if ((u.hitFlash || 0) > 0.05) {
+      ctx.globalAlpha = Math.min(0.55, u.hitFlash * 0.65);
+      ctx.fillStyle = '#fff5f0';
+      ctx.beginPath();
+      ctx.arc(u.x, u.y, sz * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = alpha * (u.alive === false ? Math.max(0, 1 - (u.deathT || 0)) : 1);
     ctx.strokeStyle = u.owner === 0 ? '#4ECDC4' : '#FF8E53';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -1623,8 +1810,9 @@
       const by = u.y - sz * 0.75 - 6;
       ctx.fillStyle = 'rgba(0,0,0,0.75)';
       ctx.fillRect(bx, by, bw, 6);
-      ctx.fillStyle = u.owner === 0 ? '#4ECDC4' : '#FF8E53';
-      ctx.fillRect(bx, by, bw * Math.max(0, Math.min(1, (u.hp ?? u.maxHp) / u.maxHp)), 6);
+      const pct = Math.max(0, Math.min(1, (u.hp ?? u.maxHp) / u.maxHp));
+      ctx.fillStyle = pct < 0.3 ? '#e76f51' : (u.owner === 0 ? '#4ECDC4' : '#FF8E53');
+      ctx.fillRect(bx, by, bw * pct, 6);
     }
     ctx.restore();
   }
@@ -1686,10 +1874,19 @@
     }
 
     for (const p of state.projectiles || []) {
+      const ang = Math.atan2((p.ty ?? p.y) - p.y, (p.tx ?? p.x) - p.x);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(ang);
       ctx.fillStyle = p.color || '#fff';
+      ctx.globalAlpha = 0.9;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 9, 3.2, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 0.35;
+      ctx.fillRect(-16, -1.2, 12, 2.4);
+      ctx.restore();
+      ctx.globalAlpha = 1;
     }
 
     for (const f of state.floatTexts || []) {
@@ -1701,13 +1898,30 @@
       ctx.globalAlpha = 1;
     }
 
+    // Fight timer bar
+    const introLeft = Math.max(0, state.combatIntro || 0);
+    const tPct = Math.max(0, Math.min(1, 1 - (state.combatElapsed || 0) / COMBAT_MAX_SEC));
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(w * 0.25, 8, w * 0.5, 7);
+    ctx.fillStyle = introLeft > 0 ? '#f0d878' : '#7cb87c';
+    ctx.fillRect(w * 0.25, 8, w * 0.5 * (introLeft > 0 ? introLeft / COMBAT_INTRO : tPct), 7);
+    if (introLeft > 0) {
+      ctx.fillStyle = '#f0d878';
+      ctx.font = '800 18px Orbitron, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('FIGHT!', w / 2, h * 0.5);
+    }
+
     if (state.combatFinished && state.pendingResult) {
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(0, h * 0.4, w, 52);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, h * 0.38, w, 64);
       ctx.fillStyle = '#f0d878';
       ctx.font = '700 22px Orbitron, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`${state.players[state.pendingResult.winner]?.name || 'Winner'} wins the fight`, w / 2, h * 0.4 + 34);
+      ctx.fillText(`${state.players[state.pendingResult.winner]?.name || 'Winner'} wins`, w / 2, h * 0.38 + 28);
+      ctx.font = '600 13px Rajdhani, sans-serif';
+      ctx.fillStyle = '#e8ebe0';
+      ctx.fillText(`−${state.pendingResult.damage} HP`, w / 2, h * 0.38 + 50);
       ctx.textAlign = 'left';
     }
     endLogicDraw();
@@ -1728,9 +1942,12 @@
   function tick(dt) {
     if (!active || !state) return;
     if (state.phase === 'planning') {
+      if (me().ready || opp().ready) {
+        waitElapsed += dt;
+        if (Math.floor(waitElapsed) !== Math.floor(waitElapsed - dt)) renderHud();
+      }
       drawPlanningPreview();
     } else if (state.phase === 'combat') {
-      // Host alone simulates the fight; guest mirrors host combat state.
       if (isAuthority()) {
         tickCombat(dt);
         authSyncAcc += dt;
@@ -1738,6 +1955,8 @@
           authSyncAcc = 0;
           publishAuthState(false);
         }
+      } else {
+        tickGuestCombatVisual(dt);
       }
       drawCombat();
     } else if (state.phase === 'result') {
@@ -1762,14 +1981,15 @@
       const btn = e.target.closest('[data-shop]');
       if (!btn || state?.phase !== 'planning') return;
       const idx = Number(btn.getAttribute('data-shop'));
+      const already = selected?.area === 'shop' && selected.idx === idx;
       selected = { area: 'shop', idx };
-      if (!me().ready) tryBuy(idx);
-      renderHud();
+      if (!me().ready && already) tryBuy(idx);
+      else renderHud();
     });
     $('tft-reroll-btn')?.addEventListener('click', () => tryReroll());
     $('tft-xp-btn')?.addEventListener('click', () => tryBuyXp());
     $('tft-ready-btn')?.addEventListener('click', () => {
-      if (!me().ready) setReady(true);
+      setReady(!me().ready);
     });
     $('tft-forfeit-btn')?.addEventListener('click', () => {
       window.TDG_PVP?.forfeitMatch?.();

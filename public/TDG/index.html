@@ -1916,15 +1916,69 @@
     }
     body.tft-is-dragging, body.tft-is-dragging * { cursor: grabbing !important; }
 
-    .tft-shell.is-combat .tft-plan-only { display: none; }
+    .tft-shell.is-combat .tft-plan-only {
+      display: none;
+    }
     .tft-shell.is-combat .tft-combat-wrap {
-      min-height: min(58vh, 520px);
+      min-height: min(62vh, 560px);
       border-color: rgba(240,216,120,0.35);
       box-shadow: 0 0 28px rgba(240,216,120,0.12);
+      transition: min-height 0.35s ease, box-shadow 0.35s ease, border-color 0.25s ease;
     }
     .tft-shell.is-combat .tft-combat-banner { opacity: 0; }
-    .tft-shell.is-planning .tft-combat-wrap { min-height: 180px; opacity: 0.85; }
-    .tft-btn.primary.is-waiting { opacity: 0.7; }
+    .tft-shell.is-combat .tft-log,
+    .tft-shell.is-combat .tft-hint,
+    .tft-shell.is-combat .tft-traits-block { display: none; }
+    .tft-shell.is-combat .tft-inspect { min-height: 0; }
+    .tft-shell.is-planning .tft-combat-wrap {
+      min-height: 180px;
+      opacity: 0.9;
+      transition: min-height 0.35s ease, opacity 0.25s ease;
+    }
+    .tft-shell.is-result .tft-combat-wrap {
+      min-height: min(50vh, 440px);
+      border-color: rgba(240,216,120,0.5);
+    }
+    .tft-btn.primary.is-waiting {
+      animation: tft-ready-pulse 1.4s ease-in-out infinite;
+    }
+    .tft-btn.primary.needs-army { opacity: 0.55; }
+    @keyframes tft-ready-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(240,216,120,0.0); }
+      50% { box-shadow: 0 0 0 4px rgba(240,216,120,0.28); }
+    }
+    .tft-gold-flash strong {
+      animation: tft-gold-pop 0.45s ease;
+      color: #f0d878 !important;
+    }
+    @keyframes tft-gold-pop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+    .tft-unit-chip.tft-merge-burst {
+      animation: tft-merge-pop 0.55s ease;
+    }
+    @keyframes tft-merge-pop {
+      0% { transform: scale(0.7); filter: brightness(1.6); }
+      60% { transform: scale(1.12); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+    .tft-shop-card.tft-shop-merge {
+      border-color: #f0d878;
+      box-shadow: 0 0 12px rgba(240,216,120,0.35);
+      animation: tft-merge-glow 1.6s ease-in-out infinite;
+    }
+    @keyframes tft-merge-glow {
+      0%, 100% { box-shadow: 0 0 6px rgba(240,216,120,0.2); }
+      50% { box-shadow: 0 0 14px rgba(240,216,120,0.45); }
+    }
+    .tft-combat-wrap {
+      transition: min-height 0.35s ease, opacity 0.25s ease, border-color 0.25s ease;
+    }
+    .tft-plan-only {
+      transition: opacity 0.2s ease;
+    }
 
     @media (max-width: 900px) {
       .tft-body { grid-template-columns: 1fr; }
@@ -7688,7 +7742,7 @@
                 <button type="button" class="tft-btn primary" id="tft-ready-btn">Ready</button>
               </div>
               <div class="tft-log" id="tft-log"></div>
-              <p class="tft-hint">Buy units · merge 3 of the same ★ · column 1 is frontline. Both players Ready to fight — no round timer.</p>
+              <p class="tft-hint">Buy units · merge 3 of the same ★ · column 1 is frontline. Click shop once to inspect, again to buy. Ready when your board is set.</p>
             </aside>
             <main class="tft-main">
               <div class="tft-shop-row tft-plan-only">
