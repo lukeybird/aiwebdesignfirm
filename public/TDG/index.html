@@ -1666,8 +1666,22 @@
     .tft-board {
       display: grid;
       grid-template-columns: repeat(4, minmax(56px, 68px));
-      grid-template-rows: repeat(4, minmax(56px, 68px));
+      grid-auto-rows: minmax(56px, 68px);
       gap: 6px;
+    }
+    .tft-board-cols {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      height: auto;
+      min-height: 0;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.55;
+      text-align: center;
+      pointer-events: none;
     }
     .tft-board.is-opp-grid { opacity: 0.92; }
     .tft-board-cell {
@@ -1689,6 +1703,9 @@
     .tft-board-cell.tft-drop-ok { border-color: #7cb87c; background: rgba(124,184,124,0.18); box-shadow: inset 0 0 0 1px rgba(124,184,124,0.4); }
     .tft-board-cell.tft-drop-bad { border-color: #e76f51; background: rgba(231,111,81,0.15); }
     .tft-board-cell.tft-dragging-source { opacity: 0.35; }
+    .tft-board-cell.is-back {
+      background: rgba(125, 211, 252, 0.06);
+    }
 
     .tft-unit-chip {
       position: relative;
@@ -1699,7 +1716,20 @@
       pointer-events: none;
       box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     }
+    .tft-unit-chip.star-2 { box-shadow: 0 0 0 2px #c9a227, 0 2px 8px rgba(0,0,0,0.35); }
+    .tft-unit-chip.star-3 { box-shadow: 0 0 0 2px #f0d878, 0 0 12px rgba(240,216,120,0.55); }
     .tft-unit-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tft-star-badge {
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: #f0d878;
+      text-shadow: 0 1px 2px #000;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
     .tft-unit-cost {
       position: absolute;
       right: 3px;
@@ -1712,6 +1742,26 @@
       border-radius: 4px;
       padding: 0 3px;
     }
+    .tft-board-cell.is-front {
+      background: rgba(124,184,124,0.1);
+    }
+    .tft-shop-card.tft-shop-merge {
+      border-color: #f0d878;
+      box-shadow: 0 0 10px rgba(240,216,120,0.25);
+    }
+    .tft-shop-owned {
+      display: block;
+      font-size: 0.62rem;
+      color: #c9d4b8;
+      opacity: 0.85;
+    }
+    .tft-drag-ghost .tft-star-badge {
+      position: absolute;
+      left: 4px;
+      top: 2px;
+      font-size: 0.7rem;
+    }
+    .tft-drag-ghost { position: relative; }
 
     .tft-bench {
       display: grid;
@@ -7573,7 +7623,7 @@
                 <button type="button" class="tft-btn primary" id="tft-ready-btn">Ready</button>
               </div>
               <div class="tft-log" id="tft-log"></div>
-              <p class="tft-hint">Drag units to the board (swap supported). Drop on Sell, or right-click to sell. Watch the live fight after Ready.</p>
+              <p class="tft-hint">Buy units · merge 3 of the same ★ into the next star · column 1 is frontline (near mid). Left fights Right.</p>
             </aside>
             <main class="tft-main">
               <div class="tft-shop-row tft-plan-only">
@@ -7598,7 +7648,7 @@
                 <div class="tft-bench" id="tft-bench"></div>
               </div>
               <div class="tft-combat-wrap">
-                <div class="tft-combat-banner" id="tft-combat-banner">Battle arena</div>
+                <div class="tft-combat-banner" id="tft-combat-banner">Battle arena — you fight from your side (left or right)</div>
                 <canvas id="tft-combat-canvas"></canvas>
               </div>
             </main>
@@ -10582,7 +10632,7 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
-    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>Online auto-battler: earn gold each round, shop for troops, drag them onto your 4×4 board, stack traits (Warrior, Hunter, Beast, Mystic), then auto-fight. Reduce enemy HP to 0 to win.</p></div>
+    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler: shop by cost tier, merge 3 copies into a higher star, place on a left/right board (column 1 = frontline). Traits stack. Fights use your unit sprites — last HP standing wins.</p></div>
     <div class="manual-card"><h4>🃏 Limited PvP</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>
     <div class="manual-card"><h4>🎮 Free Mode</h4><p>Control a super-tank on a huge open battlefield! Arrow keys move and rotate, Space shoots. The camera follows you. Enemies only chase you when you get within detection range. Clear all hostiles to win.</p></div>
@@ -41148,6 +41198,20 @@ window.__TDG = {
   handleLimitedDraftRemote,
   getTftUnitDef: (type) => UNIT_TYPES[type],
   getTftUnitLabels: () => (typeof LIVE_ARMY !== 'undefined' ? LIVE_ARMY.UNIT_LABELS : {}),
+  combatSprite,
+  /** Draw a unit sprite onto an alternate canvas (TFT arena, etc.). */
+  drawUnitOnContext(targetCtx, type, x, y, facing, sz, opts = {}) {
+    if (!targetCtx || !type) return;
+    const prev = ctx;
+    ctx = targetCtx;
+    try {
+      drawUnitSprite(type, x, y, facing, sz, opts);
+    } catch (err) {
+      console.warn('TFT sprite draw failed', type, err);
+    } finally {
+      ctx = prev;
+    }
+  },
 };
 
 resetGame();
