@@ -214,11 +214,19 @@
     }
 
     if (msg.type === 'world') {
+      if (window.TFT_ONLINE?.isActive?.()) {
+        window.TFT_ONLINE.applyAuthState?.(msg.state);
+        return;
+      }
       window.__TDG?.applyServerWorld?.(msg);
       return;
     }
 
     if (msg.type === 'forfeit') {
+      if (window.TFT_ONLINE?.isActive?.()) {
+        window.TFT_ONLINE.applyForfeit?.(msg.from);
+        return;
+      }
       if (!window.__TDG?.isSurvivalPvp?.()) return;
       const snap = window.__TDG.getPvpSnapshot?.();
       const loser = msg.from;
@@ -401,6 +409,11 @@
     }
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
+      if (window.TFT_ONLINE?.isActive?.()) {
+        if (session?.isHost || session?.playerId === 0) return;
+        window.TFT_ONLINE.applyAuthState?.(payload.state);
+        return;
+      }
       if (!window.__TDG?.isSurvivalPvp?.()) return;
       if (session?.isHost || session?.playerId === 0) return;
       window.__TDG.applyAuthoritativeState?.(payload.state);
@@ -412,6 +425,10 @@
       window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
     });
     roomChannel.bind('forfeit', (payload) => {
+      if (window.TFT_ONLINE?.isActive?.()) {
+        window.TFT_ONLINE.applyForfeit?.(payload.from);
+        return;
+      }
       if (!window.__TDG?.isSurvivalPvp?.()) return;
       const snap = window.__TDG.getPvpSnapshot();
       const loser = payload.from;

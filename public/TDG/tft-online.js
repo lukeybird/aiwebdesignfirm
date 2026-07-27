@@ -19,6 +19,10 @@
   const LEVEL_XP = [0, 2, 2, 6, 10, 20, 36, 48, 64, 80];
   const COMBAT_MAX_SEC = 35;
   const COMBAT_SPEED = 1.05;
+  /** Fixed logical arena so host combat is identical regardless of client canvas size. */
+  const LOGIC_W = 800;
+  const LOGIC_H = 400;
+  const AUTH_SYNC_MS = 120;
 
   // ★ multipliers (TFT-like): 1 → 2 → 3
   const STAR_MULT = { 1: 1, 2: 1.8, 3: 3.24 };
@@ -111,6 +115,9 @@
   let drag = null;
   let uiBound = false;
   let selected = null; // { area:'board'|'bench'|'shop', r?, c?, idx?, type?, star? }
+  let lastAuthPublishAt = 0;
+  let authSyncAcc = 0;
+  let gotAuthSnapshot = false;
 
   function $(id) { return document.getElementById(id); }
 
@@ -269,6 +276,10 @@
     window.TDG_PVP?.sendAction?.(action);
   }
 
+  function isAuthority() {
+    return !!(match && match.isHost);
+  }
+
   function serializeArmy(p) {
     return {
       bench: p.bench.map((u) => (u ? { type: u.type, star: u.star, id: u.id } : null)),
@@ -277,6 +288,12 @@
       level: p.level,
       xp: p.xp,
       shop: p.shop.slice(),
+      shopGen: p.shopGen || 0,
+      ready: !!p.ready,
+      winStreak: p.winStreak || 0,
+      lossStreak: p.lossStreak || 0,
+      hp: p.hp,
+      name: p.name,
     };
   }
 
@@ -292,6 +309,174 @@
     if (snap.level != null) p.level = snap.level;
     if (snap.xp != null) p.xp = snap.xp;
     if (snap.shop) p.shop = snap.shop.slice();
+    if (snap.shopGen != null) p.shopGen = snap.shopGen;
+    if (snap.ready != null) p.ready = !!snap.ready;
+    if (snap.winStreak != null) p.winStreak = snap.winStreak;
+    if (snap.lossStreak != null) p.lossStreak = snap.lossStreak;
+    if (snap.hp != null) p.hp = snap.hp;
+    if (snap.name) p.name = snap.name;
+  }
+
+  function serializeCombatLight() {
+    return (state.combatUnits || []).map((u) => ({
+      uid: u.uid,
+      owner: u.owner,
+      type: u.type,
+      star: u.star,
+      name: u.name,
+      role: u.role,
+      hp: Math.round(u.hp),
+      maxHp: u.maxHp,
+      x: Math.round(u.x * 10) / 10,
+      y: Math.round(u.y * 10) / 10,
+      facing: Math.round((u.facing || 0) * 100) / 100,
+      alive: !!u.alive,
+      deathT: u.deathT || 0,
+      size: u.size,
+      color: u.color,
+      attackPhase: u.attackPhase || 'idle',
+      attackProgress: u.attackProgress || 0,
+      moveSpeed: u.moveSpeed || 0,
+      animT: u.animT || 0,
+      hitFlash: u.hitFlash || 0,
+      damage: u.damage,
+      attackRate: u.attackRate,
+      range: u.range,
+      speed: u.speed,
+    }));
+  }
+
+  function serializeMatchState() {
+    return {
+      mode: 'tft',
+      phase: state.phase,
+      round: state.round,
+      combatSeed: state.combatSeed || 0,
+      combatElapsed: state.combatElapsed || 0,
+      combatFinished: !!state.combatFinished,
+      resultApplied: !!state.resultApplied,
+      resultTimer: state.resultTimer || 0,
+      pendingResult: state.pendingResult || null,
+      lastCombat: state.lastCombat || null,
+      players: state.players.map((p) => serializeArmy(p)),
+      combatUnits: (state.phase === 'combat' || state.phase === 'result' || state.phase === 'gameover')
+        ? serializeCombatLight()
+        : [],
+      projectiles: (state.projectiles || []).map((p) => ({
+        x: p.x, y: p.y, tx: p.tx, ty: p.ty, to: p.to,
+        damage: p.damage, color: p.color, life: p.life, maxLife: p.maxLife,
+      })),
+      messages: (state.messages || []).slice(0, 8),
+    };
+  }
+
+  function publishAuthState(force = false) {
+    if (!active || !state || !isAuthority()) return;
+    const now = performance.now();
+    if (!force && now - lastAuthPublishAt < AUTH_SYNC_MS) return;
+    lastAuthPublishAt = now;
+    window.TDG_PVP?.sendState?.(serializeMatchState());
+  }
+
+  function applyCombatUnitsFromAuth(list) {
+    if (!Array.isArray(list)) return;
+    state.combatUnits = list.map((u) => ({
+      uid: u.uid,
+      owner: u.owner,
+      type: u.type,
+      star: u.star || 1,
+      name: u.name || u.type,
+      role: u.role || 'melee',
+      hp: u.hp,
+      maxHp: u.maxHp || u.hp,
+      x: u.x,
+      y: u.y,
+      facing: u.facing || 0,
+      alive: u.alive !== false,
+      deathT: u.deathT || 0,
+      size: u.size || 20,
+      color: u.color || '#94a3b8',
+      attackPhase: u.attackPhase || 'idle',
+      attackProgress: u.attackProgress || 0,
+      moveSpeed: u.moveSpeed || 0,
+      animT: u.animT || 0,
+      hitFlash: u.hitFlash || 0,
+      attackFlash: 0,
+      attackCd: 0,
+      damage: u.damage || 20,
+      attackRate: u.attackRate || 0.8,
+      range: u.range || 40,
+      speed: u.speed || 50,
+      targetUid: null,
+    }));
+  }
+
+  /**
+   * Guest applies host match state — single source of truth for combat, HP, and round flow.
+   */
+  function applyAuthState(snap) {
+    if (!active || !state || !snap || snap.mode !== 'tft') return false;
+    if (isAuthority()) return false;
+
+    const prevPhase = state.phase;
+    const prevRound = state.round;
+    const phaseChange = prevPhase !== snap.phase || prevRound !== snap.round || !gotAuthSnapshot;
+    gotAuthSnapshot = true;
+
+    state.round = snap.round ?? state.round;
+    state.combatSeed = snap.combatSeed || state.combatSeed;
+    state.combatElapsed = snap.combatElapsed || 0;
+    state.combatFinished = !!snap.combatFinished;
+    state.resultApplied = !!snap.resultApplied;
+    state.resultTimer = snap.resultTimer ?? state.resultTimer;
+    state.pendingResult = snap.pendingResult || null;
+    state.lastCombat = snap.lastCombat || state.lastCombat;
+    if (Array.isArray(snap.messages)) {
+      state.messages = snap.messages.slice();
+      const el = $('tft-log');
+      if (el) el.innerHTML = state.messages.map((m) => `<div class="tft-log-line">${escapeHtml(m)}</div>`).join('');
+    }
+
+    if (Array.isArray(snap.players)) {
+      for (let i = 0; i < 2; i++) {
+        const sp = snap.players[i];
+        const lp = state.players[i];
+        if (!sp || !lp) continue;
+        // Always take host HP / streaks / ready.
+        if (sp.hp != null) lp.hp = sp.hp;
+        if (sp.name) lp.name = sp.name;
+        lp.ready = !!sp.ready;
+        lp.winStreak = sp.winStreak || 0;
+        lp.lossStreak = sp.lossStreak || 0;
+
+        // Own planning edits stay local until a round/phase boundary.
+        const takeEconomy = i !== match.playerId || phaseChange || snap.phase !== 'planning';
+        if (takeEconomy) applyArmySnapshot(lp, sp);
+      }
+    }
+
+    if (Array.isArray(snap.combatUnits) && (snap.phase === 'combat' || snap.phase === 'result' || snap.phase === 'gameover')) {
+      applyCombatUnitsFromAuth(snap.combatUnits);
+    } else if (snap.phase === 'planning') {
+      state.combatUnits = [];
+      state.projectiles = [];
+    }
+    if (Array.isArray(snap.projectiles)) state.projectiles = snap.projectiles.slice();
+
+    state.phase = snap.phase || state.phase;
+    if (phaseChange || prevPhase !== state.phase) {
+      setShellMode(state.phase === 'gameover' ? 'gameover' : state.phase);
+      endDrag(true);
+      if (state.phase === 'combat') resizeCanvas();
+    }
+
+    renderHud();
+    if (state.phase === 'combat' || state.phase === 'result' || state.phase === 'gameover') {
+      drawCombat();
+    } else if (state.phase === 'planning') {
+      drawPlanningPreview();
+    }
+    return true;
   }
 
   function syncArmy(p) {
@@ -300,6 +485,8 @@
       playerId: p.id,
       army: serializeArmy(p),
     });
+    // Host keeps a live mirror for guests after local edits.
+    if (isAuthority()) publishAuthState(true);
   }
 
   // ─── Merges (3 identical → next star) ──────────────────────────────────────
@@ -410,8 +597,8 @@
   // ─── Combat arena: LEFT vs RIGHT ───────────────────────────────────────────
 
   function arenaLayout() {
-    const w = canvas?.width || 800;
-    const h = canvas?.height || 400;
+    const w = LOGIC_W;
+    const h = LOGIC_H;
     const padX = Math.max(40, w * 0.05);
     const padY = Math.max(50, h * 0.14);
     const midGap = Math.max(48, w * 0.08);
@@ -420,6 +607,20 @@
     const cellW = halfW / COLS;
     const cellH = (h - padY * 2) / ROWS;
     return { w, h, padX, padY, mid, midGap, halfW, cellW, cellH };
+  }
+
+  function beginLogicDraw() {
+    if (!ctx || !canvas) return null;
+    resizeCanvas();
+    const sx = canvas.width / LOGIC_W;
+    const sy = canvas.height / LOGIC_H;
+    ctx.setTransform(sx, 0, 0, sy, 0, 0);
+    return arenaLayout();
+  }
+
+  function endLogicDraw() {
+    if (!ctx) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   /**
@@ -476,7 +677,7 @@
             x: pos.x,
             y: pos.y,
             facing: pid === 0 ? 0 : Math.PI,
-            attackCd: 0.1 + (r * 0.05 + c * 0.03),
+            attackCd: 0.1 + ((hashSeed(String(cell.id || `${pid}-${r}-${c}`)) % 100) / 100) * 0.35,
             attackFlash: 0,
             hitFlash: 0,
             attackPhase: 'idle',
@@ -485,7 +686,7 @@
             targetUid: null,
             alive: true,
             deathT: 0,
-            animT: Math.random() * 10,
+            animT: (hashSeed(String(cell.id || `${cell.type}-${pid}-${r}-${c}`)) % 1000) / 100,
           });
         }
       }
@@ -656,10 +857,19 @@
   function finishLiveCombat() {
     if (state.combatFinished) return;
     state.combatFinished = true;
+    // Only the host decides the fight outcome — guest waits for auth state / result.
+    if (!isAuthority()) {
+      state.pendingResult = state.pendingResult || null;
+      return;
+    }
     const result = computeResultFromField();
     state.pendingResult = result;
-    if (match.isHost) broadcastAction({ type: 'tft_combat_result', result });
-    setTimeout(() => applyCombatResult(result), 1100);
+    publishAuthState(true);
+    broadcastAction({ type: 'tft_combat_result', result, armies: [serializeArmy(state.players[0]), serializeArmy(state.players[1])] });
+    setTimeout(() => {
+      applyCombatResult(result);
+      publishAuthState(true);
+    }, 1100);
   }
 
   function applyCombatResult(result) {
@@ -667,6 +877,8 @@
     if (state.phase !== 'combat' && state.phase !== 'result') return;
     if (state.resultApplied) return;
     state.resultApplied = true;
+    state.combatFinished = true;
+    state.pendingResult = result;
     const loser = result.winner === 0 ? 1 : 0;
     const win = result.winner;
     state.players[loser].hp = Math.max(0, state.players[loser].hp - result.damage);
@@ -680,6 +892,7 @@
     pushMsg(`${state.players[win].name} wins! ${state.players[loser].name} −${result.damage} HP (${state.players[loser].hp})`);
     setShellMode('result');
     renderHud();
+    if (isAuthority()) publishAuthState(true);
     if (state.players[0].hp <= 0 || state.players[1].hp <= 0) {
       endMatch(state.players[0].hp <= 0 ? 1 : 0);
     }
@@ -697,21 +910,22 @@
     setShellMode('combat');
     resizeCanvas();
     spawnCombatUnits();
-    // Layout expands when combat UI shows — resize + respawn once so positions match.
     requestAnimationFrame(() => {
       if (!active || !state || state.phase !== 'combat') return;
       resizeCanvas();
       if (!state.combatUnits?.length) spawnCombatUnits();
       drawCombat();
+      if (isAuthority()) publishAuthState(true);
     });
     pushMsg('Battle — left vs right!');
     renderHud();
-    if (match.isHost && !opts.fromRemote) {
+    if (isAuthority() && !opts.fromRemote) {
       broadcastAction({
         type: 'tft_combat_start',
         seed: state.combatSeed,
         armies: [serializeArmy(state.players[0]), serializeArmy(state.players[1])],
       });
+      publishAuthState(true);
     }
   }
 
@@ -732,6 +946,7 @@
     pushMsg(`Round ${state.round} — shop, merge 3 copies, place your army. Ready when set.`);
     setShellMode('planning');
     renderHud();
+    if (isAuthority()) publishAuthState(true);
   }
 
   function endMatch(winnerSlot) {
@@ -739,6 +954,7 @@
     setShellMode('gameover');
     pushMsg(winnerSlot === match.playerId ? 'Victory!' : 'Defeat');
     renderHud();
+    if (isAuthority()) publishAuthState(true);
     window.TDG_PVP?.notifyGameOver?.({ winnerSlot, endReason: 'base_destroyed' });
     setTimeout(() => {
       cleanup();
@@ -868,8 +1084,8 @@
   function checkPlanningEnd() {
     if (state.phase !== 'planning') return;
     if (!(state.players[0].ready && state.players[1].ready)) return;
-    // Only the host starts combat; guest waits for tft_combat_start.
-    if (match.isHost) beginCombat();
+    // Only the host starts combat; guest waits for tft_combat_start / auth state.
+    if (isAuthority()) beginCombat();
   }
 
   function applyRemoteArmies(armies) {
@@ -901,18 +1117,22 @@
         checkPlanningEnd();
         return true;
       case 'tft_combat_start':
-        if (state.phase === 'planning' || state.phase === 'result' || state.phase === 'combat') {
+        if (!isAuthority() && (state.phase === 'planning' || state.phase === 'result' || state.phase === 'combat')) {
           applyRemoteArmies(action.armies);
           beginCombat({ seed: action.seed, fromRemote: true, force: true });
         }
         return true;
       case 'tft_combat_result':
+        if (isAuthority()) return true;
         if (state.phase === 'planning') {
           applyRemoteArmies(action.armies);
-          beginCombat({ force: true, fromRemote: true });
+          beginCombat({ force: true, fromRemote: true, seed: action.seed });
         }
-        if (!match.isHost && (state.phase === 'combat' || state.phase === 'result')) {
-          setTimeout(() => applyCombatResult(action.result), state.combatFinished ? 200 : 500);
+        // Host result is the only HP truth — ignore any local guess.
+        if (action.result && (state.phase === 'combat' || state.phase === 'result')) {
+          state.combatFinished = true;
+          state.pendingResult = action.result;
+          setTimeout(() => applyCombatResult(action.result), state.phase === 'result' ? 0 : 400);
         }
         return true;
       default:
@@ -1292,7 +1512,8 @@
   // ─── Combat / arena draw (sprites) ─────────────────────────────────────────
 
   function drawArenaBackground() {
-    const layout = arenaLayout();
+    const layout = beginLogicDraw();
+    if (!layout || !ctx) return null;
     const { w, h, mid, padX, padY } = layout;
     ctx.clearRect(0, 0, w, h);
 
@@ -1362,7 +1583,6 @@
     const sz = Math.max(16, (u.size || 20) * (1 + ((u.star || 1) - 1) * 0.12));
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     // Always draw a portrait/body first so fights never look empty.
     drawPortraitFallback(u, sz);
@@ -1385,7 +1605,6 @@
       }
     }
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = u.owner === 0 ? '#4ECDC4' : '#FF8E53';
     ctx.lineWidth = 2.5;
@@ -1414,6 +1633,7 @@
   function drawPlanningPreview() {
     if (!ctx || !canvas || !state) return;
     const layout = drawArenaBackground();
+    if (!layout) return;
     const ghost = [];
     for (let pid = 0; pid < 2; pid++) {
       const p = state.players[pid];
@@ -1449,28 +1669,30 @@
     ctx.textAlign = 'center';
     ctx.fillText('Formation preview — column 1 fights near mid', layout.w / 2, layout.h - 14);
     ctx.textAlign = 'left';
+    endLogicDraw();
   }
 
   function drawCombat() {
-    if (!ctx || !canvas) return;
+    if (!ctx || !canvas || !state) return;
     const layout = drawArenaBackground();
+    if (!layout) return;
     const { w, h } = layout;
 
-    const drawList = state.combatUnits.slice().sort((a, b) => a.y - b.y);
+    const drawList = (state.combatUnits || []).slice().sort((a, b) => a.y - b.y);
     for (const u of drawList) {
       const alpha = u.alive ? 1 : Math.max(0, 1 - u.deathT);
       if (alpha <= 0.02) continue;
       drawUnitSpriteAt(u, alpha);
     }
 
-    for (const p of state.projectiles) {
+    for (const p of state.projectiles || []) {
       ctx.fillStyle = p.color || '#fff';
       ctx.beginPath();
       ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    for (const f of state.floatTexts) {
+    for (const f of state.floatTexts || []) {
       ctx.globalAlpha = Math.max(0, f.life);
       ctx.fillStyle = f.color || '#fff';
       ctx.font = '700 14px Orbitron, sans-serif';
@@ -1488,6 +1710,7 @@
       ctx.fillText(`${state.players[state.pendingResult.winner]?.name || 'Winner'} wins the fight`, w / 2, h * 0.4 + 34);
       ctx.textAlign = 'left';
     }
+    endLogicDraw();
   }
 
   function resizeCanvas() {
@@ -1507,14 +1730,24 @@
     if (state.phase === 'planning') {
       drawPlanningPreview();
     } else if (state.phase === 'combat') {
-      tickCombat(dt);
+      // Host alone simulates the fight; guest mirrors host combat state.
+      if (isAuthority()) {
+        tickCombat(dt);
+        authSyncAcc += dt;
+        if (authSyncAcc >= AUTH_SYNC_MS / 1000) {
+          authSyncAcc = 0;
+          publishAuthState(false);
+        }
+      }
       drawCombat();
     } else if (state.phase === 'result') {
       drawCombat();
-      state.resultTimer -= dt;
-      if (state.resultTimer <= 0) {
-        state.round += 1;
-        startRound();
+      if (isAuthority()) {
+        state.resultTimer -= dt;
+        if (state.resultTimer <= 0) {
+          state.round += 1;
+          startRound();
+        }
       }
     } else if (state.phase === 'gameover') {
       drawCombat();
@@ -1540,7 +1773,13 @@
     });
     $('tft-forfeit-btn')?.addEventListener('click', () => {
       window.TDG_PVP?.forfeitMatch?.();
-      endMatch(1 - match.playerId);
+      // Host publishes defeat so guest also ends; local end is immediate.
+      if (isAuthority()) {
+        state.players[match.playerId].hp = 0;
+        endMatch(1 - match.playerId);
+      } else {
+        endMatch(1 - match.playerId);
+      }
     });
 
     const screen = $('tft-game-screen');
@@ -1592,6 +1831,7 @@
       resultApplied: false,
     };
     selected = null;
+    gotAuthSnapshot = false;
     active = true;
     canvas = $('tft-combat-canvas');
     ctx = canvas?.getContext('2d') || null;
@@ -1605,7 +1845,14 @@
 
     UNIT_POOL.forEach(getPortrait);
     bindUi();
-    startRound();
+    // Host owns round 1 economy/shop; guest waits for the first auth snapshot.
+    if (isAuthority()) startRound();
+    else {
+      state.phase = 'planning';
+      setShellMode('planning');
+      pushMsg('Synced match — waiting for host…');
+      renderHud();
+    }
 
     lastTs = performance.now();
     cancelAnimationFrame(raf);
@@ -1633,6 +1880,13 @@
     if (hideUi) $('tft-game-screen')?.classList.add('hidden');
   }
 
+  function applyForfeit(loserSlot) {
+    if (!active || !state) return;
+    const loser = loserSlot === 1 ? 1 : 0;
+    if (state.players[loser]) state.players[loser].hp = 0;
+    endMatch(1 - loser);
+  }
+
   window.TFT_ONLINE = {
     start,
     cleanup,
@@ -1640,6 +1894,9 @@
       if (!active) return false;
       return applyRemoteAction(from, action);
     },
+    applyAuthState,
+    applyForfeit,
     isActive: () => active,
+    isAuthority: () => isAuthority(),
   };
 })();
