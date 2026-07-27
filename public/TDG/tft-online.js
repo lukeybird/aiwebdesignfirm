@@ -682,14 +682,25 @@
   }
 
   function beginCombat(opts = {}) {
+    if (state.phase === 'combat' && !opts.force) return;
     if (state.phase !== 'planning' && !opts.force) return;
     endDrag(true);
     state.phase = 'combat';
     state.resultApplied = false;
+    state.combatFinished = false;
+    state.pendingResult = null;
     state.combatSeed = opts.seed || hashSeed(`${match.roomId}|combat|${state.round}`);
-    spawnCombatUnits();
-    pushMsg('Battle — left vs right!');
     setShellMode('combat');
+    resizeCanvas();
+    spawnCombatUnits();
+    // Layout expands when combat UI shows — resize + respawn once so positions match.
+    requestAnimationFrame(() => {
+      if (!active || !state || state.phase !== 'combat') return;
+      resizeCanvas();
+      if (!state.combatUnits?.length) spawnCombatUnits();
+      drawCombat();
+    });
+    pushMsg('Battle — left vs right!');
     renderHud();
     if (match.isHost && !opts.fromRemote) {
       broadcastAction({
@@ -830,10 +841,21 @@
     return true;
   }
 
+  function snapBoardCount(snap) {
+    if (!snap?.board) return 0;
+    let n = 0;
+    for (const row of snap.board) {
+      for (const u of row || []) if (u) n++;
+    }
+    return n;
+  }
+
   function setReady(val) {
     const p = me();
     if (state.phase !== 'planning') return;
     p.ready = val;
+    // Sync army with ready so the host has both boards before combat.
+    syncArmy(p);
     broadcastAction({ type: 'tft_ready', ready: val, playerId: match.playerId });
     renderHud();
     checkPlanningEnd();
@@ -841,7 +863,20 @@
 
   function checkPlanningEnd() {
     if (state.phase !== 'planning') return;
-    if (state.players[0].ready && state.players[1].ready) beginCombat();
+    if (!(state.players[0].ready && state.players[1].ready)) return;
+    // Only the host starts combat; guest waits for tft_combat_start.
+    if (match.isHost) beginCombat();
+  }
+
+  function applyRemoteArmies(armies) {
+    if (!armies) return;
+    for (let i = 0; i < 2; i++) {
+      const snap = armies[i];
+      if (!snap) continue;
+      // Never let a stale empty snapshot wipe our local board.
+      if (i === match.playerId && snapBoardCount(snap) < boardCount(state.players[i])) continue;
+      applyArmySnapshot(state.players[i], snap);
+    }
   }
 
   function applyRemoteAction(fromPlayerId, action) {
@@ -850,8 +885,9 @@
 
     switch (action.type) {
       case 'tft_army_sync': {
-        const target = state.players[action.playerId ?? fromPlayerId];
-        if (target) applyArmySnapshot(target, action.army);
+        const targetId = action.playerId ?? fromPlayerId;
+        const target = state.players[targetId];
+        if (target && targetId !== match.playerId) applyArmySnapshot(target, action.army);
         renderHud();
         return true;
       }
@@ -861,15 +897,17 @@
         checkPlanningEnd();
         return true;
       case 'tft_combat_start':
-        if (state.phase === 'planning' || state.phase === 'result') {
-          if (action.armies?.[0]) applyArmySnapshot(state.players[0], action.armies[0]);
-          if (action.armies?.[1]) applyArmySnapshot(state.players[1], action.armies[1]);
+        if (state.phase === 'planning' || state.phase === 'result' || state.phase === 'combat') {
+          applyRemoteArmies(action.armies);
           beginCombat({ seed: action.seed, fromRemote: true, force: true });
         }
         return true;
       case 'tft_combat_result':
-        if (state.phase === 'planning') beginCombat({ force: true, fromRemote: true });
-        if (!match.isHost && (state.combatFinished || state.phase === 'combat')) {
+        if (state.phase === 'planning') {
+          applyRemoteArmies(action.armies);
+          beginCombat({ force: true, fromRemote: true });
+        }
+        if (!match.isHost && (state.phase === 'combat' || state.phase === 'result')) {
           setTimeout(() => applyCombatResult(action.result), state.combatFinished ? 200 : 500);
         }
         return true;
@@ -1112,8 +1150,10 @@
     const readyBtn = $('tft-ready-btn');
     if (readyBtn) {
       readyBtn.disabled = !planning;
-      readyBtn.textContent = p.ready ? 'Waiting…' : 'Ready';
-      readyBtn.classList.toggle('is-waiting', p.ready);
+      if (state.phase === 'combat') readyBtn.textContent = 'Fighting…';
+      else if (state.phase === 'result') readyBtn.textContent = 'Round done';
+      else readyBtn.textContent = p.ready ? 'Waiting…' : 'Ready';
+      readyBtn.classList.toggle('is-waiting', planning && p.ready);
     }
     if ($('tft-reroll-btn')) $('tft-reroll-btn').disabled = !planning || p.ready || p.gold < REROLL;
     if ($('tft-xp-btn')) $('tft-xp-btn').disabled = !planning || p.ready || p.gold < XP_COST || p.level >= MAX_LEVEL;
@@ -1162,48 +1202,80 @@
     return layout;
   }
 
+  function drawPortraitFallback(u, sz) {
+    const rad = Math.max(14, sz * 0.62);
+    const img = getPortrait(u.type);
+    // Body plate so a unit is always visible even if the portrait is still loading.
+    ctx.beginPath();
+    ctx.arc(u.x, u.y, rad, 0, Math.PI * 2);
+    ctx.fillStyle = u.color || '#94a3b8';
+    ctx.fill();
+    if (img.complete && img.naturalWidth) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(u.x, u.y, rad, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, u.x - rad, u.y - rad, rad * 2, rad * 2);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#0b120b';
+      ctx.font = `700 ${Math.max(10, Math.floor(rad * 0.55))}px Orbitron, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((u.name || u.type || '?').slice(0, 2).toUpperCase(), u.x, u.y + 1);
+      ctx.textBaseline = 'alphabetic';
+    }
+  }
+
   function drawUnitSpriteAt(u, alpha = 1) {
-    const drawFn = window.__TDG?.drawUnitOnContext;
+    if (!ctx) return;
+    const sz = Math.max(16, (u.size || 20) * (1 + ((u.star || 1) - 1) * 0.12));
     ctx.save();
     ctx.globalAlpha = alpha;
-    const sz = u.size * (1 + ((u.star || 1) - 1) * 0.12);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Always draw a portrait/body first so fights never look empty.
+    drawPortraitFallback(u, sz);
+
+    // Then try the real TDG sprite kit on top (optional).
+    const drawFn = window.__TDG?.drawUnitOnContext;
     if (drawFn) {
-      drawFn(ctx, u.type, u.x, u.y, u.facing, sz, {
-        animT: u.animT || 0,
-        moveSpeed: u.moveSpeed || 0,
-        attackPhase: u.attackPhase || 'idle',
-        attackProgress: u.attackProgress || 0,
-        unitId: u.uid,
-        ownerId: u.owner,
-        hitFlash: u.hitFlash || 0,
-      });
-    } else {
-      const img = getPortrait(u.type);
-      const rad = sz * 0.55;
-      if (img.complete && img.naturalWidth) {
-        ctx.beginPath();
-        ctx.arc(u.x, u.y, rad, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, u.x - rad, u.y - rad, rad * 2, rad * 2);
+      try {
+        drawFn(ctx, u.type, u.x, u.y, u.facing, sz, {
+          animT: u.animT || 0,
+          moveSpeed: u.moveSpeed || 0,
+          attackPhase: u.attackPhase || 'idle',
+          attackProgress: u.attackProgress || 0,
+          unitId: u.uid,
+          ownerId: u.owner,
+          hitFlash: u.hitFlash || 0,
+        });
+      } catch (err) {
+        console.warn('TFT unit draw failed', u.type, err);
       }
     }
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = alpha;
     ctx.strokeStyle = u.owner === 0 ? '#4ECDC4' : '#FF8E53';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(u.x, u.y + 2, sz * 0.55, 0, Math.PI * 2);
+    ctx.arc(u.x, u.y + 2, sz * 0.62, 0, Math.PI * 2);
     ctx.stroke();
+
     ctx.fillStyle = '#f0d878';
-    ctx.font = '700 11px Orbitron, sans-serif';
+    ctx.font = '700 12px Orbitron, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(starLabel(u.star || 1), u.x, u.y - sz * 0.7 - 14);
+    ctx.fillText(starLabel(u.star || 1), u.x, u.y - sz * 0.75 - 12);
+
     if (u.alive !== false && u.maxHp) {
-      const bw = Math.max(32, sz * 1.1);
+      const bw = Math.max(36, sz * 1.15);
       const bx = u.x - bw / 2;
-      const by = u.y - sz * 0.7 - 8;
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(bx, by, bw, 5);
+      const by = u.y - sz * 0.75 - 6;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillRect(bx, by, bw, 6);
       ctx.fillStyle = u.owner === 0 ? '#4ECDC4' : '#FF8E53';
-      ctx.fillRect(bx, by, bw * Math.max(0, (u.hp ?? u.maxHp) / u.maxHp), 5);
+      ctx.fillRect(bx, by, bw * Math.max(0, Math.min(1, (u.hp ?? u.maxHp) / u.maxHp)), 6);
     }
     ctx.restore();
   }
@@ -1415,7 +1487,11 @@
       if (!active) return;
       const dt = Math.min(0.05, (ts - lastTs) / 1000);
       lastTs = ts;
-      tick(dt);
+      try {
+        tick(dt);
+      } catch (err) {
+        console.warn('TFT tick error', err);
+      }
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);

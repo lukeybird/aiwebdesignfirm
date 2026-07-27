@@ -7772,7 +7772,8 @@
 // ─── Constants ───────────────────────────────────────────────────────────────
 const W = 1280, H = 720;
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+// `let` so alternate surfaces (TFT arena) can temporarily retarget drawing.
+let ctx = canvas.getContext('2d');
 
 const P1_ZONE = { x: 0, x2: 500 };
 const P2_ZONE = { x: 780, x2: W };
@@ -41201,13 +41202,15 @@ window.__TDG = {
   combatSprite,
   /** Draw a unit sprite onto an alternate canvas (TFT arena, etc.). */
   drawUnitOnContext(targetCtx, type, x, y, facing, sz, opts = {}) {
-    if (!targetCtx || !type) return;
+    if (!targetCtx || !type) return false;
     const prev = ctx;
     ctx = targetCtx;
     try {
       drawUnitSprite(type, x, y, facing, sz, opts);
+      return true;
     } catch (err) {
       console.warn('TFT sprite draw failed', type, err);
+      return false;
     } finally {
       ctx = prev;
     }
