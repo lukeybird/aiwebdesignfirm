@@ -23,7 +23,7 @@
   function rememberTftAuthState(state) {
     if (state && state.mode === 'tft') {
       lastTftAuthState = state;
-      saveLiveState(state);
+      saveLiveState(state, { mode: 'tft' });
     }
   }
 
@@ -45,12 +45,37 @@
     }
   }
 
-  function setGameUrl(roomId) {
+  function readModeFromUrl() {
+    try {
+      const mode = new URL(window.location.href).searchParams.get('mode');
+      if (mode === 'limited' || mode === 'tft' || mode === 'standard') return mode;
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
+  function normalizeMode(mode) {
+    if (mode === 'limited' || mode === 'tft') return mode;
+    return 'standard';
+  }
+
+  function modeFromSession(data) {
+    if (!data) return queueMode || 'standard';
+    if (data.tft) return 'tft';
+    if (data.limited) return 'limited';
+    return 'standard';
+  }
+
+  function setGameUrl(roomId, mode) {
     if (!roomId || typeof history === 'undefined' || !window.location) return;
     try {
       const url = new URL(window.location.href);
-      if (url.searchParams.get('game') === roomId) return;
+      const nextMode = normalizeMode(mode || queueMode || modeFromSession(session));
+      const same = url.searchParams.get('game') === roomId && url.searchParams.get('mode') === nextMode;
+      if (same) return;
       url.searchParams.set('game', roomId);
+      url.searchParams.set('mode', nextMode);
       history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
     } catch {
       // ignore
@@ -61,8 +86,9 @@
     if (typeof history === 'undefined' || !window.location) return;
     try {
       const url = new URL(window.location.href);
-      if (!url.searchParams.has('game')) return;
+      if (!url.searchParams.has('game') && !url.searchParams.has('mode')) return;
       url.searchParams.delete('game');
+      url.searchParams.delete('mode');
       const next = `${url.pathname}${url.search}${url.hash}`;
       history.replaceState(null, '', next || url.pathname);
     } catch {
@@ -70,12 +96,13 @@
     }
   }
 
-  function saveLiveState(state) {
-    const roomId = session?.roomId;
+  function saveLiveState(state, meta = {}) {
+    const roomId = meta.roomId || session?.roomId;
     if (!roomId || !state) return;
     try {
       sessionStorage.setItem(LIVE_STATE_KEY, JSON.stringify({
         roomId,
+        mode: normalizeMode(meta.mode || state.mode || modeFromSession(session)),
         state,
         savedAt: Date.now(),
       }));
@@ -84,7 +111,7 @@
     }
   }
 
-  function loadLiveState(roomId) {
+  function loadLiveState(roomId, expectedMode) {
     if (!roomId) return null;
     try {
       const raw = sessionStorage.getItem(LIVE_STATE_KEY);
@@ -92,6 +119,15 @@
       const parsed = JSON.parse(raw);
       if (!parsed || parsed.roomId !== roomId || !parsed.state) return null;
       if (Date.now() - (parsed.savedAt || 0) > 30 * 60 * 1000) return null;
+      const stateMode = parsed.mode || parsed.state.mode || 'standard';
+      if (expectedMode === 'tft') {
+        if (stateMode !== 'tft') return null;
+      } else if (expectedMode === 'limited') {
+        if (stateMode === 'tft') return null;
+      } else if (expectedMode === 'standard') {
+        if (stateMode === 'tft' || stateMode === 'limited_draft') return null;
+        if (stateMode === 'limited' && parsed.state.limitedPicks) return null;
+      }
       return parsed.state;
     } catch {
       return null;
@@ -540,13 +576,15 @@
     const useServerAuth = Boolean(match.serverAuth && match.joinTicket && gameWsUrl);
     const resume = !!match.resume;
 
-    if (match.roomId) setGameUrl(match.roomId);
+    const limited = Boolean(match.limited || queueMode === 'limited' || session?.limited);
+    const tft = Boolean(match.tft || queueMode === 'tft' || session?.tft);
+    const mode = tft ? 'tft' : (limited ? 'limited' : 'standard');
+    queueMode = mode;
+
+    if (match.roomId) setGameUrl(match.roomId, mode);
 
     hideOnlineScreens();
     hide($('menu-screen'));
-
-    const limited = Boolean(match.limited || queueMode === 'limited' || session?.limited);
-    const tft = Boolean(match.tft || queueMode === 'tft' || session?.tft);
 
     if (useServerAuth) {
       try {
@@ -568,7 +606,14 @@
       ? Date.now() + 800
       : (match.startsAt || Date.now() + 4000);
 
+    const savedState = resume ? loadLiveState(match.roomId, mode) : null;
+
     function beginCombat(limitedPicks) {
+      if (limitedPicks && session) {
+        session.limitedPicks = limitedPicks;
+        saveSession(session);
+      }
+      const picks = limitedPicks || session?.limitedPicks || savedState?.limitedPicks || null;
       runCountdown(resume ? Date.now() + 900 : Date.now() + 3200, () => {
         window.__TDG.setupSurvivalLivePvp({
           player0Name: p0,
@@ -582,8 +627,9 @@
           serverAuth: Boolean(match.serverAuth && gameSocket),
           authoritySlot: match.authoritySlot === 1 ? 1 : 0,
           limited,
-          limitedPicks,
+          limitedPicks: picks,
           resume,
+          savedState: (savedState && savedState.players) ? savedState : null,
         });
       });
     }
@@ -599,8 +645,17 @@
     }
 
     if (limited && resume) {
-      // Mid-match refresh: skip draft and jump back into the live battle.
-      beginCombat(null);
+      if (savedState?.mode === 'limited_draft') {
+        window.__TDG.startLimitedDraftSession({
+          myPlayerId: myId,
+          player0Name: p0,
+          player1Name: p1,
+          onComplete: beginCombat,
+          resumeDraft: savedState,
+        });
+        return;
+      }
+      beginCombat(savedState?.limitedPicks || session?.limitedPicks || null);
       return;
     }
 
@@ -613,7 +668,7 @@
           isHost: match.isHost,
           roomId: match.roomId,
           resume,
-          savedState: resume ? loadLiveState(match.roomId) : null,
+          savedState: (savedState && savedState.mode === 'tft') ? savedState : null,
         });
       });
       return;
@@ -639,7 +694,7 @@
       tft: Boolean(data.tft || queueMode === 'tft' || session?.tft),
     };
     saveSession(match);
-    setGameUrl(match.roomId);
+    setGameUrl(match.roomId, modeFromSession(match));
     showMatchScreen(match.playerName, match.opponentName);
     setTimeout(() => startOnlineMatch(match), 1400);
   }
@@ -677,7 +732,10 @@
     startHeartbeat();
 
     if (result.status === 'matched') {
-      setGameUrl(result.roomId);
+      setGameUrl(result.roomId, modeFromSession({
+        limited: Boolean(result.limited || queueMode === 'limited'),
+        tft: Boolean(result.tft || queueMode === 'tft'),
+      }));
       showMatchScreen(result.playerName || name, result.opponentName);
       setTimeout(() => startOnlineMatch({
         ...result,
@@ -696,10 +754,17 @@
     const gameId = readGameIdFromUrl();
     const stored = loadStoredSession();
     if (!gameId || !stored?.sessionToken) return false;
+    if (stored.reportedGameOver) {
+      clearGameUrl();
+      clearLiveState();
+      return false;
+    }
     if (stored.roomId && stored.roomId !== gameId) return false;
 
+    const urlMode = readModeFromUrl();
+    const sessionMode = modeFromSession(stored);
+    queueMode = urlMode || sessionMode;
     resumeInFlight = true;
-    queueMode = stored.tft ? 'tft' : (stored.limited ? 'limited' : 'standard');
     hardLeaveOnUnload = false;
 
     try {
@@ -720,7 +785,7 @@
         }),
       });
 
-      saveSession({
+      const nextSession = {
         sessionToken: result.sessionToken,
         playerName: result.playerName || stored.playerName,
         roomId: result.roomId || stored.roomId || gameId,
@@ -734,20 +799,22 @@
         authoritySlot: result.authoritySlot === 1 ? 1 : 0,
         limited: Boolean(result.limited || stored.limited || queueMode === 'limited'),
         tft: Boolean(result.tft || stored.tft || queueMode === 'tft'),
-      });
+        limitedPicks: stored.limitedPicks || null,
+      };
+      saveSession(nextSession);
 
       await ensurePusher();
       subscribeToPlayerChannel(result.sessionToken);
       startHeartbeat();
 
       if (result.status === 'matched') {
-        setGameUrl(result.roomId || gameId);
+        setGameUrl(result.roomId || gameId, modeFromSession(nextSession));
         await startOnlineMatch({
           ...result,
           roomId: result.roomId || gameId,
           playerName: result.playerName || stored.playerName,
-          limited: Boolean(result.limited || stored.limited || queueMode === 'limited'),
-          tft: Boolean(result.tft || stored.tft || queueMode === 'tft'),
+          limited: nextSession.limited,
+          tft: nextSession.tft,
           resume: true,
         });
         return true;
@@ -832,7 +899,13 @@
   async function sendState(state) {
     if (!session?.roomId || !session?.sessionToken) return;
     rememberTftAuthState(state);
-    if (state && state.mode !== 'tft') saveLiveState(state);
+    if (state && state.mode !== 'tft') {
+      saveLiveState(state, {
+        mode: state.mode === 'limited_draft'
+          ? 'limited'
+          : (state.mode === 'limited' || session.limited ? 'limited' : 'standard'),
+      });
+    }
 
     // Server-auth: designated authority publishes full world via WebSocket.
     if (session.serverAuth && gameSocket) {
@@ -998,8 +1071,9 @@
     leaveQueue,
     forfeitMatch,
     usesServerAuth: () => Boolean(session?.serverAuth && gameSocket),
-    getLastTftAuthState: () => lastTftAuthState || loadLiveState(session?.roomId || readGameIdFromUrl()),
+    getLastTftAuthState: () => lastTftAuthState || loadLiveState(session?.roomId || readGameIdFromUrl(), 'tft'),
     getGameId: () => session?.roomId || readGameIdFromUrl() || null,
+    persistLiveState: (state, meta) => saveLiveState(state, meta || {}),
   };
 
   bindUi();

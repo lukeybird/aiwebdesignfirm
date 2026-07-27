@@ -336,7 +336,7 @@
     if (snap.board) {
       p.board = snap.board.map((row) => row.map((u) => (u ? { type: u.type, star: u.star || 1, id: u.id || uid() } : null)));
     }
-    if (snap.gold != null) p.gold = snap.gold;
+    if (snap.gold != null && Number.isFinite(Number(snap.gold))) p.gold = Number(snap.gold);
     if (snap.level != null) p.level = snap.level;
     if (snap.xp != null) p.xp = snap.xp;
     if (Array.isArray(snap.shop)) p.shop = snap.shop.slice();
@@ -432,13 +432,13 @@
 
   function ensureLocalShopVisible() {
     const p = me();
-    if (!p) return;
+    if (!p || state.phase !== 'planning' || p.ready) return;
     if (!Array.isArray(p.shop) || p.shop.length !== SHOP) {
       p.shop = Array(SHOP).fill(null);
     }
-    if (!shopHasCards(p) && state.phase === 'planning' && !p.ready) {
-      // Temporary local shop so the top row isn't blank while host sync arrives.
-      if (p.gold <= 0) p.gold = START_GOLD;
+    // Only invent a temporary shop before the first host snapshot.
+    // Never grant free gold or free rerolls after the match is synced.
+    if (!gotAuthSnapshot && !shopHasCards(p)) {
       rollShop(p);
       renderHud();
     }
@@ -530,17 +530,14 @@
         lp.lossStreak = sp.lossStreak || 0;
 
         // Own board/bench edits stay local until a round/phase boundary.
-        // If the guest missed the first host snapshot, still pull shop/gold
-        // when the local shop row is empty.
+        // First auth snap (or phase change) takes the full army including gold.
+        // While planning, only fill a blank shop row from host — never stomp gold.
         const takeArmy = i !== match.playerId || phaseChange || snap.phase !== 'planning';
         if (takeArmy) {
           applyArmySnapshot(lp, sp);
-        } else if (!shopHasCards(lp) && Array.isArray(sp.shop)) {
+        } else if (!shopHasCards(lp) && shopHasCards(sp)) {
           lp.shop = sp.shop.slice();
           if (sp.shopGen != null) lp.shopGen = sp.shopGen;
-          if (sp.gold != null) lp.gold = sp.gold;
-          if (sp.level != null) lp.level = sp.level;
-          if (sp.xp != null) lp.xp = sp.xp;
         }
       }
     }
@@ -1115,6 +1112,7 @@
     selected = null;
     for (const p of state.players) {
       p.ready = false;
+      if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
       p.gold += incomeFor(p);
       rollShop(p);
     }
@@ -2137,13 +2135,14 @@
     UNIT_POOL.forEach(getPortrait);
     bindUi();
     const resumeSnap = opts.resume && opts.savedState && opts.savedState.mode === 'tft'
+      && Array.isArray(opts.savedState.players) && opts.savedState.players.length >= 2
       ? opts.savedState
       : null;
     // Host owns round 1 economy/shop; guest waits for the first auth snapshot.
     if (isAuthority()) {
       if (resumeSnap) {
         // Restore local snapshot after refresh, then republish for the guest.
-        state.round = resumeSnap.round || 1;
+        state.round = Math.max(1, resumeSnap.round || 1);
         state.phase = resumeSnap.phase || 'planning';
         state.combatSeed = resumeSnap.combatSeed || 0;
         state.combatElapsed = resumeSnap.combatElapsed || 0;
@@ -2154,16 +2153,25 @@
         state.pendingResult = resumeSnap.pendingResult || null;
         state.lastCombat = resumeSnap.lastCombat || null;
         if (Array.isArray(resumeSnap.messages)) state.messages = resumeSnap.messages.slice();
-        if (Array.isArray(resumeSnap.players)) {
-          for (let i = 0; i < 2; i++) applyArmySnapshot(state.players[i], resumeSnap.players[i]);
+        for (let i = 0; i < 2; i++) applyArmySnapshot(state.players[i], resumeSnap.players[i]);
+        // Guard against corrupt snaps wiping economy.
+        for (const p of state.players) {
+          if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
+          if (!Array.isArray(p.shop) || p.shop.length !== SHOP) p.shop = Array(SHOP).fill(null);
         }
         if (Array.isArray(resumeSnap.combatUnits)) applyCombatUnitsFromAuth(resumeSnap.combatUnits);
         if (Array.isArray(resumeSnap.projectiles)) state.projectiles = resumeSnap.projectiles.slice();
         setShellMode(state.phase === 'gameover' ? 'gameover' : state.phase);
         pushMsg(`Rejoined game · Round ${state.round}`);
         renderHud();
-        if (state.phase === 'planning') publishPlanningSnapshot();
-        else publishAuthState(true);
+        if (state.phase === 'planning') {
+          for (const p of state.players) {
+            if (!shopHasCards(p)) rollShop(p);
+          }
+          publishPlanningSnapshot();
+        } else {
+          publishAuthState(true);
+        }
       } else {
         startRound();
       }
@@ -2180,10 +2188,8 @@
       [400, 1200, 2800].forEach((ms) => {
         setTimeout(() => {
           if (!active || isAuthority() || state?.phase !== 'planning') return;
-          if (!gotAuthSnapshot || !shopHasCards(me())) {
-            requestHostSync();
-            ensureLocalShopVisible();
-          }
+          if (!gotAuthSnapshot || !shopHasCards(me())) requestHostSync();
+          if (!gotAuthSnapshot && !shopHasCards(me())) ensureLocalShopVisible();
         }, ms);
       });
     }

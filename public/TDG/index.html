@@ -20004,6 +20004,7 @@ function setupSurvivalLivePvp(opts) {
     opponentName,
     startMs: startsAt || Date.now(),
     limited: !!opts.limited,
+    limitedPicks: opts.limitedPicks || null,
   };
   pvpLock = {
     frame: 0,
@@ -20088,6 +20089,32 @@ function setupSurvivalLivePvp(opts) {
   if (opts.limited && opts.limitedPicks) {
     applyLimitedDraftRosters(opts.limitedPicks);
   }
+
+  const resumeSnap = opts.resume && opts.savedState && Array.isArray(opts.savedState.players)
+    ? opts.savedState
+    : null;
+  if (resumeSnap) {
+    applyPvpSnapshot(resumeSnap);
+    if (opts.limited) {
+      const picks = resumeSnap.limitedPicks || opts.limitedPicks;
+      if (picks) {
+        applyLimitedDraftRosters(picks);
+        pvpOnline.limitedPicks = picks;
+      }
+    }
+    for (let i = 0; i < 2; i++) {
+      if (!Number.isFinite(players[i].coins)) players[i].coins = SURVIVAL_START_COINS;
+    }
+    commitPublicSnapshots();
+    resetCombatTracking();
+    document.getElementById('bottom-panel').classList.remove('hidden');
+    selectedTool = firstEnabledDeployTool();
+    addLog(`Rejoined ${opts.limited ? 'Draft Battle' : 'Online PvP'} · gold restored`);
+    updateUI();
+    if (pvpOnline.isHost) pvpBroadcastAuthState(true);
+    return;
+  }
+
   commitPublicSnapshots();
   resetCombatTracking();
   document.getElementById('bottom-panel').classList.remove('hidden');
@@ -20268,6 +20295,7 @@ function commitLimitedDraftPick(cardKey, fromPlayerId) {
   d.picks[turnPid].push(card);
   d.pickIndex += 1;
   renderLimitedDraftUI();
+  persistLimitedDraftProgress();
   if (d.pickIndex >= totalNeeded) {
     setTimeout(finishLimitedDraft, 450);
   }
@@ -20282,11 +20310,17 @@ function handleLimitedDraftRemote(fromPlayerId, action) {
 
 function startLimitedDraftSession(opts) {
   const myPlayerId = opts.myPlayerId === 1 ? 1 : 0;
+  const resume = opts.resumeDraft && opts.resumeDraft.mode === 'limited_draft'
+    ? opts.resumeDraft
+    : null;
   limitedDraft = {
     pool: buildLimitedDraftPool(),
-    taken: new Set(),
-    picks: [[], []],
-    pickIndex: 0,
+    taken: new Set(resume?.taken || []),
+    picks: [
+      Array.isArray(resume?.picks?.[0]) ? resume.picks[0].slice() : [],
+      Array.isArray(resume?.picks?.[1]) ? resume.picks[1].slice() : [],
+    ],
+    pickIndex: Number.isFinite(resume?.pickIndex) ? resume.pickIndex : 0,
     myPlayerId,
     names: [
       opts.player0Name || 'Player 1',
@@ -20300,6 +20334,26 @@ function startLimitedDraftSession(opts) {
   document.getElementById('online-name-screen')?.classList.add('hidden');
   document.getElementById('limited-draft-screen')?.classList.remove('hidden');
   renderLimitedDraftUI();
+  persistLimitedDraftProgress();
+  const totalNeeded = LIMITED_DRAFT_PICKS_EACH * 2;
+  if (limitedDraft.pickIndex >= totalNeeded) {
+    setTimeout(finishLimitedDraft, 200);
+  }
+}
+
+function persistLimitedDraftProgress() {
+  const d = limitedDraft;
+  if (!d) return;
+  window.TDG_PVP?.persistLiveState?.({
+    mode: 'limited_draft',
+    pickIndex: d.pickIndex,
+    picks: [
+      d.picks[0].map((c) => ({ key: c.key, kind: c.kind, id: c.id, label: c.label })),
+      d.picks[1].map((c) => ({ key: c.key, kind: c.kind, id: c.id, label: c.label })),
+    ],
+    taken: [...d.taken],
+    names: d.names.slice(),
+  }, { mode: 'limited' });
 }
 
 document.getElementById('limited-draft-pool')?.addEventListener('click', (e) => {
@@ -20478,6 +20532,8 @@ function getPvpSnapshot() {
 /** Slim packet for Pusher (~10KB limit). Omits ephemeral FX that both clients resim. */
 function getPvpNetworkState() {
   return {
+    mode: pvpOnline?.limited ? 'limited' : 'survival',
+    limitedPicks: pvpOnline?.limitedPicks || null,
     frame: pvpLock?.frame || 0,
     confirmedAids: pvpLock?.recentAids ? pvpLock.recentAids.slice(-24) : [],
     hostSentAt: Date.now(),
@@ -20488,7 +20544,7 @@ function getPvpNetworkState() {
     survivalSpeed,
     rng: getPvpRngState(),
     players: players.map((p) => ({
-      coins: p.coins,
+      coins: Number.isFinite(p.coins) ? p.coins : SURVIVAL_START_COINS,
       baseHp: p.baseHp,
       baseMaxHp: p.baseMaxHp,
       name: p.name,
@@ -20540,7 +20596,9 @@ function applyPvpSnapshot(state) {
     const src = state.players[i];
     const p = players[i];
     if (!src) continue;
-    p.coins = src.coins;
+    if (src.coins != null && Number.isFinite(Number(src.coins))) {
+      p.coins = Number(src.coins);
+    }
     p.baseHp = src.baseHp;
     p.baseMaxHp = src.baseMaxHp;
     p.name = src.name;
@@ -21197,7 +21255,8 @@ function tickSurvivalFarmIncome() {
 function tickSurvivalBaseIncome() {
   for (let pid = 0; pid < 2; pid++) {
     const p = players[pid];
-    if (p.baseHp <= 0) continue;
+    if (!p || p.baseHp <= 0) continue;
+    if (!Number.isFinite(p.coins)) p.coins = SURVIVAL_START_COINS;
     const baseAmt = survivalIncomeAmount(pid, 'base');
     if (baseAmt <= 0) continue;
     const baseColor = pid === 0 ? '#fcd34d' : '#fb923c';
