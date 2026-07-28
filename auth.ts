@@ -14,6 +14,18 @@ declare module 'next-auth' {
   }
 }
 
+
+function sanitizeAuthUrlEnv() {
+  for (const key of ['AUTH_URL', 'NEXTAUTH_URL'] as const) {
+    const value = (process.env[key] || '').trim();
+    // Ignore placeholders like "AUTH_URL" that are not real URLs.
+    if (value && !/^https?:\/\//i.test(value)) {
+      delete process.env[key];
+    }
+  }
+}
+sanitizeAuthUrlEnv();
+
 const googleId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || '';
 const googleSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || '';
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || '';
