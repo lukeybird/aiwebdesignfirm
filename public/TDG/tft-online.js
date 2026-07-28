@@ -223,6 +223,215 @@
     },
   };
 
+
+  const ITEM_BAG = 8;
+  const ITEM_SLOTS = 3;
+  const ITEM_SHOP = 3;
+  const ITEM_COMPONENT_COST = 2;
+
+  const ITEM_COMPONENTS = {
+    blade: { id: 'blade', name: 'Blade', icon: '🗡️', kind: 'component', desc: '+12% damage',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.12); } },
+    vest: { id: 'vest', name: 'Vest', icon: '🦺', kind: 'component', desc: '+15% HP',
+      combat: (st) => { st.hp = Math.round(st.hp * 1.15); } },
+    bow: { id: 'bow', name: 'Bow', icon: '🏹', kind: 'component', desc: '+12% attack speed',
+      combat: (st) => { st.attackRate *= 1.12; } },
+    rod: { id: 'rod', name: 'Rod', icon: '🪄', kind: 'component', desc: '+8% damage, +10% range',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.08); st.range = Math.round(st.range * 1.1); } },
+    cloak: { id: 'cloak', name: 'Cloak', icon: '🧥', kind: 'component', desc: '+12% move speed',
+      combat: (st) => { st.speed = Math.round(st.speed * 1.12); } },
+    glove: { id: 'glove', name: 'Glove', icon: '🧤', kind: 'component', desc: '+8% AS, +5% damage',
+      combat: (st) => { st.attackRate *= 1.08; st.damage = Math.round(st.damage * 1.05); } },
+  };
+
+  const ITEM_COMPLETED = {
+    infinity_edge: { id: 'infinity_edge', name: 'Infinity Edge', icon: '⚔️', kind: 'completed', desc: '+35% damage',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.35); } },
+    warmog: { id: 'warmog', name: 'Warmog Plate', icon: '🛡️', kind: 'completed', desc: '+40% HP',
+      combat: (st) => { st.hp = Math.round(st.hp * 1.4); } },
+    rapid_fire: { id: 'rapid_fire', name: 'Rapid Fire', icon: '💨', kind: 'completed', desc: '+30% attack speed',
+      combat: (st) => { st.attackRate *= 1.3; } },
+    bloodthirster: { id: 'bloodthirster', name: 'Bloodthirster', icon: '🩸', kind: 'completed', desc: '+22% damage and HP',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.22); st.hp = Math.round(st.hp * 1.22); } },
+    titans: { id: 'titans', name: "Titan's Resolve", icon: '🪨', kind: 'completed', desc: '+25% HP, +15% damage',
+      combat: (st) => { st.hp = Math.round(st.hp * 1.25); st.damage = Math.round(st.damage * 1.15); } },
+    guinsoo: { id: 'guinsoo', name: "Guinsoo's Rage", icon: '🌀', kind: 'completed', desc: '+20% damage, +20% AS',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.2); st.attackRate *= 1.2; } },
+    rabadon: { id: 'rabadon', name: "Rabadon's Hat", icon: '🎩', kind: 'completed', desc: '+28% damage, +20% range',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.28); st.range = Math.round(st.range * 1.2); } },
+    runaan: { id: 'runaan', name: "Runaan's Hurricane", icon: '🌪️', kind: 'completed', desc: '+25% AS, +15% move',
+      combat: (st) => { st.attackRate *= 1.25; st.speed = Math.round(st.speed * 1.15); } },
+    gauntlet: { id: 'gauntlet', name: 'Jeweled Gauntlet', icon: '💍', kind: 'completed', desc: '+18% damage, +18% AS, +10% HP',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.18); st.attackRate *= 1.18; st.hp = Math.round(st.hp * 1.1); } },
+    guardian: { id: 'guardian', name: 'Guardian Angel', icon: '👼', kind: 'completed', desc: '+30% HP, +12% AS',
+      combat: (st) => { st.hp = Math.round(st.hp * 1.3); st.attackRate *= 1.12; } },
+    shojin: { id: 'shojin', name: 'Spear of Shojin', icon: '🔱', kind: 'completed', desc: '+20% damage, +15% AS, +10% range',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.2); st.attackRate *= 1.15; st.range = Math.round(st.range * 1.1); } },
+    steadfast: { id: 'steadfast', name: 'Steadfast Heart', icon: '💚', kind: 'completed', desc: '+20% HP, +15% move, +10% damage',
+      combat: (st) => { st.hp = Math.round(st.hp * 1.2); st.speed = Math.round(st.speed * 1.15); st.damage = Math.round(st.damage * 1.1); } },
+  };
+
+  /** Two components → completed item (order-independent key a+b sorted). */
+  const ITEM_RECIPES = {
+    'blade+blade': 'infinity_edge',
+    'blade+bow': 'guinsoo',
+    'blade+cloak': 'bloodthirster',
+    'blade+glove': 'gauntlet',
+    'blade+rod': 'shojin',
+    'blade+vest': 'bloodthirster',
+    'bow+bow': 'rapid_fire',
+    'bow+cloak': 'runaan',
+    'bow+rod': 'guinsoo',
+    'cloak+glove': 'steadfast',
+    'cloak+vest': 'titans',
+    'glove+rod': 'gauntlet',
+    'glove+vest': 'guardian',
+    'rod+rod': 'rabadon',
+    'vest+vest': 'warmog',
+  };
+
+  const ITEMS = { ...ITEM_COMPONENTS, ...ITEM_COMPLETED };
+  const COMPONENT_IDS = Object.keys(ITEM_COMPONENTS);
+
+  function itemDef(id) { return ITEMS[id] || null; }
+
+  function recipeKey(a, b) {
+    return [a, b].slice().sort().join('+');
+  }
+
+  function combineItems(a, b) {
+    const id = ITEM_RECIPES[recipeKey(a, b)];
+    return id || null;
+  }
+
+  function applyItemsToCombatStats(st, itemIds) {
+    const out = { ...st };
+    for (const id of itemIds || []) {
+      const def = itemDef(id);
+      if (def?.combat) def.combat(out);
+    }
+    return out;
+  }
+
+  function emptyItemBagSlot(p) {
+    if (!Array.isArray(p.itemBag)) p.itemBag = Array(ITEM_BAG).fill(null);
+    return p.itemBag.findIndex((x) => !x);
+  }
+
+  function rollItemShop(p) {
+    const seed = hashSeed(`${match.roomId}|items|${state.round}|p${p.id}|${p.itemShopGen || 0}`);
+    const rng = mulberry32(seed ^ ((p.level || 1) * 4243));
+    p.itemShopGen = (p.itemShopGen || 0) + 1;
+    const shop = [];
+    for (let i = 0; i < ITEM_SHOP; i++) {
+      shop.push(COMPONENT_IDS[Math.floor(rng() * COMPONENT_IDS.length)]);
+    }
+    p.itemShop = shop;
+  }
+
+  function grantItemToBag(p, itemId) {
+    const slot = emptyItemBagSlot(p);
+    if (slot < 0) return false;
+    p.itemBag[slot] = itemId;
+    return true;
+  }
+
+  function tryBuyItem(shopIdx) {
+    const p = me();
+    if (state.phase !== 'planning' || p.ready) return false;
+    const id = p.itemShop?.[shopIdx];
+    if (!id) return false;
+    if (p.gold < ITEM_COMPONENT_COST) {
+      pushMsg(`Need ${ITEM_COMPONENT_COST}g for an item.`);
+      return false;
+    }
+    if (emptyItemBagSlot(p) < 0) {
+      pushMsg('Item bag full — equip or sell an item.');
+      return false;
+    }
+    p.gold -= ITEM_COMPONENT_COST;
+    grantItemToBag(p, id);
+    p.itemShop[shopIdx] = null;
+    sfx('buy');
+    syncArmy(p);
+    renderHud();
+    flashGold();
+    return true;
+  }
+
+  function trySellItem(bagIdx) {
+    const p = me();
+    if (state.phase !== 'planning' || p.ready) return false;
+    const id = p.itemBag?.[bagIdx];
+    if (!id) return false;
+    const def = itemDef(id);
+    p.itemBag[bagIdx] = null;
+    p.gold += def?.kind === 'completed' ? 3 : 1;
+    pushMsg(`Sold ${def?.name || 'item'}`);
+    sfx('sell');
+    syncArmy(p);
+    renderHud();
+    flashGold();
+    return true;
+  }
+
+  function tryEquipItem(bagIdx, unitRef) {
+    const p = me();
+    if (state.phase !== 'planning' || p.ready) return false;
+    const itemId = p.itemBag?.[bagIdx];
+    const unit = getUnitAt(p, unitRef);
+    if (!itemId || !unit) return false;
+    if (!Array.isArray(unit.items)) unit.items = [];
+
+    // Try combine with an existing component on the unit.
+    if (ITEM_COMPONENTS[itemId]) {
+      for (let i = 0; i < unit.items.length; i++) {
+        const other = unit.items[i];
+        if (!ITEM_COMPONENTS[other]) continue;
+        const made = combineItems(itemId, other);
+        if (made) {
+          unit.items[i] = made;
+          p.itemBag[bagIdx] = null;
+          pushMsg(`${baseStats(unit.type).name} forged ${itemDef(made).name}!`);
+          sfx('merge');
+          syncArmy(p);
+          renderHud();
+          return true;
+        }
+      }
+    }
+
+    if (unit.items.length >= ITEM_SLOTS) {
+      pushMsg('That unit already holds 3 items.');
+      return false;
+    }
+    unit.items.push(itemId);
+    p.itemBag[bagIdx] = null;
+    pushMsg(`Equipped ${itemDef(itemId)?.name || 'item'} on ${baseStats(unit.type).name}`);
+    sfx('buy');
+    syncArmy(p);
+    renderHud();
+    return true;
+  }
+
+  function tryUnequipItem(unitRef, itemIndex) {
+    const p = me();
+    if (state.phase !== 'planning' || p.ready) return false;
+    const unit = getUnitAt(p, unitRef);
+    if (!unit?.items?.[itemIndex]) return false;
+    const slot = emptyItemBagSlot(p);
+    if (slot < 0) {
+      pushMsg('Item bag full.');
+      return false;
+    }
+    p.itemBag[slot] = unit.items[itemIndex];
+    unit.items.splice(itemIndex, 1);
+    syncArmy(p);
+    renderHud();
+    return true;
+  }
+
+
   let active = false;
   let match = null;
   let state = null;
@@ -300,8 +509,8 @@
     return `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
   }
 
-  function makeUnit(type, star = 1) {
-    return { type, star: Math.min(MAX_STAR, Math.max(1, star | 0)), id: uid() };
+  function makeUnit(type, star = 1, items = []) {
+    return { type, star: Math.min(MAX_STAR, Math.max(1, star | 0)), id: uid(), items: Array.isArray(items) ? items.slice(0, ITEM_SLOTS) : [] };
   }
 
   function unitCost(type) { return UNIT_COST[type] || 2; }
@@ -372,6 +581,9 @@
       traits: {},
       augments: [],
       augmentChoices: null,
+      itemBag: Array(ITEM_BAG).fill(null),
+      itemShop: Array(ITEM_SHOP).fill(null),
+      itemShopGen: 0,
     };
   }
 
@@ -505,10 +717,14 @@
     return state?.players?.[1] || null;
   }
 
+  function serializeUnit(u) {
+    return u ? { type: u.type, star: u.star, id: u.id, items: Array.isArray(u.items) ? u.items.slice(0, ITEM_SLOTS) : [] } : null;
+  }
+
   function serializeArmy(p) {
     return {
-      bench: p.bench.map((u) => (u ? { type: u.type, star: u.star, id: u.id } : null)),
-      board: p.board.map((row) => row.map((u) => (u ? { type: u.type, star: u.star, id: u.id } : null))),
+      bench: p.bench.map((u) => serializeUnit(u)),
+      board: p.board.map((row) => row.map((u) => serializeUnit(u))),
       gold: p.gold,
       level: p.level,
       xp: p.xp,
@@ -521,16 +737,25 @@
       name: p.name,
       augments: Array.isArray(p.augments) ? p.augments.slice() : [],
       augmentChoices: Array.isArray(p.augmentChoices) ? p.augmentChoices.slice() : null,
+      itemBag: Array.isArray(p.itemBag) ? p.itemBag.slice() : Array(ITEM_BAG).fill(null),
+      itemShop: Array.isArray(p.itemShop) ? p.itemShop.slice() : Array(ITEM_SHOP).fill(null),
+      itemShopGen: p.itemShopGen || 0,
     };
   }
 
   function applyArmySnapshot(p, snap) {
     if (!snap) return;
+    const readUnit = (u) => (u ? {
+      type: u.type,
+      star: u.star || 1,
+      id: u.id || uid(),
+      items: Array.isArray(u.items) ? u.items.filter((id) => !!itemDef(id)).slice(0, ITEM_SLOTS) : [],
+    } : null);
     if (snap.bench) {
-      p.bench = snap.bench.map((u) => (u ? { type: u.type, star: u.star || 1, id: u.id || uid() } : null));
+      p.bench = snap.bench.map((u) => readUnit(u));
     }
     if (snap.board) {
-      p.board = snap.board.map((row) => row.map((u) => (u ? { type: u.type, star: u.star || 1, id: u.id || uid() } : null)));
+      p.board = snap.board.map((row) => row.map((u) => readUnit(u)));
     }
     if (snap.gold != null && Number.isFinite(Number(snap.gold))) p.gold = Number(snap.gold);
     if (snap.level != null) p.level = snap.level;
@@ -545,6 +770,11 @@
     if (Array.isArray(snap.augments)) p.augments = snap.augments.slice();
     if (snap.augmentChoices === null) p.augmentChoices = null;
     else if (Array.isArray(snap.augmentChoices)) p.augmentChoices = snap.augmentChoices.slice();
+    if (Array.isArray(snap.itemBag)) p.itemBag = snap.itemBag.slice(0, ITEM_BAG);
+    else if (!Array.isArray(p.itemBag)) p.itemBag = Array(ITEM_BAG).fill(null);
+    if (Array.isArray(snap.itemShop)) p.itemShop = snap.itemShop.slice(0, ITEM_SHOP);
+    else if (!Array.isArray(p.itemShop)) p.itemShop = Array(ITEM_SHOP).fill(null);
+    if (snap.itemShopGen != null) p.itemShopGen = snap.itemShopGen;
   }
 
   function serializeCombatLight() {
@@ -799,7 +1029,13 @@
             if (slot.area === 'bench') p.bench[slot.idx] = null;
             else p.board[slot.r][slot.c] = null;
           }
-          const upgraded = makeUnit(type, star + 1);
+          const mergedItems = [];
+          for (const slot of take) {
+            for (const id of (slot.unit.items || [])) {
+              if (mergedItems.length < ITEM_SLOTS) mergedItems.push(id);
+            }
+          }
+          const upgraded = makeUnit(type, star + 1, mergedItems);
           if (boardKeep.area === 'bench') p.bench[boardKeep.idx] = upgraded;
           else p.board[boardKeep.r][boardKeep.c] = upgraded;
 
@@ -962,7 +1198,8 @@
           if (!cell) continue;
           const st0 = scaledStats(cell.type, cell.star || 1);
           const st1 = applyTraitsToStats(st0, traits[pid]);
-          const st = applyAugmentsToCombatStats(st1, p);
+          const st2 = applyAugmentsToCombatStats(st1, p);
+          const st = applyItemsToCombatStats(st2, cell.items || []);
           const pos = boardCellPos(pid, r, c, layout);
           units.push({
             uid: cell.id || `${pid}-${r}-${c}`,
@@ -1482,8 +1719,16 @@
       if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
       p.gold += incomeFor(p);
       rollShop(p);
+      rollItemShop(p);
+      if (!Array.isArray(p.itemBag)) p.itemBag = Array(ITEM_BAG).fill(null);
+      if (state.round >= 2) {
+        const free = COMPONENT_IDS[(state.round + p.id) % COMPONENT_IDS.length];
+        if (grantItemToBag(p, free) && p.id === match.playerId) {
+          pushMsg(`Loot: ${itemDef(free).name} added to your item bag.`);
+        }
+      }
     }
-    pushMsg(`Round ${state.round} — ${PLAN_TIME_SEC}s to shop. Merge 3 copies, place your army, or Ready early.`);
+    pushMsg(`Round ${state.round} — ${PLAN_TIME_SEC}s to shop. Buy items, equip (combine 2 parts), Ready early.`);
     setShellMode('planning');
     renderHud();
     showHowtoOnce();
@@ -1877,6 +2122,11 @@
       const unit = me().board[r][c];
       if (!unit) return;
       e.preventDefault();
+      if (selected?.area === 'item' && !me().ready) {
+        tryEquipItem(selected.idx, { area: 'board', r, c });
+        selected = { area: 'board', r, c };
+        return;
+      }
       selected = { area: 'board', r, c };
       renderInspectPanel();
       highlightSelection();
@@ -1889,6 +2139,11 @@
       const unit = me().bench[idx];
       if (!unit) return;
       e.preventDefault();
+      if (selected?.area === 'item' && !me().ready) {
+        tryEquipItem(selected.idx, { area: 'bench', idx });
+        selected = { area: 'bench', idx };
+        return;
+      }
       selected = { area: 'bench', idx };
       renderInspectPanel();
       highlightSelection();
@@ -1928,10 +2183,15 @@
     const def = baseStats(unit.type);
     const star = unit.star || 1;
     const burst = performance.now() < mergeBurstUntil ? ' tft-merge-burst' : '';
+    const items = (unit.items || []).map((id) => itemDef(id)).filter(Boolean);
+    const itemHtml = items.length
+      ? `<span class="tft-item-row">${items.map((it) => `<span class="tft-item-dot" title="${escapeHtml(it.name)}">${it.icon}</span>`).join('')}</span>`
+      : '';
     return `<div class="tft-unit-chip star-${star}${burst}" data-type="${unit.type}">`
       + `<img src="/TDG/portraits/${unit.type}.webp" alt="" draggable="false" />`
       + `<span class="tft-star-badge">${starLabel(star)}</span>`
       + `<span class="tft-unit-cost">${def.cost}</span>`
+      + itemHtml
       + `</div>`;
   }
 
@@ -1981,8 +2241,10 @@
     const base = scaledStats(unit.type, star);
     const counts = traitCounts(me());
     const withTraits = applyTraitsToStats({ ...base }, counts);
-    const withAll = applyAugmentsToCombatStats(withTraits, me());
+    const withAug = applyAugmentsToCombatStats(withTraits, me());
+    const withAll = applyItemsToCombatStats(withAug, unit.items || []);
     const traitNames = traitsForType(unit.type).map((t) => t.name);
+    const itemNames = (unit.items || []).map((id) => itemDef(id)?.name).filter(Boolean);
     const dps = Math.round(withAll.damage * withAll.attackRate);
     el.innerHTML = `
       <div class="tft-inspect-head">
@@ -2002,8 +2264,9 @@
       </div>
       <div class="tft-inspect-traits">
         ${traitNames.length ? `Traits: ${traitNames.join(', ')}` : 'No traits'}
+        ${itemNames.length ? `<br>Items: ${itemNames.join(', ')}` : '<br>Items: none'}
         ${withAll.hp !== base.hp || withAll.damage !== base.damage || Math.abs(withAll.attackRate - base.attackRate) > 0.001
-          ? `<br><span style="opacity:0.75">Trait / augment bonuses applied</span>` : ''}
+          ? `<br><span style="opacity:0.75">Trait / augment / item bonuses applied</span>` : ''}
       </div>
     `;
   }
@@ -2119,6 +2382,36 @@
           + `<span class="tft-shop-name">${escapeHtml(def.name)}</span>`
           + `<span class="tft-shop-cost">${cost}g</span>`
           + buyHint
+          + `</button>`;
+      }).join('');
+    }
+
+
+    const itemShopEl = $('tft-item-shop');
+    if (itemShopEl) {
+      const slots = Array.isArray(p.itemShop) ? p.itemShop : Array(ITEM_SHOP).fill(null);
+      itemShopEl.innerHTML = slots.map((id, i) => {
+        if (!id) return `<div class="tft-item-card is-empty"></div>`;
+        const def = itemDef(id);
+        const afford = planning && !p.ready && p.gold >= ITEM_COMPONENT_COST && emptyItemBagSlot(p) >= 0;
+        return `<button type="button" class="tft-item-card${afford ? '' : ' is-disabled'}" data-item-shop="${i}" ${planning && !p.ready ? '' : 'disabled'}>`
+          + `<span class="tft-item-icon">${def?.icon || '◆'}</span>`
+          + `<span class="tft-item-name">${escapeHtml(def?.name || id)}</span>`
+          + `<span class="tft-item-cost">${ITEM_COMPONENT_COST}g</span>`
+          + `<span class="tft-item-desc">${escapeHtml(def?.desc || '')}</span>`
+          + `</button>`;
+      }).join('');
+    }
+
+    const itemBagEl = $('tft-item-bag');
+    if (itemBagEl) {
+      const bag = Array.isArray(p.itemBag) ? p.itemBag : Array(ITEM_BAG).fill(null);
+      itemBagEl.innerHTML = bag.map((id, i) => {
+        if (!id) return `<div class="tft-item-bag-slot" data-item-bag="${i}"></div>`;
+        const def = itemDef(id);
+        const sel = selected?.area === 'item' && selected.idx === i ? ' is-selected' : '';
+        return `<button type="button" class="tft-item-bag-slot has-item${sel}" data-item-bag="${i}" title="${escapeHtml((def?.name || '') + ' — ' + (def?.desc || ''))}">`
+          + `<span>${def?.icon || '◆'}</span>`
           + `</button>`;
       }).join('');
     }
@@ -2910,6 +3203,7 @@
   }
 
   function cpuFinishAndReady(p) {
+    while (cpuEquipBestItem(p)) { /* equip remaining */ }
     cpuOptimizeBoard(p);
     if (boardCount(p) <= 0) cpuEmergencyBuy(p);
     if (boardCount(p) <= 0) return false;
@@ -2917,6 +3211,65 @@
     waitElapsed = 0;
     renderHud();
     checkPlanningEnd();
+    return true;
+  }
+
+  function cpuEquipBestItem(p) {
+    if (!Array.isArray(p.itemBag)) return false;
+    let bagIdx = p.itemBag.findIndex((id) => !!id);
+    if (bagIdx < 0) return false;
+    const itemId = p.itemBag[bagIdx];
+    const army = listArmy(p).filter((x) => x.area === 'board');
+    const pool = army.length ? army : listArmy(p);
+    if (!pool.length) return false;
+    pool.sort((a, b) => {
+      const ra = baseStats(a.unit.type).role;
+      const rb = baseStats(b.unit.type).role;
+      const score = (u, role) => ((u.items || []).length * -10) + (role === 'carry' || role === 'tank' ? 5 : 0) + (u.star || 1);
+      return score(b.unit, rb) - score(a.unit, ra);
+    });
+    for (const slot of pool) {
+      const unit = slot.unit;
+      if (!Array.isArray(unit.items)) unit.items = [];
+      if (ITEM_COMPONENTS[itemId]) {
+        for (let i = 0; i < unit.items.length; i++) {
+          const made = combineItems(itemId, unit.items[i]);
+          if (made) {
+            unit.items[i] = made;
+            p.itemBag[bagIdx] = null;
+            return true;
+          }
+        }
+      }
+      if (unit.items.length < ITEM_SLOTS) {
+        unit.items.push(itemId);
+        p.itemBag[bagIdx] = null;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function cpuBuyItem(p) {
+    if (!Array.isArray(p.itemShop) || p.gold < ITEM_COMPONENT_COST + 1) return false;
+    if (emptyItemBagSlot(p) < 0) return false;
+    let bestIdx = -1;
+    let bestScore = -1;
+    const owned = [];
+    for (const id of (p.itemBag || [])) if (id) owned.push(id);
+    for (const x of listArmy(p)) for (const id of (x.unit.items || [])) owned.push(id);
+    for (let i = 0; i < ITEM_SHOP; i++) {
+      const id = p.itemShop[i];
+      if (!id) continue;
+      let score = 5;
+      for (const o of owned) if (combineItems(id, o)) score += 40;
+      if (score > bestScore) { bestScore = score; bestIdx = i; }
+    }
+    if (bestIdx < 0) return false;
+    const id = p.itemShop[bestIdx];
+    p.gold -= ITEM_COMPONENT_COST;
+    grantItemToBag(p, id);
+    p.itemShop[bestIdx] = null;
     return true;
   }
 
@@ -2930,6 +3283,8 @@
       return;
     }
 
+    if (cpuEquipBestItem(p)) { renderHud(); return; }
+    if (cpuBuyItem(p)) { renderHud(); return; }
     // Improve the fighting lineup first, then buy the highest-EV shop card.
     if (cpuPlaceFromBench(p)) { renderHud(); return; }
     if (boardCount(p) >= boardCap(p)) {
@@ -3062,6 +3417,27 @@
       selected = { area: 'shop', idx };
       if (!me().ready && already) tryBuy(idx);
       else renderHud();
+    });
+    $('tft-item-shop')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-item-shop]');
+      if (!btn || state?.phase !== 'planning' || me().ready) return;
+      tryBuyItem(Number(btn.getAttribute('data-item-shop')));
+    });
+    $('tft-item-bag')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-item-bag]');
+      if (!btn || state?.phase !== 'planning' || me().ready) return;
+      const idx = Number(btn.getAttribute('data-item-bag'));
+      const id = me().itemBag?.[idx];
+      if (!id) return;
+      const already = selected?.area === 'item' && selected.idx === idx;
+      if (already) {
+        trySellItem(idx);
+        selected = null;
+      } else {
+        selected = { area: 'item', idx };
+        pushMsg(`${itemDef(id)?.name || 'Item'} selected — click a unit to equip (or click again to sell).`);
+      }
+      renderHud();
     });
     $('tft-reroll-btn')?.addEventListener('click', () => tryReroll());
     $('tft-xp-btn')?.addEventListener('click', () => tryBuyXp());
