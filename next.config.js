@@ -9,7 +9,9 @@ const nextConfig = {
     return [{ source: '/TDG', destination: '/TDG/index.html' }];
   },
   images: {
-    domains: [],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+    ],
   },
   experimental: {
     // Helps some uploads; Vercel still caps serverless body ~4.5MB — large ZIPs use Blob client upload.

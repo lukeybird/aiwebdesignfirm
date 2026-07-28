@@ -458,6 +458,35 @@ export async function initDatabase() {
       )
     `;
 
+    
+    await sql`
+      CREATE TABLE IF NOT EXISTS site_users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        google_sub VARCHAR(128) NOT NULL UNIQUE,
+        email VARCHAR(255) NOT NULL,
+        display_name VARCHAR(40) NOT NULL,
+        avatar_url TEXT,
+        bio VARCHAR(280),
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_site_users_display_name_lower
+      ON site_users (LOWER(display_name))
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS tdg_leaderboard (
+        user_id UUID NOT NULL REFERENCES site_users(id) ON DELETE CASCADE,
+        mode VARCHAR(20) NOT NULL DEFAULT 'standard',
+        wins INT NOT NULL DEFAULT 0,
+        losses INT NOT NULL DEFAULT 0,
+        draws INT NOT NULL DEFAULT 0,
+        last_played_at TIMESTAMP,
+        PRIMARY KEY (user_id, mode)
+      )
+    `;
+
     await initBookingTables(sql);
 
     console.log('Database initialized successfully');

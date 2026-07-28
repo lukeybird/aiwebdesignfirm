@@ -191,6 +191,19 @@ export default function ActivityMonitor() {
               Refresh
             </button>
             <Link
+              href="/leaderboard"
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-100 hover:bg-amber-400/20"
+            >
+              <Trophy className="h-4 w-4" />
+              Leaderboard
+            </Link>
+            <Link
+              href="/account"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10"
+            >
+              Account
+            </Link>
+            <Link
               href="/TDG"
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
             >

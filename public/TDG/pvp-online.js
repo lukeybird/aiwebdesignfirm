@@ -143,6 +143,17 @@
     }
   }
 
+
+  async function fetchAccountDisplayName() {
+    try {
+      const res = await fetch('/api/account/profile', { credentials: 'include', cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data?.authenticated && data.user?.displayName) return String(data.user.displayName);
+    } catch (_) { /* ignore */ }
+    return null;
+  }
+
   function $(id) {
     return document.getElementById(id);
   }
@@ -501,6 +512,16 @@
     const input = $('online-name-input');
     if (input && stored?.playerName) input.value = stored.playerName;
     input?.focus();
+    fetchAccountDisplayName().then((accountName) => {
+      if (!input || !accountName) return;
+      // Prefer linked account name so wins land on the leaderboard.
+      input.value = accountName;
+      const hint = $('online-name-desc');
+      if (hint && !hint.dataset.accountHint) {
+        hint.dataset.accountHint = '1';
+        hint.textContent = (hint.textContent || '') + ' Signed in — using your account display name.';
+      }
+    });
   }
 
   function showQueueScreen(name) {

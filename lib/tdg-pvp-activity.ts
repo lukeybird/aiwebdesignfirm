@@ -1,4 +1,6 @@
 import { sql } from '@/lib/db';
+import { bumpLeaderboardForName } from '@/lib/site-users';
+import { getMatchState } from '@/lib/tdg-pvp';
 
 export type TdgMatchEndReason = 'base_destroyed' | 'forfeit' | 'disconnect' | 'draw';
 
@@ -40,14 +42,29 @@ async function bumpPlayerStat(playerName: string, outcome: 'win' | 'loss' | 'dra
   `;
 }
 
+async function resolveMatchMode(roomId: string) {
+  try {
+    const snap = await getMatchState(roomId);
+    const mode = snap?.mode;
+    if (mode === 'tft' || mode === 'limited' || mode === 'standard') return mode;
+  } catch {
+    // ignore — fall back to standard
+  }
+  return 'standard';
+}
+
 async function applyMatchStats(match: {
+  room_id?: string;
   player0_name: string;
   player1_name: string;
   winner_slot: number | null;
 }) {
+  const mode = match.room_id ? await resolveMatchMode(match.room_id) : 'standard';
   if (match.winner_slot === null) {
     await bumpPlayerStat(match.player0_name, 'draw');
     await bumpPlayerStat(match.player1_name, 'draw');
+    await bumpLeaderboardForName(match.player0_name, mode, 'draw');
+    await bumpLeaderboardForName(match.player1_name, mode, 'draw');
     return;
   }
 
@@ -55,6 +72,8 @@ async function applyMatchStats(match: {
   const loser = match.winner_slot === 0 ? match.player1_name : match.player0_name;
   await bumpPlayerStat(winner, 'win');
   await bumpPlayerStat(loser, 'loss');
+  await bumpLeaderboardForName(winner, mode, 'win');
+  await bumpLeaderboardForName(loser, mode, 'loss');
 }
 
 export async function recordMatchStart(roomId: string, player0Name: string, player1Name: string) {
@@ -86,7 +105,7 @@ export async function completeMatch(params: {
   }>;
 
   if (!rows[0]) return false;
-  await applyMatchStats(rows[0]);
+  await applyMatchStats({ ...rows[0], room_id: params.roomId });
   return true;
 }
 
