@@ -168,17 +168,18 @@ function inferModeFromState(state: unknown, status?: string): string {
 
 export async function upsertMatchState(roomId: string, state: unknown, fromSlot: number) {
   const mode = inferModeFromState(state);
-  // @neondatabase/serverless accepts objects for jsonb columns.
-  const payload = state ?? {};
-  await sql`
-    INSERT INTO tdg_pvp_match_state (room_id, state, from_slot, mode, updated_at)
-    VALUES (${roomId}, ${payload}, ${fromSlot}, ${mode}, CURRENT_TIMESTAMP)
-    ON CONFLICT (room_id) DO UPDATE SET
-      state = EXCLUDED.state,
-      from_slot = EXCLUDED.from_slot,
-      mode = EXCLUDED.mode,
-      updated_at = CURRENT_TIMESTAMP
-  `;
+  // postgres.js rejects raw objects in tagged templates — pass JSON text + cast.
+  const payload = JSON.stringify(state ?? {});
+  await sql.unsafe(
+    `INSERT INTO tdg_pvp_match_state (room_id, state, from_slot, mode, updated_at)
+     VALUES ($1, $2::jsonb, $3, $4, CURRENT_TIMESTAMP)
+     ON CONFLICT (room_id) DO UPDATE SET
+       state = EXCLUDED.state,
+       from_slot = EXCLUDED.from_slot,
+       mode = EXCLUDED.mode,
+       updated_at = CURRENT_TIMESTAMP`,
+    [roomId, payload, fromSlot, mode],
+  );
 }
 
 export async function getMatchState(roomId: string) {
