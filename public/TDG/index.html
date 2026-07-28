@@ -1575,6 +1575,16 @@
     .tft-top-center { display: flex; align-items: center; gap: 16px; font-family: 'Orbitron', sans-serif; }
     .tft-badge { background: #c9a227; color: #1a1208; padding: 4px 10px; border-radius: 8px; font-weight: 700; }
     .tft-phase { opacity: 0.85; }
+    .tft-phase.is-urgent {
+      color: #ffb4a2;
+      font-weight: 700;
+      opacity: 1;
+      animation: tft-timer-pulse 0.7s ease-in-out infinite;
+    }
+    @keyframes tft-timer-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
     .tft-vs { opacity: 0.6; font-size: 0.9rem; }
     .tft-hp-block.you strong { color: #4ECDC4; }
     .tft-hp-block.them strong { color: #FF8E53; }
@@ -7821,7 +7831,7 @@
                 <li><strong>Merge:</strong> Collect 3 copies of the same unit at the same ★ to upgrade it (1★ → 2★ → 3★).</li>
                 <li><strong>Traits:</strong> Matching unit types activate sidebar bonuses (Warrior, Hunter, Beast, Mystic).</li>
                 <li><strong>Economy:</strong> Reroll the shop for 2g. Buy XP for 4g to raise your level and board size.</li>
-                <li><strong>Ready:</strong> Press Ready when your board is set. When both sides are ready, the fight starts.</li>
+                <li><strong>Ready:</strong> Press Ready when your board is set, or wait for the <strong>20s shop timer</strong>. When both are ready (or time runs out), the fight starts.</li>
                 <li><strong>Combat:</strong> Units fight on their own. The loser of the round loses HP. Reduce the foe to 0 HP to win.</li>
               </ol>
               <p class="tft-howto-note">Sell tip: right-click a unit (or drop it on the sell zone) to sell it back for gold. Online and vs CPU use the same rules.</p>
@@ -7848,7 +7858,7 @@
                 <button type="button" class="tft-btn primary" id="tft-ready-btn">Ready</button>
               </div>
               <div class="tft-log" id="tft-log"></div>
-              <p class="tft-hint">Need a refresher? Tap <strong>How to play</strong> above. Buy · merge 3× · frontline is column 1 · Ready when set.</p>
+              <p class="tft-hint">Need a refresher? Tap <strong>How to play</strong> above. Buy · merge 3× · frontline is column 1 · 20s shop timer · Ready early anytime.</p>
             </aside>
             <main class="tft-main">
               <div class="tft-shop-row tft-plan-only">
@@ -10862,14 +10872,14 @@ function buildManualUI() {
     <div class="manual-card"><h4>3. Merge stars</h4><p>Own 3 copies of the same unit at the same star level and they auto-merge into the next star (stronger stats). 1★ → 2★ → 3★.</p></div>
     <div class="manual-card"><h4>4. Traits</h4><p>Units share traits (Warrior, Hunter, Beast, Mystic). Hit the trait count in the sidebar to unlock bonus HP, damage, or attack speed for those units.</p></div>
     <div class="manual-card"><h4>5. Gold &amp; XP</h4><p>You earn income each round (plus interest for banking gold). Reroll the shop for 2g. Buy XP for 4g to level up and field more units. Sell units (right-click or drop on the sell zone) for gold.</p></div>
-    <div class="manual-card"><h4>6. Ready &amp; fight</h4><p>Press Ready when your board is set. Online: both players must Ready. vs CPU: the CPU readies on its own. After the fight, the loser loses HP and a new shop round begins.</p></div>
+    <div class="manual-card"><h4>6. Ready &amp; fight</h4><p>Each shop phase lasts <strong>20 seconds</strong> (shown as Shop · Xs). Press Ready early when your board is set, or the fight starts automatically when time runs out. Online: both players Ready (or the timer) starts combat. vs CPU: the CPU readies on its own. After the fight, the loser loses HP and a new shop round begins.</p></div>
     <div class="manual-card"><h4>Modes</h4><p><strong>TFT Online</strong> matches you with another player. <strong>TFT vs CPU</strong> is the same rules against a local AI — no queue.</p></div>
   </div>`;
 
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
-    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler online. Full rules are under <em>How to Play TFT</em> above. Both players Ready when set — no round timer.</p></div>
+    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler online. Full rules are under <em>How to Play TFT</em> above. Each shop phase has a 20s timer; Ready early anytime.</p></div>
     <div class="manual-card"><h4>🤖 TFT vs CPU</h4><p>Same TFT rules against a local CPU that shops for merges/traits and readies each round. Open <strong>How to play</strong> in-match for a quick refresher.</p></div>
     <div class="manual-card"><h4>🃏 Draft Battle</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>

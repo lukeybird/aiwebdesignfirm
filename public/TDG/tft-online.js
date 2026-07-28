@@ -20,6 +20,7 @@
   const COMBAT_MAX_SEC = 35;
   const COMBAT_SPEED = 1.05;
   const COMBAT_INTRO = 0.9;
+  const PLAN_TIME_SEC = 20;
   /** Fixed logical arena so host combat is identical regardless of client canvas size. */
   const LOGIC_W = 800;
   const LOGIC_H = 400;
@@ -122,6 +123,8 @@
   let gotAuthSnapshot = false;
   let cpuThinkAcc = 0;
   let cpuRerollsThisRound = 0;
+  let cpuXpBuysThisRound = 0;
+  let cpuActionsThisRound = 0;
   let audioCtx = null;
   let mergeBurstUntil = 0;
 
@@ -393,6 +396,7 @@
       mode: 'tft',
       phase: state.phase,
       round: state.round,
+      planTimeLeft: state.planTimeLeft ?? PLAN_TIME_SEC,
       combatSeed: state.combatSeed || 0,
       combatElapsed: state.combatElapsed || 0,
       combatIntro: state.combatIntro || 0,
@@ -514,6 +518,7 @@
     gotAuthSnapshot = true;
 
     state.round = snap.round ?? state.round;
+    if (snap.planTimeLeft != null) state.planTimeLeft = Math.max(0, snap.planTimeLeft);
     state.combatSeed = snap.combatSeed || state.combatSeed;
     state.combatElapsed = snap.combatElapsed || 0;
     state.combatIntro = snap.combatIntro || 0;
@@ -1112,6 +1117,31 @@
     }
   }
 
+  function ensureBoardHasUnit(p) {
+    if (!p || boardCount(p) > 0) return;
+    for (let i = 0; i < BENCH; i++) {
+      const unit = p.bench[i];
+      if (!unit) continue;
+      const slot = cpuFindBoardSlot(p, unit);
+      if (!slot) break;
+      p.board[slot.r][slot.c] = unit;
+      p.bench[i] = null;
+      break;
+    }
+  }
+
+  function forceShopTimeout() {
+    if (!state || state.phase !== 'planning') return;
+    for (const p of state.players) {
+      ensureBoardHasUnit(p);
+      p.ready = true;
+    }
+    state.planTimeLeft = 0;
+    pushMsg('Shop timer ended — fight!');
+    renderHud();
+    if (isAuthority()) beginCombat();
+  }
+
   function startRound() {
     state.phase = 'planning';
     state.combatUnits = [];
@@ -1120,16 +1150,20 @@
     state.combatFinished = false;
     state.resultApplied = false;
     state.pendingResult = null;
+    state.planTimeLeft = PLAN_TIME_SEC;
     selected = null;
     cpuThinkAcc = 0;
     cpuRerollsThisRound = 0;
+    cpuXpBuysThisRound = 0;
+    cpuActionsThisRound = 0;
+    waitElapsed = 0;
     for (const p of state.players) {
       p.ready = false;
       if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
       p.gold += incomeFor(p);
       rollShop(p);
     }
-    pushMsg(`Round ${state.round} — shop, merge 3 copies, place your army. Ready when set.`);
+    pushMsg(`Round ${state.round} — ${PLAN_TIME_SEC}s to shop. Merge 3 copies, place your army, or Ready early.`);
     setShellMode('planning');
     renderHud();
     if (isAuthority()) publishPlanningSnapshot();
@@ -1643,11 +1677,16 @@
     const setText = (id, text) => { const el = $(id); if (el) el.textContent = text; };
 
     setText('tft-round-label', `Round ${state.round}`);
-    setText('tft-phase-label',
-      planning ? 'Planning'
+    const shopSecs = Math.max(0, Math.ceil(state.planTimeLeft ?? PLAN_TIME_SEC));
+    const phaseEl = $('tft-phase-label');
+    if (phaseEl) {
+      phaseEl.textContent = planning
+        ? `Shop · ${shopSecs}s`
         : state.phase === 'combat' ? `Fight · ${Math.ceil(state.combatElapsed || 0)}s`
           : state.phase === 'result' ? 'Round result'
-            : 'Game Over');
+            : 'Game Over';
+      phaseEl.classList.toggle('is-urgent', planning && shopSecs <= 5);
+    }
     setText('tft-you-hp', String(p.hp));
     setText('tft-them-hp', String(o.hp));
     setText('tft-gold', String(p.gold));
@@ -2033,32 +2072,226 @@
 
   // ─── CPU opponent (local vs CPU) ────────────────────────────────────────────
 
+  /** Raw combat value for a unit type/star under the given trait counts. */
+  function cpuUnitPower(type, star, counts) {
+    const st = applyTraitsToStats(scaledStats(type, star || 1), counts || {});
+    const role = st.role || 'melee';
+    // Survives * damage output. Tanks get a frontline weight; carries/ranged get DPS weight.
+    let power = st.hp * st.damage * (st.attackRate || 0.8);
+    if (role === 'tank') power *= 1.12;
+    else if (role === 'carry') power *= 1.18;
+    else if (role === 'ranged') power *= 1.1;
+    // Slight range bonus — safer backline DPS wins more clean fights.
+    if ((st.range || 0) >= 120) power *= 1.05;
+    return power / 1000;
+  }
+
+  function cpuBoardUnits(p) {
+    const units = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (p.board[r][c]) units.push(p.board[r][c]);
+      }
+    }
+    return units;
+  }
+
+  function cpuCountsFromTypes(types) {
+    const counts = {};
+    const set = new Set(types);
+    for (const [tid, tr] of Object.entries(TRAITS)) {
+      counts[tid] = [...set].filter((t) => tr.units.includes(t)).length;
+    }
+    return counts;
+  }
+
+  function cpuTraitBonus(counts) {
+    let bonus = 1;
+    for (const [tid, tr] of Object.entries(TRAITS)) {
+      const n = counts[tid] || 0;
+      for (let i = 0; i < tr.breakpoints.length; i++) {
+        if (n >= tr.breakpoints[i]) bonus += 0.1 + i * 0.06;
+      }
+      // Almost there — nudge toward completing the synergy.
+      const next = tr.breakpoints.find((b) => n < b);
+      if (next && next - n === 1) bonus += 0.04;
+    }
+    return bonus;
+  }
+
+  function cpuRoleBalance(units) {
+    let tanks = 0;
+    let dps = 0;
+    for (const u of units) {
+      const role = baseStats(u.type).role;
+      if (role === 'tank' || role === 'melee') tanks += 1;
+      else dps += 1;
+    }
+    if (!units.length) return 0.5;
+    // Ideal: at least one frontliner and one damage dealer once board grows.
+    let mult = 1;
+    if (units.length >= 2 && tanks === 0) mult *= 0.72;
+    if (units.length >= 2 && dps === 0) mult *= 0.78;
+    if (units.length >= 3 && tanks >= 1 && dps >= 1) mult *= 1.08;
+    return mult;
+  }
+
+  /** Estimate how strong this army is in a real fight. */
+  function cpuArmyPower(units) {
+    if (!units?.length) return 0;
+    const counts = cpuCountsFromTypes(units.map((u) => u.type));
+    let sum = 0;
+    for (const u of units) sum += cpuUnitPower(u.type, u.star || 1, counts);
+    return sum * cpuTraitBonus(counts) * cpuRoleBalance(units);
+  }
+
+  function cpuBoardPower(p) {
+    return cpuArmyPower(cpuBoardUnits(p));
+  }
+
+  /** Best trait line to chase from current army + bench. */
+  function cpuPrimaryTrait(p) {
+    const owned = new Set();
+    for (const x of listArmy(p)) owned.add(x.unit.type);
+    let bestId = null;
+    let best = -1;
+    for (const [tid, tr] of Object.entries(TRAITS)) {
+      const n = [...owned].filter((t) => tr.units.includes(t)).length;
+      // Progress toward breakpoint + value of units already owned in that trait.
+      const score = n * 3 + (n >= tr.breakpoints[0] ? 8 : 0);
+      if (score > best) {
+        best = score;
+        bestId = tid;
+      }
+    }
+    return bestId;
+  }
+
+  function cpuOppNeeds(p) {
+    const opp = state.players[1 - p.id] || state.players[0];
+    const units = cpuBoardUnits(opp);
+    let tanks = 0;
+    let ranged = 0;
+    let power = 0;
+    for (const u of units) {
+      const role = baseStats(u.type).role;
+      if (role === 'tank' || role === 'melee') tanks += 1;
+      if (role === 'ranged' || role === 'carry') ranged += 1;
+      power += cpuUnitPower(u.type, u.star || 1, traitCounts(opp));
+    }
+    return { tanks, ranged, power, empty: units.length === 0 };
+  }
+
+  /**
+   * Project board after buying `type` (bench → auto-merge), then putting the
+   * strongest lineup on the field. Score = fight power gained per gold.
+   */
+  function cpuProjectedPowerAfterBuy(p, type) {
+    const cost = unitCost(type);
+    // Clone lightweight army list.
+    const pieces = listArmy(p).map((x) => ({ type: x.unit.type, star: x.unit.star || 1 }));
+    pieces.push({ type, star: 1 });
+
+    // Simulate merge cascades for this type.
+    const mergeOnce = (star) => {
+      const idxs = [];
+      for (let i = 0; i < pieces.length; i++) {
+        if (pieces[i].type === type && pieces[i].star === star) idxs.push(i);
+      }
+      if (idxs.length < 3 || star >= MAX_STAR) return false;
+      // Remove three, add one upgraded.
+      for (let k = 2; k >= 0; k--) pieces.splice(idxs[k], 1);
+      pieces.push({ type, star: star + 1 });
+      return true;
+    };
+    while (mergeOnce(1)) { /* 1★ */ }
+    while (mergeOnce(2)) { /* 2★ */ }
+
+    const cap = boardCap(p);
+    // Rank candidates with a provisional trait count from top pieces.
+    const provisionalTypes = pieces.map((u) => u.type);
+    // Greedy: keep evaluating top `cap` by power under traits of those picks.
+    const ranked = pieces.slice().sort((a, b) => {
+      const ca = cpuCountsFromTypes(provisionalTypes);
+      return cpuUnitPower(b.type, b.star, ca) - cpuUnitPower(a.type, a.star, ca);
+    });
+    const board = ranked.slice(0, Math.min(cap, ranked.length));
+    // Recompute with actual board traits.
+    return cpuArmyPower(board);
+  }
+
   function cpuScoreShopCard(p, type) {
     if (!type) return -999;
     const cost = unitCost(type);
     if (p.gold < cost) return -999;
-    let score = 6 + cost; // slightly prefer higher tiers when affordable
+
+    const before = cpuBoardPower(p);
+    const after = cpuProjectedPowerAfterBuy(p, type);
+    const delta = after - before;
+
+    // Power gained is the main signal; gold efficiency secondary.
+    let score = delta * 12 + (after / Math.max(1, cost)) * 0.35;
+
+    // Hard merges win fights — always chase 3-copies.
     const owned1 = countOwned(p, type, 1);
-    if (owned1 >= 2) score += 55;
-    else if (owned1 === 1) score += 22;
     const owned2 = countOwned(p, type, 2);
-    if (owned2 >= 2) score += 70;
-    const counts = traitCounts(p);
+    if (owned1 >= 2) score += 90;
+    else if (owned1 === 1) score += 28;
+    if (owned2 >= 2) score += 110;
+    else if (owned2 === 1) score += 36;
+
+    // Trait completion toward primary win condition.
+    const primary = cpuPrimaryTrait(p);
+    const onBoardCounts = traitCounts(p);
     for (const tr of traitsForType(type)) {
-      const n = counts[tr.id] || 0;
-      if (n >= 1) score += 14;
-      if (n + 1 === tr.breakpoints[0]) score += 18;
+      const n = onBoardCounts[tr.id] || 0;
+      const ownedTypes = new Set(listArmy(p).map((x) => x.unit.type));
+      const armyN = [...ownedTypes].filter((t) => TRAITS[tr.id].units.includes(t)).length
+        + (ownedTypes.has(type) ? 0 : 1);
+      const bp = TRAITS[tr.id].breakpoints;
+      if (armyN === bp[0]) score += 34;
+      if (bp[1] && armyN === bp[1]) score += 42;
+      if (tr.id === primary) score += 18;
+      if (n + 1 === bp[0]) score += 22;
+    }
+
+    // Role needs on our board.
+    const mine = cpuBoardUnits(p);
+    let myTanks = 0;
+    let myDps = 0;
+    for (const u of mine) {
+      const role = baseStats(u.type).role;
+      if (role === 'tank' || role === 'melee') myTanks += 1;
+      else myDps += 1;
     }
     const role = baseStats(type).role;
-    const onBoard = boardCount(p);
-    if (onBoard < Math.max(2, boardCap(p) - 1) && (role === 'tank' || role === 'melee')) score += 10;
-    if (role === 'ranged' || role === 'carry') score += 6;
+    if (mine.length < boardCap(p)) {
+      if (myTanks === 0 && (role === 'tank' || role === 'melee')) score += 30;
+      if (myDps === 0 && (role === 'ranged' || role === 'carry')) score += 26;
+      if (role === 'tank') score += 8;
+      if (role === 'carry') score += 10;
+    }
+
+    // Counter the human's visible board.
+    const opp = cpuOppNeeds(p);
+    if (!opp.empty) {
+      if (opp.ranged >= 2 && (role === 'tank' || role === 'melee')) score += 16;
+      if (opp.tanks >= 2 && (role === 'carry' || role === 'ranged')) score += 16;
+      if (opp.power > before && cost >= 3) score += 8; // upgrade quality when behind
+    }
+
+    // Empty board: anything that fields a fighter is urgent.
+    if (mine.length === 0) score += 40 + cpuUnitPower(type, 1, {}) * 2;
+
+    // Don't overpay for tiny upgrades when board is full and delta is weak.
+    if (mine.length >= boardCap(p) && delta < 2 && owned1 < 2 && owned2 < 2) score *= 0.55;
+
     return score;
   }
 
   function cpuBuyBest(p) {
     let bestIdx = -1;
-    let bestScore = 8;
+    let bestScore = 12; // ignore near-worthless buys
     for (let i = 0; i < SHOP; i++) {
       const type = p.shop[i];
       if (!type) continue;
@@ -2082,10 +2315,16 @@
 
   function cpuBuyXp(p) {
     if (p.gold < XP_COST || p.level >= MAX_LEVEL) return false;
-    // Level when board is full or gold is high enough to still shop after.
-    if (boardCount(p) < boardCap(p) && p.gold < XP_COST + 4) return false;
+    if (cpuXpBuysThisRound >= 2) return false;
+    // Level only when board is full (want more slots) or we can still shop after.
+    if (boardCount(p) < boardCap(p)) return false;
+    if (p.gold < XP_COST + 4) return false;
+    // If we're behind on fight power, prefer rerolls/upgrades over XP.
+    const human = state.players[match.playerId];
+    if (human && cpuBoardPower(p) + 8 < cpuBoardPower(human) && p.gold < XP_COST + 10) return false;
     p.gold -= XP_COST;
     p.xp += XP_PER_BUY;
+    cpuXpBuysThisRound += 1;
     while (p.level < MAX_LEVEL && p.xp >= (LEVEL_XP[p.level] || 999)) {
       p.xp -= LEVEL_XP[p.level] || 0;
       p.level += 1;
@@ -2094,11 +2333,19 @@
   }
 
   function cpuReroll(p) {
-    if (cpuRerollsThisRound >= 2 || p.gold < REROLL + 1) return false;
-    // Only reroll if shop has no strong picks.
+    if (cpuRerollsThisRound >= 3 || p.gold < REROLL + 2) return false;
     let best = -999;
     for (let i = 0; i < SHOP; i++) best = Math.max(best, cpuScoreShopCard(p, p.shop[i]));
-    if (best >= 24) return false;
+    // Reroll when shop is weak for our win condition.
+    if (best >= 28) return false;
+    if (boardCount(p) >= boardCap(p) && emptyBenchSlot(p) < 0 && best < 50) {
+      // Board full and no merge chase — skip reroll.
+      return false;
+    }
+    // Chase merges / trait completes harder when behind.
+    const human = state.players[match.playerId];
+    const behind = human && cpuBoardPower(p) < cpuBoardPower(human);
+    if (!behind && best >= 18 && boardCount(p) >= Math.min(2, boardCap(p))) return false;
     p.gold -= REROLL;
     rollShop(p);
     cpuRerollsThisRound += 1;
@@ -2124,33 +2371,113 @@
     return null;
   }
 
+  /** Put the strongest possible lineup on the board (sell weak fielded for better bench). */
+  function cpuOptimizeBoard(p) {
+    const all = listArmy(p).map((x) => ({
+      ref: x.area === 'bench'
+        ? { area: 'bench', idx: x.idx }
+        : { area: 'board', r: x.r, c: x.c },
+      unit: x.unit,
+    }));
+    if (!all.length) return false;
+
+    const countsGuess = cpuCountsFromTypes(all.map((x) => x.unit.type));
+    all.sort((a, b) => {
+      const primary = cpuPrimaryTrait(p);
+      let sa = cpuUnitPower(a.unit.type, a.unit.star || 1, countsGuess);
+      let sb = cpuUnitPower(b.unit.type, b.unit.star || 1, countsGuess);
+      if (primary) {
+        if (TRAITS[primary].units.includes(a.unit.type)) sa *= 1.15;
+        if (TRAITS[primary].units.includes(b.unit.type)) sb *= 1.15;
+      }
+      return sb - sa;
+    });
+
+    const cap = boardCap(p);
+    const keep = all.slice(0, Math.min(cap, all.length));
+    const keepIds = new Set(keep.map((x) => x.unit.id));
+
+    // Clear board into a temp pool, then reseat keepers.
+    const pool = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (p.board[r][c]) {
+          pool.push(p.board[r][c]);
+          p.board[r][c] = null;
+        }
+      }
+    }
+    for (let i = 0; i < BENCH; i++) {
+      if (p.bench[i]) {
+        pool.push(p.bench[i]);
+        p.bench[i] = null;
+      }
+    }
+
+    const keepers = pool.filter((u) => keepIds.has(u.id));
+    const rest = pool.filter((u) => !keepIds.has(u.id));
+    // Place tanks/melee front, ranged/carry back.
+    keepers.sort((a, b) => cpuPreferredCol(a) - cpuPreferredCol(b));
+    for (const u of keepers) {
+      const slot = cpuFindBoardSlot(p, u);
+      if (slot) p.board[slot.r][slot.c] = u;
+      else rest.push(u);
+    }
+    let bi = 0;
+    for (const u of rest) {
+      while (bi < BENCH && p.bench[bi]) bi += 1;
+      if (bi >= BENCH) break;
+      p.bench[bi] = u;
+      bi += 1;
+    }
+    tryAutoMerge(p, false);
+    return true;
+  }
+
   function cpuPlaceFromBench(p) {
     if (boardCount(p) >= boardCap(p)) return false;
-    let benchIdx = -1;
+    // Place the strongest bench unit that most improves fight power.
+    let bestIdx = -1;
+    let bestDelta = -Infinity;
+    const before = cpuBoardPower(p);
     for (let i = 0; i < BENCH; i++) {
-      if (p.bench[i]) { benchIdx = i; break; }
+      const unit = p.bench[i];
+      if (!unit) continue;
+      const slot = cpuFindBoardSlot(p, unit);
+      if (!slot) continue;
+      p.board[slot.r][slot.c] = unit;
+      p.bench[i] = null;
+      const after = cpuBoardPower(p);
+      p.bench[i] = unit;
+      p.board[slot.r][slot.c] = null;
+      const delta = after - before;
+      if (delta > bestDelta) {
+        bestDelta = delta;
+        bestIdx = i;
+      }
     }
-    if (benchIdx < 0) return false;
-    const unit = p.bench[benchIdx];
+    if (bestIdx < 0) return false;
+    const unit = p.bench[bestIdx];
     const slot = cpuFindBoardSlot(p, unit);
     if (!slot) return false;
     p.board[slot.r][slot.c] = unit;
-    p.bench[benchIdx] = null;
+    p.bench[bestIdx] = null;
     tryAutoMerge(p, false);
     return true;
   }
 
   function cpuSellWeakBench(p) {
-    // Free a bench slot if full and we want to buy.
     if (emptyBenchSlot(p) >= 0) return false;
+    const primary = cpuPrimaryTrait(p);
     let worstIdx = -1;
     let worstScore = Infinity;
     for (let i = 0; i < BENCH; i++) {
       const u = p.bench[i];
       if (!u) continue;
-      // Don't sell pieces close to a merge.
+      // Never sell a merge piece.
       if (countOwned(p, u.type, u.star || 1) >= 2) continue;
-      const score = (u.star || 1) * 10 + unitCost(u.type);
+      let score = cpuUnitPower(u.type, u.star || 1, traitCounts(p));
+      if (primary && TRAITS[primary].units.includes(u.type)) score *= 1.4;
       if (score < worstScore) {
         worstScore = score;
         worstIdx = i;
@@ -2163,45 +2490,66 @@
     return true;
   }
 
+  function cpuEmergencyBuy(p) {
+    let bestIdx = -1;
+    let bestScore = -999;
+    for (let i = 0; i < SHOP; i++) {
+      const t = p.shop[i];
+      if (!t) continue;
+      if (unitCost(t) > p.gold || emptyBenchSlot(p) < 0) continue;
+      const score = cpuUnitPower(t, 1, {}) + (baseStats(t).role === 'tank' ? 3 : 0);
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) return false;
+    const type = p.shop[bestIdx];
+    const slot = emptyBenchSlot(p);
+    p.gold -= unitCost(type);
+    p.bench[slot] = makeUnit(type, 1);
+    p.shop[bestIdx] = null;
+    cpuOptimizeBoard(p);
+    return boardCount(p) > 0;
+  }
+
+  function cpuFinishAndReady(p) {
+    cpuOptimizeBoard(p);
+    if (boardCount(p) <= 0) cpuEmergencyBuy(p);
+    if (boardCount(p) <= 0) return false;
+    p.ready = true;
+    waitElapsed = 0;
+    renderHud();
+    checkPlanningEnd();
+    return true;
+  }
+
   function cpuDoNextAction(p) {
     if (!p || p.ready || state.phase !== 'planning') return;
-    if (cpuBuyXp(p)) { renderHud(); return; }
-    if (cpuSellWeakBench(p)) { renderHud(); return; }
+    cpuActionsThisRound += 1;
+
+    const timeLeft = state.planTimeLeft ?? PLAN_TIME_SEC;
+    if (timeLeft <= 6 || cpuActionsThisRound >= 12 || me().ready) {
+      cpuFinishAndReady(p);
+      return;
+    }
+
+    // Improve the fighting lineup first, then buy the highest-EV shop card.
+    if (cpuPlaceFromBench(p)) { renderHud(); return; }
+    if (boardCount(p) >= boardCap(p)) {
+      // Board full: still buy merges / upgrades, then optimize.
+      if (emptyBenchSlot(p) < 0 && cpuSellWeakBench(p)) { renderHud(); return; }
+      if (cpuBuyBest(p)) { renderHud(); return; }
+      if (cpuBuyXp(p)) { renderHud(); return; }
+      if (cpuReroll(p)) { renderHud(); return; }
+      cpuFinishAndReady(p);
+      return;
+    }
+    if (emptyBenchSlot(p) < 0 && cpuSellWeakBench(p)) { renderHud(); return; }
     if (cpuBuyBest(p)) { renderHud(); return; }
     if (cpuReroll(p)) { renderHud(); return; }
-    if (cpuPlaceFromBench(p)) { renderHud(); return; }
-    // Done shopping — place whatever we can, then ready.
-    while (cpuPlaceFromBench(p)) { /* fill board */ }
-    if (boardCount(p) <= 0) {
-      // Emergency: buy cheapest shop card and place.
-      let cheapIdx = -1;
-      let cheapCost = 99;
-      for (let i = 0; i < SHOP; i++) {
-        const t = p.shop[i];
-        if (!t) continue;
-        const c = unitCost(t);
-        if (c <= p.gold && c < cheapCost && emptyBenchSlot(p) >= 0) {
-          cheapCost = c;
-          cheapIdx = i;
-        }
-      }
-      if (cheapIdx >= 0) {
-        const type = p.shop[cheapIdx];
-        const slot = emptyBenchSlot(p);
-        p.gold -= unitCost(type);
-        p.bench[slot] = makeUnit(type, 1);
-        p.shop[cheapIdx] = null;
-        cpuPlaceFromBench(p);
-      }
-    }
-    if (boardCount(p) > 0) {
-      p.ready = true;
-      waitElapsed = 0;
-      renderHud();
-      checkPlanningEnd();
-    } else {
-      renderHud();
-    }
+    if (cpuBuyXp(p)) { renderHud(); return; }
+    if (!cpuFinishAndReady(p)) renderHud();
   }
 
   function tickCpuPlanning(dt) {
@@ -2209,17 +2557,32 @@
     const cpu = cpuPlayer();
     if (!cpu || cpu.ready) return;
     cpuThinkAcc += dt;
-    // Delay first action so the player sees the shop, then act in steps.
-    const delay = state.round === 1 ? 1.1 : 0.55;
+    const timeLeft = state.planTimeLeft ?? PLAN_TIME_SEC;
+    const rush = timeLeft <= 8 || me().ready;
+    const delay = rush ? 0.16 : (state.round === 1 ? 0.4 : 0.28);
     if (cpuThinkAcc < delay) return;
     cpuThinkAcc = 0;
     cpuDoNextAction(cpu);
+  }
+
+  function tickShopTimer(dt) {
+    if (!isAuthority() || state.phase !== 'planning') return;
+    if (state.players[0].ready && state.players[1].ready) return;
+    const prevCeil = Math.ceil(state.planTimeLeft ?? PLAN_TIME_SEC);
+    state.planTimeLeft = Math.max(0, (state.planTimeLeft ?? PLAN_TIME_SEC) - dt);
+    const nextCeil = Math.ceil(state.planTimeLeft);
+    if (nextCeil !== prevCeil) {
+      renderHud();
+      if (!isVsCpu()) publishAuthState(true);
+    }
+    if (state.planTimeLeft <= 0) forceShopTimeout();
   }
 
   function tick(dt) {
     if (!active || !state) return;
     if (state.phase === 'planning') {
       tickCpuPlanning(dt);
+      tickShopTimer(dt);
       if (me().ready || opp().ready) {
         waitElapsed += dt;
         if (Math.floor(waitElapsed) !== Math.floor(waitElapsed - dt)) renderHud();
@@ -2339,6 +2702,7 @@
     state = {
       phase: 'planning',
       round: 1,
+      planTimeLeft: PLAN_TIME_SEC,
       players: [freshPlayer(0, match.player0Name), freshPlayer(1, match.player1Name)],
       combatUnits: [],
       projectiles: [],
@@ -2351,6 +2715,8 @@
     gotAuthSnapshot = false;
     cpuThinkAcc = 0;
     cpuRerollsThisRound = 0;
+    cpuXpBuysThisRound = 0;
+    cpuActionsThisRound = 0;
     active = true;
     canvas = $('tft-combat-canvas');
     ctx = canvas?.getContext('2d') || null;
@@ -2374,6 +2740,7 @@
         // Restore local snapshot after refresh, then republish for the guest.
         state.round = Math.max(1, resumeSnap.round || 1);
         state.phase = resumeSnap.phase || 'planning';
+        state.planTimeLeft = resumeSnap.planTimeLeft != null ? resumeSnap.planTimeLeft : PLAN_TIME_SEC;
         state.combatSeed = resumeSnap.combatSeed || 0;
         state.combatElapsed = resumeSnap.combatElapsed || 0;
         state.combatIntro = resumeSnap.combatIntro || 0;
