@@ -14,13 +14,27 @@ declare module 'next-auth' {
   }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [
+const googleId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || '';
+const googleSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || '';
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || '';
+
+export function isGoogleAuthConfigured() {
+  return Boolean(googleId && googleSecret && authSecret);
+}
+
+const providers = [];
+if (googleId && googleSecret) {
+  providers.push(
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+      clientId: googleId,
+      clientSecret: googleSecret,
     }),
-  ],
+  );
+}
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: authSecret || 'dev-only-missing-auth-secret',
+  providers,
   pages: {
     signIn: '/account',
     error: '/account',
