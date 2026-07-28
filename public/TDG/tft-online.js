@@ -1146,6 +1146,16 @@
     }
   }
 
+  function showHowtoOnce() {
+    try {
+      if (localStorage.getItem('tdg_tft_howto_seen')) return;
+      localStorage.setItem('tdg_tft_howto_seen', '1');
+      $('tft-howto')?.classList.remove('hidden');
+    } catch {
+      // ignore storage failures
+    }
+  }
+
   function goHomeFromTft() {
     if (!isVsCpu() && window.TDG_PVP?.goHome) {
       window.TDG_PVP.goHome();
@@ -2256,6 +2266,14 @@
     });
     $('tft-reroll-btn')?.addEventListener('click', () => tryReroll());
     $('tft-xp-btn')?.addEventListener('click', () => tryBuyXp());
+    const howto = $('tft-howto');
+    const openHowto = () => howto?.classList.remove('hidden');
+    const closeHowto = () => howto?.classList.add('hidden');
+    $('tft-howto-btn')?.addEventListener('click', openHowto);
+    $('tft-howto-close')?.addEventListener('click', closeHowto);
+    howto?.addEventListener('click', (e) => {
+      if (e.target === howto) closeHowto();
+    });
     $('tft-ready-btn')?.addEventListener('click', () => {
       if (state?.phase === 'gameover') {
         goHomeFromTft();
@@ -2385,8 +2403,11 @@
           publishAuthState(true);
         }
       } else {
-        if (vsCpu) pushMsg('TFT vs CPU — shop, merge, place, then Ready.');
+        pushMsg(vsCpu
+          ? 'TFT vs CPU — shop, merge, place, then Ready. Tap How to play anytime.'
+          : 'TFT Online — shop, merge, place, then Ready. Tap How to play anytime.');
         startRound();
+        showHowtoOnce();
       }
     } else {
       state.phase = 'planning';
@@ -2397,6 +2418,7 @@
       ensureLocalShopVisible();
       pushMsg(shopHasCards(me()) ? `Round ${state.round} — shop is ready` : 'Synced match — loading shop…');
       renderHud();
+      showHowtoOnce();
       requestHostSync();
       [400, 1200, 2800].forEach((ms) => {
         setTimeout(() => {
@@ -2427,6 +2449,7 @@
     active = false;
     cancelAnimationFrame(raf);
     endDrag(true);
+    $('tft-howto')?.classList.add('hidden');
     state = null;
     match = null;
     ctx = null;
