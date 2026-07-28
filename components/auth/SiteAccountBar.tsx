@@ -1,15 +1,20 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
 export default function SiteAccountBar() {
+  const pathname = usePathname();
   const { data: session, status } = useSession();
   const signedIn = status === 'authenticated' && !!session?.user;
   const label = session?.user?.displayName || session?.user?.name || 'Account';
 
+  // Keep game UIs free of overlapping site chrome (top-right clicks).
+  if (pathname?.startsWith('/TDG') || pathname?.startsWith('/tdg')) return null;
+
   return (
-    <div className="fixed top-3 right-3 z-[60] flex items-center gap-2 text-sm">
+    <div className="fixed top-3 right-3 z-[60] flex items-center gap-2 text-sm pointer-events-auto">
       <Link
         href="/leaderboard"
         className="rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-[#e8ebe0] backdrop-blur hover:border-amber-400/50 hover:text-amber-200 transition-colors"
