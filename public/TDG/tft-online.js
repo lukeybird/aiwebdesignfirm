@@ -20,7 +20,7 @@
   const COMBAT_MAX_SEC = 35;
   const COMBAT_SPEED = 1.05;
   const COMBAT_INTRO = 0.9;
-  const PLAN_TIME_SEC = 20;
+  const PLAN_TIME_SEC = 50;
   /** Fixed logical arena so host combat is identical regardless of client canvas size. */
   const LOGIC_W = 800;
   const LOGIC_H = 400;
