@@ -7640,6 +7640,7 @@
           <button class="banner-btn" id="btn-online-pvp">🌐 Online PvP</button>
           <button class="banner-btn" id="btn-limited-pvp">🃏 Draft Battle</button>
           <button class="banner-btn" id="btn-tft-online">⚔️ TFT Online</button>
+          <button class="banner-btn" id="btn-tft-cpu">🤖 TFT vs CPU</button>
         </div>
         <div class="menu-corner-dock" id="menu-corner-dock">
           <div class="menu-modes-pop hidden" id="menu-modes-pop" role="menu" aria-label="Other game modes">
@@ -10781,6 +10782,7 @@ function buildManualUI() {
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
     <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler: shop by cost tier, merge 3 copies into a higher star, place on a left/right board (column 1 = frontline). Traits show their buffs in the sidebar — select a unit to inspect HP, damage, range, and more. Both players Ready when set (no round timer). Fights use your unit sprites.</p></div>
+    <div class="manual-card"><h4>🤖 TFT vs CPU</h4><p>Same auto-battler rules against a local CPU: it shops for merges and traits, places tanks up front and ranged in back, then readies each round. No online matchmaking.</p></div>
     <div class="manual-card"><h4>🃏 Draft Battle</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>
     <div class="manual-card"><h4>🎮 Free Mode</h4><p>Control a super-tank on a huge open battlefield! Arrow keys move and rotate, Space shoots. The camera follows you. Enemies only chase you when you get within detection range. Clear all hostiles to win.</p></div>
@@ -40461,6 +40463,17 @@ document.getElementById('btn-ai-vs-cpu')?.addEventListener('click', () => {
 document.getElementById('btn-play-vs-ai')?.addEventListener('click', () => {
   closeMenuModesPop();
   startPlayVsAi();
+});
+document.getElementById('btn-tft-cpu')?.addEventListener('click', () => {
+  closeMenuModesPop();
+  window.TFT_ONLINE?.start({
+    vsCpu: true,
+    isHost: true,
+    myPlayerId: 0,
+    player0Name: 'You',
+    player1Name: 'CPU',
+    roomId: 'local-cpu',
+  });
 });
 
 document.getElementById('btn-ai-stats')?.addEventListener('click', () => {

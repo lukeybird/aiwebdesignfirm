@@ -118,8 +118,10 @@
   let selected = null; // { area:'board'|'bench'|'shop', r?, c?, idx?, type?, star? }
   let lastAuthPublishAt = 0;
   let authSyncAcc = 0;
-  let gotAuthSnapshot = false;
   let waitElapsed = 0;
+  let gotAuthSnapshot = false;
+  let cpuThinkAcc = 0;
+  let cpuRerollsThisRound = 0;
   let audioCtx = null;
   let mergeBurstUntil = 0;
 
@@ -304,11 +306,20 @@
   }
 
   function broadcastAction(action) {
+    if (match?.vsCpu) return;
     window.TDG_PVP?.sendAction?.(action);
   }
 
   function isAuthority() {
     return !!(match && match.isHost);
+  }
+
+  function isVsCpu() {
+    return !!(match && match.vsCpu);
+  }
+
+  function cpuPlayer() {
+    return state?.players?.[1] || null;
   }
 
   function serializeArmy(p) {
@@ -403,7 +414,7 @@
   }
 
   function publishAuthState(force = false) {
-    if (!active || !state || !isAuthority()) return;
+    if (!active || !state || !isAuthority() || isVsCpu()) return;
     const now = performance.now();
     if (!force && now - lastAuthPublishAt < AUTH_SYNC_MS) return;
     lastAuthPublishAt = now;
@@ -1110,6 +1121,8 @@
     state.resultApplied = false;
     state.pendingResult = null;
     selected = null;
+    cpuThinkAcc = 0;
+    cpuRerollsThisRound = 0;
     for (const p of state.players) {
       p.ready = false;
       if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
@@ -1127,12 +1140,14 @@
     setShellMode('gameover');
     pushMsg(winnerSlot === match.playerId ? 'Victory!' : 'Defeat');
     renderHud();
-    if (isAuthority()) publishAuthState(true);
-    window.TDG_PVP?.notifyGameOver?.({ winnerSlot, endReason: 'base_destroyed' });
+    if (isAuthority() && !isVsCpu()) publishAuthState(true);
+    if (!isVsCpu()) {
+      window.TDG_PVP?.notifyGameOver?.({ winnerSlot, endReason: 'base_destroyed' });
+    }
   }
 
   function goHomeFromTft() {
-    if (window.TDG_PVP?.goHome) {
+    if (!isVsCpu() && window.TDG_PVP?.goHome) {
       window.TDG_PVP.goHome();
       return;
     }
@@ -1631,10 +1646,12 @@
     setText('tft-you-name', p.name);
     setText('tft-them-name', o.name);
     setText('tft-them-ready',
-      p.ready && o.ready ? 'Both ready'
-        : p.ready ? `Waiting on foe · ${Math.floor(waitElapsed)}s`
-          : o.ready ? 'Foe is ready ✓'
-            : 'Shopping…');
+      isVsCpu()
+        ? (o.ready ? 'CPU ready ✓' : 'CPU shopping…')
+        : (p.ready && o.ready ? 'Both ready'
+          : p.ready ? `Waiting on foe · ${Math.floor(waitElapsed)}s`
+            : o.ready ? 'Foe is ready ✓'
+              : 'Shopping…'));
     setText('tft-income-preview', planning ? `+${incomeFor(p)}g next · merge 3× same ★` : '');
 
     const sellZone = $('tft-sell-zone');
@@ -2004,9 +2021,195 @@
     }
   }
 
+  // ─── CPU opponent (local vs CPU) ────────────────────────────────────────────
+
+  function cpuScoreShopCard(p, type) {
+    if (!type) return -999;
+    const cost = unitCost(type);
+    if (p.gold < cost) return -999;
+    let score = 6 + cost; // slightly prefer higher tiers when affordable
+    const owned1 = countOwned(p, type, 1);
+    if (owned1 >= 2) score += 55;
+    else if (owned1 === 1) score += 22;
+    const owned2 = countOwned(p, type, 2);
+    if (owned2 >= 2) score += 70;
+    const counts = traitCounts(p);
+    for (const tr of traitsForType(type)) {
+      const n = counts[tr.id] || 0;
+      if (n >= 1) score += 14;
+      if (n + 1 === tr.breakpoints[0]) score += 18;
+    }
+    const role = baseStats(type).role;
+    const onBoard = boardCount(p);
+    if (onBoard < Math.max(2, boardCap(p) - 1) && (role === 'tank' || role === 'melee')) score += 10;
+    if (role === 'ranged' || role === 'carry') score += 6;
+    return score;
+  }
+
+  function cpuBuyBest(p) {
+    let bestIdx = -1;
+    let bestScore = 8;
+    for (let i = 0; i < SHOP; i++) {
+      const type = p.shop[i];
+      if (!type) continue;
+      const score = cpuScoreShopCard(p, type);
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) return false;
+    const type = p.shop[bestIdx];
+    const cost = unitCost(type);
+    const slot = emptyBenchSlot(p);
+    if (slot < 0 || p.gold < cost) return false;
+    p.gold -= cost;
+    p.bench[slot] = makeUnit(type, 1);
+    p.shop[bestIdx] = null;
+    tryAutoMerge(p, false);
+    return true;
+  }
+
+  function cpuBuyXp(p) {
+    if (p.gold < XP_COST || p.level >= MAX_LEVEL) return false;
+    // Level when board is full or gold is high enough to still shop after.
+    if (boardCount(p) < boardCap(p) && p.gold < XP_COST + 4) return false;
+    p.gold -= XP_COST;
+    p.xp += XP_PER_BUY;
+    while (p.level < MAX_LEVEL && p.xp >= (LEVEL_XP[p.level] || 999)) {
+      p.xp -= LEVEL_XP[p.level] || 0;
+      p.level += 1;
+    }
+    return true;
+  }
+
+  function cpuReroll(p) {
+    if (cpuRerollsThisRound >= 2 || p.gold < REROLL + 1) return false;
+    // Only reroll if shop has no strong picks.
+    let best = -999;
+    for (let i = 0; i < SHOP; i++) best = Math.max(best, cpuScoreShopCard(p, p.shop[i]));
+    if (best >= 24) return false;
+    p.gold -= REROLL;
+    rollShop(p);
+    cpuRerollsThisRound += 1;
+    return true;
+  }
+
+  function cpuPreferredCol(unit) {
+    const role = baseStats(unit.type).role;
+    if (role === 'tank' || role === 'melee') return 0;
+    if (role === 'ranged' || role === 'carry') return COLS - 1;
+    return 1;
+  }
+
+  function cpuFindBoardSlot(p, unit) {
+    const preferred = cpuPreferredCol(unit);
+    const order = [preferred];
+    for (let c = 0; c < COLS; c++) if (c !== preferred) order.push(c);
+    for (const c of order) {
+      for (let r = 0; r < ROWS; r++) {
+        if (!p.board[r][c]) return { area: 'board', r, c };
+      }
+    }
+    return null;
+  }
+
+  function cpuPlaceFromBench(p) {
+    if (boardCount(p) >= boardCap(p)) return false;
+    let benchIdx = -1;
+    for (let i = 0; i < BENCH; i++) {
+      if (p.bench[i]) { benchIdx = i; break; }
+    }
+    if (benchIdx < 0) return false;
+    const unit = p.bench[benchIdx];
+    const slot = cpuFindBoardSlot(p, unit);
+    if (!slot) return false;
+    p.board[slot.r][slot.c] = unit;
+    p.bench[benchIdx] = null;
+    tryAutoMerge(p, false);
+    return true;
+  }
+
+  function cpuSellWeakBench(p) {
+    // Free a bench slot if full and we want to buy.
+    if (emptyBenchSlot(p) >= 0) return false;
+    let worstIdx = -1;
+    let worstScore = Infinity;
+    for (let i = 0; i < BENCH; i++) {
+      const u = p.bench[i];
+      if (!u) continue;
+      // Don't sell pieces close to a merge.
+      if (countOwned(p, u.type, u.star || 1) >= 2) continue;
+      const score = (u.star || 1) * 10 + unitCost(u.type);
+      if (score < worstScore) {
+        worstScore = score;
+        worstIdx = i;
+      }
+    }
+    if (worstIdx < 0) return false;
+    const unit = p.bench[worstIdx];
+    p.gold += sellValue(unit);
+    p.bench[worstIdx] = null;
+    return true;
+  }
+
+  function cpuDoNextAction(p) {
+    if (!p || p.ready || state.phase !== 'planning') return;
+    if (cpuBuyXp(p)) { renderHud(); return; }
+    if (cpuSellWeakBench(p)) { renderHud(); return; }
+    if (cpuBuyBest(p)) { renderHud(); return; }
+    if (cpuReroll(p)) { renderHud(); return; }
+    if (cpuPlaceFromBench(p)) { renderHud(); return; }
+    // Done shopping — place whatever we can, then ready.
+    while (cpuPlaceFromBench(p)) { /* fill board */ }
+    if (boardCount(p) <= 0) {
+      // Emergency: buy cheapest shop card and place.
+      let cheapIdx = -1;
+      let cheapCost = 99;
+      for (let i = 0; i < SHOP; i++) {
+        const t = p.shop[i];
+        if (!t) continue;
+        const c = unitCost(t);
+        if (c <= p.gold && c < cheapCost && emptyBenchSlot(p) >= 0) {
+          cheapCost = c;
+          cheapIdx = i;
+        }
+      }
+      if (cheapIdx >= 0) {
+        const type = p.shop[cheapIdx];
+        const slot = emptyBenchSlot(p);
+        p.gold -= unitCost(type);
+        p.bench[slot] = makeUnit(type, 1);
+        p.shop[cheapIdx] = null;
+        cpuPlaceFromBench(p);
+      }
+    }
+    if (boardCount(p) > 0) {
+      p.ready = true;
+      waitElapsed = 0;
+      renderHud();
+      checkPlanningEnd();
+    } else {
+      renderHud();
+    }
+  }
+
+  function tickCpuPlanning(dt) {
+    if (!isVsCpu() || state.phase !== 'planning') return;
+    const cpu = cpuPlayer();
+    if (!cpu || cpu.ready) return;
+    cpuThinkAcc += dt;
+    // Delay first action so the player sees the shop, then act in steps.
+    const delay = state.round === 1 ? 1.1 : 0.55;
+    if (cpuThinkAcc < delay) return;
+    cpuThinkAcc = 0;
+    cpuDoNextAction(cpu);
+  }
+
   function tick(dt) {
     if (!active || !state) return;
     if (state.phase === 'planning') {
+      tickCpuPlanning(dt);
       if (me().ready || opp().ready) {
         waitElapsed += dt;
         if (Math.floor(waitElapsed) !== Math.floor(waitElapsed - dt)) renderHud();
@@ -2061,6 +2264,11 @@
       setReady(!me().ready);
     });
     $('tft-forfeit-btn')?.addEventListener('click', () => {
+      if (isVsCpu()) {
+        state.players[match.playerId].hp = 0;
+        endMatch(1 - match.playerId);
+        return;
+      }
       window.TDG_PVP?.forfeitMatch?.();
       // Host publishes defeat so guest also ends; local end is immediate.
       if (isAuthority()) {
@@ -2101,12 +2309,14 @@
 
   function start(opts) {
     cleanup(false);
+    const vsCpu = !!opts.vsCpu;
     match = {
       playerId: opts.myPlayerId === 1 ? 1 : 0,
-      isHost: !!opts.isHost,
-      roomId: opts.roomId || 'local',
-      player0Name: opts.player0Name || 'Player 1',
-      player1Name: opts.player1Name || 'Player 2',
+      isHost: vsCpu ? true : !!opts.isHost,
+      vsCpu,
+      roomId: opts.roomId || (vsCpu ? 'local-cpu' : 'local'),
+      player0Name: opts.player0Name || 'You',
+      player1Name: opts.player1Name || (vsCpu ? 'CPU' : 'Player 2'),
     };
     state = {
       phase: 'planning',
@@ -2121,6 +2331,8 @@
     };
     selected = null;
     gotAuthSnapshot = false;
+    cpuThinkAcc = 0;
+    cpuRerollsThisRound = 0;
     active = true;
     canvas = $('tft-combat-canvas');
     ctx = canvas?.getContext('2d') || null;
@@ -2129,12 +2341,12 @@
     $('menu-screen')?.classList.add('hidden');
     $('bottom-panel')?.classList.add('hidden');
     $('tft-game-screen')?.classList.remove('hidden');
-    if (typeof gameMode !== 'undefined') gameMode = 'tft-pvp';
+    if (typeof gameMode !== 'undefined') gameMode = vsCpu ? 'tft-cpu' : 'tft-pvp';
     if (typeof phase !== 'undefined') phase = 'tft';
 
     UNIT_POOL.forEach(getPortrait);
     bindUi();
-    const resumeSnap = opts.resume && opts.savedState && opts.savedState.mode === 'tft'
+    const resumeSnap = !vsCpu && opts.resume && opts.savedState && opts.savedState.mode === 'tft'
       && Array.isArray(opts.savedState.players) && opts.savedState.players.length >= 2
       ? opts.savedState
       : null;
@@ -2173,6 +2385,7 @@
           publishAuthState(true);
         }
       } else {
+        if (vsCpu) pushMsg('TFT vs CPU — shop, merge, place, then Ready.');
         startRound();
       }
     } else {
