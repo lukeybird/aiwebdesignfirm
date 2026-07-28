@@ -281,12 +281,18 @@
     'blade+vest': 'bloodthirster',
     'bow+bow': 'rapid_fire',
     'bow+cloak': 'runaan',
+    'bow+glove': 'gauntlet',
     'bow+rod': 'guinsoo',
+    'bow+vest': 'guardian',
+    'cloak+cloak': 'steadfast',
     'cloak+glove': 'steadfast',
+    'cloak+rod': 'shojin',
     'cloak+vest': 'titans',
+    'glove+glove': 'gauntlet',
     'glove+rod': 'gauntlet',
     'glove+vest': 'guardian',
     'rod+rod': 'rabadon',
+    'rod+vest': 'titans',
     'vest+vest': 'warmog',
   };
 
@@ -334,6 +340,20 @@
     if (slot < 0) return false;
     p.itemBag[slot] = itemId;
     return true;
+  }
+
+
+  function returnUnitItemsToBag(p, unit) {
+    if (!unit?.items?.length) return;
+    const leftover = [];
+    for (const id of unit.items) {
+      if (!grantItemToBag(p, id)) leftover.push(id);
+    }
+    unit.items = [];
+    for (const id of leftover) {
+      const def = itemDef(id);
+      p.gold += def?.kind === 'completed' ? 3 : 1;
+    }
   }
 
   function tryBuyItem(shopIdx) {
@@ -1602,23 +1622,32 @@
   function scoreAugmentForCpu(p, augId) {
     const a = AUGMENTS[augId];
     if (!a) return -999;
-    let score = a.tier === 'prismatic' ? 40 : a.tier === 'gold' ? 24 : 12;
-    if (a.combat) score += 28;
-    if (a.boardBonus) score += 18 * a.boardBonus;
-    if (a.traitBonus) score += 22;
-    if (a.playerDmgBonus) score += 16;
-    if (a.sellMult) score += 10;
-    if (a.rerollCost != null) score += 8;
+    let score = a.tier === 'prismatic' ? 48 : a.tier === 'gold' ? 28 : 14;
+    const power = cpuBoardPower(p);
+    const human = state?.players?.[match?.playerId];
+    const behind = human && power + 6 < cpuBoardPower(human);
+    if (a.combat) score += 34;
+    if (a.boardBonus) score += 22 * a.boardBonus + (p.level < 6 ? 10 : 0);
+    if (a.traitBonus) {
+      score += 26;
+      const primary = cpuPrimaryTrait(p);
+      if (primary && a.traitBonus[primary]) score += 30;
+    }
+    if (a.playerDmgBonus) score += behind ? 28 : 14;
+    if (a.sellMult) score += 8;
+    if (a.rerollCost != null) score += behind ? 18 : 10;
+    if (a.interestBonus) score += p.gold >= 20 ? 16 : 6;
+    if (a.incomeFlat) score += 14;
     if (typeof a.instant === 'function') {
-      // Prefer gold when broke, XP when low level.
       if (a.id.includes('gold') || a.id === 'treasure_trove' || a.id === 'dragon_hoard') {
-        score += p.gold < 12 ? 20 : 8;
+        score += p.gold < 14 ? 28 : (behind ? 16 : 6);
       }
       if (a.id.includes('training') || a.id.includes('promotion')) {
-        score += p.level < 4 ? 18 : 6;
+        score += p.level < 5 ? 24 : 8;
       }
     }
-    if (boardCount(p) <= 0 && a.id === 'scout_contract') score += 25;
+    if (boardCount(p) <= 0 && a.id === 'scout_contract') score += 30;
+    if (behind && a.combat) score += 12;
     return score;
   }
 
@@ -1816,6 +1845,7 @@
     if (state.phase !== 'planning' || p.ready) return false;
     const unit = getUnitAt(p, ref);
     if (!unit) return false;
+    returnUnitItemsToBag(p, unit);
     const gained = sellValue(unit, p);
     setUnitAt(p, ref, null);
     p.gold += gained;
@@ -2099,7 +2129,7 @@
   }
 
   function highlightSelection() {
-    document.querySelectorAll('.tft-board-cell.is-selected, .tft-bench-slot.is-selected, .tft-shop-card.is-inspect')
+    document.querySelectorAll('.tft-board-cell.is-selected, .tft-bench-slot.is-selected, .tft-shop-card.is-inspect, .tft-item-bag-slot.is-selected')
       .forEach((el) => el.classList.remove('is-selected', 'is-inspect'));
     if (!selected) return;
     if (selected.area === 'board') {
@@ -2109,6 +2139,8 @@
       document.querySelector(`#tft-bench [data-bench="${selected.idx}"]`)?.classList.add('is-selected');
     } else if (selected.area === 'shop') {
       document.querySelector(`#tft-shop [data-shop="${selected.idx}"]`)?.classList.add('is-inspect');
+    } else if (selected.area === 'item') {
+      document.querySelector(`#tft-item-bag [data-item-bag="${selected.idx}"]`)?.classList.add('is-selected');
     }
   }
 
@@ -2218,6 +2250,10 @@
 
   function clearSelectionIfGone() {
     if (!selected) return;
+    if (selected.area === 'item') {
+      if (!me()?.itemBag?.[selected.idx]) selected = null;
+      return;
+    }
     if (!selectedUnit()) selected = null;
   }
 
@@ -2232,9 +2268,32 @@
     const el = $('tft-inspect');
     if (!el) return;
     clearSelectionIfGone();
+    if (selected?.area === 'item') {
+      const id = me()?.itemBag?.[selected.idx];
+      const def = itemDef(id);
+      if (!def) {
+        el.innerHTML = '<div class="tft-inspect-empty">Select a unit to see its stats</div>';
+        return;
+      }
+      el.innerHTML = `
+        <div class="tft-inspect-head">
+          <div class="tft-inspect-item-icon">${def.icon || '◆'}</div>
+          <div>
+            <div class="tft-inspect-title">${escapeHtml(def.name)}</div>
+            <div class="tft-inspect-sub">${escapeHtml(def.desc || '')}</div>
+          </div>
+        </div>
+        <div class="tft-inspect-traits">
+          Item selected — click a board or bench unit to equip.
+          <br>Click this bag slot again to sell it.
+          <br><span style="opacity:0.75">Two components on one unit forge a completed item.</span>
+        </div>
+      `;
+      return;
+    }
     const unit = selectedUnit();
     if (!unit) {
-      el.innerHTML = '<div class="tft-inspect-empty">Select a unit to see its stats</div>';
+      el.innerHTML = '<div class="tft-inspect-empty">Select a unit · or click an item bag slot to equip</div>';
       return;
     }
     const star = unit.star || 1;
@@ -2244,7 +2303,15 @@
     const withAug = applyAugmentsToCombatStats(withTraits, me());
     const withAll = applyItemsToCombatStats(withAug, unit.items || []);
     const traitNames = traitsForType(unit.type).map((t) => t.name);
-    const itemNames = (unit.items || []).map((id) => itemDef(id)?.name).filter(Boolean);
+    const canUnequip = selected?.area === 'board' || selected?.area === 'bench';
+    const itemBtns = (unit.items || []).map((id, i) => {
+      const def = itemDef(id);
+      if (!def) return '';
+      if (!canUnequip || state.phase !== 'planning' || me().ready) {
+        return `<span class="tft-inspect-item-chip" title="${escapeHtml(def.desc || '')}">${def.icon} ${escapeHtml(def.name)}</span>`;
+      }
+      return `<button type="button" class="tft-inspect-item-chip is-btn" data-unequip-item="${i}" title="Unequip ${escapeHtml(def.name)}">${def.icon} ${escapeHtml(def.name)} · unequip</button>`;
+    }).filter(Boolean).join('');
     const dps = Math.round(withAll.damage * withAll.attackRate);
     el.innerHTML = `
       <div class="tft-inspect-head">
@@ -2264,9 +2331,9 @@
       </div>
       <div class="tft-inspect-traits">
         ${traitNames.length ? `Traits: ${traitNames.join(', ')}` : 'No traits'}
-        ${itemNames.length ? `<br>Items: ${itemNames.join(', ')}` : '<br>Items: none'}
+        <div class="tft-inspect-item-list">${itemBtns || '<span style="opacity:0.65">Items: none — select a bag item, then click this unit</span>'}</div>
         ${withAll.hp !== base.hp || withAll.damage !== base.damage || Math.abs(withAll.attackRate - base.attackRate) > 0.001
-          ? `<br><span style="opacity:0.75">Trait / augment / item bonuses applied</span>` : ''}
+          ? `<span style="opacity:0.75">Trait / augment / item bonuses applied</span>` : ''}
       </div>
     `;
   }
@@ -2761,16 +2828,17 @@
   // ─── CPU opponent (local vs CPU) ────────────────────────────────────────────
 
   /** Raw combat value for a unit type/star under the given trait counts. */
-  function cpuUnitPower(type, star, counts) {
-    const st = applyTraitsToStats(scaledStats(type, star || 1), counts || {});
+  function cpuUnitPower(type, star, counts, items) {
+    let st = applyTraitsToStats(scaledStats(type, star || 1), counts || {});
+    st = applyItemsToCombatStats(st, items || []);
     const role = st.role || 'melee';
     // Survives * damage output. Tanks get a frontline weight; carries/ranged get DPS weight.
     let power = st.hp * st.damage * (st.attackRate || 0.8);
-    if (role === 'tank') power *= 1.12;
-    else if (role === 'carry') power *= 1.18;
-    else if (role === 'ranged') power *= 1.1;
+    if (role === 'tank') power *= 1.14;
+    else if (role === 'carry') power *= 1.22;
+    else if (role === 'ranged') power *= 1.12;
     // Slight range bonus — safer backline DPS wins more clean fights.
-    if ((st.range || 0) >= 120) power *= 1.05;
+    if ((st.range || 0) >= 120) power *= 1.06;
     return power / 1000;
   }
 
@@ -2829,7 +2897,7 @@
     if (!units?.length) return 0;
     const counts = cpuCountsFromTypes(units.map((u) => u.type));
     let sum = 0;
-    for (const u of units) sum += cpuUnitPower(u.type, u.star || 1, counts);
+    for (const u of units) sum += cpuUnitPower(u.type, u.star || 1, counts, u.items);
     return sum * cpuTraitBonus(counts) * cpuRoleBalance(units);
   }
 
@@ -2979,7 +3047,7 @@
 
   function cpuBuyBest(p) {
     let bestIdx = -1;
-    let bestScore = 12; // ignore near-worthless buys
+    let bestScore = 6; // still skip junk, but take more upgrades
     for (let i = 0; i < SHOP; i++) {
       const type = p.shop[i];
       if (!type) continue;
@@ -3003,13 +3071,15 @@
 
   function cpuBuyXp(p) {
     if (p.gold < XP_COST || p.level >= MAX_LEVEL) return false;
-    if (cpuXpBuysThisRound >= 2) return false;
-    // Level only when board is full (want more slots) or we can still shop after.
-    if (boardCount(p) < boardCap(p)) return false;
-    if (p.gold < XP_COST + 4) return false;
-    // If we're behind on fight power, prefer rerolls/upgrades over XP.
+    if (cpuXpBuysThisRound >= 10) return false;
     const human = state.players[match.playerId];
-    if (human && cpuBoardPower(p) + 8 < cpuBoardPower(human) && p.gold < XP_COST + 10) return false;
+    const behind = human && cpuBoardPower(p) + 4 < cpuBoardPower(human);
+    const full = boardCount(p) >= boardCap(p);
+    // Level aggressively when board is full, or when ahead/stable with spare gold.
+    if (!full && !(p.gold >= XP_COST + 18 && p.level < 7)) return false;
+    if (p.gold < XP_COST + (behind ? 2 : 6)) return false;
+    // Protect interest brackets unless behind or board-capped.
+    if (!behind && !full && cpuWouldBreakInterest(p, XP_COST) && p.gold < 40) return false;
     p.gold -= XP_COST;
     p.xp += XP_PER_BUY;
     cpuXpBuysThisRound += 1;
@@ -3022,19 +3092,18 @@
 
   function cpuReroll(p) {
     const cost = rerollCostFor(p);
-    if (cpuRerollsThisRound >= 3 || p.gold < cost + 2) return false;
+    if (cpuRerollsThisRound >= 14 || p.gold < cost + 1) return false;
     let best = -999;
     for (let i = 0; i < SHOP; i++) best = Math.max(best, cpuScoreShopCard(p, p.shop[i]));
-    // Reroll when shop is weak for our win condition.
-    if (best >= 28) return false;
-    if (boardCount(p) >= boardCap(p) && emptyBenchSlot(p) < 0 && best < 50) {
-      // Board full and no merge chase — skip reroll.
-      return false;
-    }
-    // Chase merges / trait completes harder when behind.
     const human = state.players[match.playerId];
     const behind = human && cpuBoardPower(p) < cpuBoardPower(human);
-    if (!behind && best >= 18 && boardCount(p) >= Math.min(2, boardCap(p))) return false;
+    // Keep rolling weak shops; hold only when a strong hit or interest is precious while ahead.
+    if (best >= (behind ? 36 : 30)) return false;
+    if (!behind && cpuWouldBreakInterest(p, cost) && best >= 14 && p.gold < 35) return false;
+    if (boardCount(p) >= boardCap(p) && emptyBenchSlot(p) < 0 && best < 55 && !behind) {
+      return false;
+    }
+    if (!behind && best >= 20 && boardCount(p) >= Math.min(3, boardCap(p)) && cpuRerollsThisRound >= 6) return false;
     p.gold -= cost;
     rollShop(p);
     cpuRerollsThisRound += 1;
@@ -3174,6 +3243,7 @@
     }
     if (worstIdx < 0) return false;
     const unit = p.bench[worstIdx];
+    returnUnitItemsToBag(p, unit);
     p.gold += sellValue(unit, p);
     p.bench[worstIdx] = null;
     return true;
@@ -3203,7 +3273,8 @@
   }
 
   function cpuFinishAndReady(p) {
-    while (cpuEquipBestItem(p)) { /* equip remaining */ }
+    cpuOptimizeBoard(p);
+    while (cpuEquipBestItem(p)) { /* put items on final board first */ }
     cpuOptimizeBoard(p);
     if (boardCount(p) <= 0) cpuEmergencyBuy(p);
     if (boardCount(p) <= 0) return false;
@@ -3214,58 +3285,104 @@
     return true;
   }
 
+  function cpuItemRoleScore(itemId, role) {
+    const id = itemId;
+    const dmg = new Set(['blade', 'bow', 'rod', 'glove', 'infinity_edge', 'rapid_fire', 'guinsoo', 'rabadon', 'gauntlet', 'shojin', 'runaan']);
+    const tank = new Set(['vest', 'warmog', 'titans', 'guardian', 'steadfast']);
+    const hybrid = new Set(['bloodthirster', 'cloak']);
+    if (role === 'tank' || role === 'melee') {
+      if (tank.has(id)) return 18;
+      if (hybrid.has(id)) return 12;
+      if (dmg.has(id)) return 4;
+    }
+    if (role === 'carry' || role === 'ranged') {
+      if (dmg.has(id)) return 18;
+      if (hybrid.has(id)) return 10;
+      if (tank.has(id)) return 3;
+    }
+    return 6;
+  }
+
+  function cpuWouldBreakInterest(p, spend) {
+    const before = Math.min(5, Math.floor(p.gold / 10));
+    const after = Math.min(5, Math.floor((p.gold - spend) / 10));
+    return after < before;
+  }
+
   function cpuEquipBestItem(p) {
     if (!Array.isArray(p.itemBag)) return false;
-    let bagIdx = p.itemBag.findIndex((id) => !!id);
-    if (bagIdx < 0) return false;
-    const itemId = p.itemBag[bagIdx];
     const army = listArmy(p).filter((x) => x.area === 'board');
     const pool = army.length ? army : listArmy(p);
     if (!pool.length) return false;
-    pool.sort((a, b) => {
-      const ra = baseStats(a.unit.type).role;
-      const rb = baseStats(b.unit.type).role;
-      const score = (u, role) => ((u.items || []).length * -10) + (role === 'carry' || role === 'tank' ? 5 : 0) + (u.star || 1);
-      return score(b.unit, rb) - score(a.unit, ra);
-    });
-    for (const slot of pool) {
-      const unit = slot.unit;
-      if (!Array.isArray(unit.items)) unit.items = [];
-      if (ITEM_COMPONENTS[itemId]) {
-        for (let i = 0; i < unit.items.length; i++) {
-          const made = combineItems(itemId, unit.items[i]);
-          if (made) {
-            unit.items[i] = made;
-            p.itemBag[bagIdx] = null;
-            return true;
+
+    let best = null;
+    let bestScore = -Infinity;
+    for (let bagIdx = 0; bagIdx < p.itemBag.length; bagIdx++) {
+      const itemId = p.itemBag[bagIdx];
+      if (!itemId) continue;
+      for (const slot of pool) {
+        const unit = slot.unit;
+        if (!Array.isArray(unit.items)) unit.items = [];
+        const role = baseStats(unit.type).role;
+        let score = cpuItemRoleScore(itemId, role) + (unit.star || 1) * 8 + (slot.area === 'board' ? 20 : 0);
+        score -= unit.items.length * 6;
+        let forge = false;
+        if (ITEM_COMPONENTS[itemId]) {
+          for (const other of unit.items) {
+            if (combineItems(itemId, other)) { forge = true; break; }
           }
         }
-      }
-      if (unit.items.length < ITEM_SLOTS) {
-        unit.items.push(itemId);
-        p.itemBag[bagIdx] = null;
-        return true;
+        if (forge) score += 55;
+        else if (unit.items.length >= ITEM_SLOTS) continue;
+        if (ITEM_COMPLETED[itemId]) score += 12;
+        if (score > bestScore) {
+          bestScore = score;
+          best = { bagIdx, itemId, unit, forge };
+        }
       }
     }
-    return false;
+    if (!best) return false;
+    const { bagIdx, itemId, unit } = best;
+    if (ITEM_COMPONENTS[itemId]) {
+      for (let i = 0; i < unit.items.length; i++) {
+        const made = combineItems(itemId, unit.items[i]);
+        if (made) {
+          unit.items[i] = made;
+          p.itemBag[bagIdx] = null;
+          return true;
+        }
+      }
+    }
+    if (unit.items.length >= ITEM_SLOTS) return false;
+    unit.items.push(itemId);
+    p.itemBag[bagIdx] = null;
+    return true;
   }
 
   function cpuBuyItem(p) {
     if (!Array.isArray(p.itemShop) || p.gold < ITEM_COMPONENT_COST + 1) return false;
     if (emptyItemBagSlot(p) < 0) return false;
+    const human = state.players[match.playerId];
+    const behind = human && cpuBoardPower(p) + 2 < cpuBoardPower(human);
     let bestIdx = -1;
-    let bestScore = -1;
+    let bestScore = 8;
     const owned = [];
     for (const id of (p.itemBag || [])) if (id) owned.push(id);
     for (const x of listArmy(p)) for (const id of (x.unit.items || [])) owned.push(id);
+    const boardRoles = cpuBoardUnits(p).map((u) => baseStats(u.type).role);
     for (let i = 0; i < ITEM_SHOP; i++) {
       const id = p.itemShop[i];
       if (!id) continue;
-      let score = 5;
-      for (const o of owned) if (combineItems(id, o)) score += 40;
+      let score = 6 + cpuItemRoleScore(id, boardRoles.includes('carry') || boardRoles.includes('ranged') ? 'carry' : 'tank');
+      for (const o of owned) if (combineItems(id, o)) score += 48;
+      // Prefer components that match our strongest board role.
+      for (const u of cpuBoardUnits(p)) score += cpuItemRoleScore(id, baseStats(u.type).role) * 0.15 * (u.star || 1);
       if (score > bestScore) { bestScore = score; bestIdx = i; }
     }
     if (bestIdx < 0) return false;
+    // Protect interest when ahead unless this completes a recipe.
+    const completes = bestScore >= 48;
+    if (!behind && !completes && cpuWouldBreakInterest(p, ITEM_COMPONENT_COST) && p.gold < 32) return false;
     const id = p.itemShop[bestIdx];
     p.gold -= ITEM_COMPONENT_COST;
     grantItemToBag(p, id);
@@ -3278,7 +3395,8 @@
     cpuActionsThisRound += 1;
 
     const timeLeft = state.planTimeLeft ?? PLAN_TIME_SEC;
-    if (timeLeft <= 6 || cpuActionsThisRound >= 12 || me().ready) {
+    // Use almost the full timer — never bail early just because the human readied.
+    if (timeLeft <= 2.2 || cpuActionsThisRound >= 55) {
       cpuFinishAndReady(p);
       return;
     }
@@ -3288,11 +3406,16 @@
     // Improve the fighting lineup first, then buy the highest-EV shop card.
     if (cpuPlaceFromBench(p)) { renderHud(); return; }
     if (boardCount(p) >= boardCap(p)) {
-      // Board full: still buy merges / upgrades, then optimize.
       if (emptyBenchSlot(p) < 0 && cpuSellWeakBench(p)) { renderHud(); return; }
       if (cpuBuyBest(p)) { renderHud(); return; }
       if (cpuBuyXp(p)) { renderHud(); return; }
       if (cpuReroll(p)) { renderHud(); return; }
+      // Keep optimizing until the clock is nearly done.
+      if (timeLeft > 4) {
+        cpuOptimizeBoard(p);
+        renderHud();
+        return;
+      }
       cpuFinishAndReady(p);
       return;
     }
@@ -3300,6 +3423,11 @@
     if (cpuBuyBest(p)) { renderHud(); return; }
     if (cpuReroll(p)) { renderHud(); return; }
     if (cpuBuyXp(p)) { renderHud(); return; }
+    if (timeLeft > 4) {
+      cpuOptimizeBoard(p);
+      renderHud();
+      return;
+    }
     if (!cpuFinishAndReady(p)) renderHud();
   }
 
@@ -3308,7 +3436,7 @@
     const cpu = cpuPlayer();
     if (!cpu?.augmentChoices?.length) return;
     cpuThinkAcc += dt;
-    if (cpuThinkAcc < 0.85) return;
+    if (cpuThinkAcc < 0.35) return;
     cpuThinkAcc = 0;
     let best = cpu.augmentChoices[0];
     let bestScore = -Infinity;
@@ -3345,8 +3473,8 @@
     if (!cpu || cpu.ready) return;
     cpuThinkAcc += dt;
     const timeLeft = state.planTimeLeft ?? PLAN_TIME_SEC;
-    const rush = timeLeft <= 8 || me().ready;
-    const delay = rush ? 0.16 : (state.round === 1 ? 0.4 : 0.28);
+    const rush = timeLeft <= 12 || me().ready;
+    const delay = rush ? 0.07 : (state.round === 1 ? 0.14 : 0.09);
     if (cpuThinkAcc < delay) return;
     cpuThinkAcc = 0;
     cpuDoNextAction(cpu);
@@ -3438,6 +3566,13 @@
         pushMsg(`${itemDef(id)?.name || 'Item'} selected — click a unit to equip (or click again to sell).`);
       }
       renderHud();
+      highlightSelection();
+    });
+    $('tft-inspect')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-unequip-item]');
+      if (!btn || !selected || (selected.area !== 'board' && selected.area !== 'bench')) return;
+      const itemIndex = Number(btn.getAttribute('data-unequip-item'));
+      tryUnequipItem(selected, itemIndex);
     });
     $('tft-reroll-btn')?.addEventListener('click', () => tryReroll());
     $('tft-xp-btn')?.addEventListener('click', () => tryBuyXp());
