@@ -1770,6 +1770,113 @@
       justify-content: flex-end;
     }
 
+    .tft-augment-pick {
+      position: absolute;
+      inset: 0;
+      z-index: 42;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(4, 8, 6, 0.78);
+    }
+    .tft-augment-pick.hidden { display: none !important; }
+    .tft-augment-pick-panel {
+      width: min(820px, 100%);
+      border: 2px solid rgba(201, 212, 184, 0.28);
+      border-radius: 14px;
+      background: linear-gradient(165deg, #1a261a, #0c120c 70%);
+      padding: 18px;
+      color: #e8ebe0;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.45);
+    }
+    .tft-augment-pick-panel h3 {
+      margin: 0 0 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      color: #f0d878;
+      text-align: center;
+    }
+    .tft-augment-pick-lead {
+      margin: 0 0 14px;
+      text-align: center;
+      opacity: 0.7;
+      font-size: 0.88rem;
+    }
+    .tft-augment-choices {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .tft-augment-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+      padding: 14px 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.35);
+      color: inherit;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease;
+      min-height: 160px;
+    }
+    .tft-augment-card:hover {
+      transform: translateY(-3px);
+      border-color: #f0d878;
+    }
+    .tft-augment-card.tier-silver { border-color: rgba(180, 190, 200, 0.45); }
+    .tft-augment-card.tier-gold { border-color: rgba(201, 162, 39, 0.55); }
+    .tft-augment-card.tier-prismatic {
+      border-color: rgba(167, 139, 250, 0.55);
+      background: linear-gradient(160deg, rgba(60,40,80,0.45), rgba(0,0,0,0.4));
+    }
+    .tft-augment-card-icon { font-size: 1.6rem; line-height: 1; }
+    .tft-augment-card-name {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .tft-augment-card-tier {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.65;
+    }
+    .tft-augment-card-desc {
+      font-size: 0.82rem;
+      line-height: 1.4;
+      opacity: 0.85;
+    }
+    .tft-augments-block { flex-shrink: 0; }
+    .tft-augments {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 110px;
+      overflow-y: auto;
+    }
+    .tft-augment-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      padding: 5px 7px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .tft-augment-chip.tier-gold { border-color: rgba(201,162,39,0.45); }
+    .tft-augment-chip.tier-prismatic { border-color: rgba(167,139,250,0.5); }
+    .tft-augment-name { font-weight: 700; }
+    .tft-augment-empty { font-size: 0.7rem; opacity: 0.5; line-height: 1.35; }
+    .tft-shell.is-augment .tft-plan-only { pointer-events: none; opacity: 0.35; }
+    @media (max-width: 720px) {
+      .tft-augment-choices { grid-template-columns: 1fr; }
+    }
+
     .tft-main {
       padding: 12px;
       display: flex;
@@ -7830,6 +7937,7 @@
                 <li><strong>Place:</strong> Drag from the bench onto your board. Column 1 is the frontline; the back column is safer for ranged.</li>
                 <li><strong>Merge:</strong> Collect 3 copies of the same unit at the same ★ to upgrade it (1★ → 2★ → 3★).</li>
                 <li><strong>Traits:</strong> Matching unit types activate sidebar bonuses (Warrior, Hunter, Beast, Mystic).</li>
+                <li><strong>Augments:</strong> On rounds 1, 3, and 5 pick 1 of 3 power-ups (silver → gold → prismatic) before shopping.</li>
                 <li><strong>Economy:</strong> Reroll the shop for 2g. Buy XP for 4g to raise your level and board size.</li>
                 <li><strong>Ready:</strong> Press Ready when your board is set, or wait for the <strong>50s shop timer</strong>. When both are ready (or time runs out), the fight starts.</li>
                 <li><strong>Combat:</strong> Units fight on their own. The loser of the round loses HP. Reduce the foe to 0 HP to win.</li>
@@ -7840,11 +7948,22 @@
               </div>
             </div>
           </div>
+          <div class="tft-augment-pick hidden" id="tft-augment-pick" role="dialog" aria-labelledby="tft-augment-title" aria-modal="true">
+            <div class="tft-augment-pick-panel">
+              <h3 id="tft-augment-title">Choose an augment</h3>
+              <p class="tft-augment-pick-lead">Pick one lasting power-up. You choose again on rounds 3 and 5.</p>
+              <div class="tft-augment-choices" id="tft-augment-choices"></div>
+            </div>
+          </div>
           <div class="tft-body">
             <aside class="tft-sidebar">
               <div class="tft-stat"><label>Gold</label><strong id="tft-gold">10</strong></div>
               <div class="tft-stat"><label>Commander</label><strong id="tft-level">Lv 1</strong></div>
               <div class="tft-stat"><label>Board</label><strong id="tft-board-cap">0/1</strong></div>
+              <div class="tft-augments-block">
+                <div class="tft-label">Augments</div>
+                <div class="tft-augments" id="tft-augments"></div>
+              </div>
               <div class="tft-traits-block">
                 <div class="tft-label">Traits</div>
                 <div class="tft-traits" id="tft-traits"></div>
@@ -10872,14 +10991,15 @@ function buildManualUI() {
     <div class="manual-card"><h4>3. Merge stars</h4><p>Own 3 copies of the same unit at the same star level and they auto-merge into the next star (stronger stats). 1★ → 2★ → 3★.</p></div>
     <div class="manual-card"><h4>4. Traits</h4><p>Units share traits (Warrior, Hunter, Beast, Mystic). Hit the trait count in the sidebar to unlock bonus HP, damage, or attack speed for those units.</p></div>
     <div class="manual-card"><h4>5. Gold &amp; XP</h4><p>You earn income each round (plus interest for banking gold). Reroll the shop for 2g. Buy XP for 4g to level up and field more units. Sell units (right-click or drop on the sell zone) for gold.</p></div>
-    <div class="manual-card"><h4>6. Ready &amp; fight</h4><p>Each shop phase lasts <strong>50 seconds</strong> (shown as Shop · Xs). Press Ready early when your board is set, or the fight starts automatically when time runs out. Online: both players Ready (or the timer) starts combat. vs CPU: the CPU readies on its own. After the fight, the loser loses HP and a new shop round begins.</p></div>
+    <div class="manual-card"><h4>6. Augments</h4><p>On rounds <strong>1, 3, and 5</strong> you pick 1 of 3 augments before shopping (silver → gold → prismatic). Effects can grant gold/XP, buff combat stats, add board size, boost traits, cheaper rerolls, better sells, or extra player damage. Owned augments show in the sidebar. Pick within 25s or one is chosen for you.</p></div>
+    <div class="manual-card"><h4>7. Ready &amp; fight</h4><p>Each shop phase lasts <strong>50 seconds</strong> (shown as Shop · Xs). Press Ready early when your board is set, or the fight starts automatically when time runs out. Online: both players Ready (or the timer) starts combat. vs CPU: the CPU readies on its own. After the fight, the loser loses HP and a new shop round begins.</p></div>
     <div class="manual-card"><h4>Modes</h4><p><strong>TFT Online</strong> matches you with another player. <strong>TFT vs CPU</strong> is the same rules against a local AI — no queue.</p></div>
   </div>`;
 
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
-    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler online. Full rules are under <em>How to Play TFT</em> above. Each shop phase has a 50s timer; Ready early anytime.</p></div>
+    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler online. Full rules are under <em>How to Play TFT</em> above. Augments on rounds 1/3/5, then a 50s shop timer; Ready early anytime.</p></div>
     <div class="manual-card"><h4>🤖 TFT vs CPU</h4><p>Same TFT rules against a local CPU that shops for merges/traits and readies each round. Open <strong>How to play</strong> in-match for a quick refresher.</p></div>
     <div class="manual-card"><h4>🃏 Draft Battle</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>

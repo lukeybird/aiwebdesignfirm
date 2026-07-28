@@ -21,6 +21,10 @@
   const COMBAT_SPEED = 1.05;
   const COMBAT_INTRO = 0.9;
   const PLAN_TIME_SEC = 50;
+  const AUGMENT_TIME_SEC = 25;
+  /** Offer an augment pick at the start of these rounds (silver → gold → prismatic). */
+  const AUGMENT_ROUNDS = [1, 3, 5];
+  const AUGMENT_TIER_BY_ROUND = { 1: 'silver', 3: 'gold', 5: 'prismatic' };
   /** Fixed logical arena so host combat is identical regardless of client canvas size. */
   const LOGIC_W = 800;
   const LOGIC_H = 400;
@@ -103,6 +107,119 @@
       desc: 'Mystic units gain bonus HP.',
       tiers: ['2: +12% HP', '3: +25% HP'],
       apply: (st, tier) => { st.hp = Math.round(st.hp * (1 + [0.12, 0.25][tier])); },
+    },
+  };
+
+  /**
+   * Augments — pick 1 of 3 on rounds 1 / 3 / 5.
+   * instant: one-shot on pick. combat: mutate unit stats at fight spawn.
+   * meta flags: boardBonus, traitBonus, incomeFlat, interestBonus, rerollCost, sellMult, playerDmgBonus
+   */
+  const AUGMENTS = {
+    gold_rush: {
+      id: 'gold_rush', name: 'Gold Rush', tier: 'silver', icon: '💰',
+      desc: 'Gain 10 gold now.',
+      instant: (p) => { p.gold += 10; },
+    },
+    training_weights: {
+      id: 'training_weights', name: 'Training Weights', tier: 'silver', icon: '📚',
+      desc: 'Gain 6 XP now.',
+      instant: (p) => { grantXp(p, 6); },
+    },
+    iron_scales: {
+      id: 'iron_scales', name: 'Iron Scales', tier: 'silver', icon: '🛡️',
+      desc: 'Your units gain +15% HP in combat.',
+      combat: (st) => { st.hp = Math.round(st.hp * 1.15); },
+    },
+    sharpened_blades: {
+      id: 'sharpened_blades', name: 'Sharpened Blades', tier: 'silver', icon: '🗡️',
+      desc: 'Your units gain +12% damage.',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.12); },
+    },
+    scout_contract: {
+      id: 'scout_contract', name: 'Scout Contract', tier: 'silver', icon: '🗺️',
+      desc: 'Gain a free Knight (2-cost) on your bench.',
+      instant: (p) => { grantFreeUnit(p, 'striker'); },
+    },
+    loaded_dice: {
+      id: 'loaded_dice', name: 'Loaded Dice', tier: 'silver', icon: '🎲',
+      desc: 'Shop rerolls cost 1 gold instead of 2.',
+      rerollCost: 1,
+    },
+    treasure_trove: {
+      id: 'treasure_trove', name: 'Treasure Trove', tier: 'gold', icon: '🪙',
+      desc: 'Gain 18 gold now.',
+      instant: (p) => { p.gold += 18; },
+    },
+    battlefield_promotion: {
+      id: 'battlefield_promotion', name: 'Battlefield Promotion', tier: 'gold', icon: '⬆️',
+      desc: 'Gain 12 XP now.',
+      instant: (p) => { grantXp(p, 12); },
+    },
+    dual_wield: {
+      id: 'dual_wield', name: 'Dual Wield', tier: 'gold', icon: '⚔️',
+      desc: 'Your units gain +18% attack speed.',
+      combat: (st) => { st.attackRate *= 1.18; },
+    },
+    warrior_heart: {
+      id: 'warrior_heart', name: 'Warrior Heart', tier: 'gold', icon: '❤️',
+      desc: 'Your Warrior trait counts as +1.',
+      traitBonus: { warrior: 1 },
+    },
+    hunters_mark: {
+      id: 'hunters_mark', name: "Hunter's Mark", tier: 'gold', icon: '🎯',
+      desc: 'Your Hunter trait counts as +1.',
+      traitBonus: { hunter: 1 },
+    },
+    bestial_fury: {
+      id: 'bestial_fury', name: 'Bestial Fury', tier: 'gold', icon: '🐺',
+      desc: 'Your Beast trait counts as +1.',
+      traitBonus: { beast: 1 },
+    },
+    high_roller: {
+      id: 'high_roller', name: 'High Roller', tier: 'gold', icon: '📈',
+      desc: 'Selling units returns 50% more gold.',
+      sellMult: 1.5,
+    },
+    living_legend: {
+      id: 'living_legend', name: 'Living Legend', tier: 'prismatic', icon: '✨',
+      desc: 'Your units gain +25% HP and +20% damage.',
+      combat: (st) => {
+        st.hp = Math.round(st.hp * 1.25);
+        st.damage = Math.round(st.damage * 1.2);
+      },
+    },
+    dragon_hoard: {
+      id: 'dragon_hoard', name: 'Dragon Hoard', tier: 'prismatic', icon: '🐉',
+      desc: 'Gain 22 gold and +1 board size.',
+      boardBonus: 1,
+      instant: (p) => { p.gold += 22; },
+    },
+    overlord: {
+      id: 'overlord', name: 'Overlord', tier: 'prismatic', icon: '👑',
+      desc: '+2 maximum board size.',
+      boardBonus: 2,
+    },
+    radiant_arms: {
+      id: 'radiant_arms', name: 'Radiant Arms', tier: 'prismatic', icon: '💫',
+      desc: 'Your units gain +30% damage.',
+      combat: (st) => { st.damage = Math.round(st.damage * 1.3); },
+    },
+    eternal_guard: {
+      id: 'eternal_guard', name: 'Eternal Guard', tier: 'prismatic', icon: '🏰',
+      desc: 'Your units gain +35% HP.',
+      combat: (st) => { st.hp = Math.round(st.hp * 1.35); },
+    },
+    executioner: {
+      id: 'executioner', name: 'Executioner', tier: 'prismatic', icon: '☠️',
+      desc: 'Winning a round deals +4 player damage.',
+      playerDmgBonus: 4,
+    },
+    mystic_bond: {
+      id: 'mystic_bond', name: 'Mystic Bond', tier: 'prismatic', icon: '🔮',
+      desc: 'Your Mystic trait counts as +1. Units gain +10% HP.',
+      traitBonus: { mystic: 1 },
+      combat: (st) => { st.hp = Math.round(st.hp * 1.1); },
     },
   };
 
@@ -189,8 +306,10 @@
 
   function unitCost(type) { return UNIT_COST[type] || 2; }
 
-  function sellValue(unit) {
-    return unitCost(unit.type) * (STAR_SELL[unit.star] || 1);
+  function sellValue(unit, owner) {
+    const base = unitCost(unit.type) * (STAR_SELL[unit.star] || 1);
+    const mult = owner ? sellMultFor(owner) : 1;
+    return Math.max(1, Math.floor(base * mult));
   }
 
   function starLabel(star) {
@@ -251,6 +370,8 @@
       board: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
       ready: false,
       traits: {},
+      augments: [],
+      augmentChoices: null,
     };
   }
 
@@ -258,7 +379,66 @@
   function opp() { return state.players[1 - match.playerId]; }
 
   function boardCap(p) {
-    return Math.min(MAX_LEVEL, Math.max(1, p.level));
+    const bonus = sumAugmentMeta(p, 'boardBonus');
+    return Math.min(MAX_LEVEL + 2, Math.max(1, p.level) + bonus);
+  }
+
+  function hasAugment(p, id) {
+    return !!(p?.augments && p.augments.includes(id));
+  }
+
+  function playerAugments(p) {
+    return (p?.augments || []).map((id) => AUGMENTS[id]).filter(Boolean);
+  }
+
+  function sumAugmentMeta(p, key) {
+    let n = 0;
+    for (const a of playerAugments(p)) {
+      if (typeof a[key] === 'number') n += a[key];
+    }
+    return n;
+  }
+
+  function rerollCostFor(p) {
+    let cost = REROLL;
+    for (const a of playerAugments(p)) {
+      if (a.rerollCost != null) cost = Math.min(cost, a.rerollCost);
+    }
+    return cost;
+  }
+
+  function sellMultFor(p) {
+    let m = 1;
+    for (const a of playerAugments(p)) {
+      if (a.sellMult) m = Math.max(m, a.sellMult);
+    }
+    return m;
+  }
+
+  function grantXp(p, amount) {
+    p.xp += amount;
+    while (p.level < MAX_LEVEL && p.xp >= (LEVEL_XP[p.level] || 999)) {
+      p.xp -= LEVEL_XP[p.level] || 0;
+      p.level += 1;
+    }
+  }
+
+  function grantFreeUnit(p, type) {
+    const slot = emptyBenchSlot(p);
+    if (slot < 0) {
+      p.gold += unitCost(type);
+      return;
+    }
+    p.bench[slot] = makeUnit(type, 1);
+    tryAutoMerge(p, false);
+  }
+
+  function applyAugmentsToCombatStats(st, p) {
+    const out = { ...st };
+    for (const a of playerAugments(p)) {
+      if (typeof a.combat === 'function') a.combat(out);
+    }
+    return out;
   }
 
   function boardCount(p) {
@@ -339,6 +519,8 @@
       lossStreak: p.lossStreak || 0,
       hp: p.hp,
       name: p.name,
+      augments: Array.isArray(p.augments) ? p.augments.slice() : [],
+      augmentChoices: Array.isArray(p.augmentChoices) ? p.augmentChoices.slice() : null,
     };
   }
 
@@ -360,6 +542,9 @@
     if (snap.lossStreak != null) p.lossStreak = snap.lossStreak;
     if (snap.hp != null) p.hp = snap.hp;
     if (snap.name) p.name = snap.name;
+    if (Array.isArray(snap.augments)) p.augments = snap.augments.slice();
+    if (snap.augmentChoices === null) p.augmentChoices = null;
+    else if (Array.isArray(snap.augmentChoices)) p.augmentChoices = snap.augmentChoices.slice();
   }
 
   function serializeCombatLight() {
@@ -397,6 +582,7 @@
       phase: state.phase,
       round: state.round,
       planTimeLeft: state.planTimeLeft ?? PLAN_TIME_SEC,
+      augmentTimeLeft: state.augmentTimeLeft ?? 0,
       combatSeed: state.combatSeed || 0,
       combatElapsed: state.combatElapsed || 0,
       combatIntro: state.combatIntro || 0,
@@ -519,6 +705,7 @@
 
     state.round = snap.round ?? state.round;
     if (snap.planTimeLeft != null) state.planTimeLeft = Math.max(0, snap.planTimeLeft);
+    if (snap.augmentTimeLeft != null) state.augmentTimeLeft = Math.max(0, snap.augmentTimeLeft);
     state.combatSeed = snap.combatSeed || state.combatSeed;
     state.combatElapsed = snap.combatElapsed || 0;
     state.combatIntro = snap.combatIntro || 0;
@@ -576,7 +763,7 @@
     renderHud();
     if (state.phase === 'combat' || state.phase === 'result' || state.phase === 'gameover') {
       drawCombat();
-    } else if (state.phase === 'planning') {
+    } else if (state.phase === 'planning' || state.phase === 'augment') {
       drawPlanningPreview();
     }
     return true;
@@ -672,6 +859,7 @@
     base += Math.min(5, Math.floor(p.gold / 10)); // interest
     if (p.winStreak >= 2) base += Math.min(3, p.winStreak - 1);
     if (p.lossStreak >= 2) base += Math.min(2, p.lossStreak - 1);
+    base += sumAugmentMeta(p, 'incomeFlat');
     return base;
   }
 
@@ -686,6 +874,12 @@
     }
     for (const [tid, tr] of Object.entries(TRAITS)) {
       counts[tid] = [...types].filter((t) => tr.units.includes(t)).length;
+    }
+    for (const a of playerAugments(p)) {
+      if (!a.traitBonus) continue;
+      for (const [tid, n] of Object.entries(a.traitBonus)) {
+        counts[tid] = (counts[tid] || 0) + n;
+      }
     }
     p.traits = counts;
     return counts;
@@ -767,7 +961,8 @@
           const cell = p.board[r][c];
           if (!cell) continue;
           const st0 = scaledStats(cell.type, cell.star || 1);
-          const st = applyTraitsToStats(st0, traits[pid]);
+          const st1 = applyTraitsToStats(st0, traits[pid]);
+          const st = applyAugmentsToCombatStats(st1, p);
           const pos = boardCellPos(pid, r, c, layout);
           units.push({
             uid: cell.id || `${pid}-${r}-${c}`,
@@ -840,7 +1035,9 @@
     }
     const survivors = (winner === 0 ? rem0 : rem1);
     const starBonus = survivors.reduce((s, u) => s + (u.star || 1), 0);
-    const damage = Math.max(4, Math.min(20, survivors.length * 2 + starBonus + Math.ceil(state.round * 0.7)));
+    let damage = Math.max(4, Math.min(20, survivors.length * 2 + starBonus + Math.ceil(state.round * 0.7)));
+    damage += sumAugmentMeta(state.players[winner], 'playerDmgBonus');
+    damage = Math.min(28, damage);
     return { winner, damage, rem0: rem0.length, rem1: rem1.length };
   }
 
@@ -1142,8 +1339,130 @@
     if (isAuthority()) beginCombat();
   }
 
-  function startRound() {
+  function augmentTierForRound(round) {
+    return AUGMENT_TIER_BY_ROUND[round] || 'silver';
+  }
+
+  function shouldOfferAugment(round = state?.round) {
+    return AUGMENT_ROUNDS.includes(round);
+  }
+
+  function rollAugmentChoices(p, tier) {
+    const owned = new Set(p.augments || []);
+    const pool = Object.values(AUGMENTS).filter((a) => a.tier === tier && !owned.has(a.id));
+    const fallback = Object.values(AUGMENTS).filter((a) => !owned.has(a.id));
+    const use = pool.length >= 3 ? pool : (fallback.length ? fallback : Object.values(AUGMENTS));
+    const seed = hashSeed(`${match.roomId}|aug|${state.round}|p${p.id}|${(p.augments || []).join(',')}`);
+    const rng = mulberry32(seed ^ (state.round * 9973) ^ ((p.id + 1) * 131));
+    const shuffled = use.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 3).map((a) => a.id);
+  }
+
+  function scoreAugmentForCpu(p, augId) {
+    const a = AUGMENTS[augId];
+    if (!a) return -999;
+    let score = a.tier === 'prismatic' ? 40 : a.tier === 'gold' ? 24 : 12;
+    if (a.combat) score += 28;
+    if (a.boardBonus) score += 18 * a.boardBonus;
+    if (a.traitBonus) score += 22;
+    if (a.playerDmgBonus) score += 16;
+    if (a.sellMult) score += 10;
+    if (a.rerollCost != null) score += 8;
+    if (typeof a.instant === 'function') {
+      // Prefer gold when broke, XP when low level.
+      if (a.id.includes('gold') || a.id === 'treasure_trove' || a.id === 'dragon_hoard') {
+        score += p.gold < 12 ? 20 : 8;
+      }
+      if (a.id.includes('training') || a.id.includes('promotion')) {
+        score += p.level < 4 ? 18 : 6;
+      }
+    }
+    if (boardCount(p) <= 0 && a.id === 'scout_contract') score += 25;
+    return score;
+  }
+
+  function applyAugmentPick(p, augId, announce = true) {
+    const a = AUGMENTS[augId];
+    if (!a || !p) return false;
+    if (!Array.isArray(p.augments)) p.augments = [];
+    if (p.augments.includes(augId)) return false;
+    p.augments.push(augId);
+    p.augmentChoices = null;
+    if (typeof a.instant === 'function') a.instant(p);
+    if (announce) pushMsg(`${p.name} chose ${a.name}`);
+    return true;
+  }
+
+  function bothAugmentsPicked() {
+    return state.players.every((p) => !p.augmentChoices || p.augmentChoices.length === 0);
+  }
+
+  function pickAugment(augId, fromPlayerId = match.playerId) {
+    if (!state || state.phase !== 'augment') return false;
+    const p = state.players[fromPlayerId];
+    if (!p?.augmentChoices?.includes(augId)) return false;
+    applyAugmentPick(p, augId, true);
+    if (fromPlayerId === match.playerId) {
+      broadcastAction({ type: 'tft_augment_pick', playerId: fromPlayerId, augmentId: augId });
+      syncArmy(p);
+    }
+    renderHud();
+    if (bothAugmentsPicked()) {
+      if (isAuthority()) beginPlanningPhase();
+    } else if (isAuthority()) {
+      publishAuthState(true);
+    }
+    return true;
+  }
+
+  function autoPickAugments() {
+    for (const p of state.players) {
+      if (!p.augmentChoices?.length) continue;
+      let best = p.augmentChoices[0];
+      let bestScore = -Infinity;
+      for (const id of p.augmentChoices) {
+        const s = scoreAugmentForCpu(p, id);
+        if (s > bestScore) {
+          bestScore = s;
+          best = id;
+        }
+      }
+      applyAugmentPick(p, best, true);
+    }
+  }
+
+  function beginAugmentPhase() {
+    $('tft-howto')?.classList.add('hidden');
+    state.phase = 'augment';
+    state.augmentTimeLeft = AUGMENT_TIME_SEC;
+    state.planTimeLeft = PLAN_TIME_SEC;
+    state.combatUnits = [];
+    state.projectiles = [];
+    state.floatTexts = [];
+    state.combatFinished = false;
+    state.resultApplied = false;
+    state.pendingResult = null;
+    selected = null;
+    waitElapsed = 0;
+    cpuThinkAcc = 0;
+    const tier = augmentTierForRound(state.round);
+    for (const p of state.players) {
+      p.ready = false;
+      p.augmentChoices = rollAugmentChoices(p, tier);
+    }
+    setShellMode('augment');
+    pushMsg(`Round ${state.round} — choose an augment (${tier})!`);
+    renderHud();
+    if (isAuthority()) publishAuthState(true);
+  }
+
+  function beginPlanningPhase() {
     state.phase = 'planning';
+    state.augmentTimeLeft = 0;
     state.combatUnits = [];
     state.projectiles = [];
     state.floatTexts = [];
@@ -1159,6 +1478,7 @@
     waitElapsed = 0;
     for (const p of state.players) {
       p.ready = false;
+      p.augmentChoices = null;
       if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
       p.gold += incomeFor(p);
       rollShop(p);
@@ -1166,7 +1486,13 @@
     pushMsg(`Round ${state.round} — ${PLAN_TIME_SEC}s to shop. Merge 3 copies, place your army, or Ready early.`);
     setShellMode('planning');
     renderHud();
+    showHowtoOnce();
     if (isAuthority()) publishPlanningSnapshot();
+  }
+
+  function startRound() {
+    if (shouldOfferAugment(state.round)) beginAugmentPhase();
+    else beginPlanningPhase();
   }
 
   function endMatch(winnerSlot) {
@@ -1206,7 +1532,8 @@
     const shell = document.querySelector('#tft-game-screen .tft-shell');
     if (!shell) return;
     shell.classList.toggle('is-combat', mode === 'combat');
-    shell.classList.toggle('is-planning', mode === 'planning');
+    shell.classList.toggle('is-planning', mode === 'planning' || mode === 'augment');
+    shell.classList.toggle('is-augment', mode === 'augment');
     shell.classList.toggle('is-result', mode === 'result' || mode === 'gameover');
   }
 
@@ -1244,7 +1571,7 @@
     if (state.phase !== 'planning' || p.ready) return false;
     const unit = getUnitAt(p, ref);
     if (!unit) return false;
-    const gained = sellValue(unit);
+    const gained = sellValue(unit, p);
     setUnitAt(p, ref, null);
     p.gold += gained;
     if (selected && sameRef(selected, ref)) selected = null;
@@ -1294,8 +1621,9 @@
 
   function tryReroll() {
     const p = me();
-    if (state.phase !== 'planning' || p.ready || p.gold < REROLL) return false;
-    p.gold -= REROLL;
+    const cost = rerollCostFor(p);
+    if (state.phase !== 'planning' || p.ready || p.gold < cost) return false;
+    p.gold -= cost;
     rollShop(p);
     syncArmy(p);
     renderHud();
@@ -1379,6 +1707,20 @@
       case 'tft_request_sync':
         if (isAuthority()) publishAuthState(true);
         return true;
+      case 'tft_augment_pick': {
+        const targetId = action.playerId ?? fromPlayerId;
+        const target = state.players[targetId];
+        const augId = action.augmentId;
+        if (target && state.phase === 'augment' && target.augmentChoices?.includes(augId)) {
+          applyAugmentPick(target, augId, true);
+          if (isAuthority()) {
+            publishAuthState(true);
+            if (bothAugmentsPicked()) beginPlanningPhase();
+          }
+          renderHud();
+        }
+        return true;
+      }
       case 'tft_ready':
         if (p) p.ready = !!action.ready;
         if (isAuthority()) publishAuthState(true);
@@ -1508,7 +1850,7 @@
     document.body.classList.add('tft-is-dragging');
     markSource(drag.from);
     const sell = $('tft-sell-zone');
-    if (sell && drag.unit) sell.textContent = `Sell for ${sellValue(drag.unit)}g`;
+    if (sell && drag.unit) sell.textContent = `Sell for ${sellValue(drag.unit, me())}g`;
   }
 
   function highlightSelection() {
@@ -1639,28 +1981,29 @@
     const base = scaledStats(unit.type, star);
     const counts = traitCounts(me());
     const withTraits = applyTraitsToStats({ ...base }, counts);
+    const withAll = applyAugmentsToCombatStats(withTraits, me());
     const traitNames = traitsForType(unit.type).map((t) => t.name);
-    const dps = Math.round(withTraits.damage * withTraits.attackRate);
+    const dps = Math.round(withAll.damage * withAll.attackRate);
     el.innerHTML = `
       <div class="tft-inspect-head">
         <img src="/TDG/portraits/${unit.type}.webp" alt="" />
         <div>
           <div class="tft-inspect-title">${escapeHtml(base.name)} ${starLabel(star)}</div>
-          <div class="tft-inspect-sub">${formatRole(base.role)} · Cost ${base.cost}g · Sell ${sellValue(unit)}g</div>
+          <div class="tft-inspect-sub">${formatRole(base.role)} · Cost ${base.cost}g · Sell ${sellValue(unit, me())}g</div>
         </div>
       </div>
       <div class="tft-inspect-grid">
-        <div><span>HP</span><br><strong>${withTraits.hp}</strong></div>
-        <div><span>Damage</span><br><strong>${withTraits.damage}</strong></div>
-        <div><span>Atk speed</span><br><strong>${withTraits.attackRate.toFixed(2)}/s</strong></div>
+        <div><span>HP</span><br><strong>${withAll.hp}</strong></div>
+        <div><span>Damage</span><br><strong>${withAll.damage}</strong></div>
+        <div><span>Atk speed</span><br><strong>${withAll.attackRate.toFixed(2)}/s</strong></div>
         <div><span>DPS</span><br><strong>${dps}</strong></div>
-        <div><span>Range</span><br><strong>${withTraits.range}</strong></div>
-        <div><span>Move</span><br><strong>${withTraits.speed}</strong></div>
+        <div><span>Range</span><br><strong>${withAll.range}</strong></div>
+        <div><span>Move</span><br><strong>${withAll.speed}</strong></div>
       </div>
       <div class="tft-inspect-traits">
         ${traitNames.length ? `Traits: ${traitNames.join(', ')}` : 'No traits'}
-        ${withTraits.hp !== base.hp || withTraits.damage !== base.damage || Math.abs(withTraits.attackRate - base.attackRate) > 0.001
-          ? `<br><span style="opacity:0.75">Active trait bonuses applied</span>` : ''}
+        ${withAll.hp !== base.hp || withAll.damage !== base.damage || Math.abs(withAll.attackRate - base.attackRate) > 0.001
+          ? `<br><span style="opacity:0.75">Trait / augment bonuses applied</span>` : ''}
       </div>
     `;
   }
@@ -1674,18 +2017,22 @@
     const p = me();
     const o = opp();
     const planning = state.phase === 'planning';
+    const augmenting = state.phase === 'augment';
     const setText = (id, text) => { const el = $(id); if (el) el.textContent = text; };
 
     setText('tft-round-label', `Round ${state.round}`);
     const shopSecs = Math.max(0, Math.ceil(state.planTimeLeft ?? PLAN_TIME_SEC));
+    const augSecs = Math.max(0, Math.ceil(state.augmentTimeLeft ?? 0));
     const phaseEl = $('tft-phase-label');
     if (phaseEl) {
-      phaseEl.textContent = planning
-        ? `Shop · ${shopSecs}s`
-        : state.phase === 'combat' ? `Fight · ${Math.ceil(state.combatElapsed || 0)}s`
-          : state.phase === 'result' ? 'Round result'
-            : 'Game Over';
-      phaseEl.classList.toggle('is-urgent', planning && shopSecs <= 5);
+      phaseEl.textContent = augmenting
+        ? `Augment · ${augSecs}s`
+        : planning
+          ? `Shop · ${shopSecs}s`
+          : state.phase === 'combat' ? `Fight · ${Math.ceil(state.combatElapsed || 0)}s`
+            : state.phase === 'result' ? 'Round result'
+              : 'Game Over';
+      phaseEl.classList.toggle('is-urgent', (planning && shopSecs <= 5) || (augmenting && augSecs <= 5));
     }
     setText('tft-you-hp', String(p.hp));
     setText('tft-them-hp', String(o.hp));
@@ -1695,19 +2042,59 @@
     setText('tft-you-name', p.name);
     setText('tft-them-name', o.name);
     setText('tft-them-ready',
-      isVsCpu()
-        ? (o.ready ? 'CPU ready ✓' : 'CPU shopping…')
-        : (p.ready && o.ready ? 'Both ready'
-          : p.ready ? `Waiting on foe · ${Math.floor(waitElapsed)}s`
-            : o.ready ? 'Foe is ready ✓'
-              : 'Shopping…'));
+      augmenting
+        ? (p.augmentChoices?.length
+          ? (isVsCpu() ? 'Pick an augment' : (o.augmentChoices?.length ? 'Both choosing…' : 'Foe has picked ✓'))
+          : (isVsCpu() ? 'CPU choosing…' : 'Waiting on foe…'))
+        : isVsCpu()
+          ? (o.ready ? 'CPU ready ✓' : 'CPU shopping…')
+          : (p.ready && o.ready ? 'Both ready'
+            : p.ready ? `Waiting on foe · ${Math.floor(waitElapsed)}s`
+              : o.ready ? 'Foe is ready ✓'
+                : 'Shopping…'));
     setText('tft-income-preview', planning ? `+${incomeFor(p)}g next · merge 3× same ★` : '');
+
+    const augOwned = $('tft-augments');
+    if (augOwned) {
+      const list = playerAugments(p);
+      augOwned.innerHTML = list.length
+        ? list.map((a) => `<div class="tft-augment-chip tier-${a.tier}" title="${escapeHtml(a.desc)}">`
+          + `<span class="tft-augment-icon">${a.icon || '◆'}</span>`
+          + `<span class="tft-augment-name">${escapeHtml(a.name)}</span>`
+          + `</div>`).join('')
+        : '<div class="tft-augment-empty">Augments appear on rounds 1, 3, and 5</div>';
+    }
+
+    const augOverlay = $('tft-augment-pick');
+    if (augOverlay) {
+      const choices = augmenting ? (p.augmentChoices || []) : [];
+      const show = augmenting && choices.length > 0;
+      augOverlay.classList.toggle('hidden', !show);
+      if (show) {
+        const tier = augmentTierForRound(state.round);
+        const title = $('tft-augment-title');
+        if (title) title.textContent = `Choose an augment · ${tier}`;
+        const grid = $('tft-augment-choices');
+        if (grid) {
+          grid.innerHTML = choices.map((id) => {
+            const a = AUGMENTS[id];
+            if (!a) return '';
+            return `<button type="button" class="tft-augment-card tier-${a.tier}" data-augment="${a.id}">`
+              + `<span class="tft-augment-card-icon">${a.icon || '◆'}</span>`
+              + `<span class="tft-augment-card-name">${escapeHtml(a.name)}</span>`
+              + `<span class="tft-augment-card-tier">${a.tier}</span>`
+              + `<span class="tft-augment-card-desc">${escapeHtml(a.desc)}</span>`
+              + `</button>`;
+          }).join('');
+        }
+      }
+    }
 
     const sellZone = $('tft-sell-zone');
     if (sellZone) {
       const dragUnit = drag?.unit;
       sellZone.textContent = dragUnit
-        ? `Sell for ${sellValue(dragUnit)}g`
+        ? `Sell for ${sellValue(dragUnit, me())}g`
         : 'Sell zone · drop here';
     }
 
@@ -1801,7 +2188,10 @@
         readyBtn.classList.remove('is-waiting', 'needs-army');
       } else {
         readyBtn.disabled = !planning;
-        if (state.phase === 'combat') readyBtn.textContent = 'Fighting…';
+        if (state.phase === 'augment') {
+          readyBtn.disabled = true;
+          readyBtn.textContent = 'Choose augment';
+        } else if (state.phase === 'combat') readyBtn.textContent = 'Fighting…';
         else if (state.phase === 'result') readyBtn.textContent = 'Round done';
         else if (p.ready) readyBtn.textContent = 'Unready';
         else readyBtn.textContent = boardCount(p) ? 'Ready' : 'Place a unit';
@@ -1809,7 +2199,12 @@
         readyBtn.classList.toggle('needs-army', planning && !p.ready && boardCount(p) <= 0);
       }
     }
-    if ($('tft-reroll-btn')) $('tft-reroll-btn').disabled = !planning || p.ready || p.gold < REROLL || state.phase === 'gameover';
+    const rerollBtn = $('tft-reroll-btn');
+    if (rerollBtn) {
+      const rc = rerollCostFor(p);
+      rerollBtn.textContent = `Reroll (${rc}g)`;
+      rerollBtn.disabled = !planning || p.ready || p.gold < rc || state.phase === 'gameover';
+    }
     if ($('tft-xp-btn')) $('tft-xp-btn').disabled = !planning || p.ready || p.gold < XP_COST || p.level >= MAX_LEVEL || state.phase === 'gameover';
     if ($('tft-forfeit-btn')) $('tft-forfeit-btn').disabled = state.phase === 'gameover';
   }
@@ -2333,7 +2728,8 @@
   }
 
   function cpuReroll(p) {
-    if (cpuRerollsThisRound >= 3 || p.gold < REROLL + 2) return false;
+    const cost = rerollCostFor(p);
+    if (cpuRerollsThisRound >= 3 || p.gold < cost + 2) return false;
     let best = -999;
     for (let i = 0; i < SHOP; i++) best = Math.max(best, cpuScoreShopCard(p, p.shop[i]));
     // Reroll when shop is weak for our win condition.
@@ -2346,7 +2742,7 @@
     const human = state.players[match.playerId];
     const behind = human && cpuBoardPower(p) < cpuBoardPower(human);
     if (!behind && best >= 18 && boardCount(p) >= Math.min(2, boardCap(p))) return false;
-    p.gold -= REROLL;
+    p.gold -= cost;
     rollShop(p);
     cpuRerollsThisRound += 1;
     return true;
@@ -2485,7 +2881,7 @@
     }
     if (worstIdx < 0) return false;
     const unit = p.bench[worstIdx];
-    p.gold += sellValue(unit);
+    p.gold += sellValue(unit, p);
     p.bench[worstIdx] = null;
     return true;
   }
@@ -2552,6 +2948,42 @@
     if (!cpuFinishAndReady(p)) renderHud();
   }
 
+  function tickCpuAugment(dt) {
+    if (!isVsCpu() || state.phase !== 'augment') return;
+    const cpu = cpuPlayer();
+    if (!cpu?.augmentChoices?.length) return;
+    cpuThinkAcc += dt;
+    if (cpuThinkAcc < 0.85) return;
+    cpuThinkAcc = 0;
+    let best = cpu.augmentChoices[0];
+    let bestScore = -Infinity;
+    for (const id of cpu.augmentChoices) {
+      const s = scoreAugmentForCpu(cpu, id);
+      if (s > bestScore) {
+        bestScore = s;
+        best = id;
+      }
+    }
+    applyAugmentPick(cpu, best, true);
+    renderHud();
+    if (bothAugmentsPicked()) beginPlanningPhase();
+  }
+
+  function tickAugmentTimer(dt) {
+    if (!isAuthority() || state.phase !== 'augment') return;
+    const prevCeil = Math.ceil(state.augmentTimeLeft ?? 0);
+    state.augmentTimeLeft = Math.max(0, (state.augmentTimeLeft ?? AUGMENT_TIME_SEC) - dt);
+    const nextCeil = Math.ceil(state.augmentTimeLeft);
+    if (nextCeil !== prevCeil) {
+      renderHud();
+      if (!isVsCpu()) publishAuthState(true);
+    }
+    if (state.augmentTimeLeft <= 0) {
+      autoPickAugments();
+      beginPlanningPhase();
+    }
+  }
+
   function tickCpuPlanning(dt) {
     if (!isVsCpu() || state.phase !== 'planning') return;
     const cpu = cpuPlayer();
@@ -2580,7 +3012,11 @@
 
   function tick(dt) {
     if (!active || !state) return;
-    if (state.phase === 'planning') {
+    if (state.phase === 'augment') {
+      tickCpuAugment(dt);
+      tickAugmentTimer(dt);
+      drawPlanningPreview();
+    } else if (state.phase === 'planning') {
       tickCpuPlanning(dt);
       tickShopTimer(dt);
       if (me().ready || opp().ready) {
@@ -2629,6 +3065,11 @@
     });
     $('tft-reroll-btn')?.addEventListener('click', () => tryReroll());
     $('tft-xp-btn')?.addEventListener('click', () => tryBuyXp());
+    $('tft-augment-choices')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-augment]');
+      if (!btn || state?.phase !== 'augment') return;
+      pickAugment(btn.getAttribute('data-augment'), match.playerId);
+    });
     const howto = $('tft-howto');
     const openHowto = () => howto?.classList.remove('hidden');
     const closeHowto = () => howto?.classList.add('hidden');
@@ -2703,6 +3144,7 @@
       phase: 'planning',
       round: 1,
       planTimeLeft: PLAN_TIME_SEC,
+      augmentTimeLeft: 0,
       players: [freshPlayer(0, match.player0Name), freshPlayer(1, match.player1Name)],
       combatUnits: [],
       projectiles: [],
@@ -2741,6 +3183,7 @@
         state.round = Math.max(1, resumeSnap.round || 1);
         state.phase = resumeSnap.phase || 'planning';
         state.planTimeLeft = resumeSnap.planTimeLeft != null ? resumeSnap.planTimeLeft : PLAN_TIME_SEC;
+        state.augmentTimeLeft = resumeSnap.augmentTimeLeft != null ? resumeSnap.augmentTimeLeft : 0;
         state.combatSeed = resumeSnap.combatSeed || 0;
         state.combatElapsed = resumeSnap.combatElapsed || 0;
         state.combatIntro = resumeSnap.combatIntro || 0;
@@ -2774,7 +3217,6 @@
           ? 'TFT vs CPU — shop, merge, place, then Ready. Tap How to play anytime.'
           : 'TFT Online — shop, merge, place, then Ready. Tap How to play anytime.');
         startRound();
-        showHowtoOnce();
       }
     } else {
       state.phase = 'planning';
@@ -2817,6 +3259,7 @@
     cancelAnimationFrame(raf);
     endDrag(true);
     $('tft-howto')?.classList.add('hidden');
+    $('tft-augment-pick')?.classList.add('hidden');
     state = null;
     match = null;
     ctx = null;
