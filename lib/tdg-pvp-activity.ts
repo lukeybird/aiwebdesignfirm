@@ -1,6 +1,7 @@
 import { sql } from '@/lib/db';
 import { bumpLeaderboardForName } from '@/lib/site-users';
 import { getMatchState } from '@/lib/tdg-pvp';
+import { ensureTdgPresenceTable, listLiveTdgPresence } from '@/lib/tdg-presence';
 
 export type TdgMatchEndReason = 'base_destroyed' | 'forfeit' | 'disconnect' | 'draw';
 
@@ -120,7 +121,8 @@ export async function recordDisconnect(roomId: string, disconnectedSlot: number)
 }
 
 export async function getActivitySnapshot() {
-  const [queueRows, activeRows, recentRows] = await Promise.all([
+  await ensureTdgPresenceTable();
+  const [queueRows, activeRows, recentRows, onlineNow] = await Promise.all([
     sql`
       SELECT player_name, created_at, last_seen_at
       FROM tdg_pvp_queue
@@ -157,6 +159,7 @@ export async function getActivitySnapshot() {
         ended_at: string | Date | null;
       }>
     >,
+    listLiveTdgPresence(),
   ]);
 
   const nameSet = new Set<string>();
@@ -238,6 +241,8 @@ export async function getActivitySnapshot() {
       };
     }),
     players: statsByName,
+    onlineNow,
+    onlineCount: onlineNow.length,
     updatedAt: new Date().toISOString(),
   };
 }

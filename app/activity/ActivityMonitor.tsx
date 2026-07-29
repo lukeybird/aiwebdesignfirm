@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Activity, RefreshCw, Swords, Trophy, Users } from 'lucide-react';
+import { Activity, RefreshCw, Swords, Trophy, Users, Radio } from 'lucide-react';
 
 type PlayerStats = {
   wins: number;
@@ -10,6 +10,15 @@ type PlayerStats = {
   draws: number;
   winRate: number | null;
   lastPlayedAt: string | null;
+};
+
+type OnlineVisitor = {
+  visitorId: string;
+  displayName: string;
+  signedIn: boolean;
+  screen: string;
+  lastSeenAt: string;
+  firstSeenAt: string;
 };
 
 type ActivityData = {
@@ -32,6 +41,8 @@ type ActivityData = {
     endedAt: string | null;
   }>;
   players: Record<string, PlayerStats>;
+  onlineNow?: OnlineVisitor[];
+  onlineCount?: number;
   updatedAt: string;
   profile?: PlayerProfile;
 };
@@ -75,6 +86,33 @@ function formatReason(reason: string | null) {
       return 'Draw';
     default:
       return reason || 'Unknown';
+  }
+}
+
+function formatScreen(screen: string) {
+  switch (screen) {
+    case 'menu':
+      return 'Main menu';
+    case 'tft':
+      return 'TFT';
+    case 'queue':
+      return 'In queue';
+    case 'match':
+      return 'In match';
+    case 'name':
+      return 'Entering name';
+    case 'draft':
+      return 'Draft';
+    case 'survival':
+      return 'Survival setup';
+    case 'manual':
+      return 'Manual';
+    case 'rulebook':
+      return 'Rule book';
+    case 'playing':
+      return 'In game';
+    default:
+      return screen || 'On /TDG';
   }
 }
 
@@ -165,6 +203,9 @@ export default function ActivityMonitor() {
     void loadActivity(null, true);
   };
 
+  const online = data?.onlineNow ?? [];
+  const onlineCount = data?.onlineCount ?? online.length;
+
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7]">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -178,10 +219,10 @@ export default function ActivityMonitor() {
               PvP Activity Monitor
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/60">
-              Live queue pairings, active matches, and completed results with player win/loss records.
+              Who is on /TDG right now, live queue pairings, active matches, and win/loss records.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => void loadActivity(selectedPlayer, true)}
@@ -226,6 +267,58 @@ export default function ActivityMonitor() {
         ) : (
           <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
             <div className="space-y-6">
+              <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    <Radio className="h-5 w-5 text-emerald-400" />
+                    On /TDG now
+                  </h2>
+                  <span className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-sm font-semibold text-emerald-200">
+                    {onlineCount} {onlineCount === 1 ? 'person' : 'people'}
+                  </span>
+                </div>
+                {online.length ? (
+                  <div className="space-y-2">
+                    {online.map((visitor) => (
+                      <div
+                        key={visitor.visitorId}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/25 px-4 py-3"
+                      >
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          {data?.players?.[visitor.displayName] ? (
+                            <PlayerButton
+                              name={visitor.displayName}
+                              stats={data.players[visitor.displayName]}
+                              selected={selectedPlayer === visitor.displayName}
+                              onSelect={handleSelectPlayer}
+                            />
+                          ) : (
+                            <span className="font-medium">{visitor.displayName}</span>
+                          )}
+                          {visitor.signedIn ? (
+                            <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] text-sky-200">
+                              Signed in
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/45">
+                              Guest
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-right text-xs text-white/45">
+                          <div>{formatScreen(visitor.screen)}</div>
+                          <div>seen {formatTime(visitor.lastSeenAt)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/45">
+                    Nobody is on /TDG right now. Open the game in another tab to test live presence.
+                  </p>
+                )}
+              </section>
+
               <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="flex items-center gap-2 text-lg font-semibold">
