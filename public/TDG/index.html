@@ -1659,27 +1659,134 @@
     .tft-stat strong { font-size: 1.25rem; font-family: 'Orbitron', sans-serif; }
 
     .tft-traits-block {
-      flex: 0 1 auto;
-      min-height: 0;
+      flex: 1 1 auto;
+      min-height: 120px;
       overflow-y: auto;
-      max-height: min(28vh, 220px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    .tft-traits-block .tft-label { margin-bottom: 6px; }
-    .tft-traits { display: flex; flex-direction: column; gap: 6px; }
+    .tft-traits-block .tft-label {
+      margin-bottom: 0;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .tft-traits-block .tft-label-sub {
+      font-size: 0.62rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      opacity: 0.55;
+      font-weight: 500;
+    }
+    .tft-traits { display: flex; flex-direction: column; gap: 8px; }
     .tft-trait {
       font-size: 0.72rem;
-      padding: 6px 8px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.05);
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.1);
       line-height: 1.35;
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .tft-trait.is-active { border-color: #c9a227; background: rgba(201,162,39,0.12); }
-    .tft-trait-name { font-weight: 800; color: #e8ebe0; }
+    .tft-trait.is-active {
+      border-color: rgba(240, 216, 120, 0.55);
+      background: linear-gradient(135deg, rgba(201,162,39,0.16), rgba(78,205,196,0.08));
+      box-shadow: inset 0 0 0 1px rgba(240,216,120,0.12);
+    }
+    .tft-trait.is-maxed {
+      border-color: rgba(124, 184, 124, 0.55);
+      background: linear-gradient(135deg, rgba(124,184,124,0.16), rgba(78,205,196,0.08));
+    }
+    .tft-trait-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .tft-trait-name { font-weight: 800; color: #e8ebe0; letter-spacing: 0.02em; }
     .tft-trait.is-active .tft-trait-name { color: #f0d878; }
-    .tft-trait-count { opacity: 0.7; font-weight: 600; margin-left: 4px; }
-    .tft-trait-desc { display: block; margin-top: 2px; opacity: 0.78; font-size: 0.68rem; }
-    .tft-trait-tiers { display: block; margin-top: 3px; opacity: 0.62; font-size: 0.64rem; }
+    .tft-trait.is-maxed .tft-trait-name { color: #b8e0b0; }
+    .tft-trait-count {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      opacity: 0.85;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .tft-trait-bar {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin: 4px 0 6px;
+    }
+    .tft-trait-bar > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #4ECDC4, #f0d878);
+      width: 0%;
+      transition: width 0.35s ease;
+    }
+    .tft-trait.is-maxed .tft-trait-bar > span {
+      background: linear-gradient(90deg, #7cb87c, #4ECDC4);
+    }
+    .tft-trait-buff {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #f0d878;
+      margin-bottom: 2px;
+    }
+    .tft-trait.is-maxed .tft-trait-buff { color: #b8e0b0; }
+    .tft-trait-desc { display: block; opacity: 0.72; font-size: 0.66rem; }
+    .tft-trait-tiers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .tft-trait-tier-chip {
+      font-size: 0.6rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      opacity: 0.55;
+      background: rgba(0,0,0,0.2);
+    }
+    .tft-trait-tier-chip.is-on {
+      opacity: 1;
+      border-color: rgba(240,216,120,0.45);
+      color: #f0d878;
+      background: rgba(240,216,120,0.1);
+    }
+    .tft-trait-tier-chip.is-max {
+      border-color: rgba(124,184,124,0.5);
+      color: #b8e0b0;
+      background: rgba(124,184,124,0.12);
+    }
+
+    .tft-status-toast {
+      flex-shrink: 0;
+      min-height: 1.2em;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      opacity: 0.72;
+      color: #c9d4b8;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: opacity 0.25s ease;
+    }
+    .tft-status-toast.is-fresh {
+      opacity: 1;
+      color: #f0d878;
+      border-color: rgba(240,216,120,0.25);
+    }
 
     .tft-inspect {
       flex-shrink: 0;
@@ -1804,15 +1911,8 @@
     .tft-btn.secondary { opacity: 0.85; }
     .tft-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .tft-log {
-      flex: 1 1 auto;
-      min-height: 64px;
-      font-size: 0.78rem;
-      opacity: 0.85;
-      overflow-y: auto;
-    }
-    .tft-log-line { margin-bottom: 4px; line-height: 1.3; }
-    .tft-hint { flex-shrink: 0; font-size: 0.72rem; opacity: 0.55; line-height: 1.35; }
+    .tft-log { display: none !important; }
+    .tft-hint { display: none !important; }
 
     .tft-item-shop-row { margin-top: 4px; }
     .tft-item-shop {
@@ -2294,10 +2394,11 @@
       transition: min-height 0.35s ease, box-shadow 0.35s ease, border-color 0.25s ease;
     }
     .tft-shell.is-combat .tft-combat-banner { opacity: 0; }
-    .tft-shell.is-combat .tft-log,
-    .tft-shell.is-combat .tft-hint,
-    .tft-shell.is-combat .tft-traits-block { display: none; }
     .tft-shell.is-combat .tft-inspect { min-height: 0; flex-shrink: 0; }
+    .tft-shell.is-combat .tft-traits-block {
+      flex: 1 1 auto;
+      max-height: none;
+    }
     .tft-shell.is-planning .tft-combat-wrap {
       min-height: 180px;
       opacity: 0.9;
@@ -8124,7 +8225,7 @@
                 <li><strong>Shop:</strong> Click a unit once to inspect it, again to buy it (needs gold + a free bench slot).</li>
                 <li><strong>Place:</strong> Drag from the bench onto your board. The Front column faces the enemy; the Back column is safer for ranged.</li>
                 <li><strong>Merge:</strong> Collect 3 copies of the same unit at the same ★ to upgrade it (1★ → 2★ → 3★).</li>
-                <li><strong>Traits:</strong> Matching unit types activate sidebar bonuses (Warrior, Hunter, Beast, Mystic).</li>
+                <li><strong>Traits:</strong> Matching unit types fill the Traits panel. Hit a breakpoint to unlock the buff shown there (Warrior, Hunter, Beast, Mystic).</li>
                 <li><strong>Augments:</strong> On rounds 1, 3, and 5 pick 1 of 3 power-ups (silver → gold → prismatic) before shopping.</li>
                 <li><strong>Items:</strong> Buy components (2g) into your item bag. Click a bag item (it stays selected), then click a unit to equip — or open the unit and tap unequip. Two components on one unit forge a completed item (max 3). Selling a unit returns its items to your bag. Free loot from round 2.</li>
                 <li><strong>Economy:</strong> Reroll the shop for 2g. Buy XP for 4g to raise your level and board size.</li>
@@ -8153,10 +8254,6 @@
                 <div class="tft-label">Augments</div>
                 <div class="tft-augments" id="tft-augments"></div>
               </div>
-              <div class="tft-traits-block">
-                <div class="tft-label">Traits</div>
-                <div class="tft-traits" id="tft-traits"></div>
-              </div>
               <div class="tft-inspect" id="tft-inspect">
                 <div class="tft-inspect-empty">Select a unit to see its stats</div>
               </div>
@@ -8165,8 +8262,11 @@
                 <button type="button" class="tft-btn" id="tft-xp-btn">Buy XP (4g)</button>
                 <button type="button" class="tft-btn primary" id="tft-ready-btn">Ready</button>
               </div>
-              <div class="tft-log" id="tft-log"></div>
-              <p class="tft-hint">Need a refresher? Tap <strong>How to play</strong> above. Buy · merge 3× · frontline faces the enemy · 50s shop timer · Ready early anytime.</p>
+              <div class="tft-traits-block">
+                <div class="tft-label">Traits <span class="tft-label-sub">active buffs</span></div>
+                <div class="tft-traits" id="tft-traits"></div>
+              </div>
+              <div class="tft-status-toast" id="tft-status-toast" aria-live="polite">Shop, place units, then Ready.</div>
             </aside>
             <main class="tft-main">
               <div class="tft-shop-row tft-plan-only">

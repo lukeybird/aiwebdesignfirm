@@ -825,10 +825,16 @@
   }
 
   function pushMsg(text) {
+    if (!state) return;
     state.messages.unshift(text);
     state.messages = state.messages.slice(0, 12);
-    const el = $('tft-log');
-    if (el) el.innerHTML = state.messages.map((m) => `<div class="tft-log-line">${escapeHtml(m)}</div>`).join('');
+    const el = $('tft-status-toast');
+    if (el) {
+      el.textContent = text;
+      el.classList.add('is-fresh');
+      clearTimeout(pushMsg._toastTimer);
+      pushMsg._toastTimer = setTimeout(() => el.classList.remove('is-fresh'), 2200);
+    }
   }
 
   function broadcastAction(action) {
@@ -1129,8 +1135,11 @@
     }
     if (Array.isArray(snap.messages)) {
       state.messages = snap.messages.slice();
-      const el = $('tft-log');
-      if (el) el.innerHTML = state.messages.map((m) => `<div class="tft-log-line">${escapeHtml(m)}</div>`).join('');
+      const el = $('tft-status-toast');
+      if (el && state.messages[0]) {
+        el.textContent = state.messages[0];
+        el.classList.add('is-fresh');
+      }
     }
 
     if (Array.isArray(snap.pairings)) state.pairings = snap.pairings.map((pr) => pr.slice());
@@ -3104,13 +3113,28 @@
       const counts = traitCounts(p);
       traitsEl.innerHTML = Object.entries(TRAITS).map(([id, tr]) => {
         const n = counts[id] || 0;
-        const on = n >= tr.breakpoints[0];
-        const next = tr.breakpoints.find((b) => n < b) || tr.breakpoints[tr.breakpoints.length - 1];
-        return `<div class="tft-trait${on ? ' is-active' : ''}" data-trait="${id}">`
+        const bps = tr.breakpoints || [];
+        const maxBp = bps[bps.length - 1] || 1;
+        const tierIdx = bps.reduce((acc, bp, i) => (n >= bp ? i : acc), -1);
+        const on = tierIdx >= 0;
+        const maxed = n >= maxBp;
+        const next = bps.find((b) => n < b) || maxBp;
+        const pct = Math.max(0, Math.min(100, Math.round((n / maxBp) * 100)));
+        const activeBuff = on ? (tr.tiers?.[tierIdx] || tr.desc) : null;
+        const chips = (tr.tiers || []).map((label, i) => {
+          const hit = n >= bps[i];
+          const isMax = hit && i === bps.length - 1;
+          return `<span class="tft-trait-tier-chip${hit ? ' is-on' : ''}${isMax ? ' is-max' : ''}">${escapeHtml(label)}</span>`;
+        }).join('');
+        return `<div class="tft-trait${on ? ' is-active' : ''}${maxed ? ' is-maxed' : ''}" data-trait="${id}">`
+          + `<div class="tft-trait-top">`
           + `<span class="tft-trait-name">${escapeHtml(tr.name)}</span>`
           + `<span class="tft-trait-count">${n}/${next}</span>`
+          + `</div>`
+          + `<div class="tft-trait-bar" aria-hidden="true"><span style="width:${pct}%"></span></div>`
+          + (activeBuff ? `<span class="tft-trait-buff">${escapeHtml(activeBuff)}</span>` : '')
           + `<span class="tft-trait-desc">${escapeHtml(tr.desc)}</span>`
-          + `<span class="tft-trait-tiers">${escapeHtml((tr.tiers || []).join(' · '))}</span>`
+          + `<div class="tft-trait-tiers">${chips}</div>`
           + `</div>`;
       }).join('');
     }
