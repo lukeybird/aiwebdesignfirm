@@ -6,6 +6,8 @@ import {
   removeQueueSession,
 } from '@/lib/tdg-pvp';
 import { recordDisconnect } from '@/lib/tdg-pvp-activity';
+import { leaveTftLobby, listTftLobbyMembers } from '@/lib/tdg-tft-lobby';
+import { safeTrigger } from '@/lib/pusher';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,16 +22,35 @@ export async function POST(request: NextRequest) {
     await ensureTdgPvpTables();
 
     const row = await findQueueRowByToken(sessionToken);
+
+    // Leaving a TFT lobby before match start — refresh remaining players.
+    if (row?.status === 'waiting_tft') {
+      await leaveTftLobby(sessionToken);
+      return NextResponse.json({ ok: true });
+    }
+
     if (row?.room_id && (row.status === 'matched' || row.status === 'matched_limited' || row.status === 'matched_tft') && row.player_slot !== null) {
       await recordDisconnect(row.room_id, row.player_slot);
     }
 
     const removed = await removeQueueSession(sessionToken);
     if (removed?.room_id) {
-      await notifyOpponentSessionEnded(removed, 'match_cancelled', {
-        reason: 'opponent_left',
-        t: Date.now(),
-      });
+      if (removed.status === 'matched_tft') {
+        const peers = await listTftLobbyMembers(removed.room_id);
+        await Promise.all(
+          peers.map((p) =>
+            safeTrigger(`tdg-player-${p.sessionToken}`, 'match_cancelled', {
+              reason: 'opponent_left',
+              t: Date.now(),
+            }),
+          ),
+        );
+      } else {
+        await notifyOpponentSessionEnded(removed, 'match_cancelled', {
+          reason: 'opponent_left',
+          t: Date.now(),
+        });
+      }
     }
 
     return NextResponse.json({ ok: true });

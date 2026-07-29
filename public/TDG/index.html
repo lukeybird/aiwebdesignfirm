@@ -1621,6 +1621,26 @@
     .tft-vs { opacity: 0.6; font-size: 0.9rem; }
     .tft-hp-block.you strong { color: #4ECDC4; }
     .tft-hp-block.them strong { color: #FF8E53; }
+    .tft-standings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      justify-content: center;
+      font-size: 0.72rem;
+      opacity: 0.9;
+      max-width: min(520px, 92vw);
+      margin: 0 auto 4px;
+    }
+    .tft-standings:empty { display: none; }
+    .tft-standing {
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .tft-standing.is-you { border-color: #4ECDC4; color: #9ff0e8; }
+    .tft-standing.is-out { opacity: 0.4; text-decoration: line-through; }
+    .tft-standing.is-foe { border-color: rgba(255,142,83,0.55); }
 
     .tft-body { flex: 1; display: grid; grid-template-columns: 260px 1fr; min-height: 0; }
 
@@ -8025,9 +8045,16 @@
       <div id="online-queue-screen" class="hidden">
         <div class="online-panel">
           <div class="queue-spinner"></div>
-          <h2>Finding opponent…</h2>
+          <h2 id="online-queue-title">Finding opponent…</h2>
           <p id="online-queue-status">Waiting in queue as <strong id="online-queue-name"></strong></p>
-          <button class="banner-btn secondary" id="btn-online-cancel" type="button">Cancel</button>
+          <p id="online-lobby-meta" class="hidden" style="margin:10px 0 6px;opacity:0.9">
+            Lobby <strong id="online-lobby-count">1</strong>/<span id="online-lobby-max">4</span>
+          </p>
+          <ul id="online-lobby-players" class="hidden" style="list-style:none;padding:0;margin:0 0 12px;text-align:left;max-width:280px;margin-left:auto;margin-right:auto"></ul>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+            <button class="banner-btn hidden" id="btn-online-start-early" type="button">Start early</button>
+            <button class="banner-btn secondary" id="btn-online-cancel" type="button">Cancel</button>
+          </div>
         </div>
       </div>
       <div id="online-match-screen" class="hidden">
@@ -8072,6 +8099,7 @@
               <div class="tft-vs">VS</div>
               <div class="tft-hp-block them"><span id="tft-them-name">Foe</span> · <strong id="tft-them-hp">100</strong> HP</div>
             </div>
+            <div id="tft-standings" class="tft-standings" aria-label="Lobby standings"></div>
             <div class="tft-top-right">
               <span id="tft-them-ready">Shopping…</span>
               <button type="button" class="tft-btn secondary" id="tft-howto-btn">How to play</button>
@@ -8090,8 +8118,8 @@
                 <li><strong>Augments:</strong> On rounds 1, 3, and 5 pick 1 of 3 power-ups (silver → gold → prismatic) before shopping.</li>
                 <li><strong>Items:</strong> Buy components (2g) into your item bag. Click a bag item (it stays selected), then click a unit to equip — or open the unit and tap unequip. Two components on one unit forge a completed item (max 3). Selling a unit returns its items to your bag. Free loot from round 2.</li>
                 <li><strong>Economy:</strong> Reroll the shop for 2g. Buy XP for 4g to raise your level and board size.</li>
-                <li><strong>Ready:</strong> Press Ready when your board is set, or wait for the <strong>50s shop timer</strong>. When both are ready (or time runs out), the fight starts.</li>
-                <li><strong>Combat:</strong> Units fight on their own. The loser of the round loses HP. Reduce the foe to 0 HP to win.</li>
+                <li><strong>Ready:</strong> Press Ready when your board is set, or wait for the <strong>50s shop timer</strong>. When all living players are ready (or time runs out), fights start.</li>
+                <li><strong>Combat:</strong> Alive players are paired each round (bye if odd). Units fight on their own. Losers lose HP. Last player with HP wins.</li>
               </ol>
               <p class="tft-howto-note">Sell tip: right-click a unit (or drop it on the sell zone) to sell it back for gold. Online and vs CPU use the same rules.</p>
               <div class="tft-howto-actions">
@@ -11159,7 +11187,7 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>Game Modes</h3>
     <div class="manual-card"><h4>👥 Two Player</h4><p>Hotseat mode — take turns preparing in secret, then watch the battle together. Destroy the enemy base to win. Rounds continue until one base falls.</p></div>
     <div class="manual-card"><h4>⚔️ Live Battle</h4><p>Live battle vs a strategic AI that banks until 200 gold, then builds economy and defense smartly — but deploys random units. You plan carefully; they think in towers, not troops.</p></div>
-    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler online. Full rules are under <em>How to Play TFT</em> above. Augments on rounds 1/3/5, then a 50s shop timer; Ready early anytime.</p></div>
+    <div class="manual-card"><h4>⚔️ TFT Online</h4><p>League-style auto-battler for 2–4 players. Queue fills to 4 (or host can <em>Start early</em>). Each round alive players are paired — last one standing wins. Full rules under <em>How to Play TFT</em>.</p></div>
     <div class="manual-card"><h4>🤖 TFT vs CPU</h4><p>Same TFT rules against a local CPU that shops for merges/traits and readies each round. Open <strong>How to play</strong> in-match for a quick refresher.</p></div>
     <div class="manual-card"><h4>🃏 Draft Battle</h4><p>Online snake draft: each player picks 10 cards (troops, towers, and spells) in 1–2–2–1 order. Only drafted cards can be unlocked that match — you still pay their unlock costs — then Live Battle begins.</p></div>
     <div class="manual-card"><h4>🧪 Sandbox</h4><p>Live Battle with unlimited gold for both sides. Control Player 1 and Player 2 yourself (P1/P2 buttons or Space) to test any build, upgrade, or matchup.</p></div>

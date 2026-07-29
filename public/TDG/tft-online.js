@@ -607,8 +607,51 @@
     };
   }
 
+  function playerCount() { return state?.players?.length || 2; }
+
   function me() { return state.players[match.playerId]; }
-  function opp() { return state.players[1 - match.playerId]; }
+
+  function myPairing() {
+    const pairs = state?.pairings || [];
+    return pairs.find((pr) => pr[0] === match.playerId || pr[1] === match.playerId) || null;
+  }
+
+  function opp() {
+    const pair = myPairing();
+    if (pair) {
+      const oid = pair[0] === match.playerId ? pair[1] : pair[0];
+      return state.players[oid] || null;
+    }
+    if (playerCount() === 2) return state.players[1 - match.playerId] || null;
+    return null;
+  }
+
+  function alivePlayers() {
+    return (state?.players || []).filter((p) => p && Number(p.hp) > 0);
+  }
+
+  function buildPairings(seedExtra = 0) {
+    const ids = alivePlayers().map((p) => p.id);
+    const seed = hashSeed(`${match.roomId}|pair|${state.round}|${seedExtra}`);
+    const rng = mulberry32(seed);
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    const pairs = [];
+    let bye = null;
+    for (let i = 0; i < ids.length; i += 2) {
+      if (i + 1 >= ids.length) bye = ids[i];
+      else pairs.push([ids[i], ids[i + 1]]);
+    }
+    return { pairs, bye };
+  }
+
+  function fightLabel(leftPid, rightPid) {
+    const a = state.players[leftPid]?.name || `P${leftPid}`;
+    const b = state.players[rightPid]?.name || `P${rightPid}`;
+    return `${a} vs ${b}`;
+  }
 
   function boardCap(p) {
     const bonus = sumAugmentMeta(p, 'boardBonus');
@@ -841,6 +884,10 @@
       resultTimer: state.resultTimer || 0,
       pendingResult: state.pendingResult || null,
       lastCombat: state.lastCombat || null,
+      pairings: Array.isArray(state.pairings) ? state.pairings.map((pr) => pr.slice()) : [],
+      byePid: state.byePid ?? null,
+      fightSides: Array.isArray(state.fightSides) ? state.fightSides.slice() : null,
+      roundResults: Array.isArray(state.roundResults) ? state.roundResults.slice() : [],
       players: state.players.map((p) => serializeArmy(p)),
       combatUnits: (state.phase === 'combat' || state.phase === 'result' || state.phase === 'gameover')
         ? serializeCombatLight()
@@ -970,8 +1017,19 @@
       if (el) el.innerHTML = state.messages.map((m) => `<div class="tft-log-line">${escapeHtml(m)}</div>`).join('');
     }
 
+    if (Array.isArray(snap.pairings)) state.pairings = snap.pairings.map((pr) => pr.slice());
+    if (snap.byePid != null) state.byePid = snap.byePid;
+    if (Array.isArray(snap.fightSides)) state.fightSides = snap.fightSides.slice();
+    if (Array.isArray(snap.roundResults)) state.roundResults = snap.roundResults.slice();
+
     if (Array.isArray(snap.players)) {
-      for (let i = 0; i < 2; i++) {
+      // Grow local roster if host has more players.
+      while (state.players.length < snap.players.length) {
+        const i = state.players.length;
+        const name = snap.players[i]?.name || `Player ${i + 1}`;
+        state.players.push(freshPlayer(i, name));
+      }
+      for (let i = 0; i < snap.players.length; i++) {
         const sp = snap.players[i];
         const lp = state.players[i];
         if (!sp || !lp) continue;
@@ -982,9 +1040,6 @@
         lp.winStreak = sp.winStreak || 0;
         lp.lossStreak = sp.lossStreak || 0;
 
-        // Own board/bench edits stay local until a round/phase boundary.
-        // First auth snap (or phase change) takes the full army including gold.
-        // While planning, only fill a blank shop row from host — never stomp gold.
         const takeArmy = i !== match.playerId || phaseChange || snap.phase !== 'planning';
         if (takeArmy) {
           applyArmySnapshot(lp, sp);
@@ -995,8 +1050,12 @@
       }
     }
 
+    const multiLocalFight = playerCount() > 2 && !!myPairing();
     if (Array.isArray(snap.combatUnits) && (snap.phase === 'combat' || snap.phase === 'result' || snap.phase === 'gameover')) {
-      applyCombatUnitsFromAuth(snap.combatUnits);
+      // In 3–4 player lobbies, each client simulates its own pairing visually.
+      if (!(multiLocalFight && snap.phase === 'combat' && !snap.combatFinished)) {
+        applyCombatUnitsFromAuth(snap.combatUnits);
+      }
     } else if (snap.phase === 'planning') {
       state.combatUnits = [];
       state.projectiles = [];
@@ -1205,25 +1264,33 @@
     };
   }
 
-  function spawnCombatUnits() {
+  function spawnCombatUnits(leftPid = null, rightPid = null) {
     const layout = arenaLayout();
     const units = [];
-    const traits = [traitCounts(state.players[0]), traitCounts(state.players[1])];
+    const sides = [
+      leftPid != null ? leftPid : (state.fightSides?.[0] ?? 0),
+      rightPid != null ? rightPid : (state.fightSides?.[1] ?? 1),
+    ];
+    state.fightSides = sides.slice();
+    const traits = [traitCounts(state.players[sides[0]]), traitCounts(state.players[sides[1]])];
 
-    for (let pid = 0; pid < 2; pid++) {
+    for (let side = 0; side < 2; side++) {
+      const pid = sides[side];
       const p = state.players[pid];
+      if (!p) continue;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const cell = p.board[r][c];
           if (!cell) continue;
           const st0 = scaledStats(cell.type, cell.star || 1);
-          const st1 = applyTraitsToStats(st0, traits[pid]);
+          const st1 = applyTraitsToStats(st0, traits[side]);
           const st2 = applyAugmentsToCombatStats(st1, p);
           const st = applyItemsToCombatStats(st2, cell.items || []);
-          const pos = boardCellPos(pid, r, c, layout);
+          const pos = boardCellPos(side, r, c, layout);
           units.push({
             uid: cell.id || `${pid}-${r}-${c}`,
-            owner: pid,
+            owner: side,
+            sourcePid: pid,
             type: cell.type,
             star: cell.star || 1,
             name: st.name,
@@ -1238,7 +1305,7 @@
             color: st.color,
             x: pos.x,
             y: pos.y,
-            facing: pid === 0 ? 0 : Math.PI,
+            facing: side === 0 ? 0 : Math.PI,
             attackCd: 0.1 + ((hashSeed(String(cell.id || `${pid}-${r}-${c}`)) % 100) / 100) * 0.35,
             attackFlash: 0,
             hitFlash: 0,
@@ -1275,11 +1342,12 @@
     state.floatTexts.push({ x, y, text, color, life: 0.9 });
   }
 
-  function computeResultFromField() {
-    const rem0 = state.combatUnits.filter((u) => u.alive && u.owner === 0);
-    const rem1 = state.combatUnits.filter((u) => u.alive && u.owner === 1);
-    const seed = state.combatSeed || 1;
-    const rng = mulberry32(seed ^ 0xC0FFEE);
+  function computeResultFromField(units = state.combatUnits, sides = state.fightSides, seed = state.combatSeed) {
+    const rem0 = units.filter((u) => u.alive && u.owner === 0);
+    const rem1 = units.filter((u) => u.alive && u.owner === 1);
+    const leftPid = sides?.[0] ?? 0;
+    const rightPid = sides?.[1] ?? 1;
+    const rng = mulberry32((seed || 1) ^ 0xC0FFEE ^ ((leftPid + 1) * 97) ^ ((rightPid + 1) * 193));
     let winner;
     if (rem0.length && !rem1.length) winner = 0;
     else if (rem1.length && !rem0.length) winner = 1;
@@ -1292,10 +1360,68 @@
     }
     const survivors = (winner === 0 ? rem0 : rem1);
     const starBonus = survivors.reduce((s, u) => s + (u.star || 1), 0);
+    const winnerPid = winner === 0 ? leftPid : rightPid;
     let damage = Math.max(4, Math.min(20, survivors.length * 2 + starBonus + Math.ceil(state.round * 0.7)));
-    damage += sumAugmentMeta(state.players[winner], 'playerDmgBonus');
+    damage += sumAugmentMeta(state.players[winnerPid], 'playerDmgBonus');
     damage = Math.min(28, damage);
-    return { winner, damage, rem0: rem0.length, rem1: rem1.length };
+    return {
+      winner,
+      damage,
+      rem0: rem0.length,
+      rem1: rem1.length,
+      leftPid,
+      rightPid,
+      winnerPid,
+      loserPid: winner === 0 ? rightPid : leftPid,
+    };
+  }
+
+  /** Estimate board power for off-screen pairings (deterministic). */
+  function boardFightPower(pid) {
+    const p = state.players[pid];
+    if (!p) return 0;
+    const traits = traitCounts(p);
+    let score = 0.01;
+    let units = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = p.board[r][c];
+        if (!cell) continue;
+        units += 1;
+        const st0 = scaledStats(cell.type, cell.star || 1);
+        const st1 = applyTraitsToStats(st0, traits);
+        const st2 = applyAugmentsToCombatStats(st1, p);
+        const st = applyItemsToCombatStats(st2, cell.items || []);
+        score += st.hp * 0.035 + st.damage * Math.max(0.35, st.attackRate) * 1.15 + (cell.star || 1) * 4;
+      }
+    }
+    return score * (1 + Math.min(6, units) * 0.03);
+  }
+
+  function simulatePairingResult(leftPid, rightPid, seed) {
+    const rng = mulberry32((seed || 1) ^ ((leftPid + 1) * 131) ^ ((rightPid + 1) * 733) ^ (state.round * 17));
+    const p0 = boardFightPower(leftPid);
+    const p1 = boardFightPower(rightPid);
+    let winner = 0;
+    if (Math.abs(p0 - p1) < 0.75) winner = rng() < 0.5 ? 0 : 1;
+    else winner = p0 > p1 ? 0 : 1;
+    const winPower = winner === 0 ? p0 : p1;
+    const losePower = winner === 0 ? p1 : p0;
+    const ratio = winPower / Math.max(1, losePower);
+    let damage = Math.max(4, Math.min(20, Math.round(5 + ratio * 3 + state.round * 0.7)));
+    const winnerPid = winner === 0 ? leftPid : rightPid;
+    damage += sumAugmentMeta(state.players[winnerPid], 'playerDmgBonus');
+    damage = Math.min(28, damage);
+    return {
+      winner,
+      damage,
+      rem0: winner === 0 ? 3 : 1,
+      rem1: winner === 1 ? 3 : 1,
+      leftPid,
+      rightPid,
+      winnerPid,
+      loserPid: winner === 0 ? rightPid : leftPid,
+    };
   }
 
   function tickCombat(dt) {
@@ -1503,39 +1629,76 @@
       state.pendingResult = state.pendingResult || null;
       return;
     }
-    const result = computeResultFromField();
-    state.pendingResult = result;
+    const live = computeResultFromField();
+    let results = Array.isArray(state.roundResults) ? state.roundResults.slice() : [];
+    if (playerCount() <= 2) {
+      // Classic 1v1: live board is the truth.
+      const idx = results.findIndex((r) => r.leftPid === live.leftPid && r.rightPid === live.rightPid);
+      if (idx >= 0) results[idx] = live;
+      else results = [live];
+      state.pendingResult = live;
+    } else {
+      // 3–4 player: shared pairing estimates keep every client on the same HP outcomes.
+      if (!results.length) results = [live];
+      state.pendingResult = results.find((r) => r.leftPid === state.fightSides?.[0] && r.rightPid === state.fightSides?.[1]) || results[0];
+    }
+    state.roundResults = results;
     publishAuthState(true);
-    broadcastAction({ type: 'tft_combat_result', result, armies: [serializeArmy(state.players[0]), serializeArmy(state.players[1])] });
+    broadcastAction({
+      type: 'tft_combat_result',
+      result: live,
+      results,
+      armies: state.players.map((p) => serializeArmy(p)),
+    });
     setTimeout(() => {
-      applyCombatResult(result);
+      applyCombatResults(results);
       publishAuthState(true);
     }, 1100);
   }
 
-  function applyCombatResult(result) {
-    if (!result || !state) return;
-    if (state.phase !== 'combat' && state.phase !== 'result') return;
-    if (state.resultApplied) return;
-    state.resultApplied = true;
-    state.combatFinished = true;
-    state.pendingResult = result;
-    const loser = result.winner === 0 ? 1 : 0;
-    const win = result.winner;
+  function applyOneFightResult(result, announce = true) {
+    if (!result) return;
+    const win = result.winnerPid != null ? result.winnerPid : (result.winner === 0 ? (result.leftPid ?? 0) : (result.rightPid ?? 1));
+    const loser = result.loserPid != null ? result.loserPid : (win === (result.leftPid ?? 0) ? (result.rightPid ?? 1) : (result.leftPid ?? 0));
+    if (!state.players[win] || !state.players[loser]) return;
+    if (state.players[loser].hp <= 0) return;
     state.players[loser].hp = Math.max(0, state.players[loser].hp - result.damage);
     state.players[win].winStreak += 1;
     state.players[win].lossStreak = 0;
     state.players[loser].lossStreak += 1;
     state.players[loser].winStreak = 0;
-    state.lastCombat = result;
+    if (announce) {
+      pushMsg(`${state.players[win].name} wins! ${state.players[loser].name} −${result.damage} HP (${state.players[loser].hp})`);
+    }
+  }
+
+  function applyCombatResult(result) {
+    applyCombatResults(result ? [result] : []);
+  }
+
+  function applyCombatResults(results) {
+    if (!state) return;
+    if (state.phase !== 'combat' && state.phase !== 'result') return;
+    if (state.resultApplied) return;
+    state.resultApplied = true;
+    state.combatFinished = true;
+    const list = Array.isArray(results) && results.length
+      ? results
+      : (Array.isArray(state.roundResults) ? state.roundResults : []);
+    state.pendingResult = list[0] || state.pendingResult;
+    state.lastCombat = list[0] || null;
+    for (const r of list) applyOneFightResult(r, true);
+    if (state.byePid != null && state.players[state.byePid]?.hp > 0) {
+      pushMsg(`${state.players[state.byePid].name} has a bye this round.`);
+    }
     state.phase = 'result';
     state.resultTimer = 3.2;
-    pushMsg(`${state.players[win].name} wins! ${state.players[loser].name} −${result.damage} HP (${state.players[loser].hp})`);
     setShellMode('result');
     renderHud();
     if (isAuthority()) publishAuthState(true);
-    if (state.players[0].hp <= 0 || state.players[1].hp <= 0) {
-      endMatch(state.players[0].hp <= 0 ? 1 : 0);
+    const living = alivePlayers();
+    if (living.length <= 1) {
+      endMatch(living[0]?.id ?? match.playerId);
     }
   }
 
@@ -1548,24 +1711,84 @@
     state.combatFinished = false;
     state.pendingResult = null;
     state.combatSeed = opts.seed || hashSeed(`${match.roomId}|combat|${state.round}`);
+    const planned = opts.pairings
+      ? { pairs: opts.pairings, bye: opts.byePid ?? null }
+      : buildPairings(state.combatSeed);
+    state.pairings = planned.pairs;
+    state.byePid = planned.bye;
+    state.roundResults = [];
+
+    // Host resolves every pairing (live fight for local view; estimates for others).
+    if (isAuthority() && !opts.fromRemote) {
+      for (const pair of state.pairings) {
+        const pairSeed = hashSeed(`${match.roomId}|fight|${state.round}|${pair[0]}|${pair[1]}|${state.combatSeed}`);
+        state.roundResults.push(simulatePairingResult(pair[0], pair[1], pairSeed));
+      }
+    } else if (Array.isArray(opts.results)) {
+      state.roundResults = opts.results.slice();
+    }
+
+    const myPair = myPairing();
+    if (myPair) {
+      state.fightSides = [myPair[0], myPair[1]];
+    } else if (state.pairings[0]) {
+      state.fightSides = state.pairings[0].slice();
+    } else {
+      state.fightSides = [match.playerId, match.playerId];
+    }
+
     setShellMode('combat');
     resizeCanvas();
-    spawnCombatUnits();
+
+    const onBye = state.byePid === match.playerId || !myPair;
+    if (onBye && playerCount() > 2) {
+      state.combatUnits = [];
+      state.projectiles = [];
+      state.floatTexts = [];
+      state.combatElapsed = 0;
+      state.combatIntro = 0;
+      pushMsg(state.byePid === match.playerId
+        ? 'Bye round — you rest while others fight.'
+        : 'Watching other matchups…');
+      renderHud();
+      if (isAuthority() && !opts.fromRemote) {
+        broadcastAction({
+          type: 'tft_combat_start',
+          seed: state.combatSeed,
+          pairings: state.pairings,
+          byePid: state.byePid,
+          results: state.roundResults,
+          armies: state.players.map((p) => serializeArmy(p)),
+        });
+        publishAuthState(true);
+        setTimeout(() => {
+          if (!active || !state || state.phase !== 'combat') return;
+          applyCombatResults(state.roundResults);
+          publishAuthState(true);
+        }, 2200);
+      }
+      return;
+    }
+
+    spawnCombatUnits(state.fightSides[0], state.fightSides[1]);
     requestAnimationFrame(() => {
       if (!active || !state || state.phase !== 'combat') return;
       resizeCanvas();
-      if (!state.combatUnits?.length) spawnCombatUnits();
+      if (!state.combatUnits?.length) spawnCombatUnits(state.fightSides[0], state.fightSides[1]);
       drawCombat();
       if (isAuthority()) publishAuthState(true);
     });
-    pushMsg('Battle — left vs right!');
+    pushMsg(`Battle — ${fightLabel(state.fightSides[0], state.fightSides[1])}!`);
     sfx('fight');
     renderHud();
     if (isAuthority() && !opts.fromRemote) {
       broadcastAction({
         type: 'tft_combat_start',
         seed: state.combatSeed,
-        armies: [serializeArmy(state.players[0]), serializeArmy(state.players[1])],
+        pairings: state.pairings,
+        byePid: state.byePid,
+        results: state.roundResults,
+        armies: state.players.map((p) => serializeArmy(p)),
       });
       publishAuthState(true);
     }
@@ -1954,16 +2177,22 @@
 
   function checkPlanningEnd() {
     if (state.phase !== 'planning') return;
-    if (!(state.players[0].ready && state.players[1].ready)) return;
+    const living = alivePlayers();
+    if (!living.length || !living.every((p) => p.ready)) return;
     // Only the host starts combat; guest waits for tft_combat_start / auth state.
     if (isAuthority()) beginCombat();
   }
 
   function applyRemoteArmies(armies) {
     if (!armies) return;
-    for (let i = 0; i < 2; i++) {
+    while (state.players.length < armies.length) {
+      const i = state.players.length;
+      state.players.push(freshPlayer(i, armies[i]?.name || `Player ${i + 1}`));
+    }
+    for (let i = 0; i < armies.length; i++) {
       const snap = armies[i];
       if (!snap) continue;
+      if (!state.players[i]) continue;
       // Never let a stale empty snapshot wipe our local board.
       if (i === match.playerId && snapBoardCount(snap) < boardCount(state.players[i])) continue;
       applyArmySnapshot(state.players[i], snap);
@@ -2012,20 +2241,40 @@
       case 'tft_combat_start':
         if (!isAuthority() && (state.phase === 'planning' || state.phase === 'result' || state.phase === 'combat')) {
           applyRemoteArmies(action.armies);
-          beginCombat({ seed: action.seed, fromRemote: true, force: true });
+          beginCombat({
+            seed: action.seed,
+            fromRemote: true,
+            force: true,
+            pairings: action.pairings,
+            byePid: action.byePid,
+            results: action.results,
+          });
         }
         return true;
       case 'tft_combat_result':
         if (isAuthority()) return true;
         if (state.phase === 'planning') {
           applyRemoteArmies(action.armies);
-          beginCombat({ force: true, fromRemote: true, seed: action.seed });
+          beginCombat({
+            force: true,
+            fromRemote: true,
+            seed: action.seed,
+            pairings: action.pairings,
+            byePid: action.byePid,
+            results: action.results,
+          });
         }
         // Host result is the only HP truth — ignore any local guess.
-        if (action.result && (state.phase === 'combat' || state.phase === 'result')) {
-          state.combatFinished = true;
-          state.pendingResult = action.result;
-          setTimeout(() => applyCombatResult(action.result), state.phase === 'result' ? 0 : 400);
+        {
+          const results = Array.isArray(action.results) && action.results.length
+            ? action.results
+            : (action.result ? [action.result] : null);
+          if (results && (state.phase === 'combat' || state.phase === 'result')) {
+            state.combatFinished = true;
+            state.pendingResult = results[0];
+            state.roundResults = results;
+            setTimeout(() => applyCombatResults(results), state.phase === 'result' ? 0 : 400);
+          }
         }
         return true;
       default:
@@ -2356,6 +2605,8 @@
     const planning = state.phase === 'planning';
     const augmenting = state.phase === 'augment';
     const setText = (id, text) => { const el = $(id); if (el) el.textContent = text; };
+    const living = alivePlayers();
+    const readyCount = living.filter((x) => x.ready).length;
 
     setText('tft-round-label', `Round ${state.round}`);
     const shopSecs = Math.max(0, Math.ceil(state.planTimeLeft ?? PLAN_TIME_SEC));
@@ -2372,23 +2623,35 @@
       phaseEl.classList.toggle('is-urgent', (planning && shopSecs <= 5) || (augmenting && augSecs <= 5));
     }
     setText('tft-you-hp', String(p.hp));
-    setText('tft-them-hp', String(o.hp));
+    setText('tft-them-hp', o ? String(o.hp) : '—');
     setText('tft-gold', String(p.gold));
     setText('tft-level', `Lv ${p.level} (${p.xp}/${LEVEL_XP[p.level] ?? 'MAX'})`);
     setText('tft-board-cap', `${boardCount(p)}/${boardCap(p)}`);
     setText('tft-you-name', p.name);
-    setText('tft-them-name', o.name);
+    setText('tft-them-name', o ? o.name : (state.byePid === match.playerId ? 'BYE' : 'Lobby'));
+    const standings = $('tft-standings');
+    if (standings) {
+      standings.innerHTML = state.players.map((pl) => {
+        const cls = [
+          'tft-standing',
+          pl.id === match.playerId ? 'is-you' : '',
+          o && pl.id === o.id ? 'is-foe' : '',
+          pl.hp <= 0 ? 'is-out' : '',
+        ].filter(Boolean).join(' ');
+        return `<span class="${cls}">${escapeHtml(pl.name)} ${pl.hp}</span>`;
+      }).join('');
+    }
     setText('tft-them-ready',
       augmenting
         ? (p.augmentChoices?.length
-          ? (isVsCpu() ? 'Pick an augment' : (o.augmentChoices?.length ? 'Both choosing…' : 'Foe has picked ✓'))
-          : (isVsCpu() ? 'CPU choosing…' : 'Waiting on foe…'))
+          ? (isVsCpu() ? 'Pick an augment' : (living.some((x) => x.id !== match.playerId && x.augmentChoices?.length) ? 'Players choosing…' : 'Others picked ✓'))
+          : (isVsCpu() ? 'CPU choosing…' : 'Waiting on lobby…'))
         : isVsCpu()
-          ? (o.ready ? 'CPU ready ✓' : 'CPU shopping…')
-          : (p.ready && o.ready ? 'Both ready'
-            : p.ready ? `Waiting on foe · ${Math.floor(waitElapsed)}s`
-              : o.ready ? 'Foe is ready ✓'
-                : 'Shopping…'));
+          ? (o?.ready ? 'CPU ready ✓' : 'CPU shopping…')
+          : (readyCount >= living.length && living.length
+            ? 'All ready'
+            : p.ready ? `Waiting ${readyCount}/${living.length} · ${Math.floor(waitElapsed)}s`
+              : `Shopping… ${readyCount}/${living.length} ready`));
     setText('tft-income-preview', planning ? `+${incomeFor(p)}g next · merge 3× same ★` : '');
 
     const augOwned = $('tft-augments');
@@ -3628,18 +3891,28 @@
     } else if (state.phase === 'planning') {
       tickCpuPlanning(dt);
       tickShopTimer(dt);
-      if (me().ready || opp().ready) {
+      const o = opp();
+      if (me().ready || (o && o.ready) || alivePlayers().some((p) => p.ready)) {
         waitElapsed += dt;
         if (Math.floor(waitElapsed) !== Math.floor(waitElapsed - dt)) renderHud();
       }
       drawPlanningPreview();
     } else if (state.phase === 'combat') {
-      if (isAuthority()) {
+      const localMulti = playerCount() > 2 && !!myPairing() && !isAuthority();
+      if (isAuthority() || localMulti) {
+        // Guests in 3–4p lobbies sim their own pairing for visuals; HP still host-owned.
+        const finishedBefore = state.combatFinished;
         tickCombat(dt);
-        authSyncAcc += dt;
-        if (authSyncAcc >= AUTH_SYNC_MS / 1000) {
-          authSyncAcc = 0;
-          publishAuthState(false);
+        if (localMulti && state.combatFinished && !finishedBefore) {
+          // Don't apply HP locally — wait for host results.
+          state.combatFinished = true;
+        }
+        if (isAuthority()) {
+          authSyncAcc += dt;
+          if (authSyncAcc >= AUTH_SYNC_MS / 1000) {
+            authSyncAcc = 0;
+            publishAuthState(false);
+          }
         }
       } else {
         tickGuestCombatVisual(dt);
@@ -3729,13 +4002,7 @@
         return;
       }
       window.TDG_PVP?.forfeitMatch?.();
-      // Host publishes defeat so guest also ends; local end is immediate.
-      if (isAuthority()) {
-        state.players[match.playerId].hp = 0;
-        endMatch(1 - match.playerId);
-      } else {
-        endMatch(1 - match.playerId);
-      }
+      applyForfeit(match.playerId);
     });
 
     const screen = $('tft-game-screen');
@@ -3769,20 +4036,42 @@
   function start(opts) {
     cleanup(false);
     const vsCpu = !!opts.vsCpu;
+    const roster = Array.isArray(opts.roster) && opts.roster.length >= 2
+      ? opts.roster.slice().sort((a, b) => Number(a.slot) - Number(b.slot))
+      : [
+        { slot: 0, name: opts.player0Name || 'You' },
+        { slot: 1, name: opts.player1Name || (vsCpu ? 'CPU' : 'Player 2') },
+      ];
+    const myId = Number.isFinite(Number(opts.myPlayerId)) ? Number(opts.myPlayerId) : 0;
+    const hostSlot = Math.min(...roster.map((r) => Number(r.slot)));
     match = {
-      playerId: opts.myPlayerId === 1 ? 1 : 0,
-      isHost: vsCpu ? true : !!opts.isHost,
+      playerId: myId,
+      isHost: vsCpu ? true : (opts.isHost != null ? !!opts.isHost : myId === hostSlot),
       vsCpu,
       roomId: opts.roomId || (vsCpu ? 'local-cpu' : 'local'),
-      player0Name: opts.player0Name || 'You',
-      player1Name: opts.player1Name || (vsCpu ? 'CPU' : 'Player 2'),
+      player0Name: roster.find((r) => Number(r.slot) === 0)?.name || opts.player0Name || 'You',
+      player1Name: roster.find((r) => Number(r.slot) === 1)?.name || opts.player1Name || (vsCpu ? 'CPU' : 'Player 2'),
+      roster,
     };
+    const players = [];
+    for (const r of roster) {
+      const slot = Number(r.slot);
+      players[slot] = freshPlayer(slot, r.name || `Player ${slot + 1}`);
+    }
+    // Dense array (fill holes if slots skipped)
+    for (let i = 0; i < players.length; i++) {
+      if (!players[i]) players[i] = freshPlayer(i, `Player ${i + 1}`);
+    }
     state = {
       phase: 'planning',
       round: 1,
       planTimeLeft: PLAN_TIME_SEC,
       augmentTimeLeft: 0,
-      players: [freshPlayer(0, match.player0Name), freshPlayer(1, match.player1Name)],
+      players,
+      pairings: [],
+      byePid: null,
+      fightSides: [0, 1],
+      roundResults: [],
       combatUnits: [],
       projectiles: [],
       floatTexts: [],
@@ -3830,7 +4119,15 @@
         state.pendingResult = resumeSnap.pendingResult || null;
         state.lastCombat = resumeSnap.lastCombat || null;
         if (Array.isArray(resumeSnap.messages)) state.messages = resumeSnap.messages.slice();
-        for (let i = 0; i < 2; i++) applyArmySnapshot(state.players[i], resumeSnap.players[i]);
+        while (state.players.length < resumeSnap.players.length) {
+          const i = state.players.length;
+          state.players.push(freshPlayer(i, resumeSnap.players[i]?.name || `Player ${i + 1}`));
+        }
+        for (let i = 0; i < resumeSnap.players.length; i++) applyArmySnapshot(state.players[i], resumeSnap.players[i]);
+        if (Array.isArray(resumeSnap.pairings)) state.pairings = resumeSnap.pairings;
+        if (resumeSnap.byePid != null) state.byePid = resumeSnap.byePid;
+        if (Array.isArray(resumeSnap.fightSides)) state.fightSides = resumeSnap.fightSides;
+        if (Array.isArray(resumeSnap.roundResults)) state.roundResults = resumeSnap.roundResults;
         // Guard against corrupt snaps wiping economy.
         for (const p of state.players) {
           if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
@@ -3905,9 +4202,16 @@
 
   function applyForfeit(loserSlot) {
     if (!active || !state) return;
-    const loser = loserSlot === 1 ? 1 : 0;
-    if (state.players[loser]) state.players[loser].hp = 0;
-    endMatch(1 - loser);
+    const loser = Number(loserSlot);
+    if (!Number.isFinite(loser) || !state.players[loser]) return;
+    state.players[loser].hp = 0;
+    const living = alivePlayers();
+    if (living.length <= 1) endMatch(living[0]?.id ?? (loser === 0 ? 1 : 0));
+    else {
+      pushMsg(`${state.players[loser].name} forfeited.`);
+      renderHud();
+      if (isAuthority()) publishAuthState(true);
+    }
   }
 
   window.TFT_ONLINE = {

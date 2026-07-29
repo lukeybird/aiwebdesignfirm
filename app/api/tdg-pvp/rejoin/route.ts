@@ -10,6 +10,8 @@ import {
   touchQueueSession,
 } from '@/lib/tdg-pvp';
 import { mintTdgJoinTicket } from '@/lib/tdg-join-ticket';
+import { listTftLobbyMembers } from '@/lib/tdg-tft-lobby';
+import { sql } from '@/lib/db';
 
 /**
  * Rejoin an active match by room id + session token (from ?game= URL).
@@ -36,7 +38,6 @@ export async function POST(request: NextRequest) {
 
     let row = await findQueueRowByRoomAndToken(roomId, sessionToken);
     if (!row) {
-      // Token still valid for this room under a slightly stale lookup path.
       const byToken = await findQueueRowByToken(sessionToken);
       if (byToken?.room_id === roomId) row = byToken;
     }
@@ -49,39 +50,69 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Game is no longer active.' }, { status: 410 });
     }
 
-    const opponent = row.opponent_token ? await findQueueRowByToken(row.opponent_token) : null;
-    const opponentAlive = opponent ? await isQueueSessionAlive(opponent) : false;
+    const flags = matchedModeFlags(row.status);
     const snap = await getMatchState(roomId);
+    const stateMode = snap?.mode;
+    const limited = flags.limited || stateMode === 'limited' || stateMode === 'limited_draft';
+    const tft = flags.tft || stateMode === 'tft';
 
-    // Allow rejoin if opponent is still in the room, or we at least have a saved snapshot
-    // while the room rows still exist (host may be mid-refresh).
-    if (!opponent || (!opponentAlive && !snap)) {
-      return NextResponse.json(
-        { error: 'Opponent left or the match timed out.' },
-        { status: 410 },
-      );
+    let opponentAlive = false;
+    let opponentName = row.opponent_name || '';
+
+    if (tft) {
+      const peers = await listTftLobbyMembers(roomId);
+      const others = peers.filter((p) => p.sessionToken !== sessionToken);
+      opponentAlive = others.length > 0;
+      opponentName = others.map((p) => p.playerName).join(', ') || opponentName;
+      if (!opponentAlive && !snap) {
+        return NextResponse.json(
+          { error: 'Other players left or the match timed out.' },
+          { status: 410 },
+        );
+      }
+      for (const p of peers) await touchQueueSession(p.sessionToken);
+    } else {
+      const opponent = row.opponent_token ? await findQueueRowByToken(row.opponent_token) : null;
+      opponentAlive = opponent ? await isQueueSessionAlive(opponent) : false;
+      if (!opponent || (!opponentAlive && !snap)) {
+        return NextResponse.json(
+          { error: 'Opponent left or the match timed out.' },
+          { status: 410 },
+        );
+      }
+      await touchQueueSession(sessionToken);
+      if (opponent.session_token) await touchQueueSession(opponent.session_token);
     }
-
-    await touchQueueSession(sessionToken);
-    if (opponent.session_token) await touchQueueSession(opponent.session_token);
 
     const startsAt = Date.now() + 1200;
     const joinTicket =
-      row.player_slot === 0 || row.player_slot === 1
+      !tft && (row.player_slot === 0 || row.player_slot === 1)
         ? mintTdgJoinTicket({
             roomId: row.room_id,
             sessionToken: row.session_token,
-            playerSlot: row.player_slot as 0 | 1,
+            playerSlot: row.player_slot,
             playerName: row.player_name,
-            opponentName: row.opponent_name || undefined,
+            opponentName: opponentName || undefined,
             startsAt,
           })
         : null;
 
-    const flags = matchedModeFlags(row.status);
-    const stateMode = snap?.mode;
-    const limited = flags.limited || stateMode === 'limited' || stateMode === 'limited_draft';
-    const tft = flags.tft || stateMode === 'tft';
+    let roster: Array<{ slot: number; name: string }> | undefined;
+    let isHost = row.player_slot === 0;
+    if (tft) {
+      const peers = (await sql`
+        SELECT player_slot, player_name
+        FROM tdg_pvp_queue
+        WHERE room_id = ${roomId}
+          AND status = 'matched_tft'
+        ORDER BY player_slot ASC
+      `) as unknown as Array<{ player_slot: number; player_name: string }>;
+      roster = peers.map((p) => ({ slot: Number(p.player_slot), name: p.player_name }));
+      if (roster.length) {
+        const hostSlot = Math.min(...roster.map((p) => p.slot));
+        isHost = row.player_slot === hostSlot;
+      }
+    }
 
     return NextResponse.json({
       status: 'matched',
@@ -89,14 +120,15 @@ export async function POST(request: NextRequest) {
       sessionToken: row.session_token,
       roomId: row.room_id,
       playerId: row.player_slot,
-      opponentName: row.opponent_name,
-      isHost: row.player_slot === 0,
+      opponentName,
+      isHost,
       playerName: row.player_name,
       startsAt,
       joinTicket,
       serverAuth: Boolean(joinTicket),
       limited,
       tft,
+      roster,
       state: snap?.state ?? null,
       stateUpdatedAt: snap?.updated_at ?? null,
     });

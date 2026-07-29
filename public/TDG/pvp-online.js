@@ -257,6 +257,15 @@
         handleSessionExpired('Your queue session expired. Please find a match again.');
         return false;
       }
+      if (data.lobby && (queueMode === 'tft' || session?.tft || data.tft)) {
+        if (typeof data.isHost === 'boolean' && session) session.isHost = data.isHost;
+        if (typeof data.playerId === 'number' && session) session.playerId = data.playerId;
+        if (session) {
+          session.lobby = data.lobby;
+          saveSession(session);
+        }
+        updateLobbyUi(data.lobby, { isHost: data.isHost ?? session?.isHost, tft: true });
+      }
       return true;
     } catch {
       return true;
@@ -503,7 +512,7 @@
       if (desc) desc.textContent = 'Snake-draft 10 cards each, then fight online. Drafted cards still cost gold to unlock. Draft Battle players only match other Draft Battle players.';
     } else if (queueMode === 'tft') {
       if (title) title.textContent = '⚔️ TFT Online';
-      if (desc) desc.textContent = 'Auto-battler online: shop each round, place units on your board, stack traits, and reduce enemy HP to zero.';
+      if (desc) desc.textContent = 'Up to 4 players. Fill the lobby or start early with 2+. Each round alive players are paired — last standing wins.';
     } else {
       if (title) title.textContent = '🌐 Online PvP';
       if (desc) desc.textContent = 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.';
@@ -530,6 +539,82 @@
     show($('online-queue-screen'));
     const label = $('online-queue-name');
     if (label) label.textContent = name;
+    const title = $('online-queue-title');
+    if (title) title.textContent = queueMode === 'tft' ? 'TFT lobby…' : 'Finding opponent…';
+    updateLobbyUi(null);
+  }
+
+  function updateLobbyUi(lobby, opts = {}) {
+    const meta = $('online-lobby-meta');
+    const list = $('online-lobby-players');
+    const countEl = $('online-lobby-count');
+    const maxEl = $('online-lobby-max');
+    const startBtn = $('btn-online-start-early');
+    const isTft = queueMode === 'tft' || session?.tft || opts.tft;
+
+    if (!isTft || !lobby) {
+      meta?.classList.add('hidden');
+      list?.classList.add('hidden');
+      startBtn?.classList.add('hidden');
+      if (list) list.innerHTML = '';
+      return;
+    }
+
+    meta?.classList.remove('hidden');
+    list?.classList.remove('hidden');
+    if (countEl) countEl.textContent = String(lobby.count ?? lobby.players?.length ?? 0);
+    if (maxEl) maxEl.textContent = String(lobby.max ?? 4);
+
+    if (list) {
+      const players = Array.isArray(lobby.players) ? lobby.players : [];
+      const hostSlot = players.length ? Math.min(...players.map((x) => Number(x.slot))) : 0;
+      list.innerHTML = players.map((p) => {
+        const you = Number(p.slot) === Number(session?.playerId);
+        const isHostSeat = Number(p.slot) === hostSlot;
+        const tags = [you ? 'you' : null, isHostSeat ? 'host' : null].filter(Boolean).join(', ');
+        return `<li style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08)">${escapeLobbyHtml(p.name || 'Player')}${tags ? ` <span style="opacity:0.65">(${tags})</span>` : ''}</li>`;
+      }).join('') || '<li style="opacity:0.7">Waiting for players…</li>';
+    }
+
+    const canStart = !!(lobby.canStartEarly && (opts.isHost ?? session?.isHost));
+    if (startBtn) {
+      startBtn.classList.toggle('hidden', !canStart);
+      startBtn.disabled = !canStart;
+      startBtn.textContent = `Start early (${lobby.count}/${lobby.max})`;
+    }
+  }
+
+  function escapeLobbyHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function startLobbyEarly() {
+    if (!session?.sessionToken || !session?.roomId) return;
+    const btn = $('btn-online-start-early');
+    if (btn) btn.disabled = true;
+    try {
+      const result = await fetchJson('/api/tdg-pvp/lobby-start', {
+        method: 'POST',
+        body: JSON.stringify({
+          sessionToken: session.sessionToken,
+          roomId: session.roomId,
+        }),
+      });
+      if (result.status === 'matched') {
+        handleMatchFound({
+          ...result,
+          sessionToken: session.sessionToken,
+          playerName: result.playerName || session.playerName,
+        });
+      }
+    } catch (err) {
+      alert(err.message || 'Could not start lobby.');
+      if (btn) btn.disabled = false;
+    }
   }
 
   function showMatchScreen(youName, themName) {
@@ -539,7 +624,7 @@
     const you = $('online-you-name');
     const them = $('online-them-name');
     if (you) you.textContent = youName;
-    if (them) them.textContent = themName;
+    if (them) them.textContent = themName || 'Lobby';
   }
 
   function hideOnlineScreens() {
@@ -584,8 +669,24 @@
       handleMatchFound({
         ...data,
         sessionToken: token,
-        playerName: session?.playerName || data.opponentName,
+        playerName: session?.playerName || data.playerName || data.opponentName,
       });
+    });
+    playerChannel.bind('lobby_update', (data) => {
+      if (!session) return;
+      if (typeof data.playerId === 'number') session.playerId = data.playerId;
+      if (typeof data.isHost === 'boolean') session.isHost = data.isHost;
+      if (data.roomId) session.roomId = data.roomId;
+      session.lobby = {
+        roomId: data.roomId || session.roomId,
+        count: data.count,
+        max: data.max,
+        minStart: data.minStart,
+        canStartEarly: data.canStartEarly,
+        players: data.players || [],
+      };
+      saveSession(session);
+      updateLobbyUi(session.lobby, { isHost: session.isHost, tft: true });
     });
     playerChannel.bind('match_cancelled', () => {
       handleMatchCancelled();
@@ -725,13 +826,22 @@
     }
 
     if (tft) {
+      // TFT lobbies use Pusher host sync (game WS is 1v1-only).
+      match.serverAuth = false;
+      const roster = Array.isArray(match.roster) && match.roster.length
+        ? match.roster
+        : (session?.roster || [
+          { slot: 0, name: match.playerId === 0 ? match.playerName : 'P1' },
+          { slot: 1, name: match.playerId === 1 ? match.playerName : (match.opponentName || 'P2') },
+        ]);
       runCountdown(startsAt, () => {
         window.TFT_ONLINE?.start({
-          player0Name: p0,
-          player1Name: p1,
           myPlayerId: myId,
           isHost: match.isHost,
           roomId: match.roomId,
+          roster,
+          player0Name: roster.find((r) => r.slot === 0)?.name || match.playerName,
+          player1Name: roster.find((r) => r.slot === 1)?.name || match.opponentName,
           resume,
           savedState: (savedState && savedState.mode === 'tft') ? savedState : null,
         });
@@ -757,10 +867,16 @@
       authoritySlot: data.authoritySlot === 1 ? 1 : 0,
       limited: Boolean(data.limited || queueMode === 'limited' || session?.limited),
       tft: Boolean(data.tft || queueMode === 'tft' || session?.tft),
+      roster: Array.isArray(data.roster) ? data.roster : (session?.roster || null),
+      lobby: data.lobby || session?.lobby || null,
     };
+    if (match.tft) match.serverAuth = false;
     saveSession(match);
     setGameUrl(match.roomId, modeFromSession(match));
-    showMatchScreen(match.playerName, match.opponentName);
+    const themLabel = match.roster?.length > 2
+      ? match.roster.filter((r) => r.slot !== match.playerId).map((r) => r.name).join(' · ')
+      : match.opponentName;
+    showMatchScreen(match.playerName, themLabel);
     setTimeout(() => startOnlineMatch(match), 1400);
   }
 
@@ -790,6 +906,8 @@
       authoritySlot: result.authoritySlot === 1 ? 1 : 0,
       limited: Boolean(result.limited || queueMode === 'limited'),
       tft: Boolean(result.tft || queueMode === 'tft'),
+      lobby: result.lobby || null,
+      roster: result.roster || null,
     });
 
     await ensurePusher();
@@ -801,17 +919,24 @@
         limited: Boolean(result.limited || queueMode === 'limited'),
         tft: Boolean(result.tft || queueMode === 'tft'),
       }));
-      showMatchScreen(result.playerName || name, result.opponentName);
+      const themLabel = result.roster?.length > 2
+        ? result.roster.filter((r) => r.slot !== result.playerId).map((r) => r.name).join(' · ')
+        : result.opponentName;
+      showMatchScreen(result.playerName || name, themLabel);
       setTimeout(() => startOnlineMatch({
         ...result,
         playerName: result.playerName || name,
         limited: Boolean(result.limited || queueMode === 'limited'),
         tft: Boolean(result.tft || queueMode === 'tft'),
+        serverAuth: false,
       }), 1400);
       return;
     }
 
     showQueueScreen(name);
+    if (result.lobby) {
+      updateLobbyUi(result.lobby, { isHost: result.isHost, tft: true });
+    }
   }
 
   async function tryResumeFromUrl() {
@@ -1100,6 +1225,9 @@
       show($('menu-screen'));
     });
     $('btn-online-cancel')?.addEventListener('click', leaveQueue);
+    $('btn-online-start-early')?.addEventListener('click', () => {
+      void startLobbyEarly();
+    });
     $('btn-online-find')?.addEventListener('click', async () => {
       const input = $('online-name-input');
       const name = input?.value?.trim() || '';

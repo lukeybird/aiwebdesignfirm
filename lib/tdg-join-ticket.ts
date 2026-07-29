@@ -15,7 +15,8 @@ function signPayload(payloadB64: string, secret: string) {
 export type TdgJoinClaims = {
   roomId: string;
   sessionToken: string;
-  playerSlot: 0 | 1;
+  /** 0–3 for TFT lobbies; 0–1 for standard/limited 1v1. */
+  playerSlot: number;
   playerName: string;
   opponentName?: string;
   startsAt?: number;

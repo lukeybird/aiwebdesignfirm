@@ -5,6 +5,7 @@ import {
   findQueueRowByToken,
   touchQueueSession,
 } from '@/lib/tdg-pvp';
+import { tftLobbySnapshotForToken } from '@/lib/tdg-tft-lobby';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,10 +27,20 @@ export async function POST(request: NextRequest) {
 
     await touchQueueSession(sessionToken);
 
+    const lobbySnap = await tftLobbySnapshotForToken(sessionToken);
+
     return NextResponse.json({
       ok: true,
       status: row.status,
       roomId: row.room_id,
+      playerId: row.player_slot,
+      ...(lobbySnap
+        ? {
+            lobby: lobbySnap.lobby,
+            isHost: lobbySnap.isHost,
+            tft: true,
+          }
+        : {}),
     });
   } catch (error) {
     console.error('tdg-pvp ping error:', error);
