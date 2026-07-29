@@ -585,6 +585,19 @@
     const startBtn = $('btn-online-start-early');
     const isTft = queueMode === 'tft' || session?.tft || opts.tft;
 
+    // Farmers is peaceful and each side is independent, so waiting is optional.
+    if (queueMode === 'farmers' || session?.farmers) {
+      meta?.classList.add('hidden');
+      list?.classList.add('hidden');
+      if (list) list.innerHTML = '';
+      if (startBtn) {
+        startBtn.classList.remove('hidden');
+        startBtn.disabled = false;
+        startBtn.textContent = '🌾 Farm alone';
+      }
+      return;
+    }
+
     if (!isTft || !lobby) {
       meta?.classList.add('hidden');
       list?.classList.add('hidden');
@@ -639,7 +652,41 @@
       .replace(/"/g, '&quot;');
   }
 
+  /** Leave the queue and farm on your own — the rival stall just sits idle. */
+  async function startFarmersSolo() {
+    const name = session?.playerName || $('online-name-input')?.value?.trim() || 'Farmer';
+    const token = session?.sessionToken || loadStoredSession()?.sessionToken;
+    if (token) {
+      try {
+        await fetchJson('/api/tdg-pvp/leave', {
+          method: 'POST',
+          body: JSON.stringify({ sessionToken: token }),
+        });
+      } catch {
+        // leaving the queue is best-effort
+      }
+    }
+    stopHeartbeat();
+    disconnectChannels();
+    clearSession();
+    clearGameUrl();
+    hideOnlineScreens();
+    hide($('menu-screen'));
+    window.FARMERS_ONLINE?.start({
+      myPlayerId: 0,
+      isHost: true,
+      roomId: null,
+      player0Name: name,
+      player1Name: 'Empty stall',
+      solo: true,
+    });
+  }
+
   async function startLobbyEarly() {
+    if (queueMode === 'farmers' || session?.farmers) {
+      await startFarmersSolo();
+      return;
+    }
     if (!session?.sessionToken || !session?.roomId) return;
     const btn = $('btn-online-start-early');
     if (btn) btn.disabled = true;

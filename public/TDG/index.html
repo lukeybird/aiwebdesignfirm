@@ -1576,13 +1576,11 @@
       position: absolute;
       inset: 0;
       z-index: 28;
-      background:
-        radial-gradient(ellipse at 30% 10%, rgba(212, 160, 23, 0.18), transparent 50%),
-        linear-gradient(180deg, #2f4a2f 0%, #1a2818 55%, #121a12 100%);
+      background: linear-gradient(180deg, #1d2a1b 0%, #131a12 100%);
       pointer-events: auto;
       overflow: hidden;
       color: #f3efe4;
-      font-family: 'Georgia', 'Palatino Linotype', serif;
+      font-family: 'Rajdhani', sans-serif;
     }
     #farmers-game-screen.hidden { display: none; }
     .farmers-shell {
@@ -1594,172 +1592,241 @@
     .farmers-topbar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 14px;
-      padding-top: calc(10px + env(safe-area-inset-top, 0px));
-      border-bottom: 1px solid rgba(245, 230, 200, 0.18);
-      background: rgba(10, 16, 10, 0.45);
+      gap: 14px;
+      padding: 8px 14px;
+      padding-top: calc(8px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(245, 230, 200, 0.16);
+      background: rgba(8, 14, 8, 0.5);
       flex-shrink: 0;
     }
-    .farmers-race {
-      flex: 1;
-      display: grid;
-      gap: 6px;
-      max-width: 520px;
-      margin: 0 auto;
+    .farmers-purse, .farmers-rival {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
     }
-    .farmers-race-row {
-      display: grid;
-      grid-template-columns: 88px 1fr 56px;
-      gap: 8px;
-      align-items: center;
-      font-size: 0.85rem;
+    .farmers-rival { opacity: 0.82; }
+    .farmers-purse-label {
+      font-size: 0.66rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.6;
     }
-    .farmers-race-row.them { opacity: 0.9; }
-    .farmers-bar-track {
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.12);
-      overflow: hidden;
+    .farmers-purse strong, .farmers-rival strong {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      color: #ffe9a8;
     }
-    .farmers-bar-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: inherit;
-      transition: width 0.25s ease;
-    }
-    .farmers-bar-fill.you { background: linear-gradient(90deg, #4ECDC4, #7ed957); }
-    .farmers-bar-fill.them { background: linear-gradient(90deg, #FF8E53, #e76f51); }
-    .farmers-top-actions { display: flex; gap: 8px; align-items: center; }
-    .farmers-timer {
-      font-variant-numeric: tabular-nums;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      min-width: 48px;
-      text-align: center;
-    }
+    .farmers-rival strong { color: #ffcaa0; font-size: 1rem; }
+    .farmers-purse-sub { font-size: 0.72rem; opacity: 0.7; }
+    .farmers-top-actions { margin-left: auto; display: flex; gap: 8px; }
     .farmers-btn {
-      border: 1px solid rgba(245, 230, 200, 0.28);
-      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(245, 230, 200, 0.26);
+      background: rgba(255,255,255,0.07);
       color: #f5efe4;
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 9px;
+      padding: 9px 13px;
       cursor: pointer;
       font: inherit;
+      font-weight: 600;
+      min-height: 42px;
+      text-align: center;
     }
-    .farmers-btn:hover { background: rgba(255,255,255,0.14); }
-    .farmers-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .farmers-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); }
+    .farmers-btn:disabled { opacity: 0.42; cursor: not-allowed; }
     .farmers-btn.primary {
-      background: linear-gradient(180deg, #d4a017, #a67910);
-      border-color: #8a650c;
-      color: #1a1208;
-      font-weight: 700;
+      background: linear-gradient(180deg, #63b34f, #3c7d33);
+      border-color: #2f6329;
+      color: #f7fff2;
     }
     .farmers-main {
       flex: 1;
       min-height: 0;
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
-      gap: 12px;
-      padding: 12px;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px;
     }
-    @media (max-width: 900px) {
-      .farmers-main { grid-template-columns: 1fr; }
+    .farmers-canvas-wrap { grid-column: 1; grid-row: 1; }
+    .farmers-underbar {
+      grid-column: 1;
+      grid-row: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 240px;
+      gap: 10px;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .farmers-side { grid-column: 2; grid-row: 1 / span 2; }
+    .farmers-panel-help .farmers-upgrade-col { grid-template-columns: 1fr; }
+    @media (max-width: 980px) {
+      .farmers-main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
+      .farmers-canvas-wrap { grid-column: 1; grid-row: 1; }
+      .farmers-underbar { grid-column: 1; grid-row: 2; grid-template-columns: 1fr; overflow: visible; }
+      .farmers-side { grid-column: 1; grid-row: 3; }
     }
     .farmers-canvas-wrap {
       position: relative;
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
       border: 1px solid rgba(245, 230, 200, 0.18);
-      background: #6b9e5e;
-      min-height: 280px;
+      background: #10170c;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 16 / 9;
+      max-height: 100%;
+      margin: 0 auto;
     }
     #farmers-canvas {
       width: 100%;
       height: 100%;
       display: block;
       cursor: crosshair;
-      background: transparent;
     }
     .farmers-side {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 9px;
       min-height: 0;
-      overflow: auto;
+      overflow-y: auto;
+      padding-right: 2px;
     }
     .farmers-panel {
-      background: rgba(12, 18, 12, 0.55);
-      border: 1px solid rgba(245, 230, 200, 0.14);
-      border-radius: 12px;
-      padding: 12px;
+      background: rgba(12, 18, 12, 0.62);
+      border: 1px solid rgba(245, 230, 200, 0.13);
+      border-radius: 11px;
+      padding: 10px 11px;
+      flex-shrink: 0;
     }
     .farmers-panel h3 {
       margin: 0 0 8px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       letter-spacing: 0.02em;
     }
     .farmers-hint {
       margin: 0 0 8px;
-      opacity: 0.85;
-      font-size: 0.9rem;
+      opacity: 0.9;
+      font-size: 0.86rem;
       line-height: 1.35;
+      min-height: 2.4em;
     }
-    .farmers-meta {
-      margin: 0;
-      font-size: 0.75rem;
-      opacity: 0.7;
-    }
-    .farmers-seed-row {
+    .farmers-stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 3px 10px;
+      font-size: 0.76rem;
+      opacity: 0.82;
     }
-    .farmers-chip {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      text-align: left;
-      border: 1px solid rgba(245, 230, 200, 0.2);
-      background: rgba(255,255,255,0.06);
+    .farmers-stats strong { color: #ffe9a8; }
+    .farmers-seed-row { display: grid; gap: 6px; }
+    .farmers-seed {
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(245, 230, 200, 0.16);
+      background: rgba(255,255,255,0.05);
       color: inherit;
-      border-radius: 10px;
-      padding: 8px 10px;
+      border-radius: 9px;
+      padding: 7px 9px;
       cursor: pointer;
       font: inherit;
+      text-align: left;
     }
-    .farmers-chip span { font-size: 0.72rem; opacity: 0.75; }
-    .farmers-chip.is-active {
-      border-color: #d4a017;
-      box-shadow: inset 0 0 0 1px rgba(212, 160, 23, 0.45);
-      background: rgba(212, 160, 23, 0.16);
+    .farmers-seed:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
+    .farmers-seed:disabled { opacity: 0.4; cursor: not-allowed; }
+    .farmers-seed.locked { border-style: dashed; }
+    .farmers-seed.chosen {
+      border-color: #7ed957;
+      background: rgba(126, 217, 87, 0.15);
+      box-shadow: inset 0 0 0 1px rgba(126, 217, 87, 0.35);
     }
-    .farmers-chip:disabled { opacity: 0.4; cursor: not-allowed; }
-    .farmers-upgrade-col {
+    .farmers-seed-emoji { font-size: 1.15rem; text-align: center; }
+    .farmers-seed-body { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+    .farmers-seed-name { font-weight: 600; font-size: 0.86rem; }
+    .farmers-seed-meta { font-size: 0.68rem; opacity: 0.65; }
+    .farmers-seed-cost { font-size: 0.72rem; color: #ffe9a8; white-space: nowrap; }
+    .farmers-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .farmers-tab {
+      border: 1px solid rgba(245, 230, 200, 0.18);
+      background: rgba(255,255,255,0.05);
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      line-height: 1.1;
+    }
+    .farmers-tab.chosen { border-color: #7ed957; background: rgba(126, 217, 87, 0.16); }
+    .farmers-tree-head {
+      font-size: 0.72rem;
+      opacity: 0.72;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    .farmers-branch {
       display: grid;
+      grid-template-columns: 22px 1fr auto;
+      align-items: center;
       gap: 8px;
+      padding: 5px 0;
+      border-top: 1px solid rgba(245, 230, 200, 0.09);
     }
-    .farmers-end, .farmers-howto {
+    .farmers-branch-icon { text-align: center; }
+    .farmers-branch-body { display: flex; flex-direction: column; line-height: 1.15; }
+    .farmers-branch-name { font-weight: 600; font-size: 0.82rem; }
+    .farmers-branch-blurb { font-size: 0.66rem; opacity: 0.6; }
+    .farmers-pips { display: flex; gap: 3px; margin-top: 3px; }
+    .farmers-pip {
+      width: 16px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.16);
+    }
+    .farmers-pip.on { background: linear-gradient(90deg, #9ae86a, #52a83c); }
+    .farmers-branch-buy {
+      border: 1px solid rgba(245, 230, 200, 0.24);
+      background: rgba(255,255,255,0.07);
+      color: #ffe9a8;
+      border-radius: 7px;
+      padding: 6px 9px;
+      font: inherit;
+      font-size: 0.74rem;
+      cursor: pointer;
+      min-height: 34px;
+    }
+    .farmers-branch-buy:hover:not(:disabled) { background: rgba(255,255,255,0.14); }
+    .farmers-branch-buy:disabled { opacity: 0.4; cursor: not-allowed; }
+    .farmers-branch-max { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.06em; }
+    .farmers-upgrade-col { display: grid; gap: 7px; }
+    .farmers-howto {
       position: absolute;
       inset: 0;
       z-index: 40;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(8, 12, 8, 0.72);
+      background: rgba(8, 12, 8, 0.76);
       padding: 20px;
     }
-    .farmers-end.hidden, .farmers-howto.hidden { display: none; }
-    .farmers-end-panel, .farmers-howto-panel {
-      width: min(440px, 92vw);
+    .farmers-howto.hidden { display: none; }
+    .farmers-howto-panel {
+      width: min(520px, 92vw);
+      max-height: 82vh;
+      overflow-y: auto;
       background: linear-gradient(180deg, #2a3a24, #182016);
       border: 1px solid rgba(245, 230, 200, 0.22);
-      border-radius: 16px;
-      padding: 22px;
+      border-radius: 15px;
+      padding: 20px;
     }
+    .farmers-howto-panel h3 { margin: 0 0 10px; }
     .farmers-howto-panel ol { margin: 0; padding-left: 1.2em; line-height: 1.45; }
-    .farmers-howto-panel li { margin: 0.45em 0; }
+    .farmers-howto-panel li { margin: 0.5em 0; font-size: 0.9rem; }
+    .farmers-howto-actions { margin-top: 14px; display: flex; justify-content: flex-end; }
 
     .tft-shell {
       position: relative;
@@ -8069,6 +8136,78 @@
   </div>
   <div id="game-play">
   <div id="enemy-action-feed" class="side-p0" aria-live="polite" aria-label="Enemy activity warnings"></div>
+  <div id="farmers-game-screen" class="hidden">
+    <div class="farmers-shell">
+      <header class="farmers-topbar">
+        <div class="farmers-purse">
+          <span class="farmers-purse-label">Your purse</span>
+          <strong id="farmers-you-gold">$60</strong>
+          <span class="farmers-purse-sub"><span id="farmers-you-name">You</span> · <span id="farmers-you-sold">0</span> sold</span>
+        </div>
+        <div class="farmers-rival">
+          <span class="farmers-purse-label">Neighbour</span>
+          <strong id="farmers-them-gold">&mdash;</strong>
+          <span class="farmers-purse-sub" id="farmers-them-name">Rival</span>
+        </div>
+        <div class="farmers-top-actions">
+          <button type="button" class="farmers-btn" id="farmers-howto-btn">How to play</button>
+          <button type="button" class="farmers-btn" id="farmers-leave-btn">Leave farm</button>
+        </div>
+      </header>
+      <div class="farmers-main">
+        <div class="farmers-canvas-wrap">
+          <canvas id="farmers-canvas" width="1280" height="720" aria-label="Your farm"></canvas>
+        </div>
+        <div class="farmers-underbar">
+          <div class="farmers-panel farmers-panel-hint">
+            <p class="farmers-hint" id="farmers-hint">Pick a seed, then click your land to plant a farm.</p>
+            <div class="farmers-stats">
+              <span>Stand <strong id="farmers-stock">0/14</strong></span>
+              <span>Farms <strong id="farmers-farmcount">0/24</strong></span>
+              <span>Hands <strong id="farmers-workers">1/10</strong></span>
+              <span>Dogs <strong id="farmers-dogs">0/4</strong></span>
+            </div>
+          </div>
+          <div class="farmers-panel farmers-panel-help">
+            <h3>🧑‍🌾 Hire &amp; Upgrade</h3>
+            <div class="farmers-upgrade-col">
+              <button type="button" class="farmers-btn primary" id="farmers-btn-hire">Hire Farmhand</button>
+              <button type="button" class="farmers-btn" id="farmers-btn-dog">Buy Farm Dog</button>
+              <button type="button" class="farmers-btn" id="farmers-btn-stand">Upgrade Stand</button>
+            </div>
+          </div>
+        </div>
+        <aside class="farmers-side">
+          <div class="farmers-panel">
+            <h3>🌱 Seed Shop</h3>
+            <div class="farmers-seed-row" id="farmers-seed-row"></div>
+          </div>
+          <div class="farmers-panel">
+            <h3>🌿 Farm Skills</h3>
+            <div class="farmers-tabs" id="farmers-tree-tabs"></div>
+            <div class="farmers-tree" id="farmers-tree-body"></div>
+          </div>
+        </aside>
+      </div>
+      <div class="farmers-howto hidden" id="farmers-howto" role="dialog" aria-modal="true">
+        <div class="farmers-howto-panel">
+          <h3>How to play Farmers</h3>
+          <ol>
+            <li><strong>No fighting.</strong> You and your neighbour each farm one side of the road. Money only goes up.</li>
+            <li><strong>Seed Shop:</strong> unlock new crops with gold. Later seeds cost much more and sell for much more.</li>
+            <li><strong>Plant:</strong> select an unlocked seed, then click the dashed plots on your land. Each extra farm of a crop costs a little more than the last.</li>
+            <li><strong>Farm Skills:</strong> every crop has its own Growth, Yield and Quality tree, three tiers each.</li>
+            <li><strong>Farmhands</strong> carry ripe produce from your farms to your stand. Hire more so nothing sits waiting.</li>
+            <li><strong>Farm Dogs</strong> trot along and make every farmhand quicker.</li>
+            <li><strong>Customers</strong> are knights, swordsmen, archers, snipers and other units. They walk the road, buy a little produce, and pay up. Upgrade the stand for bigger shelves, better prices, and fancier customers.</li>
+          </ol>
+          <div class="farmers-howto-actions">
+            <button type="button" class="farmers-btn primary" id="farmers-howto-close">Got it</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="game-wrapper">
     <canvas id="game" width="1280" height="720"></canvas>
     <div id="ui-overlay">
@@ -8498,81 +8637,6 @@
                 <canvas id="tft-combat-canvas"></canvas>
               </div>
             </main>
-          </div>
-        </div>
-      </div>
-
-      <div id="farmers-game-screen" class="hidden">
-        <div class="farmers-shell">
-          <header class="farmers-topbar">
-            <div class="farmers-timer" id="farmers-timer">10:00</div>
-            <div class="farmers-race" aria-label="Gold race">
-              <div class="farmers-race-row you">
-                <span id="farmers-you-name">You</span>
-                <div class="farmers-bar-track"><div class="farmers-bar-fill you" id="farmers-you-bar"></div></div>
-                <strong id="farmers-you-gold">$55</strong>
-              </div>
-              <div class="farmers-race-row them">
-                <span id="farmers-them-name">Foe</span>
-                <div class="farmers-bar-track"><div class="farmers-bar-fill them" id="farmers-them-bar"></div></div>
-                <strong id="farmers-them-gold">$55</strong>
-              </div>
-            </div>
-            <div class="farmers-top-actions">
-              <span style="opacity:0.8;font-size:0.8rem">Stock <strong id="farmers-you-stock">0</strong> · Them <strong id="farmers-them-stock">0</strong></span>
-              <button type="button" class="farmers-btn" id="farmers-howto-btn">How to play</button>
-              <button type="button" class="farmers-btn" id="farmers-forfeit-btn">Forfeit</button>
-            </div>
-          </header>
-          <div class="farmers-main">
-            <div class="farmers-canvas-wrap">
-              <canvas id="farmers-canvas" width="720" height="420" aria-label="Farm yard"></canvas>
-            </div>
-            <aside class="farmers-side">
-              <div class="farmers-panel">
-                <h3>Market stall</h3>
-                <p class="farmers-hint" id="farmers-hint">Place your first farm on your half of the field.</p>
-                <p class="farmers-meta" id="farmers-meta"></p>
-              </div>
-              <div class="farmers-panel">
-                <h3>Seeds</h3>
-                <div class="farmers-seed-row" id="farmers-seed-row"></div>
-              </div>
-              <div class="farmers-panel">
-                <h3>Upgrades</h3>
-                <div class="farmers-upgrade-col">
-                  <button type="button" class="farmers-btn primary" id="farmers-btn-hire">Hire Worker</button>
-                  <button type="button" class="farmers-btn" id="farmers-btn-speed">Farm Speed</button>
-                  <button type="button" class="farmers-btn" id="farmers-btn-yield">Farm Yield</button>
-                  <button type="button" class="farmers-btn" id="farmers-btn-stand">Stand Upgrade</button>
-                </div>
-              </div>
-            </aside>
-          </div>
-          <div class="farmers-howto hidden" id="farmers-howto" role="dialog" aria-modal="true">
-            <div class="farmers-howto-panel">
-              <h3>How to play Farmers</h3>
-              <ol>
-                <li>Queue for a 1v1 match. First farm is free — click your half of the field to place it.</li>
-                <li>You start with one worker. Farms grow 1 fruit every 4 seconds (upgradable).</li>
-                <li>Workers automatically haul produce to your stand.</li>
-                <li>Customers walk up, buy fruit, and pay you. Hire more workers to keep the stand stocked.</li>
-                <li>Buy seeds (wheat / apple / berry / melon), farm speed &amp; yield (same cost curve as Live Army farms), and stand upgrades.</li>
-                <li>First to $400 wins, or highest gold after 10 minutes.</li>
-              </ol>
-              <div style="margin-top:14px;display:flex;justify-content:flex-end">
-                <button type="button" class="farmers-btn primary" id="farmers-howto-close">Got it</button>
-              </div>
-            </div>
-          </div>
-          <div class="farmers-end hidden" id="farmers-end">
-            <div class="farmers-end-panel">
-              <h2 id="farmers-end-title">Match over</h2>
-              <p id="farmers-end-desc"></p>
-              <div style="margin-top:14px;display:flex;justify-content:flex-end">
-                <button type="button" class="farmers-btn primary" id="farmers-home-btn">Back to menu</button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -27647,7 +27711,7 @@ function drawFarmPlot(c, ox, oy, sz, opts = {}) {
 
   const plantsPerRow = density;
   const plantW = fieldW - padX * 2;
-  const fontSize = Math.max(5, sz * 0.11);
+  const fontSize = Math.max(5, sz * 0.11 * (opts.emojiScale || 1));
   c.font = `${fontSize}px ${FARM_EMOJI_FONT}`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
@@ -27691,7 +27755,10 @@ function drawFarmPlot(c, ox, oy, sz, opts = {}) {
       }
 
       if (stages.fruit > 0.02 && stages.bounceAlpha > 0.02) {
-        const emoji = FARM_CROP_EMOJIS[Math.floor(rnd(idx + seed * 10) * FARM_CROP_EMOJIS.length)];
+        const crops = (Array.isArray(opts.cropEmojis) && opts.cropEmojis.length)
+          ? opts.cropEmojis
+          : FARM_CROP_EMOJIS;
+        const emoji = crops[Math.floor(rnd(idx + seed * 10) * crops.length)];
         drawPlantEmoji(emoji, px, py - 0.8, stages.fruit * stages.bounceAlpha, stages.bounceY);
       }
     }
@@ -42228,6 +42295,23 @@ window.__TDG = {
   getTftUnitDef: (type) => UNIT_TYPES[type],
   getTftUnitLabels: () => (typeof LIVE_ARMY !== 'undefined' ? LIVE_ARMY.UNIT_LABELS : {}),
   combatSprite,
+  /** Local Game map metrics so alternate modes (Farmers) can match its layout. */
+  getMapMetrics: () => ({
+    W, H, LAND_TOP, LAND_BOTTOM, LAND_PAD, MID_Y,
+    p1Zone: { ...P1_ZONE },
+    p2Zone: { ...P2_ZONE },
+  }),
+  /** Draw a crop field plot (soil → sprout → fruit) onto any canvas. */
+  drawFarmPlotOnContext(targetCtx, x, y, sz, opts = {}) {
+    if (!targetCtx) return false;
+    try {
+      drawFarmPlot(targetCtx, x, y, sz, opts);
+      return true;
+    } catch (err) {
+      console.warn('farm plot draw failed', err);
+      return false;
+    }
+  },
   /** Draw a unit sprite onto an alternate canvas (TFT arena, etc.). */
   drawUnitOnContext(targetCtx, type, x, y, facing, sz, opts = {}) {
     if (!targetCtx || !type) return false;
