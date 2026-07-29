@@ -512,7 +512,7 @@
       if (desc) desc.textContent = 'Snake-draft 10 cards each, then fight online. Drafted cards still cost gold to unlock. Draft Battle players only match other Draft Battle players.';
     } else if (queueMode === 'tft') {
       if (title) title.textContent = '⚔️ TFT Online';
-      if (desc) desc.textContent = 'Up to 4 players. Fill the lobby or start early with 2+. Each round alive players are paired — last standing wins.';
+      if (desc) desc.textContent = 'Up to 4 players. Empty seats autofill with CPUs when you start. Each round alive players are paired — last standing wins.';
     } else {
       if (title) title.textContent = '🌐 Online PvP';
       if (desc) desc.textContent = 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.';
@@ -567,20 +567,34 @@
 
     if (list) {
       const players = Array.isArray(lobby.players) ? lobby.players : [];
+      const max = Number(lobby.max) || 4;
+      const bySlot = new Map(players.map((p) => [Number(p.slot), p]));
       const hostSlot = players.length ? Math.min(...players.map((x) => Number(x.slot))) : 0;
-      list.innerHTML = players.map((p) => {
-        const you = Number(p.slot) === Number(session?.playerId);
-        const isHostSeat = Number(p.slot) === hostSlot;
-        const tags = [you ? 'you' : null, isHostSeat ? 'host' : null].filter(Boolean).join(', ');
-        return `<li style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08)">${escapeLobbyHtml(p.name || 'Player')}${tags ? ` <span style="opacity:0.65">(${tags})</span>` : ''}</li>`;
-      }).join('') || '<li style="opacity:0.7">Waiting for players…</li>';
+      const rows = [];
+      for (let slot = 0; slot < max; slot++) {
+        const p = bySlot.get(slot);
+        if (p) {
+          const you = Number(p.slot) === Number(session?.playerId);
+          const isHostSeat = Number(p.slot) === hostSlot;
+          const tags = [you ? 'you' : null, isHostSeat ? 'host' : null].filter(Boolean).join(', ');
+          rows.push(`<li style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08)">${escapeLobbyHtml(p.name || 'Player')}${tags ? ` <span style="opacity:0.65">(${tags})</span>` : ''}</li>`);
+        } else {
+          rows.push(`<li style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);opacity:0.55">CPU <span style="opacity:0.75">(autofill)</span></li>`);
+        }
+      }
+      list.innerHTML = rows.join('');
     }
 
     const canStart = !!(lobby.canStartEarly && (opts.isHost ?? session?.isHost));
     if (startBtn) {
       startBtn.classList.toggle('hidden', !canStart);
       startBtn.disabled = !canStart;
-      startBtn.textContent = `Start early (${lobby.count}/${lobby.max})`;
+      const n = lobby.count ?? lobby.players?.length ?? 0;
+      const max = lobby.max ?? 4;
+      const cpuFill = Math.max(0, max - n);
+      startBtn.textContent = cpuFill > 0
+        ? `Start (+${cpuFill} CPU${cpuFill === 1 ? '' : 's'}) · ${n}/${max}`
+        : `Start (${n}/${max})`;
     }
   }
 
@@ -834,12 +848,15 @@
           { slot: 0, name: match.playerId === 0 ? match.playerName : 'P1' },
           { slot: 1, name: match.playerId === 1 ? match.playerName : (match.opponentName || 'P2') },
         ]);
+      const maxSeats = Number(match.lobby?.max) || 4;
       runCountdown(startsAt, () => {
         window.TFT_ONLINE?.start({
           myPlayerId: myId,
           isHost: match.isHost,
           roomId: match.roomId,
           roster,
+          fillCpus: true,
+          maxPlayers: maxSeats,
           player0Name: roster.find((r) => r.slot === 0)?.name || match.playerName,
           player1Name: roster.find((r) => r.slot === 1)?.name || match.opponentName,
           resume,

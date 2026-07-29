@@ -29,6 +29,8 @@
   const LOGIC_W = 800;
   const LOGIC_H = 400;
   const AUTH_SYNC_MS = 100;
+  const TFT_MAX_PLAYERS = 4;
+  const CPU_FILL_NAMES = ['CPU Alpha', 'CPU Bravo', 'CPU Charlie', 'CPU Delta'];
 
   // ★ multipliers (TFT-like): 1 → 2 → 3
   const STAR_MULT = { 1: 1, 2: 1.8, 3: 3.24 };
@@ -584,10 +586,11 @@
     return img;
   }
 
-  function freshPlayer(pid, name) {
+  function freshPlayer(pid, name, opts = {}) {
     return {
       id: pid,
       name,
+      isCpu: !!opts.isCpu,
       hp: START_HP,
       gold: START_GOLD,
       level: 1,
@@ -604,10 +607,49 @@
       itemBag: Array(ITEM_BAG).fill(null),
       itemShop: Array(ITEM_SHOP).fill(null),
       itemShopGen: 0,
+      _cpuRerolls: 0,
+      _cpuXpBuys: 0,
+      _cpuActions: 0,
     };
   }
 
+  function padRosterWithCpus(roster, max = TFT_MAX_PLAYERS) {
+    const bySlot = new Map();
+    for (const r of roster || []) {
+      const slot = Number(r.slot);
+      if (!Number.isFinite(slot) || slot < 0) continue;
+      bySlot.set(slot, {
+        slot,
+        name: r.name || `Player ${slot + 1}`,
+        isCpu: !!r.isCpu,
+      });
+    }
+    let cpuIdx = 0;
+    for (let slot = 0; slot < max; slot++) {
+      if (bySlot.has(slot)) continue;
+      bySlot.set(slot, {
+        slot,
+        name: CPU_FILL_NAMES[cpuIdx] || `CPU ${slot + 1}`,
+        isCpu: true,
+      });
+      cpuIdx += 1;
+    }
+    return [...bySlot.values()].sort((a, b) => a.slot - b.slot);
+  }
+
   function playerCount() { return state?.players?.length || 2; }
+
+  function isCpuPlayer(p) {
+    return !!(p && p.isCpu);
+  }
+
+  function cpuPlayers() {
+    return (state?.players || []).filter((p) => isCpuPlayer(p) && Number(p.hp) > 0);
+  }
+
+  function hasCpuPlayers() {
+    return cpuPlayers().length > 0;
+  }
 
   function me() { return state.players[match.playerId]; }
 
@@ -777,7 +819,7 @@
   }
 
   function cpuPlayer() {
-    return state?.players?.[1] || null;
+    return cpuPlayers()[0] || state?.players?.find((p) => isCpuPlayer(p)) || null;
   }
 
   function serializeUnit(u) {
@@ -798,6 +840,7 @@
       lossStreak: p.lossStreak || 0,
       hp: p.hp,
       name: p.name,
+      isCpu: !!p.isCpu,
       augments: Array.isArray(p.augments) ? p.augments.slice() : [],
       augmentChoices: Array.isArray(p.augmentChoices) ? p.augmentChoices.slice() : null,
       itemBag: Array.isArray(p.itemBag) ? p.itemBag.slice() : Array(ITEM_BAG).fill(null),
@@ -830,6 +873,7 @@
     if (snap.lossStreak != null) p.lossStreak = snap.lossStreak;
     if (snap.hp != null) p.hp = snap.hp;
     if (snap.name) p.name = snap.name;
+    if (snap.isCpu != null) p.isCpu = !!snap.isCpu;
     if (Array.isArray(snap.augments)) p.augments = snap.augments.slice();
     if (snap.augmentChoices === null) p.augmentChoices = null;
     else if (Array.isArray(snap.augmentChoices)) p.augmentChoices = snap.augmentChoices.slice();
@@ -1027,7 +1071,7 @@
       while (state.players.length < snap.players.length) {
         const i = state.players.length;
         const name = snap.players[i]?.name || `Player ${i + 1}`;
-        state.players.push(freshPlayer(i, name));
+        state.players.push(freshPlayer(i, name, { isCpu: !!snap.players[i]?.isCpu }));
       }
       for (let i = 0; i < snap.players.length; i++) {
         const sp = snap.players[i];
@@ -1036,6 +1080,7 @@
         // Always take host HP / streaks / ready.
         if (sp.hp != null) lp.hp = sp.hp;
         if (sp.name) lp.name = sp.name;
+        if (sp.isCpu != null) lp.isCpu = !!sp.isCpu;
         lp.ready = !!sp.ready;
         lp.winStreak = sp.winStreak || 0;
         lp.lossStreak = sp.lossStreak || 0;
@@ -1975,6 +2020,9 @@
     for (const p of state.players) {
       p.ready = false;
       p.augmentChoices = null;
+      p._cpuRerolls = 0;
+      p._cpuXpBuys = 0;
+      p._cpuActions = 0;
       if (!Number.isFinite(p.gold) || p.gold < 0) p.gold = START_GOLD;
       p.gold += incomeFor(p);
       rollShop(p);
@@ -2187,7 +2235,9 @@
     if (!armies) return;
     while (state.players.length < armies.length) {
       const i = state.players.length;
-      state.players.push(freshPlayer(i, armies[i]?.name || `Player ${i + 1}`));
+      state.players.push(freshPlayer(i, armies[i]?.name || `Player ${i + 1}`, {
+        isCpu: !!armies[i]?.isCpu,
+      }));
     }
     for (let i = 0; i < armies.length; i++) {
       const snap = armies[i];
@@ -2637,16 +2687,18 @@
           pl.id === match.playerId ? 'is-you' : '',
           o && pl.id === o.id ? 'is-foe' : '',
           pl.hp <= 0 ? 'is-out' : '',
+          isCpuPlayer(pl) ? 'is-cpu' : '',
         ].filter(Boolean).join(' ');
-        return `<span class="${cls}">${escapeHtml(pl.name)} ${pl.hp}</span>`;
+        const tag = isCpuPlayer(pl) ? ' · CPU' : '';
+        return `<span class="${cls}">${escapeHtml(pl.name)}${tag} ${pl.hp}</span>`;
       }).join('');
     }
     setText('tft-them-ready',
       augmenting
         ? (p.augmentChoices?.length
-          ? (isVsCpu() ? 'Pick an augment' : (living.some((x) => x.id !== match.playerId && x.augmentChoices?.length) ? 'Players choosing…' : 'Others picked ✓'))
-          : (isVsCpu() ? 'CPU choosing…' : 'Waiting on lobby…'))
-        : isVsCpu()
+          ? (hasCpuPlayers() && playerCount() <= 2 ? 'Pick an augment' : (living.some((x) => x.id !== match.playerId && x.augmentChoices?.length) ? 'Players choosing…' : 'Others picked ✓'))
+          : (hasCpuPlayers() && playerCount() <= 2 ? 'CPU choosing…' : 'Waiting on lobby…'))
+        : hasCpuPlayers() && playerCount() <= 2
           ? (o?.ready ? 'CPU ready ✓' : 'CPU shopping…')
           : (readyCount >= living.length && living.length
             ? 'All ready'
@@ -3095,12 +3147,25 @@
     }
   }
 
-  // ─── CPU opponent (local vs CPU) ────────────────────────────────────────────
+  // ─── CPU opponents (local vs CPU + lobby autofill) ─────────────────────────
   // Plays to win: fight-power matches combat (traits + augments + items),
   // stage plans by round/HP, chases merges & trait breakpoints, equips smartly.
 
+  function cpuRivalFor(p) {
+    const living = alivePlayers().filter((x) => x.id !== p.id);
+    if (!living.length) return null;
+    // Prefer an upcoming pairing foe when known; else strongest board.
+    const pair = (state.pairings || []).find((pr) => pr[0] === p.id || pr[1] === p.id);
+    if (pair) {
+      const oid = pair[0] === p.id ? pair[1] : pair[0];
+      const foe = state.players[oid];
+      if (foe && foe.hp > 0) return foe;
+    }
+    return living.slice().sort((a, b) => cpuBoardPower(b) - cpuBoardPower(a))[0];
+  }
+
   function cpuHuman() {
-    return state?.players?.[match?.playerId] || null;
+    return cpuRivalFor(cpuPlayer() || me()) || state?.players?.[match?.playerId] || null;
   }
 
   function cpuTraitCountsForTypes(types, p) {
@@ -3225,7 +3290,7 @@
   }
 
   function cpuOppNeeds(p) {
-    const foe = state.players[1 - p.id] || state.players[0];
+    const foe = cpuRivalFor(p) || state.players[0];
     const units = cpuBoardUnits(foe);
     let tanks = 0;
     let ranged = 0;
@@ -3244,12 +3309,12 @@
   }
 
   function cpuPressure(p) {
-    const human = cpuHuman();
-    if (!human) return { behind: false, desperate: false, ahead: false, powerGap: 0, hpGap: 0 };
+    const rival = cpuRivalFor(p);
+    if (!rival) return { behind: false, desperate: false, ahead: false, powerGap: 0, hpGap: 0 };
     const myP = cpuBoardPower(p);
-    const theirP = cpuBoardPower(human);
+    const theirP = cpuBoardPower(rival);
     const powerGap = myP - theirP;
-    const hpGap = (p.hp || 0) - (human.hp || 0);
+    const hpGap = (p.hp || 0) - (rival.hp || 0);
     return {
       behind: powerGap < -4 || hpGap <= -20,
       desperate: powerGap < -18 || (p.hp || 100) <= 40,
@@ -3462,7 +3527,7 @@
 
   function cpuBuyXp(p) {
     if (p.gold < XP_COST || p.level >= MAX_LEVEL) return false;
-    if (cpuXpBuysThisRound >= 12) return false;
+    if ((p._cpuXpBuys || 0) >= 12) return false;
     const press = cpuPressure(p);
     const stage = cpuStage(p);
     const full = boardCount(p) >= boardCap(p);
@@ -3476,13 +3541,13 @@
     if (cpuShouldBank(p, XP_COST) && !full) return false;
     p.gold -= XP_COST;
     grantXp(p, XP_PER_BUY);
-    cpuXpBuysThisRound += 1;
+    p._cpuXpBuys = (p._cpuXpBuys || 0) + 1;
     return true;
   }
 
   function cpuReroll(p) {
     const cost = rerollCostFor(p);
-    if (cpuRerollsThisRound >= 18 || p.gold < cost) return false;
+    if ((p._cpuRerolls || 0) >= 18 || p.gold < cost) return false;
     let best = -999;
     for (let i = 0; i < SHOP; i++) best = Math.max(best, cpuScoreShopCard(p, p.shop[i]));
     const press = cpuPressure(p);
@@ -3493,7 +3558,7 @@
     if (emptyBenchSlot(p) < 0 && !cpuSellWeakBench(p) && best < 60) return false;
     p.gold -= cost;
     rollShop(p);
-    cpuRerollsThisRound += 1;
+    p._cpuRerolls = (p._cpuRerolls || 0) + 1;
     return true;
   }
 
@@ -3757,19 +3822,20 @@
     p.ready = true;
     waitElapsed = 0;
     renderHud();
+    if (isAuthority() && !isVsCpu()) publishAuthState(true);
     checkPlanningEnd();
     return true;
   }
 
   function cpuDoNextAction(p) {
     if (!p || p.ready || state.phase !== 'planning') return;
-    cpuActionsThisRound += 1;
+    p._cpuActions = (p._cpuActions || 0) + 1;
 
     const timeLeft = state.planTimeLeft ?? PLAN_TIME_SEC;
     const stage = cpuStage(p);
     const press = cpuPressure(p);
 
-    if (timeLeft <= 1.8 || cpuActionsThisRound >= 70) {
+    if (timeLeft <= 1.8 || (p._cpuActions || 0) >= 70) {
       cpuFinishAndReady(p);
       return;
     }
@@ -3820,37 +3886,42 @@
   }
 
   function tickCpuAugment(dt) {
-    if (!isVsCpu() || state.phase !== 'augment') return;
-    const cpu = cpuPlayer();
-    if (!cpu?.augmentChoices?.length) return;
+    if (!isAuthority() || !hasCpuPlayers() || state.phase !== 'augment') return;
+    const pending = cpuPlayers().filter((p) => p.augmentChoices?.length);
+    if (!pending.length) return;
     cpuThinkAcc += dt;
     if (cpuThinkAcc < 0.28) return;
     cpuThinkAcc = 0;
-    let best = cpu.augmentChoices[0];
-    let bestScore = -Infinity;
-    for (const id of cpu.augmentChoices) {
-      const s = scoreAugmentForCpu(cpu, id);
-      if (s > bestScore) {
-        bestScore = s;
-        best = id;
+    for (const cpu of pending) {
+      let best = cpu.augmentChoices[0];
+      let bestScore = -Infinity;
+      for (const id of cpu.augmentChoices) {
+        const s = scoreAugmentForCpu(cpu, id);
+        if (s > bestScore) {
+          bestScore = s;
+          best = id;
+        }
       }
+      applyAugmentPick(cpu, best, true);
     }
-    applyAugmentPick(cpu, best, true);
     renderHud();
+    if (!isVsCpu()) publishAuthState(true);
     if (bothAugmentsPicked()) beginPlanningPhase();
   }
 
   function tickCpuPlanning(dt) {
-    if (!isVsCpu() || state.phase !== 'planning') return;
-    const cpu = cpuPlayer();
-    if (!cpu || cpu.ready) return;
+    if (!isAuthority() || !hasCpuPlayers() || state.phase !== 'planning') return;
+    const cpus = cpuPlayers().filter((p) => !p.ready);
+    if (!cpus.length) return;
     cpuThinkAcc += dt;
     const timeLeft = state.planTimeLeft ?? PLAN_TIME_SEC;
-    const rush = timeLeft <= 14 || me().ready || cpuPressure(cpu).desperate;
+    const humansReady = alivePlayers().filter((p) => !isCpuPlayer(p)).every((p) => p.ready);
+    const rush = timeLeft <= 14 || humansReady || cpus.some((c) => cpuPressure(c).desperate);
     const delay = rush ? 0.05 : (state.round === 1 ? 0.11 : 0.07);
     if (cpuThinkAcc < delay) return;
     cpuThinkAcc = 0;
-    cpuDoNextAction(cpu);
+    for (const cpu of cpus) cpuDoNextAction(cpu);
+    if (!isVsCpu()) publishAuthState(false);
   }
 
 
@@ -3871,7 +3942,7 @@
 
   function tickShopTimer(dt) {
     if (!isAuthority() || state.phase !== 'planning') return;
-    if (state.players[0].ready && state.players[1].ready) return;
+    if (alivePlayers().every((p) => p.ready)) return;
     const prevCeil = Math.ceil(state.planTimeLeft ?? PLAN_TIME_SEC);
     state.planTimeLeft = Math.max(0, (state.planTimeLeft ?? PLAN_TIME_SEC) - dt);
     const nextCeil = Math.ceil(state.planTimeLeft);
@@ -4036,12 +4107,26 @@
   function start(opts) {
     cleanup(false);
     const vsCpu = !!opts.vsCpu;
-    const roster = Array.isArray(opts.roster) && opts.roster.length >= 2
+    const maxPlayers = Math.max(2, Math.min(TFT_MAX_PLAYERS, Number(opts.maxPlayers) || TFT_MAX_PLAYERS));
+    let roster = Array.isArray(opts.roster) && opts.roster.length >= 1
       ? opts.roster.slice().sort((a, b) => Number(a.slot) - Number(b.slot))
       : [
         { slot: 0, name: opts.player0Name || 'You' },
-        { slot: 1, name: opts.player1Name || (vsCpu ? 'CPU' : 'Player 2') },
+        { slot: 1, name: opts.player1Name || (vsCpu ? 'CPU' : 'Player 2'), isCpu: vsCpu },
       ];
+    // Need at least two seats before padding (local vs CPU default).
+    if (roster.length < 2 && vsCpu) {
+      roster.push({ slot: 1, name: opts.player1Name || 'CPU', isCpu: true });
+    }
+    // Online lobbies pad empty seats with CPUs so every match is a full table.
+    if (!vsCpu && opts.fillCpus !== false) {
+      roster = padRosterWithCpus(roster, maxPlayers);
+    } else if (vsCpu) {
+      roster = roster.map((r, i) => ({
+        ...r,
+        isCpu: !!r.isCpu || Number(r.slot) === 1 || (roster.length === 2 && i === 1),
+      }));
+    }
     const myId = Number.isFinite(Number(opts.myPlayerId)) ? Number(opts.myPlayerId) : 0;
     const hostSlot = Math.min(...roster.map((r) => Number(r.slot)));
     match = {
@@ -4056,7 +4141,7 @@
     const players = [];
     for (const r of roster) {
       const slot = Number(r.slot);
-      players[slot] = freshPlayer(slot, r.name || `Player ${slot + 1}`);
+      players[slot] = freshPlayer(slot, r.name || `Player ${slot + 1}`, { isCpu: !!r.isCpu });
     }
     // Dense array (fill holes if slots skipped)
     for (let i = 0; i < players.length; i++) {
@@ -4121,7 +4206,9 @@
         if (Array.isArray(resumeSnap.messages)) state.messages = resumeSnap.messages.slice();
         while (state.players.length < resumeSnap.players.length) {
           const i = state.players.length;
-          state.players.push(freshPlayer(i, resumeSnap.players[i]?.name || `Player ${i + 1}`));
+          state.players.push(freshPlayer(i, resumeSnap.players[i]?.name || `Player ${i + 1}`, {
+            isCpu: !!resumeSnap.players[i]?.isCpu,
+          }));
         }
         for (let i = 0; i < resumeSnap.players.length; i++) applyArmySnapshot(state.players[i], resumeSnap.players[i]);
         if (Array.isArray(resumeSnap.pairings)) state.pairings = resumeSnap.pairings;
@@ -4147,9 +4234,12 @@
           publishAuthState(true);
         }
       } else {
+        const cpuN = roster.filter((r) => r.isCpu).length;
         pushMsg(vsCpu
           ? 'TFT vs CPU — shop, merge, place, then Ready. Tap How to play anytime.'
-          : 'TFT Online — shop, merge, place, then Ready. Tap How to play anytime.');
+          : (cpuN
+            ? `TFT Online — ${cpuN} CPU seat${cpuN === 1 ? '' : 's'} filled. Shop, merge, place, then Ready.`
+            : 'TFT Online — shop, merge, place, then Ready. Tap How to play anytime.'));
         startRound();
       }
     } else {

@@ -10,7 +10,8 @@ import {
 } from '@/lib/tdg-pvp';
 
 export const TFT_LOBBY_MAX = 4;
-export const TFT_LOBBY_MIN_START = 2;
+/** Host may start with 1+ humans; empty seats fill with CPUs on the client. */
+export const TFT_LOBBY_MIN_START = 1;
 
 export type TftLobbyMember = {
   sessionToken: string;
