@@ -2,6 +2,7 @@ import { sql } from '@/lib/db';
 import { bumpLeaderboardForName } from '@/lib/site-users';
 import { getMatchState } from '@/lib/tdg-pvp';
 import { ensureTdgPresenceTable, listLiveTdgPresence } from '@/lib/tdg-presence';
+import { getPresenceHistorySummary, listPresenceHistory } from '@/lib/tdg-presence-log';
 
 export type TdgMatchEndReason = 'base_destroyed' | 'forfeit' | 'disconnect' | 'draw';
 
@@ -122,7 +123,7 @@ export async function recordDisconnect(roomId: string, disconnectedSlot: number)
 
 export async function getActivitySnapshot() {
   await ensureTdgPresenceTable();
-  const [queueRows, activeRows, recentRows, onlineNow] = await Promise.all([
+  const [queueRows, activeRows, recentRows, onlineNow, presenceHistory, presenceHistorySummary] = await Promise.all([
     sql`
       SELECT player_name, created_at, last_seen_at
       FROM tdg_pvp_queue
@@ -160,6 +161,8 @@ export async function getActivitySnapshot() {
       }>
     >,
     listLiveTdgPresence(),
+    listPresenceHistory({ hours: 168, limit: 250 }),
+    getPresenceHistorySummary(168),
   ]);
 
   const nameSet = new Set<string>();
@@ -243,6 +246,14 @@ export async function getActivitySnapshot() {
     players: statsByName,
     onlineNow,
     onlineCount: onlineNow.length,
+    presenceHistory,
+    presenceHistorySummary: {
+      events: Number(presenceHistorySummary.events) || 0,
+      visitors: Number(presenceHistorySummary.visitors) || 0,
+      gpsEvents: Number(presenceHistorySummary.gps_events) || 0,
+      mappedEvents: Number(presenceHistorySummary.mapped_events) || 0,
+      hours: 168,
+    },
     updatedAt: new Date().toISOString(),
   };
 }
