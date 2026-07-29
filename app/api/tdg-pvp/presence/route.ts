@@ -97,6 +97,11 @@ export async function POST(request: NextRequest) {
         preciseLabel = `${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)}`;
         locationLabel = preciseLabel;
       }
+    } else if (geo.latitude != null && geo.longitude != null) {
+      latitude = geo.latitude;
+      longitude = geo.longitude;
+      accuracyM = 25000;
+      geoSource = 'ip';
     }
 
     const row = await upsertTdgPresence({

@@ -2,7 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Activity, RefreshCw, Swords, Trophy, Users, Radio } from 'lucide-react';
+import { Activity, RefreshCw, Swords, Trophy, Users, Radio, Map as MapIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const PresenceMap = dynamic(() => import('@/components/presence/PresenceMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[min(62vh,560px)] items-center justify-center rounded-2xl border border-white/10 bg-[#0b1220] text-sm text-white/50">
+      Loading live map…
+    </div>
+  ),
+});
 
 type PlayerStats = {
   wins: number;
@@ -230,7 +240,7 @@ export default function ActivityMonitor() {
               PvP Activity Monitor
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/60">
-              Who is on /TDG right now — IP plus device GPS when they allow location — live queue, matches, and records.
+              Who is on the site right now — live map down to GPS coordinates when allowed — plus queue, matches, and records.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -279,10 +289,27 @@ export default function ActivityMonitor() {
           <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
             <div className="space-y-6">
               <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    <MapIcon className="h-5 w-5 text-emerald-400" />
+                    Live location map
+                  </h2>
+                  <span className="text-xs text-white/45">
+                    {online.filter((v) => v.latitude != null && v.longitude != null).length} pinned ·{' '}
+                    {online.filter((v) => v.geoSource === 'gps').length} GPS
+                  </span>
+                </div>
+                <PresenceMap visitors={online} />
+                <p className="mt-3 text-xs text-white/40">
+                  Green pins are device GPS (street-level). Amber pins are IP city estimates. Click a pin for exact coords and Google Maps.
+                </p>
+              </section>
+
+              <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h2 className="flex items-center gap-2 text-lg font-semibold">
                     <Radio className="h-5 w-5 text-emerald-400" />
-                    On /TDG now
+                    On the site now
                   </h2>
                   <span className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-sm font-semibold text-emerald-200">
                     {onlineCount} {onlineCount === 1 ? 'person' : 'people'}
@@ -365,7 +392,7 @@ export default function ActivityMonitor() {
                   </div>
                 ) : (
                   <p className="text-sm text-white/45">
-                    Nobody is on /TDG right now. Open the game in another tab to test live presence.
+                    Nobody is online right now. Open the site in another tab and allow location to appear on the map.
                   </p>
                 )}
               </section>

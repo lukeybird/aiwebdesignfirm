@@ -145,11 +145,30 @@ export async function upsertTdgPresence(params: {
       region = COALESCE(EXCLUDED.region, tdg_presence.region),
       country = COALESCE(EXCLUDED.country, tdg_presence.country),
       location_label = COALESCE(EXCLUDED.location_label, tdg_presence.location_label),
-      latitude = COALESCE(EXCLUDED.latitude, tdg_presence.latitude),
-      longitude = COALESCE(EXCLUDED.longitude, tdg_presence.longitude),
-      accuracy_m = COALESCE(EXCLUDED.accuracy_m, tdg_presence.accuracy_m),
-      precise_label = COALESCE(EXCLUDED.precise_label, tdg_presence.precise_label),
-      geo_source = COALESCE(EXCLUDED.geo_source, tdg_presence.geo_source),
+      latitude = CASE
+        WHEN EXCLUDED.geo_source = 'gps' THEN EXCLUDED.latitude
+        WHEN tdg_presence.geo_source = 'gps' THEN tdg_presence.latitude
+        ELSE COALESCE(EXCLUDED.latitude, tdg_presence.latitude)
+      END,
+      longitude = CASE
+        WHEN EXCLUDED.geo_source = 'gps' THEN EXCLUDED.longitude
+        WHEN tdg_presence.geo_source = 'gps' THEN tdg_presence.longitude
+        ELSE COALESCE(EXCLUDED.longitude, tdg_presence.longitude)
+      END,
+      accuracy_m = CASE
+        WHEN EXCLUDED.geo_source = 'gps' THEN EXCLUDED.accuracy_m
+        WHEN tdg_presence.geo_source = 'gps' THEN tdg_presence.accuracy_m
+        ELSE COALESCE(EXCLUDED.accuracy_m, tdg_presence.accuracy_m)
+      END,
+      precise_label = CASE
+        WHEN EXCLUDED.geo_source = 'gps' THEN COALESCE(EXCLUDED.precise_label, tdg_presence.precise_label)
+        WHEN tdg_presence.geo_source = 'gps' THEN tdg_presence.precise_label
+        ELSE COALESCE(EXCLUDED.precise_label, tdg_presence.precise_label)
+      END,
+      geo_source = CASE
+        WHEN EXCLUDED.geo_source = 'gps' OR tdg_presence.geo_source = 'gps' THEN 'gps'
+        ELSE COALESCE(EXCLUDED.geo_source, tdg_presence.geo_source)
+      END,
       last_seen_at = CURRENT_TIMESTAMP
     RETURNING
       visitor_id, display_name, user_id, screen,

@@ -6,6 +6,8 @@ export type ClientGeo = {
   region: string | null;
   country: string | null;
   locationLabel: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 function firstForwardedIp(header: string | null): string | null {
@@ -73,6 +75,8 @@ async function lookupIpApi(ip: string): Promise<Omit<ClientGeo, 'ip'> | null> {
       region: null,
       country: null,
       locationLabel: 'Local / private network',
+      latitude: null,
+      longitude: null,
     };
   }
   try {
@@ -89,16 +93,22 @@ async function lookupIpApi(ip: string): Promise<Omit<ClientGeo, 'ip'> | null> {
       country?: string;
       region?: string;
       city?: string;
+      latitude?: number;
+      longitude?: number;
     };
     if (data.success === false) return null;
     const city = data.city || null;
     const region = data.region || null;
     const country = data.country || null;
+    const latitude = Number.isFinite(data.latitude) ? Number(data.latitude) : null;
+    const longitude = Number.isFinite(data.longitude) ? Number(data.longitude) : null;
     return {
       city,
       region,
       country,
       locationLabel: formatLocation(city, region, country),
+      latitude,
+      longitude,
     };
   } catch {
     return null;
@@ -187,7 +197,14 @@ export async function resolveClientGeo(request: NextRequest): Promise<ClientGeo>
   const ip = getClientIp(request);
   const fromVercel = geoFromVercelHeaders(request);
   if (fromVercel.locationLabel) {
-    return { ip, ...fromVercel };
+    // Vercel headers lack lat/lng — still try IP lookup for map pins.
+    const lookedUp = await lookupIpApi(ip);
+    return {
+      ip,
+      ...fromVercel,
+      latitude: lookedUp?.latitude ?? null,
+      longitude: lookedUp?.longitude ?? null,
+    };
   }
 
   const lookedUp = await lookupIpApi(ip);
@@ -199,5 +216,7 @@ export async function resolveClientGeo(request: NextRequest): Promise<ClientGeo>
     region: null,
     country: null,
     locationLabel: isPrivateOrLocal(ip) ? 'Local / private network' : null,
+    latitude: null,
+    longitude: null,
   };
 }

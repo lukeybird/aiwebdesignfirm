@@ -6,6 +6,7 @@ import { GaPageView } from "@/components/analytics/GaPageView";
 import AiImplementationChatWidget from "@/components/chat/AiImplementationChatWidget";
 import AuthProvider from "@/components/auth/AuthProvider";
 import SiteAccountBar from "@/components/auth/SiteAccountBar";
+import SitePresenceTracker from "@/components/presence/SitePresenceTracker";
 import "./globals.css";
 
 const GA_MEASUREMENT_ID =
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body className="font-sans antialiased min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7]">
         <AuthProvider>
           <SiteAccountBar />
+          <SitePresenceTracker />
           {children}
         </AuthProvider>
         <Suspense fallback={null}>
