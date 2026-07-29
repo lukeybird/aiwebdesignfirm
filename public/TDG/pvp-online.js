@@ -15,7 +15,7 @@
   let gameWsUrl = null;
   let serverAuthEnabled = false;
   let socketReady = false;
-  let queueMode = 'standard'; // 'standard' | 'limited' | 'tft'
+  let queueMode = 'standard'; // 'standard' | 'limited' | 'tft' | 'farmers'
   const HEARTBEAT_INTERVAL_MS = 10000;
   const pendingSocketMessages = [];
   /** Last TFT auth snapshot — kept so a late-booting guest still gets shops. */
@@ -26,10 +26,22 @@
       lastTftAuthState = state;
       saveLiveState(state, { mode: 'tft' });
     }
+    if (state && state.mode === 'farmers') {
+      saveLiveState(state, { mode: 'farmers' });
+    }
   }
 
   function deliverTftAuthState(state) {
-    if (!state || state.mode !== 'tft') return false;
+    if (!state) return false;
+    if (state.mode === 'farmers') {
+      rememberTftAuthState(state);
+      if (window.FARMERS_ONLINE?.isActive?.()) {
+        window.FARMERS_ONLINE.applyAuthState?.(state);
+        return true;
+      }
+      return false;
+    }
+    if (state.mode !== 'tft') return false;
     rememberTftAuthState(state);
     if (window.TFT_ONLINE?.isActive?.()) {
       window.TFT_ONLINE.applyAuthState?.(state);
@@ -49,7 +61,7 @@
   function readModeFromUrl() {
     try {
       const mode = new URL(window.location.href).searchParams.get('mode');
-      if (mode === 'limited' || mode === 'tft' || mode === 'standard') return mode;
+      if (mode === 'limited' || mode === 'tft' || mode === 'farmers' || mode === 'standard') return mode;
       return '';
     } catch {
       return '';
@@ -57,12 +69,13 @@
   }
 
   function normalizeMode(mode) {
-    if (mode === 'limited' || mode === 'tft') return mode;
+    if (mode === 'limited' || mode === 'tft' || mode === 'farmers') return mode;
     return 'standard';
   }
 
   function modeFromSession(data) {
     if (!data) return queueMode || 'standard';
+    if (data.farmers) return 'farmers';
     if (data.tft) return 'tft';
     if (data.limited) return 'limited';
     return 'standard';
@@ -123,10 +136,12 @@
       const stateMode = parsed.mode || parsed.state.mode || 'standard';
       if (expectedMode === 'tft') {
         if (stateMode !== 'tft') return null;
+      } else if (expectedMode === 'farmers') {
+        if (stateMode !== 'farmers') return null;
       } else if (expectedMode === 'limited') {
-        if (stateMode === 'tft') return null;
+        if (stateMode === 'tft' || stateMode === 'farmers') return null;
       } else if (expectedMode === 'standard') {
-        if (stateMode === 'tft' || stateMode === 'limited_draft') return null;
+        if (stateMode === 'tft' || stateMode === 'farmers' || stateMode === 'limited_draft') return null;
         if (stateMode === 'limited' && parsed.state.limitedPicks) return null;
       }
       return parsed.state;
@@ -195,6 +210,7 @@
         isHost: data.isHost,
         limited: !!data.limited,
         tft: !!data.tft,
+        farmers: !!data.farmers,
         opponentName: data.opponentName,
         limitedPicks: data.limitedPicks || null,
         reportedGameOver: !!data.reportedGameOver,
@@ -298,6 +314,10 @@
     // TFT multi: a peer leaving is handled as forfeit in-game; only bail if we're
     // not in an active TFT match (lobby / 1v1 cancel).
     if (window.TFT_ONLINE?.isActive?.() && session?.tft) {
+      return;
+    }
+    if (window.FARMERS_ONLINE?.isActive?.() && session?.farmers) {
+      window.FARMERS_ONLINE.applyForfeit?.(session.playerId === 0 ? 1 : 0);
       return;
     }
     handleSessionExpired('Your opponent disconnected. Returning to menu.');
@@ -419,6 +439,10 @@
     }
 
     if (msg.type === 'forfeit') {
+      if (window.FARMERS_ONLINE?.isActive?.()) {
+        window.FARMERS_ONLINE.applyForfeit?.(msg.from);
+        return;
+      }
       if (window.TFT_ONLINE?.isActive?.()) {
         window.TFT_ONLINE.applyForfeit?.(msg.from);
         return;
@@ -503,12 +527,13 @@
   }
 
   function showNameScreen(mode) {
-    queueMode = mode === 'limited' ? 'limited' : (mode === 'tft' ? 'tft' : 'standard');
+    queueMode = mode === 'limited' ? 'limited' : (mode === 'tft' ? 'tft' : (mode === 'farmers' ? 'farmers' : 'standard'));
     hide($('menu-screen'));
     hide($('online-queue-screen'));
     hide($('online-match-screen'));
     hide($('limited-draft-screen'));
     hide($('tft-game-screen'));
+    hide($('farmers-game-screen'));
     show($('online-name-screen'));
     const title = $('online-name-title');
     const desc = $('online-name-desc');
@@ -518,6 +543,9 @@
     } else if (queueMode === 'tft') {
       if (title) title.textContent = '⚔️ TFT Online';
       if (desc) desc.textContent = 'Up to 4 players. Empty seats autofill with CPUs when you start. Each round alive players are paired — last standing wins.';
+    } else if (queueMode === 'farmers') {
+      if (title) title.textContent = '🌾 Farmers';
+      if (desc) desc.textContent = 'Slow-pace 1v1 farm market. Place farms, haul crops to your stand, sell to customers, hire help, and race to $400.';
     } else {
       if (title) title.textContent = '🌐 Online PvP';
       if (desc) desc.textContent = 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.';
@@ -545,7 +573,7 @@
     const label = $('online-queue-name');
     if (label) label.textContent = name;
     const title = $('online-queue-title');
-    if (title) title.textContent = queueMode === 'tft' ? 'TFT lobby…' : 'Finding opponent…';
+    if (title) title.textContent = queueMode === 'tft' ? 'TFT lobby…' : (queueMode === 'farmers' ? 'Finding a farmer…' : 'Finding opponent…');
     updateLobbyUi(null);
   }
 
@@ -652,6 +680,7 @@
     hide($('online-match-screen'));
     hide($('limited-draft-screen'));
     hide($('tft-game-screen'));
+    hide($('farmers-game-screen'));
     hide($('countdown-overlay'));
   }
 
@@ -721,7 +750,7 @@
     }
     roomChannel = pusher.subscribe(`tdg-room-${roomId}`);
     roomChannel.bind('state', (payload) => {
-      if (payload?.state?.mode === 'tft') {
+      if (payload?.state?.mode === 'tft' || payload?.state?.mode === 'farmers') {
         if (session?.isHost || session?.playerId === 0) {
           rememberTftAuthState(payload.state);
           return;
@@ -735,11 +764,16 @@
     });
     roomChannel.bind('action', (payload) => {
       if (window.__TDG?.handleLimitedDraftRemote?.(payload.from, payload.action)) return;
+      if (window.FARMERS_ONLINE?.handleRemote?.(payload.from, payload.action)) return;
       if (window.TFT_ONLINE?.handleRemote?.(payload.from, payload.action)) return;
       if (!window.__TDG?.isSurvivalPvp?.()) return;
       window.__TDG?.applyPvpRemoteAction(payload.from, payload.action);
     });
     roomChannel.bind('forfeit', (payload) => {
+      if (window.FARMERS_ONLINE?.isActive?.()) {
+        window.FARMERS_ONLINE.applyForfeit?.(payload.from);
+        return;
+      }
       if (window.TFT_ONLINE?.isActive?.()) {
         window.TFT_ONLINE.applyForfeit?.(payload.from);
         return;
@@ -761,7 +795,8 @@
 
     const limited = Boolean(match.limited || queueMode === 'limited' || session?.limited);
     const tft = Boolean(match.tft || queueMode === 'tft' || session?.tft);
-    const mode = tft ? 'tft' : (limited ? 'limited' : 'standard');
+    const farmers = Boolean(match.farmers || queueMode === 'farmers' || session?.farmers);
+    const mode = farmers ? 'farmers' : (tft ? 'tft' : (limited ? 'limited' : 'standard'));
     queueMode = mode;
 
     if (match.roomId) setGameUrl(match.roomId, mode);
@@ -769,7 +804,7 @@
     hideOnlineScreens();
     hide($('menu-screen'));
 
-    if (useServerAuth) {
+    if (useServerAuth && !farmers) {
       try {
         await connectGameSocket(match);
       } catch (err) {
@@ -780,8 +815,8 @@
     } else {
       subscribeToRoomChannel(match.roomId);
     }
-    // Limited draft syncs over the Pusher room channel even when game WS is up.
-    if ((limited || tft) && !roomChannel) {
+    // Limited draft / TFT / Farmers sync over the Pusher room channel even when game WS is up.
+    if ((limited || tft || farmers) && !roomChannel) {
       subscribeToRoomChannel(match.roomId);
     }
 
@@ -844,6 +879,22 @@
       return;
     }
 
+    if (farmers) {
+      match.serverAuth = false;
+      runCountdown(startsAt, () => {
+        window.FARMERS_ONLINE?.start({
+          myPlayerId: myId,
+          isHost: match.isHost,
+          roomId: match.roomId,
+          player0Name: p0,
+          player1Name: p1,
+          resume,
+          savedState: (savedState && savedState.mode === 'farmers') ? savedState : null,
+        });
+      });
+      return;
+    }
+
     if (tft) {
       // TFT lobbies use Pusher host sync (game WS is 1v1-only).
       match.serverAuth = false;
@@ -889,10 +940,11 @@
       authoritySlot: data.authoritySlot === 1 ? 1 : 0,
       limited: Boolean(data.limited || queueMode === 'limited' || session?.limited),
       tft: Boolean(data.tft || queueMode === 'tft' || session?.tft),
+      farmers: Boolean(data.farmers || queueMode === 'farmers' || session?.farmers),
       roster: Array.isArray(data.roster) ? data.roster : (session?.roster || null),
       lobby: data.lobby || session?.lobby || null,
     };
-    if (match.tft) match.serverAuth = false;
+    if (match.tft || match.farmers) match.serverAuth = false;
     saveSession(match);
     setGameUrl(match.roomId, modeFromSession(match));
     const themLabel = match.roster?.length > 2
@@ -907,7 +959,7 @@
     const body = {
       name,
       sessionToken: existing?.sessionToken,
-      mode: queueMode === 'limited' ? 'limited' : (queueMode === 'tft' ? 'tft' : 'standard'),
+      mode: queueMode === 'limited' ? 'limited' : (queueMode === 'tft' ? 'tft' : (queueMode === 'farmers' ? 'farmers' : 'standard')),
     };
     const result = await fetchJson('/api/tdg-pvp/join', {
       method: 'POST',
@@ -928,6 +980,7 @@
       authoritySlot: result.authoritySlot === 1 ? 1 : 0,
       limited: Boolean(result.limited || queueMode === 'limited'),
       tft: Boolean(result.tft || queueMode === 'tft'),
+      farmers: Boolean(result.farmers || queueMode === 'farmers'),
       lobby: result.lobby || null,
       roster: result.roster || null,
     });
@@ -940,6 +993,7 @@
       setGameUrl(result.roomId, modeFromSession({
         limited: Boolean(result.limited || queueMode === 'limited'),
         tft: Boolean(result.tft || queueMode === 'tft'),
+        farmers: Boolean(result.farmers || queueMode === 'farmers'),
       }));
       const themLabel = result.roster?.length > 2
         ? result.roster.filter((r) => r.slot !== result.playerId).map((r) => r.name).join(' · ')
@@ -950,6 +1004,7 @@
         playerName: result.playerName || name,
         limited: Boolean(result.limited || queueMode === 'limited'),
         tft: Boolean(result.tft || queueMode === 'tft'),
+        farmers: Boolean(result.farmers || queueMode === 'farmers'),
         serverAuth: false,
       }), 1400);
       return;
@@ -1014,6 +1069,7 @@
         authoritySlot: result.authoritySlot === 1 ? 1 : 0,
         limited: Boolean(result.limited || stored.limited || queueMode === 'limited'),
         tft: Boolean(result.tft || stored.tft || queueMode === 'tft'),
+        farmers: Boolean(result.farmers || stored.farmers || queueMode === 'farmers'),
         limitedPicks: stored.limitedPicks || null,
       };
       saveSession(nextSession);
@@ -1022,7 +1078,7 @@
       if (result.state) {
         saveLiveState(result.state, {
           roomId: nextSession.roomId,
-          mode: nextSession.tft ? 'tft' : (nextSession.limited ? 'limited' : 'standard'),
+          mode: nextSession.farmers ? 'farmers' : (nextSession.tft ? 'tft' : (nextSession.limited ? 'limited' : 'standard')),
         });
       }
 
@@ -1038,6 +1094,7 @@
           playerName: result.playerName || stored.playerName,
           limited: nextSession.limited,
           tft: nextSession.tft,
+          farmers: nextSession.farmers,
           resume: true,
           serverState: result.state || null,
         });
@@ -1085,9 +1142,10 @@
     const nested = action?.action && action.action.type ? action.action : action;
     const isDraftPick = nested?.type === 'limited_draft_pick' || action?.type === 'limited_draft_pick';
     const isTftPick = String(nested?.type || action?.type || '').startsWith('tft_');
+    const isFarmersAct = String(nested?.type || action?.type || '').startsWith('farmers_');
 
-    // Preferred path: authoritative game WebSocket (draft/TFT picks stay on Pusher/HTTP)
-    if (!isDraftPick && !isTftPick && gameSocket && (socketReady || gameSocket.readyState === WebSocket.OPEN)) {
+    // Preferred path: authoritative game WebSocket (draft/TFT/Farmers stay on Pusher/HTTP)
+    if (!isDraftPick && !isTftPick && !isFarmersAct && gameSocket && (socketReady || gameSocket.readyState === WebSocket.OPEN)) {
       const aid = action?.aid;
       socketSend({
         type: 'input',
@@ -1118,7 +1176,9 @@
   async function sendState(state) {
     if (!session?.roomId || !session?.sessionToken) return;
     rememberTftAuthState(state);
-    if (state && state.mode !== 'tft') {
+    if (state && state.mode === 'farmers') {
+      saveLiveState(state, { mode: 'farmers' });
+    } else if (state && state.mode !== 'tft') {
       saveLiveState(state, {
         mode: state.mode === 'limited_draft'
           ? 'limited'
@@ -1215,6 +1275,7 @@
   function goHome() {
     hardLeaveOnUnload = true;
     window.TFT_ONLINE?.cleanup?.(true);
+    window.FARMERS_ONLINE?.cleanup?.(true);
     cleanup();
     hideOnlineScreens();
     show($('menu-screen'));
@@ -1242,6 +1303,7 @@
     $('btn-online-pvp')?.addEventListener('click', () => showNameScreen('standard'));
     $('btn-limited-pvp')?.addEventListener('click', () => showNameScreen('limited'));
     $('btn-tft-online')?.addEventListener('click', () => showNameScreen('tft'));
+    $('btn-farmers-online')?.addEventListener('click', () => showNameScreen('farmers'));
     $('btn-online-name-back')?.addEventListener('click', () => {
       hide($('online-name-screen'));
       show($('menu-screen'));

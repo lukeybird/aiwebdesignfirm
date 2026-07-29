@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Game not found or session expired.' }, { status: 404 });
     }
 
-    if (!['matched', 'matched_limited', 'matched_tft'].includes(row.status)) {
+    if (!['matched', 'matched_limited', 'matched_tft', 'matched_farmers'].includes(row.status)) {
       return NextResponse.json({ error: 'Game is no longer active.' }, { status: 410 });
     }
 
@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     const stateMode = snap?.mode;
     const limited = flags.limited || stateMode === 'limited' || stateMode === 'limited_draft';
     const tft = flags.tft || stateMode === 'tft';
+    const farmers = flags.farmers || stateMode === 'farmers';
 
     let opponentAlive = false;
     let opponentName = row.opponent_name || '';
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     const startsAt = Date.now() + 1200;
     const joinTicket =
-      !tft && (row.player_slot === 0 || row.player_slot === 1)
+      !tft && !farmers && (row.player_slot === 0 || row.player_slot === 1)
         ? mintTdgJoinTicket({
             roomId: row.room_id,
             sessionToken: row.session_token,
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
       serverAuth: Boolean(joinTicket),
       limited,
       tft,
+      farmers,
       roster,
       state: snap?.state ?? null,
       stateUpdatedAt: snap?.updated_at ?? null,

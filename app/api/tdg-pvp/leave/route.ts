@@ -62,9 +62,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Classic 1v1 / limited — room already dissolved; notify opponent.
+    // Classic 1v1 / limited / farmers — room already dissolved; notify opponent.
     if (
-      (removed.status === 'matched' || removed.status === 'matched_limited') &&
+      (removed.status === 'matched' ||
+        removed.status === 'matched_limited' ||
+        removed.status === 'matched_farmers') &&
       removed.player_slot != null
     ) {
       await recordDisconnect(removed.room_id, removed.player_slot);

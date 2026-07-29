@@ -14,6 +14,8 @@ import { mintTdgJoinTicket } from '@/lib/tdg-join-ticket';
 import { joinTftLobby } from '@/lib/tdg-tft-lobby';
 import { sql } from '@/lib/db';
 
+type QueueMode = 'standard' | 'limited' | 'tft' | 'farmers';
+
 function makeToken() {
   return randomBytes(24).toString('hex');
 }
@@ -22,19 +24,30 @@ function makeRoomId() {
   return randomBytes(12).toString('hex');
 }
 
-function normalizeQueueMode(mode?: string) {
+function normalizeQueueMode(mode?: string): QueueMode {
   if (mode === 'limited') return 'limited';
   if (mode === 'tft') return 'tft';
+  if (mode === 'farmers') return 'farmers';
   return 'standard';
 }
 
-function waitingStatusForMode(mode: 'standard' | 'limited' | 'tft') {
+function waitingStatusForMode(mode: QueueMode) {
   if (mode === 'limited') return 'waiting_limited';
   if (mode === 'tft') return 'waiting_tft';
+  if (mode === 'farmers') return 'waiting_farmers';
   return 'waiting';
 }
 
-async function findLiveWaitingPartner(excludeToken: string | undefined, mode: 'standard' | 'limited') {
+function matchedStatusForMode(mode: 'standard' | 'limited' | 'farmers') {
+  if (mode === 'limited') return 'matched_limited';
+  if (mode === 'farmers') return 'matched_farmers';
+  return 'matched';
+}
+
+async function findLiveWaitingPartner(
+  excludeToken: string | undefined,
+  mode: 'standard' | 'limited' | 'farmers',
+) {
   const waitingStatus = waitingStatusForMode(mode);
   const waitingRows = (await sql`
     SELECT id, session_token, player_name
@@ -57,7 +70,13 @@ async function tryResumeExistingSession(existingToken: string) {
     return null;
   }
 
-  if ((row.status === 'matched' || row.status === 'matched_limited') && row.room_id && row.player_slot !== null) {
+  if (
+    (row.status === 'matched' ||
+      row.status === 'matched_limited' ||
+      row.status === 'matched_farmers') &&
+    row.room_id &&
+    row.player_slot !== null
+  ) {
     const opponent = row.opponent_token
       ? await findQueueRowByToken(row.opponent_token)
       : null;
@@ -72,8 +91,11 @@ async function tryResumeExistingSession(existingToken: string) {
     if (opponent.session_token) await touchQueueSession(opponent.session_token);
 
     const startsAt = Date.now() + 4500;
+    const isFarmers = row.status === 'matched_farmers';
     const joinTicket =
-      row.room_id && (row.player_slot === 0 || row.player_slot === 1)
+      !isFarmers &&
+      row.room_id &&
+      (row.player_slot === 0 || row.player_slot === 1)
         ? mintTdgJoinTicket({
             roomId: row.room_id,
             sessionToken: row.session_token,
@@ -97,11 +119,16 @@ async function tryResumeExistingSession(existingToken: string) {
       serverAuth: Boolean(joinTicket),
       limited: row.status === 'matched_limited',
       tft: false,
+      farmers: isFarmers,
       opponentAlive,
     });
   }
 
-  if (row.status === 'waiting' || row.status === 'waiting_limited') {
+  if (
+    row.status === 'waiting' ||
+    row.status === 'waiting_limited' ||
+    row.status === 'waiting_farmers'
+  ) {
     await touchQueueSession(existingToken);
     return NextResponse.json({
       status: 'waiting',
@@ -109,6 +136,7 @@ async function tryResumeExistingSession(existingToken: string) {
       playerName: row.player_name,
       limited: row.status === 'waiting_limited',
       tft: false,
+      farmers: row.status === 'waiting_farmers',
     });
   }
 
@@ -125,6 +153,7 @@ export async function POST(request: NextRequest) {
     const waitingStatus = waitingStatusForMode(queueMode);
     const isLimited = queueMode === 'limited';
     const isTft = queueMode === 'tft';
+    const isFarmers = queueMode === 'farmers';
 
     if (!name || name.length < 2) {
       return NextResponse.json({ error: 'Enter a name (at least 2 characters).' }, { status: 400 });
@@ -146,12 +175,18 @@ export async function POST(request: NextRequest) {
       if (resumed) return resumed;
     }
 
-    const waiting = await findLiveWaitingPartner(sessionToken, isLimited ? 'limited' : 'standard');
+    const pairMode: 'standard' | 'limited' | 'farmers' = isFarmers
+      ? 'farmers'
+      : isLimited
+        ? 'limited'
+        : 'standard';
+    const matchedStatus = matchedStatusForMode(pairMode);
+    const waiting = await findLiveWaitingPartner(sessionToken, pairMode);
     if (waiting) {
       const roomId = makeRoomId();
       const updated = (await sql`
         UPDATE tdg_pvp_queue
-        SET status = ${isLimited ? 'matched_limited' : 'matched'},
+        SET status = ${matchedStatus},
             room_id = ${roomId},
             player_slot = 0,
             opponent_name = ${name},
@@ -172,7 +207,7 @@ export async function POST(request: NextRequest) {
           INSERT INTO tdg_pvp_queue (
             session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, last_seen_at
           ) VALUES (
-            ${sessionToken}, ${name}, ${isLimited ? 'matched_limited' : 'matched'}, ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
+            ${sessionToken}, ${name}, ${matchedStatus}, ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
           )
           ON CONFLICT (session_token) DO UPDATE SET
             player_name = EXCLUDED.player_name,
@@ -189,22 +224,26 @@ export async function POST(request: NextRequest) {
           startsAt: Date.now() + 4500,
         };
 
-        const hostTicket = mintTdgJoinTicket({
-          roomId,
-          sessionToken: partner.session_token,
-          playerSlot: 0,
-          playerName: partner.player_name,
-          opponentName: name,
-          startsAt: matchPayload.startsAt,
-        });
-        const guestTicket = mintTdgJoinTicket({
-          roomId,
-          sessionToken,
-          playerSlot: 1,
-          playerName: name,
-          opponentName: partner.player_name,
-          startsAt: matchPayload.startsAt,
-        });
+        const hostTicket = isFarmers
+          ? null
+          : mintTdgJoinTicket({
+              roomId,
+              sessionToken: partner.session_token,
+              playerSlot: 0,
+              playerName: partner.player_name,
+              opponentName: name,
+              startsAt: matchPayload.startsAt,
+            });
+        const guestTicket = isFarmers
+          ? null
+          : mintTdgJoinTicket({
+              roomId,
+              sessionToken,
+              playerSlot: 1,
+              playerName: name,
+              opponentName: partner.player_name,
+              startsAt: matchPayload.startsAt,
+            });
 
         await Promise.all([
           safeTrigger(`tdg-player-${partner.session_token}`, 'match_found', {
@@ -216,6 +255,7 @@ export async function POST(request: NextRequest) {
             serverAuth: Boolean(hostTicket),
             limited: isLimited,
             tft: false,
+            farmers: isFarmers,
           }),
           safeTrigger(`tdg-player-${sessionToken}`, 'match_found', {
             ...matchPayload,
@@ -226,6 +266,7 @@ export async function POST(request: NextRequest) {
             serverAuth: Boolean(guestTicket),
             limited: isLimited,
             tft: false,
+            farmers: isFarmers,
           }),
         ]);
 
@@ -242,6 +283,7 @@ export async function POST(request: NextRequest) {
           serverAuth: Boolean(guestTicket),
           limited: isLimited,
           tft: false,
+          farmers: isFarmers,
         });
       }
     }
@@ -266,6 +308,7 @@ export async function POST(request: NextRequest) {
       playerName: name,
       limited: isLimited,
       tft: false,
+      farmers: isFarmers,
     });
   } catch (error) {
     console.error('tdg-pvp join error:', error);

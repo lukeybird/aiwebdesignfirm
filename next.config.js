@@ -6,7 +6,10 @@ const nextConfig = {
   // which can break /public static assets like /TDG/portraits/*.
   outputFileTracingRoot: path.join(__dirname),
   async rewrites() {
-    return [{ source: '/TDG', destination: '/TDG/index.html' }];
+    return [
+      { source: '/TDG', destination: '/TDG/index.html' },
+      { source: '/tdg', destination: '/TDG/index.html' },
+    ];
   },
   images: {
     remotePatterns: [

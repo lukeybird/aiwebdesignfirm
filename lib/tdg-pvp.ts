@@ -18,7 +18,7 @@ export const TDG_WAITING_ALIVE_SECONDS = 30;
 /** Matched rows with no activity are treated as abandoned. */
 export const TDG_MATCHED_ALIVE_SECONDS = 600;
 
-const MATCHED_STATUSES = ['matched', 'matched_limited', 'matched_tft'] as const;
+const MATCHED_STATUSES = ['matched', 'matched_limited', 'matched_tft', 'matched_farmers'] as const;
 
 export async function ensureTdgPvpTables() {
   await initDatabase();
@@ -45,12 +45,12 @@ export async function touchQueueSession(token: string) {
 export async function cleanupStaleTdgQueue() {
   await sql`
     DELETE FROM tdg_pvp_queue
-    WHERE status IN ('waiting', 'waiting_limited', 'waiting_tft')
+    WHERE status IN ('waiting', 'waiting_limited', 'waiting_tft', 'waiting_farmers')
       AND last_seen_at < NOW() - INTERVAL '30 seconds'
   `;
   await sql`
     DELETE FROM tdg_pvp_queue
-    WHERE status IN ('matched', 'matched_limited', 'matched_tft')
+    WHERE status IN ('matched', 'matched_limited', 'matched_tft', 'matched_farmers')
       AND last_seen_at < NOW() - INTERVAL '10 minutes'
   `;
   await sql`
@@ -78,7 +78,7 @@ export async function findQueueRowByRoomAndToken(roomId: string, token: string) 
     FROM tdg_pvp_queue
     WHERE room_id = ${roomId}
       AND session_token = ${token}
-      AND status IN ('matched', 'matched_limited', 'matched_tft')
+      AND status IN ('matched', 'matched_limited', 'matched_tft', 'matched_farmers')
     LIMIT 1
   `) as unknown as TdgQueueRow[];
   return rows[0] ?? null;
@@ -87,7 +87,10 @@ export async function findQueueRowByRoomAndToken(roomId: string, token: string) 
 export async function isQueueSessionAlive(row: TdgQueueRow) {
   if (!row.last_seen_at) return false;
   const waiting =
-    row.status === 'waiting' || row.status === 'waiting_limited' || row.status === 'waiting_tft';
+    row.status === 'waiting' ||
+    row.status === 'waiting_limited' ||
+    row.status === 'waiting_tft' ||
+    row.status === 'waiting_farmers';
   const rows = waiting
     ? ((await sql`
         SELECT 1
@@ -128,6 +131,7 @@ export async function removeQueueSession(token: string) {
   const dissolveRoom =
     row.status === 'matched' ||
     row.status === 'matched_limited' ||
+    row.status === 'matched_farmers' ||
     (row.status === 'matched_tft' && !row.room_id);
 
   if (dissolveRoom && row.room_id) {
@@ -172,7 +176,7 @@ export async function verifyRoomPlayer(roomId: string, sessionToken: string) {
     FROM tdg_pvp_queue
     WHERE room_id = ${roomId}
       AND session_token = ${sessionToken}
-      AND status IN ('matched', 'matched_limited', 'matched_tft')
+      AND status IN ('matched', 'matched_limited', 'matched_tft', 'matched_farmers')
     LIMIT 1
   `) as unknown as Array<{ player_slot: number; player_name: string; status: string }>;
   return rows[0] ?? null;
@@ -180,10 +184,12 @@ export async function verifyRoomPlayer(roomId: string, sessionToken: string) {
 
 function inferModeFromState(state: unknown, status?: string): string {
   if (status === 'matched_tft') return 'tft';
+  if (status === 'matched_farmers') return 'farmers';
   if (status === 'matched_limited') return 'limited';
   if (state && typeof state === 'object') {
     const mode = (state as { mode?: string }).mode;
     if (mode === 'tft') return 'tft';
+    if (mode === 'farmers') return 'farmers';
     if (mode === 'limited' || mode === 'limited_draft') return 'limited';
     if (mode === 'survival' || mode === 'standard') return 'standard';
   }
@@ -220,6 +226,7 @@ export function matchedModeFlags(status: string) {
   return {
     limited: status === 'matched_limited',
     tft: status === 'matched_tft',
+    farmers: status === 'matched_farmers',
   };
 }
 

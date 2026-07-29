@@ -159,6 +159,7 @@
     #game-stage:has(#online-match-screen:not(.hidden)) #hud-top,
     #game-stage:has(#limited-draft-screen:not(.hidden)) #hud-top,
     #game-stage:has(#tft-game-screen:not(.hidden)) #hud-top,
+    #game-stage:has(#farmers-game-screen:not(.hidden)) #hud-top,
     #game-stage:has(#survival-difficulty-screen:not(.hidden)) #hud-top,
     #game-stage:has(#manual-screen:not(.hidden)) #hud-top,
     #game-stage:has(#rulebook-screen:not(.hidden)) #hud-top {
@@ -1566,6 +1567,195 @@
       overflow: hidden;
     }
     #tft-game-screen.hidden { display: none; }
+
+    #farmers-game-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 28;
+      background:
+        radial-gradient(ellipse at 30% 10%, rgba(212, 160, 23, 0.18), transparent 50%),
+        linear-gradient(180deg, #2f4a2f 0%, #1a2818 55%, #121a12 100%);
+      pointer-events: auto;
+      overflow: hidden;
+      color: #f3efe4;
+      font-family: 'Georgia', 'Palatino Linotype', serif;
+    }
+    #farmers-game-screen.hidden { display: none; }
+    .farmers-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    .farmers-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      padding-top: calc(10px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(245, 230, 200, 0.18);
+      background: rgba(10, 16, 10, 0.45);
+      flex-shrink: 0;
+    }
+    .farmers-race {
+      flex: 1;
+      display: grid;
+      gap: 6px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .farmers-race-row {
+      display: grid;
+      grid-template-columns: 88px 1fr 56px;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .farmers-race-row.them { opacity: 0.9; }
+    .farmers-bar-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      overflow: hidden;
+    }
+    .farmers-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      transition: width 0.25s ease;
+    }
+    .farmers-bar-fill.you { background: linear-gradient(90deg, #4ECDC4, #7ed957); }
+    .farmers-bar-fill.them { background: linear-gradient(90deg, #FF8E53, #e76f51); }
+    .farmers-top-actions { display: flex; gap: 8px; align-items: center; }
+    .farmers-timer {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      min-width: 48px;
+      text-align: center;
+    }
+    .farmers-btn {
+      border: 1px solid rgba(245, 230, 200, 0.28);
+      background: rgba(255,255,255,0.08);
+      color: #f5efe4;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font: inherit;
+    }
+    .farmers-btn:hover { background: rgba(255,255,255,0.14); }
+    .farmers-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .farmers-btn.primary {
+      background: linear-gradient(180deg, #d4a017, #a67910);
+      border-color: #8a650c;
+      color: #1a1208;
+      font-weight: 700;
+    }
+    .farmers-main {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+      gap: 12px;
+      padding: 12px;
+    }
+    @media (max-width: 900px) {
+      .farmers-main { grid-template-columns: 1fr; }
+    }
+    .farmers-canvas-wrap {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(245, 230, 200, 0.18);
+      background: #6b9e5e;
+      min-height: 280px;
+    }
+    #farmers-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+      background: transparent;
+    }
+    .farmers-side {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      overflow: auto;
+    }
+    .farmers-panel {
+      background: rgba(12, 18, 12, 0.55);
+      border: 1px solid rgba(245, 230, 200, 0.14);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .farmers-panel h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+    }
+    .farmers-hint {
+      margin: 0 0 8px;
+      opacity: 0.85;
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+    .farmers-meta {
+      margin: 0;
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+    .farmers-seed-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .farmers-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+      border: 1px solid rgba(245, 230, 200, 0.2);
+      background: rgba(255,255,255,0.06);
+      color: inherit;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font: inherit;
+    }
+    .farmers-chip span { font-size: 0.72rem; opacity: 0.75; }
+    .farmers-chip.is-active {
+      border-color: #d4a017;
+      box-shadow: inset 0 0 0 1px rgba(212, 160, 23, 0.45);
+      background: rgba(212, 160, 23, 0.16);
+    }
+    .farmers-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+    .farmers-upgrade-col {
+      display: grid;
+      gap: 8px;
+    }
+    .farmers-end, .farmers-howto {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(8, 12, 8, 0.72);
+      padding: 20px;
+    }
+    .farmers-end.hidden, .farmers-howto.hidden { display: none; }
+    .farmers-end-panel, .farmers-howto-panel {
+      width: min(440px, 92vw);
+      background: linear-gradient(180deg, #2a3a24, #182016);
+      border: 1px solid rgba(245, 230, 200, 0.22);
+      border-radius: 16px;
+      padding: 22px;
+    }
+    .farmers-howto-panel ol { margin: 0; padding-left: 1.2em; line-height: 1.45; }
+    .farmers-howto-panel li { margin: 0.45em 0; }
 
     .tft-shell {
       position: relative;
@@ -8094,6 +8284,7 @@
           <button class="banner-btn" id="btn-online-pvp">🌐 Online PvP</button>
           <button class="banner-btn" id="btn-limited-pvp">🃏 Draft Battle</button>
           <button class="banner-btn" id="btn-tft-online">⚔️ TFT Online</button>
+          <button class="banner-btn" id="btn-farmers-online">🌾 Farmers</button>
           <button class="banner-btn" id="btn-tft-cpu">🤖 TFT vs CPU (Hard)</button>
           <a class="banner-btn" id="btn-account-login" href="/account">🔐 Sign in with Google</a>
         </div>
@@ -8306,6 +8497,82 @@
           </div>
         </div>
       </div>
+
+      <div id="farmers-game-screen" class="hidden">
+        <div class="farmers-shell">
+          <header class="farmers-topbar">
+            <div class="farmers-timer" id="farmers-timer">10:00</div>
+            <div class="farmers-race" aria-label="Gold race">
+              <div class="farmers-race-row you">
+                <span id="farmers-you-name">You</span>
+                <div class="farmers-bar-track"><div class="farmers-bar-fill you" id="farmers-you-bar"></div></div>
+                <strong id="farmers-you-gold">$55</strong>
+              </div>
+              <div class="farmers-race-row them">
+                <span id="farmers-them-name">Foe</span>
+                <div class="farmers-bar-track"><div class="farmers-bar-fill them" id="farmers-them-bar"></div></div>
+                <strong id="farmers-them-gold">$55</strong>
+              </div>
+            </div>
+            <div class="farmers-top-actions">
+              <span style="opacity:0.8;font-size:0.8rem">Stock <strong id="farmers-you-stock">0</strong> · Them <strong id="farmers-them-stock">0</strong></span>
+              <button type="button" class="farmers-btn" id="farmers-howto-btn">How to play</button>
+              <button type="button" class="farmers-btn" id="farmers-forfeit-btn">Forfeit</button>
+            </div>
+          </header>
+          <div class="farmers-main">
+            <div class="farmers-canvas-wrap">
+              <canvas id="farmers-canvas" width="720" height="420" aria-label="Farm yard"></canvas>
+            </div>
+            <aside class="farmers-side">
+              <div class="farmers-panel">
+                <h3>Market stall</h3>
+                <p class="farmers-hint" id="farmers-hint">Place your first farm on your half of the field.</p>
+                <p class="farmers-meta" id="farmers-meta"></p>
+              </div>
+              <div class="farmers-panel">
+                <h3>Seeds</h3>
+                <div class="farmers-seed-row" id="farmers-seed-row"></div>
+              </div>
+              <div class="farmers-panel">
+                <h3>Upgrades</h3>
+                <div class="farmers-upgrade-col">
+                  <button type="button" class="farmers-btn primary" id="farmers-btn-hire">Hire Worker</button>
+                  <button type="button" class="farmers-btn" id="farmers-btn-speed">Farm Speed</button>
+                  <button type="button" class="farmers-btn" id="farmers-btn-yield">Farm Yield</button>
+                  <button type="button" class="farmers-btn" id="farmers-btn-stand">Stand Upgrade</button>
+                </div>
+              </div>
+            </aside>
+          </div>
+          <div class="farmers-howto hidden" id="farmers-howto" role="dialog" aria-modal="true">
+            <div class="farmers-howto-panel">
+              <h3>How to play Farmers</h3>
+              <ol>
+                <li>Queue for a 1v1 match. First farm is free — click your half of the field to place it.</li>
+                <li>You start with one worker. Farms grow 1 fruit every 4 seconds (upgradable).</li>
+                <li>Workers automatically haul produce to your stand.</li>
+                <li>Customers walk up, buy fruit, and pay you. Hire more workers to keep the stand stocked.</li>
+                <li>Buy seeds (wheat / apple / berry / melon), farm speed &amp; yield (same cost curve as Live Army farms), and stand upgrades.</li>
+                <li>First to $400 wins, or highest gold after 10 minutes.</li>
+              </ol>
+              <div style="margin-top:14px;display:flex;justify-content:flex-end">
+                <button type="button" class="farmers-btn primary" id="farmers-howto-close">Got it</button>
+              </div>
+            </div>
+          </div>
+          <div class="farmers-end hidden" id="farmers-end">
+            <div class="farmers-end-panel">
+              <h2 id="farmers-end-title">Match over</h2>
+              <p id="farmers-end-desc"></p>
+              <div style="margin-top:14px;display:flex;justify-content:flex-end">
+                <button type="button" class="farmers-btn primary" id="farmers-home-btn">Back to menu</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="countdown-overlay" class="hidden">
         <div id="countdown-number">3</div>
       </div>
@@ -41980,6 +42247,7 @@ requestAnimationFrame(render);
 })();
 </script>
 <script src="/TDG/tft-online.js"></script>
+<script src="/TDG/farmers-online.js"></script>
 <script src="/TDG/presence.js"></script>
 <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <script src="/TDG/pvp-online.js"></script>
