@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { resolveClientGeo } from '@/lib/client-geo';
 import {
   ensureTdgPresenceTable,
   listLiveTdgPresence,
@@ -64,11 +65,18 @@ export async function POST(request: NextRequest) {
       sessionName ||
       null;
 
+    const geo = await resolveClientGeo(request);
+
     const row = await upsertTdgPresence({
       visitorId,
       displayName,
       userId,
       screen: typeof body.screen === 'string' ? body.screen : 'menu',
+      ipAddress: geo.ip,
+      city: geo.city,
+      region: geo.region,
+      country: geo.country,
+      locationLabel: geo.locationLabel,
     });
 
     return NextResponse.json({
@@ -76,6 +84,8 @@ export async function POST(request: NextRequest) {
       visitorId: row?.visitor_id,
       displayName: row?.display_name,
       screen: row?.screen,
+      ipAddress: row?.ip_address,
+      location: row?.location_label,
     });
   } catch (error) {
     console.error('tdg presence POST error:', error);

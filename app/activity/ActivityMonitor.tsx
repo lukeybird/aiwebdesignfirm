@@ -17,6 +17,11 @@ type OnlineVisitor = {
   displayName: string;
   signedIn: boolean;
   screen: string;
+  ipAddress?: string | null;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  location?: string | null;
   lastSeenAt: string;
   firstSeenAt: string;
 };
@@ -219,7 +224,7 @@ export default function ActivityMonitor() {
               PvP Activity Monitor
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/60">
-              Who is on /TDG right now, live queue pairings, active matches, and win/loss records.
+              Who is on /TDG right now (with IP + approximate location), live queue pairings, active matches, and win/loss records.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -282,28 +287,38 @@ export default function ActivityMonitor() {
                     {online.map((visitor) => (
                       <div
                         key={visitor.visitorId}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/25 px-4 py-3"
+                        className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-4 py-3"
                       >
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          {data?.players?.[visitor.displayName] ? (
-                            <PlayerButton
-                              name={visitor.displayName}
-                              stats={data.players[visitor.displayName]}
-                              selected={selectedPlayer === visitor.displayName}
-                              onSelect={handleSelectPlayer}
-                            />
-                          ) : (
-                            <span className="font-medium">{visitor.displayName}</span>
-                          )}
-                          {visitor.signedIn ? (
-                            <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] text-sky-200">
-                              Signed in
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            {data?.players?.[visitor.displayName] ? (
+                              <PlayerButton
+                                name={visitor.displayName}
+                                stats={data.players[visitor.displayName]}
+                                selected={selectedPlayer === visitor.displayName}
+                                onSelect={handleSelectPlayer}
+                              />
+                            ) : (
+                              <span className="font-medium">{visitor.displayName}</span>
+                            )}
+                            {visitor.signedIn ? (
+                              <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] text-sky-200">
+                                Signed in
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/45">
+                                Guest
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-white/55">
+                            <span title="IP address">
+                              IP {visitor.ipAddress || '—'}
                             </span>
-                          ) : (
-                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/45">
-                              Guest
+                            <span title="Approximate location from IP">
+                              {visitor.location || 'Location unknown'}
                             </span>
-                          )}
+                          </div>
                         </div>
                         <div className="text-right text-xs text-white/45">
                           <div>{formatScreen(visitor.screen)}</div>
