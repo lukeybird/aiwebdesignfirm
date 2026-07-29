@@ -60,13 +60,13 @@
     striker: { name: 'Knight', role: 'melee', hp: 440, damage: 32, attackRate: 0.85, range: 44, speed: 68, size: 22, color: '#FF6B6B' },
     speed: { name: 'Wolf', role: 'melee', hp: 320, damage: 30, attackRate: 1.15, range: 40, speed: 98, size: 20, color: '#F4F6FA' },
     goblin: { name: 'Goblin', role: 'melee', hp: 310, damage: 30, attackRate: 1.15, range: 38, speed: 92, size: 18, color: '#4ade80' },
-    tank: { name: 'Elephant', role: 'tank', hp: 1000, damage: 32, attackRate: 0.52, range: 48, speed: 38, size: 32, color: '#4ECDC4' },
+    tank: { name: 'Elephant', role: 'tank', hp: 880, damage: 28, attackRate: 0.52, range: 48, speed: 38, size: 32, color: '#4ECDC4' },
     farmer: { name: 'Farmer', role: 'melee', hp: 500, damage: 38, attackRate: 0.85, range: 42, speed: 52, size: 20, color: '#c4a574' },
     sniper: { name: 'Sniper', role: 'ranged', hp: 400, damage: 72, attackRate: 0.55, range: 210, speed: 36, size: 18, color: '#141414' },
-    wolf_hunter: { name: 'Hunter', role: 'melee', hp: 650, damage: 50, attackRate: 0.7, range: 52, speed: 56, size: 26, color: '#57534e' },
-    yeti: { name: 'Yeti', role: 'tank', hp: 1050, damage: 40, attackRate: 0.55, range: 50, speed: 40, size: 30, color: '#9fd4ea' },
-    angel: { name: 'Angel', role: 'ranged', hp: 580, damage: 48, attackRate: 0.8, range: 165, speed: 60, size: 24, color: '#facc15' },
-    peka: { name: 'Dragon', role: 'carry', hp: 1050, damage: 58, attackRate: 0.55, range: 130, speed: 44, size: 38, color: '#b91c1c' },
+    wolf_hunter: { name: 'Hunter', role: 'melee', hp: 650, damage: 56, attackRate: 0.7, range: 52, speed: 56, size: 26, color: '#57534e' },
+    yeti: { name: 'Yeti', role: 'tank', hp: 1180, damage: 46, attackRate: 0.6, range: 50, speed: 42, size: 30, color: '#9fd4ea' },
+    angel: { name: 'Angel', role: 'ranged', hp: 580, damage: 55, attackRate: 0.8, range: 165, speed: 60, size: 24, color: '#facc15' },
+    peka: { name: 'Dragon', role: 'carry', hp: 1280, damage: 72, attackRate: 0.6, range: 140, speed: 48, size: 38, color: '#b91c1c' },
   };
 
   // Shop odds by player level [cost1..cost5] — TFT-inspired
