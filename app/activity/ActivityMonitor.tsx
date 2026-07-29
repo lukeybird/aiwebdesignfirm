@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Activity, RefreshCw, Swords, Trophy, Users, Radio, Map as MapIcon } from 'lucide-react';
+import { Activity, RefreshCw, Swords, Trophy, Users, Radio, Map as MapIcon, History } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const PresenceMap = dynamic(() => import('@/components/presence/PresenceMap'), {
@@ -42,6 +42,24 @@ type OnlineVisitor = {
   firstSeenAt: string;
 };
 
+type PresenceHistoryEntry = {
+  id: number;
+  visitorId: string;
+  displayName: string;
+  signedIn: boolean;
+  screen: string;
+  ipAddress: string | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracyM: number | null;
+  preciseLocation: string | null;
+  geoSource: 'gps' | 'ip' | null;
+  mapsUrl: string | null;
+  eventType: string;
+  recordedAt: string;
+};
+
 type ActivityData = {
   queue: Array<{ playerName: string; waitingSince: string; lastSeenAt: string }>;
   activeMatches: Array<{
@@ -64,6 +82,14 @@ type ActivityData = {
   players: Record<string, PlayerStats>;
   onlineNow?: OnlineVisitor[];
   onlineCount?: number;
+  presenceHistory?: PresenceHistoryEntry[];
+  presenceHistorySummary?: {
+    events: number;
+    visitors: number;
+    gpsEvents: number;
+    mappedEvents: number;
+    hours: number;
+  };
   updatedAt: string;
   profile?: PlayerProfile;
 };
@@ -181,6 +207,12 @@ export default function ActivityMonitor() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapMode, setMapMode] = useState<'live' | 'history'>('live');
+  const [historyHours, setHistoryHours] = useState(168);
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [history, setHistory] = useState<PresenceHistoryEntry[]>([]);
+  const [historySummary, setHistorySummary] = useState<ActivityData['presenceHistorySummary'] | undefined>(undefined);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const loadActivity = useCallback(async (player?: string | null, silent = false) => {
     if (!silent) setLoading(true);
@@ -197,6 +229,8 @@ export default function ActivityMonitor() {
 
       setData(json);
       setProfile(json.profile ?? null);
+      if (json.presenceHistory) setHistory(json.presenceHistory);
+      if (json.presenceHistorySummary) setHistorySummary(json.presenceHistorySummary);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load activity');
     } finally {
@@ -204,6 +238,26 @@ export default function ActivityMonitor() {
       setRefreshing(false);
     }
   }, []);
+
+  const loadHistory = useCallback(async (hours = historyHours, q = historyQuery) => {
+    setHistoryLoading(true);
+    try {
+      const params = new URLSearchParams({
+        hours: String(hours),
+        limit: '400',
+      });
+      if (q.trim()) params.set('q', q.trim());
+      const res = await fetch(`/api/tdg-pvp/presence-log?${params}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to load history');
+      setHistory(json.history || []);
+      setHistorySummary(json.summary || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyHours, historyQuery]);
 
   useEffect(() => {
     void loadActivity();
@@ -226,6 +280,22 @@ export default function ActivityMonitor() {
 
   const online = data?.onlineNow ?? [];
   const onlineCount = data?.onlineCount ?? online.length;
+  const mapVisitors = mapMode === 'live'
+    ? online
+    : history.map((h) => ({
+      visitorId: `${h.visitorId}-${h.id}`,
+      displayName: h.displayName,
+      latitude: h.latitude,
+      longitude: h.longitude,
+      accuracyM: h.accuracyM,
+      preciseLocation: h.preciseLocation,
+      location: h.location,
+      geoSource: h.geoSource,
+      mapsUrl: h.mapsUrl,
+      screen: `${h.screen} · ${formatTime(h.recordedAt)}`,
+      ipAddress: h.ipAddress,
+    }));
+  const summary = historySummary || data?.presenceHistorySummary;
 
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7]">
@@ -240,7 +310,7 @@ export default function ActivityMonitor() {
               PvP Activity Monitor
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/60">
-              Who is on the site right now — live map down to GPS coordinates when allowed — plus queue, matches, and records.
+              Who is on the site now, where they were, and a recallable location history log.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -292,17 +362,164 @@ export default function ActivityMonitor() {
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <h2 className="flex items-center gap-2 text-lg font-semibold">
                     <MapIcon className="h-5 w-5 text-emerald-400" />
-                    Live location map
+                    Location map
                   </h2>
-                  <span className="text-xs text-white/45">
-                    {online.filter((v) => v.latitude != null && v.longitude != null).length} pinned ·{' '}
-                    {online.filter((v) => v.geoSource === 'gps').length} GPS
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMapMode('live')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                        mapMode === 'live'
+                          ? 'bg-emerald-500/25 text-emerald-100'
+                          : 'bg-white/5 text-white/50 hover:bg-white/10'
+                      }`}
+                    >
+                      Live
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMapMode('history');
+                        void loadHistory();
+                      }}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                        mapMode === 'history'
+                          ? 'bg-emerald-500/25 text-emerald-100'
+                          : 'bg-white/5 text-white/50 hover:bg-white/10'
+                      }`}
+                    >
+                      History
+                    </button>
+                    <span className="text-xs text-white/45">
+                      {mapVisitors.filter((v) => v.latitude != null && v.longitude != null).length} pinned
+                    </span>
+                  </div>
+                </div>
+                <PresenceMap visitors={mapVisitors} />
+                <p className="mt-3 text-xs text-white/40">
+                  {mapMode === 'live'
+                    ? 'Live pins update every few seconds. Green = GPS, amber = IP estimate.'
+                    : 'History map shows logged sightings from the selected time range.'}
+                </p>
+              </section>
+
+              <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    <History className="h-5 w-5 text-sky-400" />
+                    Location history log
+                  </h2>
+                  <span className="text-xs text-white/40">
+                    {summary
+                      ? `${summary.events} events · ${summary.visitors} visitors · ${summary.gpsEvents} GPS`
+                      : '—'}
                   </span>
                 </div>
-                <PresenceMap visitors={online} />
-                <p className="mt-3 text-xs text-white/40">
-                  Green pins are device GPS (street-level). Amber pins are IP city estimates. Click a pin for exact coords and Google Maps.
-                </p>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {[
+                    { label: '24h', hours: 24 },
+                    { label: '7d', hours: 168 },
+                    { label: '30d', hours: 720 },
+                    { label: '90d', hours: 2160 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.hours}
+                      type="button"
+                      onClick={() => {
+                        setHistoryHours(opt.hours);
+                        void loadHistory(opt.hours, historyQuery);
+                      }}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                        historyHours === opt.hours
+                          ? 'bg-sky-500/25 text-sky-100'
+                          : 'bg-white/5 text-white/50 hover:bg-white/10'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  <form
+                    className="flex min-w-[200px] flex-1 gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void loadHistory(historyHours, historyQuery);
+                    }}
+                  >
+                    <input
+                      value={historyQuery}
+                      onChange={(e) => setHistoryQuery(e.target.value)}
+                      placeholder="Search name, IP, place…"
+                      className="h-8 flex-1 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-white outline-none placeholder:text-white/30 focus:border-sky-400/40"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 text-xs text-white/70 hover:bg-white/10"
+                    >
+                      {historyLoading ? '…' : 'Search'}
+                    </button>
+                  </form>
+                </div>
+                {history.length ? (
+                  <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                    {history.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="rounded-xl border border-white/5 bg-black/20 px-4 py-3"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium">{entry.displayName}</span>
+                              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/45">
+                                {entry.eventType}
+                              </span>
+                              {entry.geoSource === 'gps' ? (
+                                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-200">
+                                  GPS
+                                </span>
+                              ) : entry.geoSource === 'ip' ? (
+                                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-100/80">
+                                  IP
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="font-mono text-[11px] text-white/55">
+                              {entry.preciseLocation || entry.location || 'No place label'}
+                            </div>
+                            {entry.latitude != null && entry.longitude != null && (
+                              <div className="flex flex-wrap gap-x-3 font-mono text-[11px] text-white/40">
+                                <span>
+                                  {entry.latitude.toFixed(5)}, {entry.longitude.toFixed(5)}
+                                  {entry.accuracyM != null ? ` · ±${Math.round(entry.accuracyM)}m` : ''}
+                                </span>
+                                {entry.mapsUrl && (
+                                  <a
+                                    href={entry.mapsUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-300/80 hover:underline"
+                                  >
+                                    Map
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                            <div className="text-[11px] text-white/35">
+                              {entry.screen} · IP {entry.ipAddress || '—'} · id {entry.visitorId.slice(0, 8)}…
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-white/40">
+                            {formatTime(entry.recordedAt)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/45">
+                    No logged visits in this range yet. As people browse with location allowed, rows appear here permanently.
+                  </p>
+                )}
               </section>
 
               <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-5">

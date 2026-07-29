@@ -7,11 +7,12 @@ import {
   removeTdgPresence,
   upsertTdgPresence,
 } from '@/lib/tdg-presence';
+import { appendPresenceLog } from '@/lib/tdg-presence-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** Live visitors currently on /TDG (heartbeat-based). */
+/** Live visitors currently on the site (heartbeat-based). */
 export async function GET() {
   try {
     await ensureTdgPresenceTable();
@@ -48,6 +49,25 @@ export async function POST(request: NextRequest) {
     await ensureTdgPresenceTable();
 
     if (body.leave) {
+      const existing = await listLiveTdgPresence().catch(() => []);
+      // Live list only has active people; fall back to a bare leave event.
+      const me = existing.find((v) => v.visitorId === visitorId);
+      await appendPresenceLog({
+        visitorId,
+        displayName: me?.displayName || null,
+        screen: me?.screen || (typeof body.screen === 'string' ? body.screen : 'leave'),
+        ipAddress: me?.ipAddress || null,
+        city: me?.city || null,
+        region: me?.region || null,
+        country: me?.country || null,
+        locationLabel: me?.location || null,
+        latitude: me?.latitude ?? null,
+        longitude: me?.longitude ?? null,
+        accuracyM: me?.accuracyM ?? null,
+        preciseLabel: me?.preciseLocation || null,
+        geoSource: me?.geoSource || null,
+        eventType: 'leave',
+      });
       await removeTdgPresence(visitorId);
       return NextResponse.json({ ok: true, left: true });
     }
@@ -104,11 +124,13 @@ export async function POST(request: NextRequest) {
       geoSource = 'ip';
     }
 
+    const screen = typeof body.screen === 'string' ? body.screen : 'menu';
+
     const row = await upsertTdgPresence({
       visitorId,
       displayName,
       userId,
-      screen: typeof body.screen === 'string' ? body.screen : 'menu',
+      screen,
       ipAddress: geo.ip,
       city,
       region,
@@ -119,6 +141,24 @@ export async function POST(request: NextRequest) {
       accuracyM,
       preciseLabel,
       geoSource,
+    });
+
+    await appendPresenceLog({
+      visitorId,
+      displayName: row?.display_name || displayName,
+      userId,
+      screen: row?.screen || screen,
+      ipAddress: row?.ip_address || geo.ip,
+      city: row?.city || city,
+      region: row?.region || region,
+      country: row?.country || country,
+      locationLabel: row?.location_label || locationLabel,
+      latitude: row?.latitude != null ? Number(row.latitude) : latitude,
+      longitude: row?.longitude != null ? Number(row.longitude) : longitude,
+      accuracyM: row?.accuracy_m != null ? Number(row.accuracy_m) : accuracyM,
+      preciseLabel: row?.precise_label || preciseLabel,
+      geoSource: (row?.geo_source as 'gps' | 'ip' | null) || geoSource,
+      eventType: 'ping',
     });
 
     return NextResponse.json({
