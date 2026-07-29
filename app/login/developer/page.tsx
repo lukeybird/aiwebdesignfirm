@@ -26,16 +26,30 @@ export default function DeveloperLogin() {
     setError('');
     setIsLoading(true);
 
-    // Simple authentication check
-    if (username === 'luke@webstarts.com' && password === 'Dev74589900!') {
-      // Store authentication in localStorage
+    try {
+      const res = await fetch('/api/developer/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Invalid username or password');
+        setIsLoading(false);
+        return;
+      }
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('devAuth', 'authenticated');
         localStorage.setItem('devAuthTime', Date.now().toString());
       }
-      router.push('/developer/dashboard');
-    } else {
-      setError('Invalid username or password');
+
+      const next = new URLSearchParams(window.location.search).get('next');
+      const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/developer/dashboard';
+      router.push(safeNext);
+    } catch {
+      setError('Could not reach login service');
       setIsLoading(false);
     }
   };

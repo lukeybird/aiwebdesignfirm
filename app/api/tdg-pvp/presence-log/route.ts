@@ -4,6 +4,10 @@ import {
   getPresenceHistorySummary,
   listPresenceHistory,
 } from '@/lib/tdg-presence-log';
+import {
+  isDeveloperAuthenticatedRequest,
+  unauthorizedDeveloperJson,
+} from '@/lib/developer-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +15,10 @@ export const dynamic = 'force-dynamic';
 /** Historical visitor location log for /activity recall. */
 export async function GET(request: NextRequest) {
   try {
+    if (!isDeveloperAuthenticatedRequest(request)) {
+      return unauthorizedDeveloperJson();
+    }
+
     await ensurePresenceLogTable();
     const hours = Number(request.nextUrl.searchParams.get('hours') || 168);
     const limit = Number(request.nextUrl.searchParams.get('limit') || 250);

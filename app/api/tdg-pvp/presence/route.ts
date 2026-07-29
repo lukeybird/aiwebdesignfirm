@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { parseGpsBody, resolveClientGeo, reverseGeocodeCoords } from '@/lib/client-geo';
 import {
+  isDeveloperAuthenticatedRequest,
+  unauthorizedDeveloperJson,
+} from '@/lib/developer-auth';
+import {
   ensureTdgPresenceTable,
   listLiveTdgPresence,
   removeTdgPresence,
@@ -12,9 +16,12 @@ import { appendPresenceLog } from '@/lib/tdg-presence-log';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** Live visitors currently on the site (heartbeat-based). */
-export async function GET() {
+/** Live visitors currently on the site (heartbeat-based). Developer-only. */
+export async function GET(request: NextRequest) {
   try {
+    if (!isDeveloperAuthenticatedRequest(request)) {
+      return unauthorizedDeveloperJson();
+    }
     await ensureTdgPresenceTable();
     const online = await listLiveTdgPresence();
     return NextResponse.json({

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureTdgPvpTables } from '@/lib/tdg-pvp';
 import { getActivitySnapshot, getPlayerProfile } from '@/lib/tdg-pvp-activity';
+import {
+  isDeveloperAuthenticatedRequest,
+  unauthorizedDeveloperJson,
+} from '@/lib/developer-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    if (!isDeveloperAuthenticatedRequest(request)) {
+      return unauthorizedDeveloperJson();
+    }
+
     await ensureTdgPvpTables();
 
     const player = request.nextUrl.searchParams.get('player')?.trim().slice(0, 32);

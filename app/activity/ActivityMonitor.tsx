@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Activity, RefreshCw, Swords, Trophy, Users, Radio, Map as MapIcon, History } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -201,6 +202,8 @@ function PlayerButton({
 }
 
 export default function ActivityMonitor() {
+  const router = useRouter();
+  const [authReady, setAuthReady] = useState(false);
   const [data, setData] = useState<ActivityData | null>(null);
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
@@ -214,6 +217,24 @@ export default function ActivityMonitor() {
   const [historySummary, setHistorySummary] = useState<ActivityData['presenceHistorySummary'] | undefined>(undefined);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  useEffect(() => {
+    const auth = localStorage.getItem('devAuth');
+    const authTime = localStorage.getItem('devAuthTime');
+    if (!auth || !authTime || Date.now() - parseInt(authTime, 10) > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('devAuth');
+      localStorage.removeItem('devAuthTime');
+      router.replace('/login/developer?next=/activity');
+      return;
+    }
+    setAuthReady(true);
+  }, [router]);
+
+  const handleUnauthorized = useCallback(() => {
+    localStorage.removeItem('devAuth');
+    localStorage.removeItem('devAuthTime');
+    router.replace('/login/developer?next=/activity');
+  }, [router]);
+
   const loadActivity = useCallback(async (player?: string | null, silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
@@ -223,8 +244,12 @@ export default function ActivityMonitor() {
       const url = player
         ? `/api/tdg-pvp/activity?player=${encodeURIComponent(player)}`
         : '/api/tdg-pvp/activity';
-      const res = await fetch(url, { cache: 'no-store' });
-      const json = (await res.json()) as ActivityData & { error?: string };
+      const res = await fetch(url, { cache: 'no-store', credentials: 'include' });
+      const json = (await res.json()) as ActivityData & { error?: string; loginUrl?: string };
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
       if (!res.ok) throw new Error(json.error || 'Failed to load activity');
 
       setData(json);
@@ -237,7 +262,7 @@ export default function ActivityMonitor() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [handleUnauthorized]);
 
   const loadHistory = useCallback(async (hours = historyHours, q = historyQuery) => {
     setHistoryLoading(true);
@@ -247,8 +272,15 @@ export default function ActivityMonitor() {
         limit: '400',
       });
       if (q.trim()) params.set('q', q.trim());
-      const res = await fetch(`/api/tdg-pvp/presence-log?${params}`, { cache: 'no-store' });
+      const res = await fetch(`/api/tdg-pvp/presence-log?${params}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      });
       const json = await res.json();
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
       if (!res.ok) throw new Error(json.error || 'Failed to load history');
       setHistory(json.history || []);
       setHistorySummary(json.summary || null);
@@ -257,15 +289,16 @@ export default function ActivityMonitor() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [historyHours, historyQuery]);
+  }, [historyHours, historyQuery, handleUnauthorized]);
 
   useEffect(() => {
+    if (!authReady) return;
     void loadActivity();
     const timer = setInterval(() => {
       void loadActivity(selectedPlayer, true);
     }, 4000);
     return () => clearInterval(timer);
-  }, [loadActivity, selectedPlayer]);
+  }, [authReady, loadActivity, selectedPlayer]);
 
   const handleSelectPlayer = (name: string) => {
     setSelectedPlayer(name);
@@ -277,6 +310,14 @@ export default function ActivityMonitor() {
     setProfile(null);
     void loadActivity(null, true);
   };
+
+  if (!authReady) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0f] text-[#f5f5f7]/
+        <p className="text-sm text-white/50">Checking developer access…</p>
+      </div>
+    );
+  }
 
   const online = data?.onlineNow ?? [];
   const onlineCount = data?.onlineCount ?? online.length;
