@@ -1,432 +1,285 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { Users, MessageCircle, Calendar } from 'lucide-react';
 
 const ORIGIN = 'https://uconnected.vercel.app';
-const GUTTER = 'px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-20';
-const CHROME =
-  'border-[#0066ff]/20 bg-[#0a1528]/70 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[#0a1528]/55';
-const TITLE = 'text-3xl sm:text-4xl md:text-5xl font-bold font-heading tracking-tight text-white';
-const BODY = 'text-base sm:text-lg leading-relaxed text-gray-400';
+const AUTH = `${ORIGIN}/auth`;
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-};
+/** Palette from the UConnect / Instagram vibe reference */
+const GRAD =
+  'linear-gradient(115deg, #4c1d95 0%, #7c3aed 28%, #c026d3 62%, #db2777 88%, #f43f5e 100%)';
+const GRAD_SOFT =
+  'linear-gradient(135deg, #5b21b6 0%, #a21caf 45%, #e11d48 100%)';
 
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.14 } },
-};
-
-const INTERESTS = [
-  'Project teams',
-  'Learning circles',
-  'Local meetups',
-  'Hobby groups',
-  'Mentorship',
-  'Side projects',
-  'Book clubs',
-  'Skill shares',
-  'Founders',
-  'Hiking crews',
-  'Design pods',
-  'Study groups',
-];
-
-const WHY = [
-  {
-    n: '01',
-    title: 'Define what you are looking for',
-    body: 'Post a group seeking with your ideal size and interest mix. Be clear about what kind of collaboration or community you want to build.',
-  },
-  {
-    n: '02',
-    title: 'Discover compatible people',
-    body: 'Browse profiles matched by shared interests and compatible group seekings. Connect with people who want the same kind of group you do.',
-  },
-  {
-    n: '03',
-    title: 'Form focused groups',
-    body: 'Accept formation invites, spin up a group, and move from intent to action. Small groups built around shared goals, not endless scrolling.',
-  },
-  {
-    n: '04',
-    title: 'Meet and grow together',
-    body: 'Organize events, stay active in group chat, and turn online connections into real-world collaboration and community.',
-  },
-];
-
-const STEPS = [
-  {
-    n: '01',
-    title: 'Build your profile',
-    body: 'Add your display name, bio, and ranked interests so others understand what you care about and what you bring to a group.',
-  },
-  {
-    n: '02',
-    title: 'Share your group seeking',
-    body: 'Describe the kind of group you want: hobby circle, project team, local meetup, or professional network — and who should join.',
-  },
-  {
-    n: '03',
-    title: 'Connect and form',
-    body: 'Discover compatible people, respond to formation invites, and launch a group when the right mix comes together.',
-  },
-  {
-    n: '04',
-    title: 'Show up consistently',
-    body: 'Use events and group chat to stay engaged. The best groups are built through regular, thoughtful participation.',
-  },
-];
-
-const USES = [
-  {
-    title: 'Project collaborators',
-    body: 'Find co-builders for side projects, startups, or creative work with aligned skills and availability.',
-  },
-  {
-    title: 'Learning circles',
-    body: 'Join or start small study groups, book clubs, or skill-sharing communities around shared interests.',
-  },
-  {
-    title: 'Professional networks',
-    body: 'Connect with peers in your field for mentorship, referrals, and meaningful industry relationships.',
-  },
-  {
-    title: 'Local communities',
-    body: 'Meet people nearby who share your hobbies — from maker spaces to hiking — and turn interests into regular meetups.',
-  },
-];
-
-function InterestMarquee() {
-  const row = [...INTERESTS, ...INTERESTS];
+function ULogo({ className = 'h-9 w-9' }: { className?: string }) {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.14]" aria-hidden>
-      <div className="absolute inset-x-0 top-[18%] -rotate-2">
-        <div className="ai-use-case-marquee-ltr flex w-max gap-10 whitespace-nowrap font-heading text-4xl font-bold uppercase tracking-[0.12em] text-white sm:text-5xl">
-          {row.map((label, i) => (
-            <span key={`a-${i}`}>{label}</span>
-          ))}
-        </div>
-      </div>
-      <div className="absolute inset-x-0 top-[48%] rotate-[1.5deg]">
-        <div className="ai-use-case-marquee-rtl flex w-max gap-10 whitespace-nowrap font-heading text-4xl font-bold uppercase tracking-[0.12em] text-white sm:text-5xl">
-          {row.map((label, i) => (
-            <span key={`b-${i}`}>{label}</span>
-          ))}
-        </div>
-      </div>
-      <div className="absolute inset-x-0 top-[78%] -rotate-1">
-        <div className="ai-use-case-marquee-ltr flex w-max gap-10 whitespace-nowrap font-heading text-3xl font-bold uppercase tracking-[0.14em] text-white sm:text-4xl">
-          {row.map((label, i) => (
-            <span key={`c-${i}`}>{label}</span>
-          ))}
-        </div>
-      </div>
-    </div>
+    <svg className={className} viewBox="0 0 40 40" fill="none" aria-hidden>
+      <defs>
+        <linearGradient id="uGrad" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#a78bfa" />
+          <stop offset="0.55" stopColor="#e879f9" />
+          <stop offset="1" stopColor="#fb7185" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M10 8v14c0 5.523 4.477 10 10 10s10-4.477 10-10V8"
+        stroke="url(#uGrad)"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+      />
+      <circle cx="20" cy="28" r="2.4" fill="url(#uGrad)" />
+    </svg>
   );
 }
 
+function ConnectButton({
+  href = AUTH,
+  variant = 'white',
+  className = '',
+  children = 'Connect',
+}: {
+  href?: string;
+  variant?: 'white' | 'glass' | 'grad';
+  className?: string;
+  children?: string;
+}) {
+  const styles =
+    variant === 'white'
+      ? 'bg-white text-[#6d28d9] hover:bg-white/95'
+      : variant === 'grad'
+        ? 'text-white shadow-[0_0_40px_-8px_rgba(232,121,249,0.55)]'
+        : 'border border-white/35 bg-white/10 text-white backdrop-blur-md hover:bg-white/18';
+
+  return (
+    <motion.a
+      href={href}
+      className={`inline-flex h-12 items-center justify-center rounded-full px-8 text-[15px] font-semibold tracking-tight transition-transform hover:scale-[1.03] active:scale-[0.98] sm:h-14 sm:px-10 sm:text-base ${styles} ${className}`}
+      style={variant === 'grad' ? { backgroundImage: GRAD_SOFT } : undefined}
+      whileTap={{ scale: 0.98 }}
+    >
+      {children}
+    </motion.a>
+  );
+}
+
+const moments = [
+  { kicker: 'Small groups', line: 'Not a feed.' },
+  { kicker: 'Shared interests', line: 'Not strangers.' },
+  { kicker: 'Real meetups', line: 'Not just DMs.' },
+];
+
 export default function UConnectStyled() {
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7] selection:bg-[#00d4ff]/30">
-      <header className={`fixed inset-x-0 top-0 z-50 h-20 border-b ${CHROME}`}>
-        <div className={`mx-auto flex h-full max-w-[1600px] items-center justify-between ${GUTTER}`}>
-          <Link href="/mystyleboi" className="flex items-center gap-3 transition-opacity hover:opacity-90">
-            <Image src="/blueBall.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" priority />
-            <span className="font-heading text-xl font-bold tracking-tight sm:text-2xl">UConnect</span>
+    <div className="min-h-[100dvh] bg-[#050510] text-white antialiased selection:bg-fuchsia-400/30">
+      {/* Nav — Instagram-clean */}
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#050510]/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:h-[4.25rem] sm:px-8">
+          <Link href="/mystyleboi" className="flex items-center gap-2.5" aria-label="UConnect">
+            <ULogo />
+            <span className="text-lg font-semibold tracking-tight sm:text-xl">UConnect</span>
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3">
             <a
-              href={`${ORIGIN}/auth`}
-              className="hidden px-4 py-2 text-sm font-medium text-white/65 transition-colors hover:text-white sm:inline-block"
+              href={AUTH}
+              className="hidden rounded-full px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:text-white sm:inline"
             >
               Sign in
             </a>
             <a
-              href={`${ORIGIN}/auth`}
-              className="inline-flex h-11 items-center rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-5 text-sm font-bold text-black shadow-[0_0_28px_-8px_rgba(0,212,255,0.65)] transition-transform hover:scale-[1.02]"
+              href={AUTH}
+              className="inline-flex h-10 items-center rounded-full px-5 text-sm font-semibold text-white sm:h-11"
+              style={{ backgroundImage: GRAD_SOFT }}
             >
-              Get started
+              Connect
             </a>
           </nav>
         </div>
       </header>
 
-      <main>
-        {/* Hero — full-bleed, brand-first, no inset card */}
-        <section className="relative flex min-h-[100dvh] items-center overflow-hidden pt-20">
-          <div className="absolute inset-0">
-            <Image
-              src="/hero-bg.png"
-              alt=""
-              fill
-              priority
-              className="scale-105 object-cover opacity-[0.22] blur-md sm:blur-lg"
-              sizes="100vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/65 via-[#0a0a0f]/88 to-[#0a0a0f]" />
-            <motion.div
-              className="absolute left-1/2 top-1/3 h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-[#0066ff]/15 blur-[120px] mix-blend-screen"
-              animate={{ opacity: [0.55, 0.85, 0.55] }}
-              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <InterestMarquee />
-          </div>
-
+      <main className="pt-16 sm:pt-[4.25rem]">
+        {/* Story 1 — the gradient “post” */}
+        <section className="px-4 pb-6 pt-6 sm:px-8 sm:pb-10 sm:pt-10">
           <motion.div
-            className={`relative z-10 mx-auto w-full max-w-[1600px] ${GUTTER} py-16 sm:py-20`}
-            variants={stagger}
-            initial="hidden"
-            animate="show"
+            className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] px-7 py-14 text-white shadow-[0_40px_100px_-40px_rgba(192,38,211,0.55)] sm:rounded-[2.5rem] sm:px-14 sm:py-20"
+            style={{ backgroundImage: GRAD }}
+            initial={{ opacity: 0, y: 24, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            <motion.p
-              variants={fadeUp}
-              className="font-heading text-4xl font-black tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-7xl"
-              style={{
-                backgroundImage: 'linear-gradient(90deg, #00d4ff, #0066ff)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-              }}
-            >
-              UConnect
-            </motion.p>
-            <motion.h1
-              variants={fadeUp}
-              className="mt-4 max-w-4xl font-heading text-[clamp(2.25rem,6vw,5.5rem)] font-black leading-[1.05] tracking-tight text-white"
-            >
-              Find your people. Build your group.
-            </motion.h1>
-            <motion.p variants={fadeUp} className="mt-5 max-w-xl text-base leading-relaxed text-white/60 sm:text-lg">
-              Discover compatible people, form small groups around shared interests, and grow meaningful connections —
-              professionally and personally.
-            </motion.p>
-            <motion.div variants={fadeUp} className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <motion.a
-                href={`${ORIGIN}/auth`}
-                className="inline-flex h-14 items-center justify-center rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-8 text-base font-black text-black shadow-[0_0_40px_-6px_rgba(0,212,255,0.75)] transition-transform hover:scale-[1.02]"
-                animate={{
-                  boxShadow: [
-                    '0 0 32px -8px rgba(0,212,255,0.55)',
-                    '0 0 48px -6px rgba(0,212,255,0.85)',
-                    '0 0 32px -8px rgba(0,212,255,0.55)',
-                  ],
-                }}
-                transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                Create your account
-              </motion.a>
-              <a
-                href="#how-it-works"
-                className="inline-flex h-14 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] px-8 text-base font-semibold text-white/85 transition-colors hover:border-[#00d4ff]/40 hover:bg-white/[0.07]"
-              >
-                See how it works
-              </a>
-            </motion.div>
-          </motion.div>
-        </section>
-
-        {/* About */}
-        <section className={`border-t border-white/[0.06] ${GUTTER} ${'py-20 sm:py-24 md:py-28'}`}>
-          <motion.div
-            className="mx-auto max-w-3xl"
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-80px' }}
-            variants={stagger}
-          >
-            <motion.p variants={fadeUp} className="text-xs font-bold uppercase tracking-[0.18em] text-[#7dd3fc]/90">
-              About UConnect
-            </motion.p>
-            <motion.h2 variants={fadeUp} className={`mt-3 ${TITLE}`}>
-              Networking that starts with intent, not noise
-            </motion.h2>
-            <motion.p variants={fadeUp} className={`mt-5 ${BODY}`}>
-              Most platforms optimize for engagement. UConnect optimizes for alignment — matching you with people who
-              share your interests and want the same kind of group experience. Whether you are building a professional
-              network, a hobby community, or a project team, you start by saying what you are looking for.
-            </motion.p>
-          </motion.div>
-        </section>
-
-        {/* Why */}
-        <section className="border-t border-white/[0.06] bg-gradient-to-b from-[#050a14] via-[#070d18] to-[#0a0a0f]">
-          <div className={`mx-auto max-w-[1600px] ${GUTTER} py-20 sm:py-24 md:py-28`}>
             <motion.div
-              className="max-w-2xl"
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: '-80px' }}
-              variants={stagger}
-            >
-              <motion.p variants={fadeUp} className="text-xs font-bold uppercase tracking-[0.18em] text-[#7dd3fc]/90">
-                Why UConnect
-              </motion.p>
-              <motion.h2 variants={fadeUp} className={`mt-3 ${TITLE}`}>
-                Built for people who want more than a feed
-              </motion.h2>
-            </motion.div>
+              className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-orange-400/40 blur-3xl"
+              animate={{ opacity: [0.35, 0.55, 0.35] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className="pointer-events-none absolute -bottom-20 -left-16 h-72 w-72 rounded-full bg-indigo-400/35 blur-3xl"
+              animate={{ opacity: [0.3, 0.5, 0.3] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+            />
 
-            <div className="mt-14 space-y-0">
-              {WHY.map((item) => (
-                <motion.div
-                  key={item.n}
-                  className="grid gap-4 border-t border-white/[0.08] py-8 sm:grid-cols-[5rem_1fr] sm:gap-10"
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-60px' }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <span className="font-heading text-sm font-bold tracking-[0.2em] text-[#00d4ff]">{item.n}</span>
-                  <div>
-                    <h3 className="font-heading text-xl font-bold tracking-tight text-white sm:text-2xl">{item.title}</h3>
-                    <p className="mt-2 max-w-2xl text-base leading-relaxed text-gray-400">{item.body}</p>
+            <div className="relative max-w-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/75 sm:text-xs">
+                Your people
+              </p>
+              <h1 className="mt-4 text-[2.35rem] font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
+                Find your vibe.
+              </h1>
+              <p className="mt-4 max-w-md text-base text-white/85 sm:text-lg">
+                Small groups. Shared interests. IRL.
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <ConnectButton variant="white" />
+                <ConnectButton variant="glass" href="#vibe">
+                  Peek
+                </ConnectButton>
+              </div>
+            </div>
+
+            <div className="relative mt-14 grid grid-cols-1 gap-5 border-t border-white/15 pt-8 sm:mt-16 sm:grid-cols-3 sm:gap-6">
+              {[
+                { Icon: Users, label: 'Right-sized', sub: 'Small groups' },
+                { Icon: MessageCircle, label: 'Matched', sub: 'Shared interests' },
+                { Icon: Calendar, label: 'In-person', sub: 'Real meetups' },
+              ].map(({ Icon, label, sub }) => (
+                <div key={label} className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+                    <Icon className="h-5 w-5 text-white" strokeWidth={2} />
                   </div>
-                </motion.div>
+                  <div>
+                    <p className="text-lg font-bold leading-none tracking-tight">{label}</p>
+                    <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/70">
+                      {sub}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </section>
 
-        {/* How it works */}
-        <section id="how-it-works" className={`scroll-mt-24 border-t border-white/[0.06] ${GUTTER} py-20 sm:py-24 md:py-28`}>
-          <motion.div
-            className="max-w-2xl"
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-80px' }}
-            variants={stagger}
-          >
-            <motion.p variants={fadeUp} className="text-xs font-bold uppercase tracking-[0.18em] text-[#7dd3fc]/90">
-              How it works
-            </motion.p>
-            <motion.h2 variants={fadeUp} className={`mt-3 ${TITLE}`}>
-              From profile to group in four steps
-            </motion.h2>
-            <motion.p variants={fadeUp} className={`mt-4 ${BODY}`}>
-              Define what you want, find compatible people, form a group, and stay connected.
-            </motion.p>
-          </motion.div>
-
-          <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-            {STEPS.map((step, i) => (
-              <motion.li
-                key={step.n}
+        {/* Story 2 — three punchy beats */}
+        <section id="vibe" className="scroll-mt-24 px-4 py-10 sm:px-8 sm:py-16">
+          <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-3 sm:gap-5">
+            {moments.map((m, i) => (
+              <motion.div
+                key={m.kicker}
+                className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] px-6 py-8 sm:px-7 sm:py-10"
                 initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.5, delay: i * 0.06 }}
+                transition={{ duration: 0.45, delay: i * 0.08 }}
               >
-                <span className="font-heading text-5xl font-black tracking-tight text-white/[0.08]">{step.n}</span>
-                <h3 className="mt-3 font-heading text-lg font-bold tracking-tight text-white">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-400 sm:text-base">{step.body}</p>
-              </motion.li>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-300/80">
+                  {m.kicker}
+                </p>
+                <p className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">{m.line}</p>
+              </motion.div>
             ))}
-          </ol>
-
-          <div className="mt-12">
-            <a
-              href={`${ORIGIN}/about`}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#7dd3fc] transition-colors hover:text-[#00d4ff]"
-            >
-              Learn more about how UConnect works
-              <span aria-hidden>→</span>
-            </a>
           </div>
         </section>
 
-        {/* Use cases */}
-        <section className="border-t border-white/[0.06] bg-[#0a0a0f]">
-          <div className={`mx-auto max-w-[1600px] ${GUTTER} py-20 sm:py-24 md:py-28`}>
-            <motion.div
-              className="max-w-2xl"
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: '-80px' }}
-              variants={stagger}
-            >
-              <motion.p variants={fadeUp} className="text-xs font-bold uppercase tracking-[0.18em] text-[#7dd3fc]/90">
-                Use it your way
-              </motion.p>
-              <motion.h2 variants={fadeUp} className={`mt-3 ${TITLE}`}>
-                Professional, personal, or both
-              </motion.h2>
-              <motion.p variants={fadeUp} className={`mt-4 ${BODY}`}>
-                Groups on UConnect can be as focused or as casual as you need.
-              </motion.p>
-            </motion.div>
-
-            <div className="mt-14 grid gap-x-12 gap-y-10 sm:grid-cols-2">
-              {USES.map((use, i) => (
-                <motion.div
-                  key={use.title}
-                  initial={{ opacity: 0, y: 14 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.45, delay: i * 0.05 }}
-                  className="border-l border-[#0066ff]/35 pl-5 sm:pl-6"
-                >
-                  <h3 className="font-heading text-xl font-bold tracking-tight text-white">{use.title}</h3>
-                  <p className="mt-2 text-base leading-relaxed text-gray-400">{use.body}</p>
-                </motion.div>
-              ))}
+        {/* Story 3 — one question, one action */}
+        <section className="px-4 py-8 sm:px-8 sm:py-12">
+          <motion.div
+            className="relative mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 overflow-hidden rounded-[2rem] px-7 py-12 sm:flex-row sm:items-center sm:rounded-[2.5rem] sm:px-12 sm:py-14"
+            style={{ backgroundImage: GRAD_SOFT }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.55 }}
+          >
+            <div className="pointer-events-none absolute -right-10 top-0 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">One ask</p>
+              <h2 className="mt-3 max-w-md text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+                Who are you looking for?
+              </h2>
             </div>
+            <ConnectButton variant="white" className="relative shrink-0" />
+          </motion.div>
+        </section>
+
+        {/* Story 4 — how it works in four words × four taps */}
+        <section className="px-4 py-12 sm:px-8 sm:py-16">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-white/40">
+              The whole app
+            </p>
+            <ol className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+              {[
+                { n: '1', t: 'Profile' },
+                { n: '2', t: 'Seeking' },
+                { n: '3', t: 'Match' },
+                { n: '4', t: 'Meet' },
+              ].map((s, i) => (
+                <motion.li
+                  key={s.n}
+                  className="flex items-center gap-4 rounded-[1.5rem] border border-white/[0.07] bg-[#0a0a14] px-5 py-5"
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.06 }}
+                >
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
+                    style={{ backgroundImage: GRAD_SOFT }}
+                  >
+                    {s.n}
+                  </span>
+                  <span className="text-xl font-bold tracking-tight">{s.t}</span>
+                </motion.li>
+              ))}
+            </ol>
           </div>
         </section>
 
-        {/* Closing CTA */}
-        <section className="relative overflow-hidden border-t border-[#0066ff]/25">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#050a14] via-[#070d18] to-[#0a0a0f]" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(0,102,255,0.22),transparent)]" />
+        {/* Story 5 — closing post */}
+        <section className="px-4 pb-16 pt-4 sm:px-8 sm:pb-24">
           <motion.div
-            className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#0066ff]/25 blur-[100px]"
-            animate={{ opacity: [0.45, 0.8, 0.45], scale: [1, 1.06, 1] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-[#00d4ff]/20 blur-[90px]"
-            animate={{ opacity: [0.35, 0.7, 0.35] }}
-            transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-          />
-
-          <div className={`relative mx-auto max-w-3xl ${GUTTER} py-24 text-center sm:py-28`}>
-            <p className="font-heading text-2xl font-black tracking-tight text-transparent sm:text-3xl" style={{
-              backgroundImage: 'linear-gradient(90deg, #00d4ff, #0066ff)',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-            }}>
-              UConnect
-            </p>
-            <h2 className={`mt-4 ${TITLE}`}>Ready to get connected?</h2>
-            <p className={`mx-auto mt-4 max-w-xl ${BODY}`}>
-              Create your profile, rank your interests, and start discovering people who are looking for the same kind
-              of group you are.
-            </p>
-            <a
-              href={`${ORIGIN}/auth`}
-              className="mt-9 inline-flex h-14 items-center justify-center rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] px-10 text-base font-black text-black shadow-[0_0_40px_-6px_rgba(0,212,255,0.75)] transition-transform hover:scale-[1.02]"
-            >
-              Get started for free
-            </a>
-          </div>
+            className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] px-7 py-16 text-center sm:rounded-[2.5rem] sm:px-12 sm:py-20"
+            style={{ backgroundImage: GRAD }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.55 }}
+          >
+            <motion.div
+              className="pointer-events-none absolute inset-0"
+              animate={{ opacity: [0.15, 0.35, 0.15] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                background:
+                  'radial-gradient(circle at 70% 30%, rgba(251,113,133,0.45), transparent 50%)',
+              }}
+            />
+            <div className="relative">
+              <ULogo className="mx-auto h-12 w-12" />
+              <h2 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+                Your people are waiting.
+              </h2>
+              <p className="mx-auto mt-4 max-w-sm text-white/80">Say hi.</p>
+              <div className="mt-9 flex justify-center">
+                <ConnectButton variant="white" />
+              </div>
+            </div>
+          </motion.div>
         </section>
       </main>
 
-      <footer className={`h-20 border-t ${CHROME}`}>
-        <div className={`mx-auto flex h-full max-w-[1600px] items-center justify-between ${GUTTER}`}>
-          <div className="flex items-center gap-3">
-            <Image src="/blueBall.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
-            <span className="font-heading text-sm font-bold tracking-tight">UConnect</span>
+      <footer className="border-t border-white/[0.06] py-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 sm:px-8">
+          <div className="flex items-center gap-2.5">
+            <ULogo className="h-7 w-7" />
+            <span className="text-sm font-semibold tracking-tight">UConnect</span>
           </div>
-          <div className="flex items-center gap-4 text-xs text-white/40">
-            <a href={ORIGIN} className="transition-colors hover:text-white/70">
-              Original site
+          <div className="flex items-center gap-5 text-xs text-white/35">
+            <a href={ORIGIN} className="hover:text-white/60">
+              Live app
             </a>
-            <Link href="/" className="transition-colors hover:text-white/70">
-              AiWebDesignFirm
+            <Link href="/" className="hover:text-white/60">
+              Home
             </Link>
           </div>
         </div>

@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import UConnectStyled from './UConnectStyled';
 
 export const metadata: Metadata = {
-  title: 'UConnect — Find your people. Build your group.',
-  description:
-    'Discover compatible people, form small groups around shared interests, and grow meaningful connections — professionally and personally.',
+  title: 'UConnect — Find your vibe.',
+  description: 'Small groups. Shared interests. IRL. Connect.',
 };
 
 export default function MyStyleBoiPage() {
