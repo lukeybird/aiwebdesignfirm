@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { safeTrigger } from '@/lib/pusher';
-import { ensureTdgPvpTables, removeQueueSession, verifyRoomPlayer } from '@/lib/tdg-pvp';
+import {
+  ensureTdgPvpTables,
+  removeQueueSession,
+  verifyRoomPlayer,
+  findQueueRowByToken,
+  deleteRoomById,
+} from '@/lib/tdg-pvp';
 import { recordForfeit } from '@/lib/tdg-pvp-activity';
+import { listTftLobbyMembers } from '@/lib/tdg-tft-lobby';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,12 +22,13 @@ export async function POST(request: NextRequest) {
     }
 
     await ensureTdgPvpTables();
+    const row = await findQueueRowByToken(sessionToken);
     const player = await verifyRoomPlayer(roomId, sessionToken);
     if (!player) {
       return NextResponse.json({ error: 'Not in this match.' }, { status: 403 });
     }
 
-    await recordForfeit(roomId, player.player_slot);
+    const isTft = player.status === 'matched_tft' || row?.status === 'matched_tft';
 
     await safeTrigger(`tdg-room-${roomId}`, 'forfeit', {
       from: player.player_slot,
@@ -29,6 +37,25 @@ export async function POST(request: NextRequest) {
     });
 
     await removeQueueSession(sessionToken);
+
+    if (isTft) {
+      const peers = await listTftLobbyMembers(roomId);
+      if (peers.length <= 1) {
+        await recordForfeit(roomId, player.player_slot);
+        await Promise.all(
+          peers.map((p) =>
+            safeTrigger(`tdg-player-${p.sessionToken}`, 'match_cancelled', {
+              reason: 'opponent_left',
+              t: Date.now(),
+            }),
+          ),
+        );
+        await deleteRoomById(roomId);
+      }
+      // Otherwise remaining players keep going — activity match stays active.
+    } else {
+      await recordForfeit(roomId, player.player_slot);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

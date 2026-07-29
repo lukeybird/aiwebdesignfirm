@@ -22,6 +22,7 @@
   const COMBAT_INTRO = 0.9;
   const PLAN_TIME_SEC = 50;
   const AUGMENT_TIME_SEC = 25;
+  const RESULT_TIME_SEC = 3.5;
   /** Offer an augment pick at the start of these rounds (silver → gold → prismatic). */
   const AUGMENT_ROUNDS = [1, 3, 5];
   const AUGMENT_TIER_BY_ROUND = { 1: 'silver', 3: 'gold', 5: 'prismatic' };
@@ -673,6 +674,30 @@
     return (state?.players || []).filter((p) => p && Number(p.hp) > 0);
   }
 
+  function livingHumans() {
+    return alivePlayers().filter((p) => !isCpuPlayer(p));
+  }
+
+  /** True when the match should end (one or zero survivors, or no humans left). */
+  function shouldEndMatch() {
+    const living = alivePlayers();
+    if (living.length <= 1) return true;
+    // Don't let CPU-only leftovers keep auto-playing rounds.
+    if (livingHumans().length === 0) return true;
+    return false;
+  }
+
+  function pickMatchWinner() {
+    const humans = livingHumans();
+    if (humans.length === 1) return humans[0].id;
+    if (humans.length > 1) {
+      return humans.slice().sort((a, b) => b.hp - a.hp)[0].id;
+    }
+    const living = alivePlayers();
+    if (living.length) return living.slice().sort((a, b) => b.hp - a.hp)[0].id;
+    return match?.playerId ?? 0;
+  }
+
   function buildPairings(seedExtra = 0) {
     const ids = alivePlayers().map((p) => p.id);
     const seed = hashSeed(`${match.roomId}|pair|${state.round}|${seedExtra}`);
@@ -1097,7 +1122,11 @@
     if (snap.augmentTimeLeft != null) state.augmentTimeLeft = Math.max(0, snap.augmentTimeLeft);
     state.combatSeed = snap.combatSeed || state.combatSeed;
     state.resultApplied = !!snap.resultApplied;
-    state.resultTimer = snap.resultTimer ?? state.resultTimer;
+    // Only sync result countdown while actually in result — combat snapshots often
+    // still carry a leftover 0 from the previous round and were collapsing the interstitial.
+    if (snap.phase === 'result' && typeof snap.resultTimer === 'number') {
+      state.resultTimer = Math.max(0, snap.resultTimer);
+    }
     if (Array.isArray(snap.messages)) {
       state.messages = snap.messages.slice();
       const el = $('tft-log');
@@ -1899,13 +1928,12 @@
       pushMsg(`${state.players[state.byePid].name} has a bye this round.`);
     }
     state.phase = 'result';
-    state.resultTimer = 3.2;
+    state.resultTimer = RESULT_TIME_SEC;
     setShellMode('result');
     renderHud();
     if (isAuthority()) publishAuthState(true);
-    const living = alivePlayers();
-    if (living.length <= 1) {
-      endMatch(living[0]?.id ?? match.playerId);
+    if (shouldEndMatch()) {
+      endMatch(pickMatchWinner());
     }
   }
 
@@ -4230,8 +4258,12 @@
       if (isAuthority()) {
         state.resultTimer -= dt;
         if (state.resultTimer <= 0) {
-          state.round += 1;
-          startRound();
+          if (shouldEndMatch()) {
+            endMatch(pickMatchWinner());
+          } else {
+            state.round += 1;
+            startRound();
+          }
         }
       }
     } else if (state.phase === 'gameover') {
@@ -4526,17 +4558,53 @@
     if (hideUi) $('tft-game-screen')?.classList.add('hidden');
   }
 
+  function electHostId() {
+    const humans = livingHumans();
+    const pool = humans.length ? humans : alivePlayers();
+    if (!pool.length) return null;
+    return pool.slice().sort((a, b) => a.id - b.id)[0].id;
+  }
+
+  function refreshHostAuthority(announce = false) {
+    if (!match || !state) return;
+    const next = electHostId();
+    if (next == null) return;
+    const wasHost = !!match.isHost;
+    match.isHost = next === match.playerId;
+    if (announce && match.isHost && !wasHost) {
+      pushMsg('You are now the match host.');
+    }
+  }
+
   function applyForfeit(loserSlot) {
     if (!active || !state) return;
     const loser = Number(loserSlot);
     if (!Number.isFinite(loser) || !state.players[loser]) return;
+    if (state.players[loser].hp <= 0) {
+      refreshHostAuthority(false);
+      return;
+    }
     state.players[loser].hp = 0;
-    const living = alivePlayers();
-    if (living.length <= 1) endMatch(living[0]?.id ?? (loser === 0 ? 1 : 0));
-    else {
-      pushMsg(`${state.players[loser].name} forfeited.`);
-      renderHud();
-      if (isAuthority()) publishAuthState(true);
+    state.players[loser].ready = true;
+    pushMsg(`${state.players[loser].name} left the match.`);
+    refreshHostAuthority(true);
+    renderHud();
+    if (shouldEndMatch()) {
+      endMatch(pickMatchWinner());
+      return;
+    }
+    if (isAuthority()) {
+      publishAuthState(true);
+      if (state.phase === 'planning') checkPlanningEnd();
+      if (state.phase === 'augment' && bothAugmentsPicked()) beginPlanningPhase();
+      if (state.phase === 'result' && state.resultTimer <= 0) {
+        state.round += 1;
+        startRound();
+      }
+      // If the old host left mid-fight, finish resolving from estimates.
+      if (state.phase === 'combat' && state.combatFinished && !state.resultApplied) {
+        applyCombatResults(state.roundResults);
+      }
     }
   }
 

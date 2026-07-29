@@ -295,6 +295,11 @@
   }
 
   function handleMatchCancelled() {
+    // TFT multi: a peer leaving is handled as forfeit in-game; only bail if we're
+    // not in an active TFT match (lobby / 1v1 cancel).
+    if (window.TFT_ONLINE?.isActive?.() && session?.tft) {
+      return;
+    }
     handleSessionExpired('Your opponent disconnected. Returning to menu.');
   }
 

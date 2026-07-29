@@ -117,11 +117,20 @@ export async function deleteRoomById(roomId: string) {
   `;
 }
 
+/**
+ * Remove one queue/match session.
+ * 1v1 modes dissolve the whole room; TFT multi only drops that player so others can continue.
+ */
 export async function removeQueueSession(token: string) {
   const row = await findQueueRowByToken(token);
   if (!row) return null;
 
-  if (row.room_id) {
+  const dissolveRoom =
+    row.status === 'matched' ||
+    row.status === 'matched_limited' ||
+    (row.status === 'matched_tft' && !row.room_id);
+
+  if (dissolveRoom && row.room_id) {
     await deleteRoomById(row.room_id);
     return row;
   }
@@ -130,6 +139,21 @@ export async function removeQueueSession(token: string) {
     DELETE FROM tdg_pvp_queue
     WHERE session_token = ${token}
   `;
+
+  if (row.room_id) {
+    const left = (await sql`
+      SELECT COUNT(*)::int AS n
+      FROM tdg_pvp_queue
+      WHERE room_id = ${row.room_id}
+    `) as unknown as Array<{ n: number }>;
+    if (!left[0]?.n) {
+      await sql`
+        DELETE FROM tdg_pvp_match_state
+        WHERE room_id = ${row.room_id}
+      `;
+    }
+  }
+
   return row;
 }
 
