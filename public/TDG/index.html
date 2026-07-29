@@ -2136,6 +2136,16 @@
     .tft-unit-chip.star-2 { box-shadow: 0 0 0 2px #c9a227, 0 2px 8px rgba(0,0,0,0.35); }
     .tft-unit-chip.star-3 { box-shadow: 0 0 0 2px #f0d878, 0 0 12px rgba(240,216,120,0.55); }
     .tft-unit-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Portraits face the enemy board — you look right, they look left. */
+    .tft-unit-chip.tft-face-enemy img { transform: scaleX(1); }
+    .tft-unit-chip.tft-face-you img { transform: scaleX(-1); }
+    .tft-board-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      opacity: 0.55;
+      font-size: 0.78rem;
+      padding: 18px 8px;
+    }
     .tft-star-badge {
       position: absolute;
       left: 2px;
@@ -8112,7 +8122,7 @@
               <p class="tft-howto-lead">Build a board each round, then watch it fight automatically. Last player with HP wins.</p>
               <ol>
                 <li><strong>Shop:</strong> Click a unit once to inspect it, again to buy it (needs gold + a free bench slot).</li>
-                <li><strong>Place:</strong> Drag from the bench onto your board. Column 1 is the frontline; the back column is safer for ranged.</li>
+                <li><strong>Place:</strong> Drag from the bench onto your board. The Front column faces the enemy; the Back column is safer for ranged.</li>
                 <li><strong>Merge:</strong> Collect 3 copies of the same unit at the same ★ to upgrade it (1★ → 2★ → 3★).</li>
                 <li><strong>Traits:</strong> Matching unit types activate sidebar bonuses (Warrior, Hunter, Beast, Mystic).</li>
                 <li><strong>Augments:</strong> On rounds 1, 3, and 5 pick 1 of 3 power-ups (silver → gold → prismatic) before shopping.</li>
@@ -8156,7 +8166,7 @@
                 <button type="button" class="tft-btn primary" id="tft-ready-btn">Ready</button>
               </div>
               <div class="tft-log" id="tft-log"></div>
-              <p class="tft-hint">Need a refresher? Tap <strong>How to play</strong> above. Buy · merge 3× · frontline is column 1 · 50s shop timer · Ready early anytime.</p>
+              <p class="tft-hint">Need a refresher? Tap <strong>How to play</strong> above. Buy · merge 3× · frontline faces the enemy · 50s shop timer · Ready early anytime.</p>
             </aside>
             <main class="tft-main">
               <div class="tft-shop-row tft-plan-only">
@@ -11174,7 +11184,7 @@ function buildManualUI() {
   html += `<div class="manual-section"><h3>How to Play TFT</h3>
     <div class="manual-card"><h4>Goal</h4><p>Build an auto-battling army each round. When both players are Ready, boards fight automatically. Losing a round costs HP. Reduce the enemy to 0 HP to win.</p></div>
     <div class="manual-card"><h4>1. Shop</h4><p>Every planning phase you get a 5-card shop. Click once to inspect stats, click again to buy. Cards cost 1–5 gold. Higher commander level improves the odds of expensive units.</p></div>
-    <div class="manual-card"><h4>2. Bench &amp; board</h4><p>Bought units land on your bench. Drag them onto your board. Your board size equals your commander level. Column 1 is the frontline (near the middle); the back column is safer for archers and carries.</p></div>
+    <div class="manual-card"><h4>2. Bench &amp; board</h4><p>Bought units land on your bench. Drag them onto your board. Your board size equals your commander level. The Front column faces the enemy (near the middle in combat); the Back column is safer for archers and carries.</p></div>
     <div class="manual-card"><h4>3. Merge stars</h4><p>Own 3 copies of the same unit at the same star level and they auto-merge into the next star (stronger stats). 1★ → 2★ → 3★.</p></div>
     <div class="manual-card"><h4>4. Traits</h4><p>Units share traits (Warrior, Hunter, Beast, Mystic). Hit the trait count in the sidebar to unlock bonus HP, damage, or attack speed for those units.</p></div>
     <div class="manual-card"><h4>5. Gold &amp; XP</h4><p>You earn income each round (plus interest for banking gold). Reroll the shop for 2g. Buy XP for 4g to level up and field more units. Sell units (right-click or drop on the sell zone) for gold.</p></div>

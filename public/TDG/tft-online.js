@@ -1685,7 +1685,11 @@
     } else {
       // 3–4 player: shared pairing estimates keep every client on the same HP outcomes.
       if (!results.length) results = [live];
-      state.pendingResult = results.find((r) => r.leftPid === state.fightSides?.[0] && r.rightPid === state.fightSides?.[1]) || results[0];
+      state.pendingResult = results.find((r) => {
+        const a = state.fightSides?.[0];
+        const b = state.fightSides?.[1];
+        return (r.leftPid === a && r.rightPid === b) || (r.leftPid === b && r.rightPid === a);
+      }) || results[0];
     }
     state.roundResults = results;
     publishAuthState(true);
@@ -1775,9 +1779,13 @@
 
     const myPair = myPairing();
     if (myPair) {
-      state.fightSides = [myPair[0], myPair[1]];
+      // Always put the local player on the LEFT so they face the opponent.
+      const foeId = myPair[0] === match.playerId ? myPair[1] : myPair[0];
+      state.fightSides = [match.playerId, foeId];
     } else if (state.pairings[0]) {
       state.fightSides = state.pairings[0].slice();
+    } else if (playerCount() === 2) {
+      state.fightSides = [match.playerId, 1 - match.playerId];
     } else {
       state.fightSides = [match.playerId, match.playerId];
     }
@@ -2516,16 +2524,17 @@
 
   // ─── HUD ───────────────────────────────────────────────────────────────────
 
-  function unitChipHtml(unit) {
+  function unitChipHtml(unit, face = '') {
     if (!unit) return '';
     const def = baseStats(unit.type);
     const star = unit.star || 1;
     const burst = performance.now() < mergeBurstUntil ? ' tft-merge-burst' : '';
+    const faceCls = face === 'face-enemy' ? ' tft-face-enemy' : (face === 'face-you' ? ' tft-face-you' : '');
     const items = (unit.items || []).map((id) => itemDef(id)).filter(Boolean);
     const itemHtml = items.length
       ? `<span class="tft-item-row">${items.map((it) => `<span class="tft-item-dot" title="${escapeHtml(it.name)}">${it.icon}</span>`).join('')}</span>`
       : '';
-    return `<div class="tft-unit-chip star-${star}${burst}" data-type="${unit.type}">`
+    return `<div class="tft-unit-chip star-${star}${burst}${faceCls}" data-type="${unit.type}">`
       + `<img src="/TDG/portraits/${unit.type}.webp" alt="" draggable="false" />`
       + `<span class="tft-star-badge">${starLabel(star)}</span>`
       + `<span class="tft-unit-cost">${def.cost}</span>`
@@ -2807,15 +2816,17 @@
 
     const boardEl = $('tft-board');
     if (boardEl) {
-      let html = '<div class="tft-board-cols"><span>Front</span><span></span><span></span><span>Back</span></div>';
+      // Left → right: Back … Front (frontline faces the enemy board).
+      let html = '<div class="tft-board-cols"><span>Back</span><span></span><span></span><span>Front →</span></div>';
       for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
+        for (let visual = 0; visual < COLS; visual++) {
+          const c = COLS - 1 - visual;
           const u = p.board[r][c];
           const front = c === 0 ? ' is-front' : '';
           const back = c === COLS - 1 ? ' is-back' : '';
           const sel = selected?.area === 'board' && selected.r === r && selected.c === c ? ' is-selected' : '';
-          html += `<div class="tft-board-cell${u ? ' has-unit' : ''}${front}${back}${sel}" data-r="${r}" data-c="${c}" title="${c === 0 ? 'Frontline (near mid)' : c === COLS - 1 ? 'Backline' : ''}">`;
-          if (u) html += unitChipHtml(u);
+          html += `<div class="tft-board-cell${u ? ' has-unit' : ''}${front}${back}${sel}" data-r="${r}" data-c="${c}" title="${c === 0 ? 'Frontline (faces enemy)' : c === COLS - 1 ? 'Backline' : ''}">`;
+          if (u) html += unitChipHtml(u, 'face-enemy');
           html += '</div>';
         }
       }
@@ -2824,13 +2835,20 @@
 
     const oppBoard = $('tft-opp-board');
     if (oppBoard) {
-      let html = '';
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const u = o.board[r][c];
-          html += `<div class="tft-board-cell is-opp${u ? ' has-unit' : ''}">`;
-          if (u) html += unitChipHtml(u);
-          html += '</div>';
+      // Left → right: Front … Back (their frontline faces you).
+      let html = '<div class="tft-board-cols"><span>← Front</span><span></span><span></span><span>Back</span></div>';
+      if (!o) {
+        html += `<div class="tft-board-empty">Waiting for opponent…</div>`;
+      } else {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const u = o.board[r][c];
+            const front = c === 0 ? ' is-front' : '';
+            const back = c === COLS - 1 ? ' is-back' : '';
+            html += `<div class="tft-board-cell is-opp${u ? ' has-unit' : ''}${front}${back}">`;
+            if (u) html += unitChipHtml(u, 'face-you');
+            html += '</div>';
+          }
         }
       }
       oppBoard.innerHTML = html;
@@ -2840,7 +2858,7 @@
     if (benchEl) {
       benchEl.innerHTML = p.bench.map((u, i) => {
         const sel = selected?.area === 'bench' && selected.idx === i ? ' is-selected' : '';
-        return `<div class="tft-bench-slot${u ? ' has-unit' : ''}${sel}" data-bench="${i}">${u ? unitChipHtml(u) : ''}</div>`;
+        return `<div class="tft-bench-slot${u ? ' has-unit' : ''}${sel}" data-bench="${i}">${u ? unitChipHtml(u, 'face-enemy') : ''}</div>`;
       }).join('');
     }
 
@@ -2923,8 +2941,12 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const leftTag = match.playerId === 0 ? `${state.players[0].name} (YOU)` : state.players[0].name;
-    const rightTag = match.playerId === 1 ? `${state.players[1].name} (YOU)` : state.players[1].name;
+    const leftPid = state.fightSides?.[0] ?? match.playerId;
+    const rightPid = state.fightSides?.[1] ?? opp()?.id ?? (playerCount() > 1 ? 1 - match.playerId : match.playerId);
+    const leftName = state.players[leftPid]?.name || 'You';
+    const rightName = state.players[rightPid]?.name || 'Foe';
+    const leftTag = leftPid === match.playerId ? `${leftName} (YOU)` : leftName;
+    const rightTag = rightPid === match.playerId ? `${rightName} (YOU)` : rightName;
     ctx.font = '800 14px Orbitron, Rajdhani, sans-serif';
     ctx.fillStyle = '#4ECDC4';
     ctx.textAlign = 'left';
@@ -3025,29 +3047,34 @@
     ctx.restore();
   }
 
-  /** Idle placement preview during planning — same left/right sides as combat. */
+  /** Idle placement preview during planning — you on the left, facing the foe. */
   function drawPlanningPreview() {
     if (!ctx || !canvas || !state) return;
     const layout = drawArenaBackground();
     if (!layout) return;
+    const leftPid = match.playerId;
+    const rightPid = opp()?.id;
     const ghost = [];
-    for (let pid = 0; pid < 2; pid++) {
+    const sides = (rightPid == null || rightPid === leftPid) ? [leftPid] : [leftPid, rightPid];
+    for (let side = 0; side < sides.length; side++) {
+      const pid = sides[side];
       const p = state.players[pid];
+      if (!p) continue;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const cell = p.board[r][c];
           if (!cell) continue;
           const st = scaledStats(cell.type, cell.star || 1);
-          const pos = boardCellPos(pid, r, c, layout);
+          const pos = boardCellPos(side, r, c, layout);
           ghost.push({
             uid: `preview-${pid}-${r}-${c}`,
-            owner: pid,
+            owner: side,
             type: cell.type,
             star: cell.star || 1,
             size: st.size,
             x: pos.x,
             y: pos.y,
-            facing: pid === 0 ? 0 : Math.PI,
+            facing: side === 0 ? 0 : Math.PI,
             animT: performance.now() / 1000,
             moveSpeed: 0,
             attackPhase: 'idle',
@@ -3059,11 +3086,11 @@
         }
       }
     }
-    ghost.sort((a, b) => a.y - b.y).forEach((u) => drawUnitSpriteAt(u, u.owner === match.playerId ? 1 : 0.72));
+    ghost.sort((a, b) => a.y - b.y).forEach((u) => drawUnitSpriteAt(u, u.owner === 0 ? 1 : 0.72));
     ctx.fillStyle = 'rgba(240,216,120,0.55)';
     ctx.font = '600 12px Rajdhani, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Formation preview — column 1 fights near mid', layout.w / 2, layout.h - 14);
+    ctx.fillText('Formation preview — frontline faces the enemy', layout.w / 2, layout.h - 14);
     ctx.textAlign = 'left';
     endLogicDraw();
   }
