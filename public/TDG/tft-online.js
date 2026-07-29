@@ -591,6 +591,7 @@
       id: pid,
       name,
       isCpu: !!opts.isCpu,
+      armyRev: 0,
       hp: START_HP,
       gold: START_GOLD,
       level: 1,
@@ -841,6 +842,7 @@
       hp: p.hp,
       name: p.name,
       isCpu: !!p.isCpu,
+      armyRev: p.armyRev || 0,
       augments: Array.isArray(p.augments) ? p.augments.slice() : [],
       augmentChoices: Array.isArray(p.augmentChoices) ? p.augmentChoices.slice() : null,
       itemBag: Array.isArray(p.itemBag) ? p.itemBag.slice() : Array(ITEM_BAG).fill(null),
@@ -849,8 +851,13 @@
     };
   }
 
-  function applyArmySnapshot(p, snap) {
+  function applyArmySnapshot(p, snap, opts = {}) {
     if (!snap) return;
+    const force = !!opts.force;
+    const incomingRev = Number(snap.armyRev) || 0;
+    const localRev = Number(p.armyRev) || 0;
+    // Never clobber a newer local edit with a stale host/guest snapshot.
+    if (!force && incomingRev > 0 && localRev > incomingRev) return;
     const readUnit = (u) => (u ? {
       type: u.type,
       star: u.star || 1,
@@ -874,6 +881,7 @@
     if (snap.hp != null) p.hp = snap.hp;
     if (snap.name) p.name = snap.name;
     if (snap.isCpu != null) p.isCpu = !!snap.isCpu;
+    if (snap.armyRev != null) p.armyRev = Math.max(localRev, incomingRev);
     if (Array.isArray(snap.augments)) p.augments = snap.augments.slice();
     if (snap.augmentChoices === null) p.augmentChoices = null;
     else if (Array.isArray(snap.augmentChoices)) p.augmentChoices = snap.augmentChoices.slice();
@@ -882,6 +890,45 @@
     if (Array.isArray(snap.itemShop)) p.itemShop = snap.itemShop.slice(0, ITEM_SHOP);
     else if (!Array.isArray(p.itemShop)) p.itemShop = Array(ITEM_SHOP).fill(null);
     if (snap.itemShopGen != null) p.itemShopGen = snap.itemShopGen;
+  }
+
+  function bumpArmyRev(p) {
+    if (!p) return 0;
+    p.armyRev = (p.armyRev || 0) + 1;
+    return p.armyRev;
+  }
+
+  /** Local player's pairing oriented as [me, foe] for their own arena. */
+  function localFightSidesFromPairings(pairings = state?.pairings) {
+    if (!match || !state) return null;
+    const pairs = Array.isArray(pairings) ? pairings : [];
+    const mine = pairs.find((pr) => pr[0] === match.playerId || pr[1] === match.playerId);
+    if (mine) {
+      const foeId = mine[0] === match.playerId ? mine[1] : mine[0];
+      return [match.playerId, foeId];
+    }
+    if (playerCount() === 2 && state.players.length >= 2) {
+      const foe = state.players.find((p) => p && p.id !== match.playerId && p.hp > 0);
+      if (foe) return [match.playerId, foe.id];
+    }
+    return null;
+  }
+
+  function resultForSides(results, sides) {
+    if (!Array.isArray(results) || !sides || sides.length < 2) return null;
+    const a = sides[0];
+    const b = sides[1];
+    return results.find((r) =>
+      (r.leftPid === a && r.rightPid === b) || (r.leftPid === b && r.rightPid === a)
+    ) || null;
+  }
+
+  function pendingResultLabel(result) {
+    if (!result) return 'Winner';
+    const pid = result.winnerPid != null
+      ? result.winnerPid
+      : (result.winner === 0 ? result.leftPid : result.rightPid);
+    return state.players[pid]?.name || 'Winner';
   }
 
   function serializeCombatLight() {
@@ -1033,7 +1080,8 @@
   }
 
   /**
-   * Guest applies host match state — single source of truth for combat, HP, and round flow.
+   * Guest applies host match state — shared economy/HP/phase.
+   * Each client keeps its own fightSides + combat arena when they have a pairing.
    */
   function applyAuthState(snap) {
     if (!active || !state || !snap || snap.mode !== 'tft') return false;
@@ -1048,13 +1096,8 @@
     if (snap.planTimeLeft != null) state.planTimeLeft = Math.max(0, snap.planTimeLeft);
     if (snap.augmentTimeLeft != null) state.augmentTimeLeft = Math.max(0, snap.augmentTimeLeft);
     state.combatSeed = snap.combatSeed || state.combatSeed;
-    state.combatElapsed = snap.combatElapsed || 0;
-    state.combatIntro = snap.combatIntro || 0;
-    state.combatFinished = !!snap.combatFinished;
     state.resultApplied = !!snap.resultApplied;
     state.resultTimer = snap.resultTimer ?? state.resultTimer;
-    state.pendingResult = snap.pendingResult || null;
-    state.lastCombat = snap.lastCombat || state.lastCombat;
     if (Array.isArray(snap.messages)) {
       state.messages = snap.messages.slice();
       const el = $('tft-log');
@@ -1063,11 +1106,31 @@
 
     if (Array.isArray(snap.pairings)) state.pairings = snap.pairings.map((pr) => pr.slice());
     if (snap.byePid != null) state.byePid = snap.byePid;
-    if (Array.isArray(snap.fightSides)) state.fightSides = snap.fightSides.slice();
     if (Array.isArray(snap.roundResults)) state.roundResults = snap.roundResults.slice();
 
+    const ownSides = localFightSidesFromPairings(state.pairings);
+    const ownFight = !!ownSides
+      && (snap.phase === 'combat' || snap.phase === 'result'
+        || state.phase === 'combat' || state.phase === 'result');
+
+    // Keep THIS client's arena orientation — never steal the host's fightSides.
+    if (ownSides && (snap.phase === 'combat' || snap.phase === 'result' || state.phase === 'combat')) {
+      state.fightSides = ownSides;
+    } else if (!ownFight && Array.isArray(snap.fightSides)) {
+      state.fightSides = snap.fightSides.slice();
+    }
+
+    // Pending result tailored to local pairing.
+    if (ownSides && Array.isArray(state.roundResults) && state.roundResults.length) {
+      const mine = resultForSides(state.roundResults, ownSides);
+      if (mine) state.pendingResult = mine;
+      else if (snap.pendingResult) state.pendingResult = snap.pendingResult;
+    } else if (snap.pendingResult) {
+      state.pendingResult = snap.pendingResult;
+    }
+    state.lastCombat = state.pendingResult || snap.lastCombat || state.lastCombat;
+
     if (Array.isArray(snap.players)) {
-      // Grow local roster if host has more players.
       while (state.players.length < snap.players.length) {
         const i = state.players.length;
         const name = snap.players[i]?.name || `Player ${i + 1}`;
@@ -1077,7 +1140,7 @@
         const sp = snap.players[i];
         const lp = state.players[i];
         if (!sp || !lp) continue;
-        // Always take host HP / streaks / ready.
+        // Always take host HP / streaks / ready flags.
         if (sp.hp != null) lp.hp = sp.hp;
         if (sp.name) lp.name = sp.name;
         if (sp.isCpu != null) lp.isCpu = !!sp.isCpu;
@@ -1085,27 +1148,68 @@
         lp.winStreak = sp.winStreak || 0;
         lp.lossStreak = sp.lossStreak || 0;
 
-        const takeArmy = i !== match.playerId || phaseChange || snap.phase !== 'planning';
-        if (takeArmy) {
-          applyArmySnapshot(lp, sp);
-        } else if (!shopHasCards(lp) && shopHasCards(sp)) {
-          lp.shop = sp.shop.slice();
-          if (sp.shopGen != null) lp.shopGen = sp.shopGen;
+        const isLocal = i === match.playerId;
+        // Local seat: keep planning edits; only adopt shop cards if empty.
+        // Never overwrite local army during combat/result (items already locked in).
+        // Other seats: always take host snapshot.
+        if (!isLocal) {
+          applyArmySnapshot(lp, sp, { force: true });
+        } else if (snap.phase === 'planning' || snap.phase === 'augment') {
+          const incomingRev = Number(sp.armyRev) || 0;
+          const localRev = Number(lp.armyRev) || 0;
+          if (phaseChange && prevPhase !== 'planning' && prevPhase !== 'augment') {
+            // Entering a new planning round from host — take full economy.
+            applyArmySnapshot(lp, sp, { force: true });
+          } else if (incomingRev > localRev) {
+            applyArmySnapshot(lp, sp);
+          } else if (!shopHasCards(lp) && shopHasCards(sp)) {
+            lp.shop = sp.shop.slice();
+            if (sp.shopGen != null) lp.shopGen = sp.shopGen;
+          } else if (Array.isArray(sp.itemShop) && (!lp.itemShop || !lp.itemShop.some(Boolean))) {
+            lp.itemShop = sp.itemShop.slice(0, ITEM_SHOP);
+            if (sp.itemShopGen != null) lp.itemShopGen = sp.itemShopGen;
+          }
         }
+        // combat/result: leave local army alone (already applied at combat_start).
       }
     }
 
-    const multiLocalFight = playerCount() > 2 && !!myPairing();
-    if (Array.isArray(snap.combatUnits) && (snap.phase === 'combat' || snap.phase === 'result' || snap.phase === 'gameover')) {
-      // In 3–4 player lobbies, each client simulates its own pairing visually.
-      if (!(multiLocalFight && snap.phase === 'combat' && !snap.combatFinished)) {
-        applyCombatUnitsFromAuth(snap.combatUnits);
-      }
-    } else if (snap.phase === 'planning') {
+    const leavingCombat = snap.phase === 'planning' || snap.phase === 'augment';
+
+    if (leavingCombat) {
       state.combatUnits = [];
       state.projectiles = [];
+      state.combatFinished = false;
+      state.combatElapsed = 0;
+      state.combatIntro = 0;
+    } else if (ownFight) {
+      // Local arena — never follow host fight timer/units.
+      state.fightSides = ownSides;
+      if (snap.phase === 'combat' && !(state.combatUnits && state.combatUnits.length)) {
+        state.combatFinished = false;
+        state.resultApplied = false;
+        spawnCombatUnits(ownSides[0], ownSides[1]);
+        state.combatElapsed = 0;
+        state.combatIntro = COMBAT_INTRO;
+      }
+      if (snap.phase === 'result' || (snap.combatFinished && snap.phase === 'combat')) {
+        // Host finished resolving — keep local units, lock banner to our pairing.
+        if (!state.combatFinished) state.combatFinished = true;
+        if (ownSides) {
+          const mine = resultForSides(state.roundResults, ownSides);
+          if (mine) state.pendingResult = mine;
+        }
+      }
+    } else {
+      // Spectator / bye: follow host arena.
+      state.combatElapsed = snap.combatElapsed || 0;
+      state.combatIntro = snap.combatIntro || 0;
+      state.combatFinished = !!snap.combatFinished;
+      if (Array.isArray(snap.combatUnits) && (snap.phase === 'combat' || snap.phase === 'result' || snap.phase === 'gameover')) {
+        applyCombatUnitsFromAuth(snap.combatUnits);
+      }
+      if (Array.isArray(snap.projectiles)) state.projectiles = snap.projectiles.slice();
     }
-    if (Array.isArray(snap.projectiles)) state.projectiles = snap.projectiles.slice();
 
     state.phase = snap.phase || state.phase;
     if (phaseChange || prevPhase !== state.phase) {
@@ -1124,10 +1228,12 @@
   }
 
   function syncArmy(p) {
+    bumpArmyRev(p);
     broadcastAction({
       type: 'tft_army_sync',
       playerId: p.id,
       army: serializeArmy(p),
+      armyRev: p.armyRev || 0,
     });
     // Host keeps a live mirror for guests after local edits.
     if (isAuthority()) publishAuthState(true);
@@ -1669,27 +1775,39 @@
   function finishLiveCombat() {
     if (state.combatFinished) return;
     state.combatFinished = true;
-    // Only the host decides the fight outcome — guest waits for auth state / result.
+    const ownSides = state.fightSides || localFightSidesFromPairings();
+    const localPending = resultForSides(state.roundResults, ownSides)
+      || (playerCount() <= 2 ? computeResultFromField() : null);
+    // Guest: show THIS client's fight outcome; HP still waits for host.
     if (!isAuthority()) {
-      state.pendingResult = state.pendingResult || null;
+      state.pendingResult = (playerCount() <= 2 ? computeResultFromField() : null)
+        || localPending
+        || state.pendingResult;
       return;
     }
     const live = computeResultFromField();
     let results = Array.isArray(state.roundResults) ? state.roundResults.slice() : [];
     if (playerCount() <= 2) {
       // Classic 1v1: live board is the truth.
-      const idx = results.findIndex((r) => r.leftPid === live.leftPid && r.rightPid === live.rightPid);
+      const idx = results.findIndex((r) =>
+        (r.leftPid === live.leftPid && r.rightPid === live.rightPid)
+        || (r.leftPid === live.rightPid && r.rightPid === live.leftPid)
+      );
       if (idx >= 0) results[idx] = live;
       else results = [live];
       state.pendingResult = live;
     } else {
       // 3–4 player: shared pairing estimates keep every client on the same HP outcomes.
       if (!results.length) results = [live];
-      state.pendingResult = results.find((r) => {
-        const a = state.fightSides?.[0];
-        const b = state.fightSides?.[1];
-        return (r.leftPid === a && r.rightPid === b) || (r.leftPid === b && r.rightPid === a);
-      }) || results[0];
+      state.pendingResult = resultForSides(results, ownSides) || results[0];
+      // Replace estimate for host's own pair with live field when available.
+      if (live && ownSides) {
+        const idx = results.findIndex((r) =>
+          (r.leftPid === ownSides[0] && r.rightPid === ownSides[1])
+          || (r.leftPid === ownSides[1] && r.rightPid === ownSides[0])
+        );
+        if (idx >= 0) results[idx] = { ...live, leftPid: results[idx].leftPid, rightPid: results[idx].rightPid, winnerPid: live.winnerPid, loserPid: live.loserPid, damage: live.damage, winner: live.winner };
+      }
     }
     state.roundResults = results;
     publishAuthState(true);
@@ -1734,9 +1852,18 @@
     const list = Array.isArray(results) && results.length
       ? results
       : (Array.isArray(state.roundResults) ? state.roundResults : []);
-    state.pendingResult = list[0] || state.pendingResult;
-    state.lastCombat = list[0] || null;
-    for (const r of list) applyOneFightResult(r, true);
+    const ownSides = state.fightSides || localFightSidesFromPairings();
+    const mine = resultForSides(list, ownSides);
+    state.pendingResult = mine || list[0] || state.pendingResult;
+    state.lastCombat = state.pendingResult || null;
+    // Announce only the local pairing; still apply every pairing's HP once.
+    for (const r of list) {
+      const isMine = !!(mine && (
+        (r.leftPid === mine.leftPid && r.rightPid === mine.rightPid)
+        || (r.leftPid === mine.rightPid && r.rightPid === mine.leftPid)
+      ));
+      applyOneFightResult(r, isMine || (playerCount() <= 2 && list.length <= 1));
+    }
     if (state.byePid != null && state.players[state.byePid]?.hp > 0) {
       pushMsg(`${state.players[state.byePid].name} has a bye this round.`);
     }
@@ -1777,22 +1904,25 @@
       state.roundResults = opts.results.slice();
     }
 
-    const myPair = myPairing();
-    if (myPair) {
-      // Always put the local player on the LEFT so they face the opponent.
-      const foeId = myPair[0] === match.playerId ? myPair[1] : myPair[0];
-      state.fightSides = [match.playerId, foeId];
+    const ownSides = localFightSidesFromPairings(state.pairings);
+    if (ownSides) {
+      state.fightSides = ownSides;
     } else if (state.pairings[0]) {
+      // Bye / spectator: peek at first pairing without claiming it as yours.
       state.fightSides = state.pairings[0].slice();
-    } else if (playerCount() === 2) {
-      state.fightSides = [match.playerId, 1 - match.playerId];
     } else {
       state.fightSides = [match.playerId, match.playerId];
+    }
+
+    // Prefill banner with this client's pairing result when known.
+    if (ownSides && state.roundResults?.length) {
+      state.pendingResult = resultForSides(state.roundResults, ownSides);
     }
 
     setShellMode('combat');
     resizeCanvas();
 
+    const myPair = myPairing();
     const onBye = state.byePid === match.playerId || !myPair;
     if (onBye && playerCount() > 2) {
       state.combatUnits = [];
@@ -2235,11 +2365,20 @@
     if (state.phase !== 'planning') return;
     const living = alivePlayers();
     if (!living.length || !living.every((p) => p.ready)) return;
-    // Only the host starts combat; guest waits for tft_combat_start / auth state.
-    if (isAuthority()) beginCombat();
+    // Only the host starts combat; short delay so last army/item syncs land.
+    if (!isAuthority()) return;
+    if (state._combatStartArmed) return;
+    state._combatStartArmed = true;
+    setTimeout(() => {
+      state._combatStartArmed = false;
+      if (!active || !state || state.phase !== 'planning') return;
+      const still = alivePlayers();
+      if (!still.length || !still.every((p) => p.ready)) return;
+      beginCombat();
+    }, 280);
   }
 
-  function applyRemoteArmies(armies) {
+  function applyRemoteArmies(armies, opts = {}) {
     if (!armies) return;
     while (state.players.length < armies.length) {
       const i = state.players.length;
@@ -2251,9 +2390,15 @@
       const snap = armies[i];
       if (!snap) continue;
       if (!state.players[i]) continue;
-      // Never let a stale empty snapshot wipe our local board.
-      if (i === match.playerId && snapBoardCount(snap) < boardCount(state.players[i])) continue;
-      applyArmySnapshot(state.players[i], snap);
+      const isLocal = i === match.playerId;
+      if (isLocal) {
+        const incomingRev = Number(snap.armyRev) || 0;
+        const localRev = Number(state.players[i].armyRev) || 0;
+        // Prefer newer local board/items over a stale combat-start snapshot.
+        if (!opts.force && localRev > incomingRev) continue;
+        if (!opts.force && snapBoardCount(snap) < boardCount(state.players[i]) && localRev >= incomingRev) continue;
+      }
+      applyArmySnapshot(state.players[i], snap, { force: !!opts.force && !isLocal });
     }
   }
 
@@ -2267,7 +2412,6 @@
         const target = state.players[targetId];
         if (target && targetId !== match.playerId) {
           applyArmySnapshot(target, action.army);
-          // Host mirrors guest shop/board so both UIs stay consistent.
           if (isAuthority()) publishAuthState(true);
         }
         renderHud();
@@ -2329,8 +2473,9 @@
             : (action.result ? [action.result] : null);
           if (results && (state.phase === 'combat' || state.phase === 'result')) {
             state.combatFinished = true;
-            state.pendingResult = results[0];
             state.roundResults = results;
+            const ownSides = state.fightSides || localFightSidesFromPairings();
+            state.pendingResult = resultForSides(results, ownSides) || results[0];
             setTimeout(() => applyCombatResults(results), state.phase === 'result' ? 0 : 400);
           }
         }
@@ -3153,7 +3298,7 @@
       ctx.fillStyle = '#f0d878';
       ctx.font = '700 22px Orbitron, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`${state.players[state.pendingResult.winner]?.name || 'Winner'} wins`, w / 2, h * 0.38 + 28);
+      ctx.fillText(`${pendingResultLabel(state.pendingResult)} wins`, w / 2, h * 0.38 + 28);
       ctx.font = '600 13px Rajdhani, sans-serif';
       ctx.fillStyle = '#e8ebe0';
       ctx.fillText(`−${state.pendingResult.damage} HP`, w / 2, h * 0.38 + 50);
@@ -3996,13 +4141,13 @@
       }
       drawPlanningPreview();
     } else if (state.phase === 'combat') {
-      const localMulti = playerCount() > 2 && !!myPairing() && !isAuthority();
-      if (isAuthority() || localMulti) {
-        // Guests in 3–4p lobbies sim their own pairing for visuals; HP still host-owned.
+      // Every client with a pairing sims THEIR fight; host alone owns HP outcomes.
+      const ownFight = !!localFightSidesFromPairings() || !!myPairing() || playerCount() === 2;
+      const runLocalSim = isAuthority() || (ownFight && state.byePid !== match.playerId);
+      if (runLocalSim && state.combatUnits?.length) {
         const finishedBefore = state.combatFinished;
         tickCombat(dt);
-        if (localMulti && state.combatFinished && !finishedBefore) {
-          // Don't apply HP locally — wait for host results.
+        if (!isAuthority() && state.combatFinished && !finishedBefore) {
           state.combatFinished = true;
         }
         if (isAuthority()) {
@@ -4012,7 +4157,7 @@
             publishAuthState(false);
           }
         }
-      } else {
+      } else if (!isAuthority() && !ownFight) {
         tickGuestCombatVisual(dt);
       }
       drawCombat();
