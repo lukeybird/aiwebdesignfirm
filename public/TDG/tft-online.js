@@ -1140,28 +1140,59 @@
         const sp = snap.players[i];
         const lp = state.players[i];
         if (!sp || !lp) continue;
-        // Always take host HP / streaks / ready flags.
+        // Always take host HP / streaks for everyone.
         if (sp.hp != null) lp.hp = sp.hp;
         if (sp.name) lp.name = sp.name;
         if (sp.isCpu != null) lp.isCpu = !!sp.isCpu;
-        lp.ready = !!sp.ready;
         lp.winStreak = sp.winStreak || 0;
         lp.lossStreak = sp.lossStreak || 0;
 
         const isLocal = i === match.playerId;
-        // Local seat: keep planning edits; only adopt shop cards if empty.
-        // Never overwrite local army during combat/result (items already locked in).
-        // Other seats: always take host snapshot.
+        // Ready: local seat is owned by this client during planning (via Ready button).
+        // Other seats + non-planning phases follow the host.
+        if (!isLocal || snap.phase !== 'planning') {
+          lp.ready = !!sp.ready;
+        } else if (phaseChange && snap.phase === 'planning') {
+          lp.ready = false;
+        }
+
         if (!isLocal) {
           applyArmySnapshot(lp, sp, { force: true });
-        } else if (snap.phase === 'planning' || snap.phase === 'augment') {
+          continue;
+        }
+
+        if (snap.phase === 'augment') {
+          const needAug = (lp.augments?.length || 0) < expectedAugmentCount(snap.round || state.round);
+          // Host rolls augment choices — guests must receive them until they pick.
+          if (needAug && Array.isArray(sp.augmentChoices) && sp.augmentChoices.length) {
+            if (!lp.augmentChoices?.length) lp.augmentChoices = sp.augmentChoices.slice();
+          }
+          if (sp.augmentChoices === null && Array.isArray(sp.augments)) {
+            lp.augments = sp.augments.slice();
+            lp.augmentChoices = null;
+          } else if (Array.isArray(sp.augments) && sp.augments.length > (lp.augments?.length || 0)) {
+            lp.augments = sp.augments.slice();
+          }
+          if (phaseChange || prevPhase !== 'augment') {
+            const keptChoices = lp.augmentChoices;
+            const keptAugs = Array.isArray(lp.augments) ? lp.augments.slice() : [];
+            applyArmySnapshot(lp, sp, { force: true });
+            if (keptChoices?.length && needAug) lp.augmentChoices = keptChoices;
+            if (keptAugs.length >= (lp.augments?.length || 0)) lp.augments = keptAugs;
+            if (!needAug) lp.augmentChoices = null;
+            lp.ready = false;
+          }
+        } else if (snap.phase === 'planning') {
           const incomingRev = Number(sp.armyRev) || 0;
           const localRev = Number(lp.armyRev) || 0;
-          if (phaseChange && prevPhase !== 'planning' && prevPhase !== 'augment') {
-            // Entering a new planning round from host — take full economy.
+          if (phaseChange || prevPhase !== 'planning') {
+            // Entering planning from augment/combat — take host shops/gold/items.
             applyArmySnapshot(lp, sp, { force: true });
+            lp.ready = false;
           } else if (incomingRev > localRev) {
+            const wasReady = lp.ready;
             applyArmySnapshot(lp, sp);
+            lp.ready = wasReady;
           } else if (!shopHasCards(lp) && shopHasCards(sp)) {
             lp.shop = sp.shop.slice();
             if (sp.shopGen != null) lp.shopGen = sp.shopGen;
@@ -1992,11 +2023,29 @@
 
   function forceShopTimeout() {
     if (!state || state.phase !== 'planning') return;
+    // Timer expired: auto-ready CPUs only. Living humans must still click Ready.
+    let waitingHumans = 0;
     for (const p of state.players) {
+      if (!p || p.hp <= 0) continue;
+      if (isCpuPlayer(p)) {
+        ensureBoardHasUnit(p);
+        p.ready = true;
+      } else if (!p.ready) {
+        waitingHumans += 1;
+      }
+    }
+    state.planTimeLeft = 0;
+    if (waitingHumans > 0) {
+      pushMsg(`Shop timer ended — waiting for ${waitingHumans} player${waitingHumans === 1 ? '' : 's'} to Ready.`);
+      renderHud();
+      if (isAuthority()) publishAuthState(true);
+      return;
+    }
+    for (const p of state.players) {
+      if (!p || p.hp <= 0) continue;
       ensureBoardHasUnit(p);
       p.ready = true;
     }
-    state.planTimeLeft = 0;
     pushMsg('Shop timer ended — fight!');
     renderHud();
     if (isAuthority()) beginCombat();
@@ -2114,6 +2163,10 @@
     }
   }
 
+  function expectedAugmentCount(round = state?.round || 1) {
+    return AUGMENT_ROUNDS.filter((r) => r <= round).length;
+  }
+
   function beginAugmentPhase() {
     $('tft-howto')?.classList.add('hidden');
     state.phase = 'augment';
@@ -2136,7 +2189,15 @@
     setShellMode('augment');
     pushMsg(`Round ${state.round} — choose an augment (${tier})!`);
     renderHud();
-    if (isAuthority()) publishAuthState(true);
+    if (isAuthority()) {
+      publishAuthState(true);
+      // Guests often join a beat late — republish so augment cards land.
+      [250, 700, 1600, 3200].forEach((ms) => {
+        setTimeout(() => {
+          if (active && isAuthority() && state?.phase === 'augment') publishAuthState(true);
+        }, ms);
+      });
+    }
   }
 
   function beginPlanningPhase() {
@@ -2434,12 +2495,15 @@
         }
         return true;
       }
-      case 'tft_ready':
-        if (p) p.ready = !!action.ready;
+      case 'tft_ready': {
+        const targetId = action.playerId ?? fromPlayerId;
+        const target = state.players[targetId];
+        if (target) target.ready = !!action.ready;
         if (isAuthority()) publishAuthState(true);
         renderHud();
         checkPlanningEnd();
         return true;
+      }
       case 'tft_combat_start':
         if (!isAuthority() && (state.phase === 'planning' || state.phase === 'result' || state.phase === 'combat')) {
           applyRemoteArmies(action.armies);
