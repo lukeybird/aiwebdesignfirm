@@ -313,8 +313,8 @@ export default function ActivityMonitor() {
 
   if (!authReady) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0f] text-[#f5f5f7]/
-        <p className="text-sm text-white/50">Checking developer access…</p>
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0f] text-[#f5f5f7]">
+        <p className="text-sm text-white opacity-50">Checking developer access...</p>
       </div>
     );
   }
