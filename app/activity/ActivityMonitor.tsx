@@ -22,6 +22,12 @@ type OnlineVisitor = {
   region?: string | null;
   country?: string | null;
   location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracyM?: number | null;
+  preciseLocation?: string | null;
+  geoSource?: 'gps' | 'ip' | null;
+  mapsUrl?: string | null;
   lastSeenAt: string;
   firstSeenAt: string;
 };
@@ -224,7 +230,7 @@ export default function ActivityMonitor() {
               PvP Activity Monitor
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/60">
-              Who is on /TDG right now (with IP + approximate location), live queue pairings, active matches, and win/loss records.
+              Who is on /TDG right now — IP plus device GPS when they allow location — live queue, matches, and records.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -311,13 +317,43 @@ export default function ActivityMonitor() {
                               </span>
                             )}
                           </div>
-                          <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-white/55">
-                            <span title="IP address">
-                              IP {visitor.ipAddress || '—'}
-                            </span>
-                            <span title="Approximate location from IP">
-                              {visitor.location || 'Location unknown'}
-                            </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {visitor.geoSource === 'gps' ? (
+                              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-medium text-emerald-200">
+                                Live GPS
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-100/80">
+                                IP approx
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1 font-mono text-[11px] leading-relaxed text-white/55">
+                            <div>
+                              <span className="text-white/35">Where · </span>
+                              {visitor.preciseLocation || visitor.location || 'Location unknown'}
+                            </div>
+                            {visitor.latitude != null && visitor.longitude != null && (
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span>
+                                  {visitor.latitude.toFixed(5)}, {visitor.longitude.toFixed(5)}
+                                  {visitor.accuracyM != null
+                                    ? ` · ±${Math.round(visitor.accuracyM)}m`
+                                    : ''}
+                                </span>
+                                {visitor.mapsUrl && (
+                                  <a
+                                    href={visitor.mapsUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-300/90 underline-offset-2 hover:text-emerald-200 hover:underline"
+                                  >
+                                    Open map
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                            <div>IP {visitor.ipAddress || '—'}</div>
                           </div>
                         </div>
                         <div className="text-right text-xs text-white/45">

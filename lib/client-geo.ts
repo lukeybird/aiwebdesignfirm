@@ -105,6 +105,83 @@ async function lookupIpApi(ip: string): Promise<Omit<ClientGeo, 'ip'> | null> {
   }
 }
 
+/** Turn GPS coords into a street-level label when possible. */
+export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  preciseLabel: string | null;
+} | null> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2200);
+    const url =
+      `https://api.bigdatacloud.net/data/reverse-geocode-client`
+      + `?latitude=${encodeURIComponent(String(lat))}`
+      + `&longitude=${encodeURIComponent(String(lng))}`
+      + `&localityLanguage=en`;
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      city?: string;
+      locality?: string;
+      principalSubdivision?: string;
+      countryName?: string;
+      localityInfo?: {
+        administrative?: Array<{ name?: string; description?: string; order?: number }>;
+        informative?: Array<{ name?: string; description?: string }>;
+      };
+    };
+
+    const city = data.city || data.locality || null;
+    const region = data.principalSubdivision || null;
+    const country = data.countryName || null;
+
+    const admin = data.localityInfo?.administrative || [];
+    const informative = data.localityInfo?.informative || [];
+    // Prefer the finest place name (neighbourhood / street area).
+    const fine =
+      informative.find((x) => /neighbourhood|neighborhood|suburb|village|hamlet|quarter/i.test(x.description || ''))?.name
+      || admin.sort((a, b) => (b.order || 0) - (a.order || 0))[0]?.name
+      || null;
+
+    const preciseParts = [fine && fine !== city ? fine : null, city, region, country].filter(
+      (p): p is string => !!p && p.trim().length > 0,
+    );
+    const uniq: string[] = [];
+    for (const p of preciseParts) {
+      if (!uniq.length || uniq[uniq.length - 1].toLowerCase() !== p.toLowerCase()) uniq.push(p);
+    }
+
+    return {
+      city,
+      region,
+      country,
+      preciseLabel: uniq.length ? uniq.join(', ').slice(0, 200) : formatLocation(city, region, country),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function parseGpsBody(body: {
+  lat?: unknown;
+  lng?: unknown;
+  accuracy?: unknown;
+}): { lat: number; lng: number; accuracy: number | null } | null {
+  const lat = typeof body.lat === 'number' ? body.lat : Number(body.lat);
+  const lng = typeof body.lng === 'number' ? body.lng : Number(body.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  const accuracyRaw = typeof body.accuracy === 'number' ? body.accuracy : Number(body.accuracy);
+  const accuracy = Number.isFinite(accuracyRaw) && accuracyRaw > 0 ? Math.min(accuracyRaw, 50000) : null;
+  return { lat, lng, accuracy };
+}
+
 /** Resolve IP + approximate location for a presence heartbeat. */
 export async function resolveClientGeo(request: NextRequest): Promise<ClientGeo> {
   const ip = getClientIp(request);

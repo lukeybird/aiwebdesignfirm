@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { resolveClientGeo } from '@/lib/client-geo';
+import { parseGpsBody, resolveClientGeo, reverseGeocodeCoords } from '@/lib/client-geo';
 import {
   ensureTdgPresenceTable,
   listLiveTdgPresence,
@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
       displayName?: string;
       screen?: string;
       leave?: boolean;
+      lat?: number;
+      lng?: number;
+      accuracy?: number;
     };
 
     const visitorId = typeof body.visitorId === 'string' ? body.visitorId.trim().slice(0, 64) : '';
@@ -66,6 +69,35 @@ export async function POST(request: NextRequest) {
       null;
 
     const geo = await resolveClientGeo(request);
+    const gps = parseGpsBody(body);
+
+    let city = geo.city;
+    let region = geo.region;
+    let country = geo.country;
+    let locationLabel = geo.locationLabel;
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+    let accuracyM: number | null = null;
+    let preciseLabel: string | null = null;
+    let geoSource: 'gps' | 'ip' = 'ip';
+
+    if (gps) {
+      latitude = gps.lat;
+      longitude = gps.lng;
+      accuracyM = gps.accuracy;
+      geoSource = 'gps';
+      const precise = await reverseGeocodeCoords(gps.lat, gps.lng);
+      if (precise) {
+        city = precise.city || city;
+        region = precise.region || region;
+        country = precise.country || country;
+        preciseLabel = precise.preciseLabel;
+        locationLabel = precise.preciseLabel || locationLabel;
+      } else {
+        preciseLabel = `${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)}`;
+        locationLabel = preciseLabel;
+      }
+    }
 
     const row = await upsertTdgPresence({
       visitorId,
@@ -73,10 +105,15 @@ export async function POST(request: NextRequest) {
       userId,
       screen: typeof body.screen === 'string' ? body.screen : 'menu',
       ipAddress: geo.ip,
-      city: geo.city,
-      region: geo.region,
-      country: geo.country,
-      locationLabel: geo.locationLabel,
+      city,
+      region,
+      country,
+      locationLabel,
+      latitude,
+      longitude,
+      accuracyM,
+      preciseLabel,
+      geoSource,
     });
 
     return NextResponse.json({
@@ -85,7 +122,10 @@ export async function POST(request: NextRequest) {
       displayName: row?.display_name,
       screen: row?.screen,
       ipAddress: row?.ip_address,
-      location: row?.location_label,
+      location: row?.precise_label || row?.location_label,
+      latitude: row?.latitude,
+      longitude: row?.longitude,
+      geoSource: row?.geo_source,
     });
   } catch (error) {
     console.error('tdg presence POST error:', error);

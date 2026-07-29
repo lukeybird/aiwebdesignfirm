@@ -1,12 +1,18 @@
 /**
- * Lightweight presence heartbeat for /TDG visitors.
- * Lets /activity show how many people are on the game right now.
+ * Presence heartbeat for /TDG visitors.
+ * Sends screen + optional device GPS so /activity can show exact location.
  */
 (function () {
   'use strict';
 
   const STORAGE_KEY = 'tdg_presence_visitor_id';
   const PING_MS = 15000;
+  const GEO_REFRESH_MS = 20000;
+
+  /** @type {{ lat: number, lng: number, accuracy: number } | null} */
+  let lastGps = null;
+  let geoWatchId = null;
+  let geoAsked = false;
 
   function uuid() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -72,15 +78,50 @@
     return null;
   }
 
-  async function ping(leave = false) {
+  function onGeoSuccess(pos) {
+    if (!pos || !pos.coords) return;
+    lastGps = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+    };
+  }
+
+  function startGeoTracking() {
+    if (geoAsked || !navigator.geolocation) return;
+    geoAsked = true;
+    try {
+      navigator.geolocation.getCurrentPosition(onGeoSuccess, function () {}, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 12000,
+      });
+      geoWatchId = navigator.geolocation.watchPosition(onGeoSuccess, function () {}, {
+        enableHighAccuracy: true,
+        maximumAge: GEO_REFRESH_MS,
+        timeout: 20000,
+      });
+    } catch {
+      // Permission / insecure context
+    }
+  }
+
+  async function ping(leave) {
     const visitorId = getVisitorId();
     const body = leave
-      ? { visitorId, leave: true }
+      ? { visitorId: visitorId, leave: true }
       : {
-          visitorId,
+          visitorId: visitorId,
           displayName: await resolveDisplayName(),
           screen: visibleScreen(),
         };
+
+    if (!leave && lastGps) {
+      body.lat = lastGps.lat;
+      body.lng = lastGps.lng;
+      body.accuracy = lastGps.accuracy;
+    }
+
     try {
       if (leave && navigator.sendBeacon) {
         navigator.sendBeacon(
@@ -94,7 +135,7 @@
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(body),
-        keepalive: leave,
+        keepalive: !!leave,
       });
     } catch {
       // ignore network blips
@@ -103,21 +144,31 @@
 
   let timer = null;
   function start() {
+    startGeoTracking();
     void ping(false);
     if (timer) clearInterval(timer);
-    timer = setInterval(() => {
+    timer = setInterval(function () {
       if (document.visibilityState === 'hidden') return;
       void ping(false);
     }, PING_MS);
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void ping(false);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      startGeoTracking();
+      void ping(false);
+    }
   });
 
-  window.addEventListener('pagehide', () => {
+  window.addEventListener('pagehide', function () {
+    if (geoWatchId != null && navigator.geolocation && navigator.geolocation.clearWatch) {
+      try { navigator.geolocation.clearWatch(geoWatchId); } catch (e) {}
+    }
     void ping(true);
   });
+
+  // Prompt for location shortly after load (HTTPS required).
+  setTimeout(startGeoTracking, 800);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
