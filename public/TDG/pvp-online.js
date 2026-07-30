@@ -170,6 +170,25 @@
     return null;
   }
 
+  /** Signed-in players use their account name here and cannot edit it on this screen. */
+  function applyAccountNameLock(accountName) {
+    const input = $('online-name-input');
+    if (!input) return;
+    if (accountName) {
+      input.value = accountName;
+      input.readOnly = true;
+      input.classList.add('is-locked');
+      input.setAttribute('aria-readonly', 'true');
+      input.title = 'Change this in your account settings';
+      input.blur();
+    } else {
+      input.readOnly = false;
+      input.classList.remove('is-locked');
+      input.removeAttribute('aria-readonly');
+      input.title = '';
+    }
+  }
+
   function $(id) {
     return document.getElementById(id);
   }
@@ -318,6 +337,10 @@
   function handleMatchCancelled(payload) {
     if (payload?.reason === 'player_timeout') {
       handleSessionExpired('Game cancelled because a player stopped responding for more than one minute.');
+      return;
+    }
+    if (payload?.reason === 'admin_cancel') {
+      handleSessionExpired('This match was cancelled by an admin. Returning to menu.');
       return;
     }
     // TFT multi: a peer leaving is handled as forfeit in-game; only bail if we're
@@ -535,6 +558,37 @@
     });
   }
 
+  function modeNameCopy(mode) {
+    if (mode === 'limited') {
+      return {
+        title: '🃏 Draft Battle',
+        desc: 'Snake-draft 10 cards each, then fight online. Drafted cards still cost gold to unlock. Draft Battle players only match other Draft Battle players.',
+      };
+    }
+    if (mode === 'tft') {
+      return {
+        title: '⚔️ TFT Online',
+        desc: 'Up to 4 players. Empty seats autofill with CPUs when you start. Each round alive players are paired — last standing wins.',
+      };
+    }
+    if (mode === 'farmers') {
+      return {
+        title: '🌾 Farmers',
+        desc: 'Slow-pace 1v1 farm market. Place farms, haul crops to your stand, sell to customers, hire help, and race to $400.',
+      };
+    }
+    if (mode === 'quick') {
+      return {
+        title: '⚡ Quick Match',
+        desc: 'Drops you into the first game it can find. If the other player is also on Quick Match, the mode is picked at random — Online PvP, Draft Battle or TFT. Never Farmers.',
+      };
+    }
+    return {
+      title: '🌐 Online PvP',
+      desc: 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.',
+    };
+  }
+
   function showNameScreen(mode) {
     queueMode = ['limited', 'tft', 'farmers', 'quick'].includes(mode) ? mode : 'standard';
     hide($('menu-screen'));
@@ -544,46 +598,38 @@
     hide($('tft-game-screen'));
     hide($('farmers-game-screen'));
     show($('online-name-screen'));
+
+    const copy = modeNameCopy(queueMode);
     const title = $('online-name-title');
     const desc = $('online-name-desc');
-    if (queueMode === 'limited') {
-      if (title) title.textContent = '🃏 Draft Battle';
-      if (desc) desc.textContent = 'Snake-draft 10 cards each, then fight online. Drafted cards still cost gold to unlock. Draft Battle players only match other Draft Battle players.';
-    } else if (queueMode === 'tft') {
-      if (title) title.textContent = '⚔️ TFT Online';
-      if (desc) desc.textContent = 'Up to 4 players. Empty seats autofill with CPUs when you start. Each round alive players are paired — last standing wins.';
-    } else if (queueMode === 'farmers') {
-      if (title) title.textContent = '🌾 Farmers';
-      if (desc) desc.textContent = 'Slow-pace 1v1 farm market. Place farms, haul crops to your stand, sell to customers, hire help, and race to $400.';
-    } else if (queueMode === 'quick') {
-      if (title) title.textContent = '⚡ Quick Match';
-      if (desc) desc.textContent = 'Drops you into the first game it can find. If the other player is also on Quick Match, the mode is picked at random — Online PvP, Draft Battle or TFT. Never Farmers.';
-    } else {
-      if (title) title.textContent = '🌐 Online PvP';
-      if (desc) desc.textContent = 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.';
-    }
+    if (title) title.textContent = copy.title;
+    if (desc) desc.textContent = copy.desc;
+
     const stored = loadStoredSession();
     const input = $('online-name-input');
+    // Start unlocked with any remembered guest name; account lock overrides below.
+    applyAccountNameLock(null);
     if (input && stored?.playerName) input.value = stored.playerName;
-    input?.focus();
+
     fetchAccountDisplayName().then((accountName) => {
-      if (!input || !accountName) return;
-      // Prefer linked account name so wins land on the leaderboard.
-      input.value = accountName;
-      const hint = $('online-name-desc');
-      if (hint && !hint.dataset.accountHint) {
-        hint.dataset.accountHint = '1';
-        hint.textContent = (hint.textContent || '') + ' Signed in — using your account display name.';
+      if (!input) return;
+      if (accountName) {
+        applyAccountNameLock(accountName);
+        if (desc) {
+          desc.textContent = `${copy.desc} Playing as your account name — change it in account settings.`;
+        }
+        return;
       }
+      applyAccountNameLock(null);
+      input.focus();
     });
   }
 
   // Profile popup on this page can update the display name live.
   window.addEventListener('tdg-account-updated', (ev) => {
     const name = ev?.detail?.displayName;
-    const input = $('online-name-input');
-    if (!input || !name) return;
-    input.value = String(name);
+    if (!name) return;
+    applyAccountNameLock(String(name));
   });
 
   function showQueueScreen(name) {

@@ -325,6 +325,11 @@
     const input = document.getElementById('online-name-input');
     if (!input || !displayName) return;
     input.value = displayName;
+    // Signed-in players cannot rename themselves from the match screen.
+    input.readOnly = true;
+    input.classList.add('is-locked');
+    input.setAttribute('aria-readonly', 'true');
+    input.title = 'Change this in your account settings';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     window.dispatchEvent(
       new CustomEvent('tdg-account-updated', { detail: { displayName } }),
