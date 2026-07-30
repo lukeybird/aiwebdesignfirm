@@ -57,6 +57,64 @@ export async function touchQueueSession(token: string) {
   `;
 }
 
+/**
+ * Tear down an active room: mark the match completed (no W/L), drop queue rows,
+ * and push every seated player back to the menu.
+ */
+export async function cancelActiveMatch(
+  roomId: string,
+  opts: { reason?: string; notifyReason?: string } = {},
+) {
+  const endReason = opts.reason || 'admin_cancel';
+  const notifyReason = opts.notifyReason || endReason;
+
+  const players = (await sql`
+    SELECT session_token
+    FROM tdg_pvp_queue
+    WHERE room_id = ${roomId}
+  `) as unknown as Array<{ session_token: string }>;
+
+  const cancelled = (await sql`
+    UPDATE tdg_pvp_matches
+    SET status = 'completed',
+        winner_slot = NULL,
+        end_reason = ${endReason},
+        ended_at = CURRENT_TIMESTAMP
+    WHERE room_id = ${roomId}
+      AND status = 'active'
+    RETURNING room_id
+  `) as unknown as Array<{ room_id: string }>;
+
+  // Also clear orphaned queue/state even if the matches row was already gone.
+  const queueRows = (await sql`
+    SELECT 1
+    FROM tdg_pvp_queue
+    WHERE room_id = ${roomId}
+    LIMIT 1
+  `) as unknown as Array<Record<string, never>>;
+
+  if (!cancelled.length && !queueRows.length) {
+    return { ok: false as const, cancelled: false };
+  }
+
+  await deleteRoomById(roomId);
+
+  await Promise.all(
+    players.map(async (player) => {
+      try {
+        await pusher.trigger(`tdg-player-${player.session_token}`, 'match_cancelled', {
+          reason: notifyReason,
+          t: Date.now(),
+        });
+      } catch (error) {
+        console.warn('tdg-pvp cancel notify failed:', error);
+      }
+    }),
+  );
+
+  return { ok: true as const, cancelled: cancelled.length > 0, notified: players.length };
+}
+
 export async function cleanupStaleTdgQueue() {
   const staleRooms = (await sql`
     SELECT DISTINCT room_id
@@ -67,39 +125,10 @@ export async function cleanupStaleTdgQueue() {
   `) as unknown as Array<{ room_id: string }>;
 
   for (const stale of staleRooms) {
-    const players = (await sql`
-      SELECT session_token
-      FROM tdg_pvp_queue
-      WHERE room_id = ${stale.room_id}
-    `) as unknown as Array<{ session_token: string }>;
-
-    const cancelled = (await sql`
-      UPDATE tdg_pvp_matches
-      SET status = 'completed',
-          winner_slot = NULL,
-          end_reason = 'timeout',
-          ended_at = CURRENT_TIMESTAMP
-      WHERE room_id = ${stale.room_id}
-        AND status = 'active'
-      RETURNING room_id
-    `) as unknown as Array<{ room_id: string }>;
-
-    await deleteRoomById(stale.room_id);
-
-    if (cancelled.length) {
-      await Promise.all(
-        players.map(async (player) => {
-          try {
-            await pusher.trigger(`tdg-player-${player.session_token}`, 'match_cancelled', {
-              reason: 'player_timeout',
-              t: Date.now(),
-            });
-          } catch (error) {
-            console.warn('tdg-pvp timeout notify failed:', error);
-          }
-        }),
-      );
-    }
+    await cancelActiveMatch(stale.room_id, {
+      reason: 'timeout',
+      notifyReason: 'player_timeout',
+    });
   }
 
   await sql`

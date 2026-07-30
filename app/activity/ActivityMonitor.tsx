@@ -132,6 +132,10 @@ function formatReason(reason: string | null) {
       return 'Disconnect';
     case 'draw':
       return 'Draw';
+    case 'timeout':
+      return 'Timed out';
+    case 'admin_cancel':
+      return 'Admin cancelled';
     default:
       return reason || 'Unknown';
   }
@@ -216,6 +220,7 @@ export default function ActivityMonitor() {
   const [history, setHistory] = useState<PresenceHistoryEntry[]>([]);
   const [historySummary, setHistorySummary] = useState<ActivityData['presenceHistorySummary'] | undefined>(undefined);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [cancellingRoomId, setCancellingRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     const auth = localStorage.getItem('devAuth');
@@ -290,6 +295,34 @@ export default function ActivityMonitor() {
       setHistoryLoading(false);
     }
   }, [historyHours, historyQuery, handleUnauthorized]);
+
+  const cancelMatch = useCallback(async (roomId: string, label: string) => {
+    if (cancellingRoomId) return;
+    const ok = window.confirm(`Cancel this active match?\n\n${label}\n\nPlayers will be sent back to the menu.`);
+    if (!ok) return;
+
+    setCancellingRoomId(roomId);
+    setError(null);
+    try {
+      const res = await fetch('/api/tdg-pvp/activity/cancel', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId }),
+      });
+      const json = (await res.json()) as { error?: string; ok?: boolean };
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      if (!res.ok) throw new Error(json.error || 'Failed to cancel match');
+      await loadActivity(selectedPlayer, true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel match');
+    } finally {
+      setCancellingRoomId(null);
+    }
+  }, [cancellingRoomId, handleUnauthorized, loadActivity, selectedPlayer]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -713,22 +746,37 @@ export default function ActivityMonitor() {
                         key={match.roomId}
                         className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-4"
                       >
-                        <div className="flex flex-wrap items-center gap-3">
-                          <PlayerButton
-                            name={match.player0Name}
-                            stats={data.players[match.player0Name]}
-                            selected={selectedPlayer === match.player0Name}
-                            onSelect={handleSelectPlayer}
-                          />
-                          <span className="text-xs font-semibold uppercase tracking-wider text-amber-300/80">
-                            vs
-                          </span>
-                          <PlayerButton
-                            name={match.player1Name}
-                            stats={data.players[match.player1Name]}
-                            selected={selectedPlayer === match.player1Name}
-                            onSelect={handleSelectPlayer}
-                          />
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <PlayerButton
+                              name={match.player0Name}
+                              stats={data.players[match.player0Name]}
+                              selected={selectedPlayer === match.player0Name}
+                              onSelect={handleSelectPlayer}
+                            />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-amber-300/80">
+                              vs
+                            </span>
+                            <PlayerButton
+                              name={match.player1Name}
+                              stats={data.players[match.player1Name]}
+                              selected={selectedPlayer === match.player1Name}
+                              onSelect={handleSelectPlayer}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void cancelMatch(
+                                match.roomId,
+                                `${match.player0Name} vs ${match.player1Name}`,
+                              )
+                            }
+                            disabled={cancellingRoomId === match.roomId}
+                            className="rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-rose-100 transition-colors hover:bg-rose-500/25 disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {cancellingRoomId === match.roomId ? 'Cancelling…' : 'Cancel game'}
+                          </button>
                         </div>
                         <p className="mt-2 text-xs text-white/40">
                           Started {formatTime(match.startedAt)} · Room {match.roomId.slice(0, 8)}…
