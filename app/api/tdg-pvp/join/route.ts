@@ -82,13 +82,12 @@ async function tryResumeExistingSession(existingToken: string) {
       : null;
     const opponentAlive = opponent ? await isQueueSessionAlive(opponent) : false;
 
-    if (!opponent) {
+    if (!opponent || !opponentAlive) {
       await removeQueueSession(existingToken);
       return null;
     }
 
     await touchQueueSession(existingToken);
-    if (opponent.session_token) await touchQueueSession(opponent.session_token);
 
     const startsAt = Date.now() + 4500;
     const isFarmers = row.status === 'matched_farmers';

@@ -269,6 +269,10 @@
         method: 'POST',
         body: JSON.stringify({ sessionToken: session.sessionToken }),
       });
+      if (data.status === 'cancelled') {
+        handleSessionExpired('Game cancelled because a player stopped responding for more than one minute.');
+        return false;
+      }
       if (data.status === 'gone') {
         handleSessionExpired('Your queue session expired. Please find a match again.');
         return false;
@@ -310,7 +314,11 @@
     if (message) alert(message);
   }
 
-  function handleMatchCancelled() {
+  function handleMatchCancelled(payload) {
+    if (payload?.reason === 'player_timeout') {
+      handleSessionExpired('Game cancelled because a player stopped responding for more than one minute.');
+      return;
+    }
     // TFT multi: a peer leaving is handled as forfeit in-game; only bail if we're
     // not in an active TFT match (lobby / 1v1 cancel).
     if (window.TFT_ONLINE?.isActive?.() && session?.tft) {
@@ -791,8 +799,8 @@
       saveSession(session);
       updateLobbyUi(session.lobby, { isHost: session.isHost, tft: true });
     });
-    playerChannel.bind('match_cancelled', () => {
-      handleMatchCancelled();
+    playerChannel.bind('match_cancelled', (payload) => {
+      handleMatchCancelled(payload);
     });
   }
 

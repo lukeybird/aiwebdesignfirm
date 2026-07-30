@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           { status: 410 },
         );
       }
-      for (const p of peers) await touchQueueSession(p.sessionToken);
+      await touchQueueSession(sessionToken);
     } else {
       const opponent = row.opponent_token ? await findQueueRowByToken(row.opponent_token) : null;
       opponentAlive = opponent ? await isQueueSessionAlive(opponent) : false;
@@ -82,7 +82,6 @@ export async function POST(request: NextRequest) {
         );
       }
       await touchQueueSession(sessionToken);
-      if (opponent.session_token) await touchQueueSession(opponent.session_token);
     }
 
     const startsAt = Date.now() + 1200;

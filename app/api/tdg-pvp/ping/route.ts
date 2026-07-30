@@ -18,10 +18,14 @@ export async function POST(request: NextRequest) {
     }
 
     await ensureTdgPvpTables();
+    const previousRow = await findQueueRowByToken(sessionToken);
     await cleanupStaleTdgQueue();
 
     const row = await findQueueRowByToken(sessionToken);
     if (!row) {
+      if (previousRow?.room_id && previousRow.status.startsWith('matched')) {
+        return NextResponse.json({ status: 'cancelled', reason: 'player_timeout' });
+      }
       return NextResponse.json({ status: 'gone' });
     }
 

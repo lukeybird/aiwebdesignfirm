@@ -15,8 +15,8 @@ export type TdgQueueRow = {
 
 /** Waiting players must ping within this window or get removed from the queue. */
 export const TDG_WAITING_ALIVE_SECONDS = 30;
-/** Matched rows with no activity are treated as abandoned. */
-export const TDG_MATCHED_ALIVE_SECONDS = 600;
+/** Cancel an active match when any player misses heartbeats for one minute. */
+export const TDG_MATCHED_ALIVE_SECONDS = 60;
 
 const MATCHED_STATUSES = ['matched', 'matched_limited', 'matched_tft', 'matched_farmers'] as const;
 
@@ -43,6 +43,50 @@ export async function touchQueueSession(token: string) {
 }
 
 export async function cleanupStaleTdgQueue() {
+  const staleRooms = (await sql`
+    SELECT DISTINCT room_id
+    FROM tdg_pvp_queue
+    WHERE status IN ('matched', 'matched_limited', 'matched_tft', 'matched_farmers')
+      AND room_id IS NOT NULL
+      AND last_seen_at < NOW() - (${TDG_MATCHED_ALIVE_SECONDS} * INTERVAL '1 second')
+  `) as unknown as Array<{ room_id: string }>;
+
+  for (const stale of staleRooms) {
+    const players = (await sql`
+      SELECT session_token
+      FROM tdg_pvp_queue
+      WHERE room_id = ${stale.room_id}
+    `) as unknown as Array<{ session_token: string }>;
+
+    const cancelled = (await sql`
+      UPDATE tdg_pvp_matches
+      SET status = 'completed',
+          winner_slot = NULL,
+          end_reason = 'timeout',
+          ended_at = CURRENT_TIMESTAMP
+      WHERE room_id = ${stale.room_id}
+        AND status = 'active'
+      RETURNING room_id
+    `) as unknown as Array<{ room_id: string }>;
+
+    await deleteRoomById(stale.room_id);
+
+    if (cancelled.length) {
+      await Promise.all(
+        players.map(async (player) => {
+          try {
+            await pusher.trigger(`tdg-player-${player.session_token}`, 'match_cancelled', {
+              reason: 'player_timeout',
+              t: Date.now(),
+            });
+          } catch (error) {
+            console.warn('tdg-pvp timeout notify failed:', error);
+          }
+        }),
+      );
+    }
+  }
+
   await sql`
     DELETE FROM tdg_pvp_queue
     WHERE status IN ('waiting', 'waiting_limited', 'waiting_tft', 'waiting_farmers')
@@ -51,7 +95,8 @@ export async function cleanupStaleTdgQueue() {
   await sql`
     DELETE FROM tdg_pvp_queue
     WHERE status IN ('matched', 'matched_limited', 'matched_tft', 'matched_farmers')
-      AND last_seen_at < NOW() - INTERVAL '10 minutes'
+      AND room_id IS NULL
+      AND last_seen_at < NOW() - (${TDG_MATCHED_ALIVE_SECONDS} * INTERVAL '1 second')
   `;
   await sql`
     DELETE FROM tdg_pvp_match_state
@@ -103,7 +148,7 @@ export async function isQueueSessionAlive(row: TdgQueueRow) {
         SELECT 1
         FROM tdg_pvp_queue
         WHERE session_token = ${row.session_token}
-          AND last_seen_at >= NOW() - INTERVAL '10 minutes'
+          AND last_seen_at >= NOW() - (${TDG_MATCHED_ALIVE_SECONDS} * INTERVAL '1 second')
         LIMIT 1
       `) as unknown as Array<Record<string, never>>);
   return rows.length > 0;
