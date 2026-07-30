@@ -33,20 +33,26 @@
 
   // ─── Farm ladder — later seeds cost far more and sell for far more ────────
   const FARM_TYPES = [
-    { id: 'wheat', name: 'Wheat', emoji: '🌾', crops: ['🌾'], unlock: 0, cost: 40, grow: 4.0, price: 2 },
-    { id: 'carrot', name: 'Carrots', emoji: '🥕', crops: ['🥕'], unlock: 180, cost: 90, grow: 4.4, price: 4 },
-    { id: 'corn', name: 'Corn', emoji: '🌽', crops: ['🌽'], unlock: 500, cost: 190, grow: 4.8, price: 8 },
-    { id: 'tomato', name: 'Tomatoes', emoji: '🍅', crops: ['🍅'], unlock: 1400, cost: 400, grow: 5.2, price: 15 },
-    { id: 'berry', name: 'Strawberries', emoji: '🍓', crops: ['🍓'], unlock: 3600, cost: 850, grow: 5.6, price: 28 },
-    { id: 'pepper', name: 'Peppers', emoji: '🫑', crops: ['🫑', '🍆'], unlock: 9000, cost: 1800, grow: 6.0, price: 52 },
-    { id: 'melon', name: 'Melons', emoji: '🍈', crops: ['🍈', '🍉'], unlock: 22000, cost: 3800, grow: 6.5, price: 95 },
-    { id: 'sunflower', name: 'Golden Sunflowers', emoji: '🌻', crops: ['🌻'], unlock: 55000, cost: 8000, grow: 7.0, price: 180 },
+    { id: 'wheat', name: 'Wheat', emoji: '🌾', crops: ['🌾'], unlock: 0, cost: 35, grow: 3.4, price: 2 },
+    { id: 'carrot', name: 'Carrots', emoji: '🥕', crops: ['🥕'], unlock: 130, cost: 75, grow: 3.7, price: 4 },
+    { id: 'corn', name: 'Corn', emoji: '🌽', crops: ['🌽'], unlock: 360, cost: 160, grow: 4.0, price: 8 },
+    { id: 'tomato', name: 'Tomatoes', emoji: '🍅', crops: ['🍅'], unlock: 950, cost: 340, grow: 4.3, price: 15 },
+    { id: 'berry', name: 'Strawberries', emoji: '🍓', crops: ['🍓'], unlock: 2400, cost: 720, grow: 4.6, price: 28 },
+    { id: 'pepper', name: 'Peppers', emoji: '🫑', crops: ['🫑', '🍆'], unlock: 5800, cost: 1500, grow: 5.0, price: 52 },
+    { id: 'melon', name: 'Melons', emoji: '🍈', crops: ['🍈', '🍉'], unlock: 14000, cost: 3200, grow: 5.4, price: 95 },
+    { id: 'sunflower', name: 'Golden Sunflowers', emoji: '🌻', crops: ['🌻'], unlock: 34000, cost: 6800, grow: 5.8, price: 180 },
   ];
   const FARM_BY_ID = {};
   for (const t of FARM_TYPES) FARM_BY_ID[t.id] = t;
 
   /** Each extra farm of a type costs more than the last. */
-  const FARM_COST_GROWTH = 1.16;
+  const FARM_COST_GROWTH = 1.11;
+
+  /** Money tree in the middle of the valley — either farmer can shake it for coins. */
+  const TREE_X = ROAD_X;
+  const TREE_Y = MID_Y - 58;
+  const TREE_RADIUS = 52;
+  const TREE_CLICK_REWARD = 1;
 
   // ─── Per-farm-type skill tree: three branches, three tiers each ───────────
   const FARM_BRANCHES = [
@@ -55,29 +61,34 @@
     { id: 'quality', name: 'Quality', icon: '✨', blurb: 'Produce sells for more' },
   ];
   const BRANCH_MAX = 3;
-  const BRANCH_TIER_COSTS = [1.6, 5, 15];
-  const GROWTH_PER_TIER = 0.55;
-  const YIELD_PER_TIER = 1;
+  const BRANCH_TIER_COSTS = [1.1, 3.2, 8.5];
+  const GROWTH_PER_TIER = 0.7;
+  /** A plot always comes up with a proper armful, not a single crop. */
+  const YIELD_BASE = 3;
+  const YIELD_PER_TIER = 2;
   const QUALITY_PER_TIER = 0.3;
 
   // ─── Farmhands & dogs ─────────────────────────────────────────────────────
-  const WORKER_BASE_COST = 120;
-  const WORKER_COST_GROWTH = 1.4;
-  const MAX_WORKERS = 10;
-  const WORKER_SPEED = 52;
-  const WORKER_CAPACITY = 4;
+  const WORKER_BASE_COST = 60;
+  const WORKER_COST_GROWTH = 1.26;
+  const MAX_WORKERS = 12;
+  const WORKER_SPEED = 78;
+  const WORKER_CAPACITY = 9;
 
-  const DOG_BASE_COST = 300;
-  const DOG_COST_GROWTH = 1.55;
+  const DOG_BASE_COST = 200;
+  const DOG_COST_GROWTH = 1.4;
   const MAX_DOGS = 4;
   /** Each dog makes every farmhand this much quicker. */
-  const DOG_SPEED_BONUS = 0.12;
+  const DOG_SPEED_BONUS = 0.16;
 
   // ─── Stand ────────────────────────────────────────────────────────────────
-  const STAND_UPGRADES = [500, 1600, 4800, 14000];
-  const STAND_BASE_STOCK = 14;
-  const STAND_STOCK_PER_LEVEL = 10;
-  const STAND_BASE_CUSTOMER_GAP = 7.5;
+  const STAND_UPGRADES = [320, 950, 2800, 7600];
+  const STAND_BASE_STOCK = 18;
+  const STAND_STOCK_PER_LEVEL = 14;
+  const STAND_BASE_CUSTOMER_GAP = 5.0;
+  /** A fuller stand pulls a bigger crowd off the road. */
+  const STAND_CROWD_PULL = 0.11;
+  const MAX_CUSTOMERS = 16;
 
   // ─── Customers are units from the main game ───────────────────────────────
   const CUSTOMER_TYPES = [
@@ -111,6 +122,10 @@
   let treeType = 'wheat';
   let uiBound = false;
   let hudDirty = true;
+  /** Shake/leaf state for the shared money tree, plus the floating "+$1" coins. */
+  let moneyTree = { shake: 0, sway: 0, clicks: 0, leaves: [] };
+  let floaters = [];
+  let speedMult = 1;
 
   function $(id) {
     return document.getElementById(id);
@@ -212,7 +227,7 @@
       dogs: [],
       stand: { level: 0, stock: [], customerAcc: 2 },
       customers: [],
-      hint: 'Pick Wheat in the seed shop, then click your land to plant your first farm.',
+      hint: 'Plant Wheat on your land, then click the money tree in the middle for pocket change.',
     };
   }
 
@@ -224,7 +239,7 @@
   }
 
   function yieldPer(p, typeId) {
-    return 1 + (p.tree[typeId]?.yield || 0) * YIELD_PER_TIER;
+    return YIELD_BASE + (p.tree[typeId]?.yield || 0) * YIELD_PER_TIER;
   }
 
   function unitPrice(p, typeId) {
@@ -264,8 +279,21 @@
     return STAND_BASE_STOCK + p.stand.level * STAND_STOCK_PER_LEVEL;
   }
 
+  /**
+   * Word gets around: the fuller the stand looks, the shorter the wait between
+   * customers wandering over to check it out. An empty stand is nearly ignored.
+   */
   function customerGap(p) {
-    return Math.max(2.2, STAND_BASE_CUSTOMER_GAP - p.stand.level * 1.1);
+    const base = Math.max(1.4, STAND_BASE_CUSTOMER_GAP - p.stand.level * 0.7);
+    const stock = p.stand.stock.length;
+    if (stock <= 0) return base * 2.4;
+    return Math.max(0.35, base / (1 + stock * STAND_CROWD_PULL));
+  }
+
+  /** How big a crowd the stand can hold at once, again driven by what's on display. */
+  function customerCap(p) {
+    const stock = p.stand.stock.length;
+    return clamp(3 + p.stand.level * 2 + Math.floor(stock / 2), 3, MAX_CUSTOMERS);
   }
 
   /** Plots should always look planted; yield upgrades fill them in further. */
@@ -307,16 +335,26 @@
     return false;
   }
 
+  /**
+   * Real farming: a plot grows once, then the ripe crop sits in the field until
+   * a farmhand picks it. Nothing regrows on unharvested ground, so the farm only
+   * moves as fast as the hands you've hired to work it.
+   */
   function tickFarms(p, dt) {
     for (const farm of p.farms) {
+      if (farm.ready > 0) {
+        farm.progress = 1;
+        continue;
+      }
       const interval = growInterval(p, farm.type);
       farm.acc += dt;
       if (farm.acc >= interval) {
-        const cycles = Math.floor(farm.acc / interval);
-        farm.acc -= cycles * interval;
-        farm.ready = Math.min(24, (farm.ready || 0) + cycles * yieldPer(p, farm.type));
+        farm.acc = 0;
+        farm.ready = yieldPer(p, farm.type);
+        farm.progress = 1;
+      } else {
+        farm.progress = clamp(farm.acc / interval, 0, 0.999);
       }
-      farm.progress = clamp(farm.acc / interval, 0, 0.999);
     }
   }
 
@@ -348,7 +386,7 @@
       const before = { x: farmer.x, y: farmer.y };
 
       if (farmer.state === 'idle') {
-        const idx = pickFarmFor(p, farmer);
+        const idx = farmer.carry.length >= WORKER_CAPACITY ? -1 : pickFarmFor(p, farmer);
         if (idx >= 0) {
           farmer.state = 'to_farm';
           farmer.target = idx;
@@ -368,6 +406,12 @@
             const value = unitPrice(p, farm.type);
             for (let i = 0; i < take; i++) farmer.carry.push({ v: value, e: farm.type });
             farm.ready -= take;
+            if (farm.ready <= 0) {
+              // Picked clean — the plot is turned over and reseeded.
+              farm.ready = 0;
+              farm.acc = 0;
+              farm.progress = 0;
+            }
             farmer.target = -1;
             farmer.state = farmer.carry.length >= WORKER_CAPACITY ? 'to_stand' : 'idle';
           }
@@ -400,8 +444,8 @@
   function tickCustomers(p, dt) {
     const lay = sideLayout(p.slot);
     p.stand.customerAcc -= dt;
-    if (p.stand.customerAcc <= 0 && p.customers.length < 7) {
-      p.stand.customerAcc = customerGap(p) * (0.7 + Math.random() * 0.6);
+    if (p.stand.customerAcc <= 0 && p.customers.length < customerCap(p)) {
+      p.stand.customerAcc = customerGap(p) * (0.75 + Math.random() * 0.5);
       p.customers.push(spawnCustomer(p));
     }
 
@@ -430,6 +474,7 @@
             p.earned += pay;
             p.sold += take;
             c.bought = take;
+            addFloater(c.x, c.y - c.size * 0.9, `+${money(pay)}`, '#bff5c0');
             hudDirty = true;
           }
           c.state = 'leave';
@@ -444,9 +489,14 @@
     }
   }
 
-  /** Richer stands attract the bigger-spending units. */
+  /** Richer, fuller stands attract the bigger-spending units. */
   function spawnCustomer(p) {
-    const reach = clamp(2 + p.stand.level * 2 + Math.floor(p.sold / 60), 2, CUSTOMER_TYPES.length);
+    const display = Math.floor(p.stand.stock.length / 8);
+    const reach = clamp(
+      2 + p.stand.level * 2 + display + Math.floor(p.sold / 60),
+      2,
+      CUSTOMER_TYPES.length,
+    );
     const def = CUSTOMER_TYPES[Math.floor(Math.random() * reach)];
     // Everyone walks in off the bottom of the road so nobody pops in mid-field.
     return {
@@ -456,13 +506,66 @@
       size: def.size,
       x: ROAD_X + (Math.random() - 0.5) * 60,
       y: LAND_BOTTOM + 34,
-      speed: 34 + Math.random() * 12,
+      speed: 54 + Math.random() * 18,
       state: 'arrive',
       timer: 0,
       facing: 0,
-      lane: (Math.random() - 0.5) * 44,
+      lane: (Math.random() - 0.5) * 74,
       animT: Math.random() * 3,
     };
+  }
+
+  // ─── Money tree ───────────────────────────────────────────────────────────
+  function addFloater(x, y, text, color) {
+    if (floaters.length > 40) floaters.shift();
+    floaters.push({ x, y, text, color: color || '#ffe9a8', life: 1 });
+  }
+
+  function tickExtras(dt) {
+    moneyTree.sway += dt;
+    moneyTree.shake = Math.max(0, moneyTree.shake - dt * 3.4);
+    for (let i = moneyTree.leaves.length - 1; i >= 0; i--) {
+      const leaf = moneyTree.leaves[i];
+      leaf.life -= dt * 0.9;
+      leaf.x += leaf.vx * dt;
+      leaf.y += leaf.vy * dt;
+      leaf.vy += 26 * dt;
+      leaf.spin += leaf.vs * dt;
+      if (leaf.life <= 0) moneyTree.leaves.splice(i, 1);
+    }
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const f = floaters[i];
+      f.life -= dt * 1.3;
+      f.y -= 26 * dt;
+      if (f.life <= 0) floaters.splice(i, 1);
+    }
+  }
+
+  /** Both farmers share the tree; each shake drops a coin into your own purse. */
+  function shakeMoneyTree() {
+    if (!me) return;
+    me.gold += TREE_CLICK_REWARD;
+    me.earned += TREE_CLICK_REWARD;
+    moneyTree.clicks += 1;
+    moneyTree.shake = 1;
+    hudDirty = true;
+    addFloater(
+      TREE_X + (Math.random() - 0.5) * 30,
+      TREE_Y - 18 + (Math.random() - 0.5) * 16,
+      `+${money(TREE_CLICK_REWARD)}`,
+      '#ffe08a',
+    );
+    for (let i = 0; i < 3; i++) {
+      moneyTree.leaves.push({
+        x: TREE_X + (Math.random() - 0.5) * TREE_RADIUS * 1.2,
+        y: TREE_Y - 12 + (Math.random() - 0.5) * 30,
+        vx: (Math.random() - 0.5) * 40,
+        vy: -10 - Math.random() * 20,
+        spin: Math.random() * Math.PI,
+        vs: (Math.random() - 0.5) * 6,
+        life: 1,
+      });
+    }
   }
 
   function tickPeerDisplay(dt) {
@@ -899,6 +1002,114 @@
     ctx.restore();
   }
 
+  /** The shared money tree standing in the middle of the valley road. */
+  function drawMoneyTree() {
+    const shake = moneyTree.shake;
+    const sway = Math.sin(moneyTree.sway * 1.1) * 0.02;
+    const wobble = shake > 0 ? Math.sin(shake * 34) * shake * 0.09 : 0;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(TREE_X, TREE_Y + 46, 42, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Little mound of turf so the tree isn't floating on bare road.
+    ctx.fillStyle = 'rgba(92, 124, 62, 0.85)';
+    ctx.beginPath();
+    ctx.ellipse(TREE_X, TREE_Y + 44, 46, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.translate(TREE_X, TREE_Y + 44);
+    ctx.rotate(sway + wobble);
+    ctx.translate(-TREE_X, -(TREE_Y + 44));
+
+    // Trunk and two boughs
+    ctx.strokeStyle = '#5c3f22';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 13;
+    ctx.beginPath();
+    ctx.moveTo(TREE_X, TREE_Y + 44);
+    ctx.lineTo(TREE_X, TREE_Y - 4);
+    ctx.stroke();
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(TREE_X, TREE_Y + 12);
+    ctx.lineTo(TREE_X - 20, TREE_Y - 12);
+    ctx.moveTo(TREE_X, TREE_Y + 6);
+    ctx.lineTo(TREE_X + 20, TREE_Y - 16);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    const canopy = [
+      [0, -30, 34, 27, '#3f6b2e'],
+      [-24, -16, 26, 21, '#477a33'],
+      [24, -20, 25, 20, '#477a33'],
+      [-8, -44, 24, 19, '#568c3c'],
+      [14, -40, 22, 18, '#568c3c'],
+    ];
+    for (const [ox, oy, rx, ry, color] of canopy) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(TREE_X + ox, TREE_Y + oy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Coins hanging in the branches
+    ctx.font = '13px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const coins = [
+      [-26, -8],
+      [22, -6],
+      [-4, -50],
+      [12, -26],
+      [-18, -34],
+    ];
+    for (let i = 0; i < coins.length; i++) {
+      const bob = Math.sin(moneyTree.sway * 2 + i) * 2;
+      ctx.fillText('🪙', TREE_X + coins[i][0], TREE_Y + coins[i][1] + bob);
+    }
+    ctx.restore();
+
+    for (const leaf of moneyTree.leaves) {
+      ctx.save();
+      ctx.globalAlpha = clamp(leaf.life, 0, 1);
+      ctx.translate(leaf.x, leaf.y);
+      ctx.rotate(leaf.spin);
+      ctx.font = '12px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🍃', 0, 0);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.5 + Math.sin(moneyTree.sway * 2.2) * 0.14;
+    ctx.fillStyle = '#ffe9a8';
+    ctx.font = 'bold 11px Rajdhani, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`CLICK THE TREE  +${money(TREE_CLICK_REWARD)}`, TREE_X, TREE_Y + 68);
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFloaters() {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 13px Rajdhani, sans-serif';
+    for (const f of floaters) {
+      ctx.globalAlpha = clamp(f.life, 0, 1);
+      ctx.fillStyle = 'rgba(12, 18, 10, 0.55)';
+      ctx.fillText(f.text, f.x + 1, f.y + 1);
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
   function drawShop(state) {
     const lay = sideLayout(state.slot);
     const x = lay.shopX;
@@ -1009,6 +1220,8 @@
     drawShop(me);
     drawStand(me, true);
     drawPeople(me, true);
+    drawMoneyTree();
+    drawFloaters();
   }
 
   // ─── HUD / panels ─────────────────────────────────────────────────────────
@@ -1100,6 +1313,15 @@
     hudDirty = false;
   }
 
+  function setSpeed(mult) {
+    speedMult = clamp(mult, 1, 4);
+    const group = $('farmers-speed');
+    if (!group) return;
+    for (const btn of group.querySelectorAll('[data-farm-speed]')) {
+      btn.classList.toggle('active', Number(btn.getAttribute('data-farm-speed')) === speedMult);
+    }
+  }
+
   function setBtn(id, label, enabled) {
     const el = $(id);
     if (!el) return;
@@ -1119,6 +1341,12 @@
   function onCanvasClick(e) {
     if (!me) return;
     const pt = canvasToLogic(e.clientX, e.clientY);
+
+    if (Math.hypot(pt.x - TREE_X, pt.y - (TREE_Y + 4)) <= TREE_RADIUS) {
+      shakeMoneyTree();
+      return;
+    }
+
     const spot = freeSlotNear(me, pt.x, pt.y);
     if (spot.slot < 0) {
       setHint('Your land is full of farms.');
@@ -1156,6 +1384,11 @@
       if (!btn) return;
       buyBranch(treeType, btn.getAttribute('data-branch'));
     });
+    $('farmers-speed')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-farm-speed]');
+      if (!btn) return;
+      setSpeed(Number(btn.getAttribute('data-farm-speed')) || 1);
+    });
     $('farmers-btn-hire')?.addEventListener('click', hireFarmer);
     $('farmers-btn-dog')?.addEventListener('click', buyDog);
     $('farmers-btn-stand')?.addEventListener('click', upgradeStand);
@@ -1172,16 +1405,23 @@
     if (!active) return;
     raf = requestAnimationFrame(loop);
     if (!lastTs) lastTs = ts;
-    const dt = clamp((ts - lastTs) / 1000, 0, 0.05);
+    const frame = clamp((ts - lastTs) / 1000, 0, 0.05);
     lastTs = ts;
+    const dt = frame * speedMult;
     clock += dt;
 
-    if (me) {
-      tickFarms(me, dt);
-      tickFarmers(me, dt);
-      tickCustomers(me, dt);
+    // Fast-forward runs the same small steps repeatedly so movement stays smooth.
+    const steps = speedMult > 1 ? speedMult : 1;
+    const step = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      if (me) {
+        tickFarms(me, step);
+        tickFarmers(me, step);
+        tickCustomers(me, step);
+      }
+      tickPeerDisplay(step);
     }
-    tickPeerDisplay(dt);
+    tickExtras(dt);
 
     renderScene();
     renderReadouts();
@@ -1291,6 +1531,8 @@
     lastStatusAt = -99;
     lastPersistAt = 0;
     hudDirty = true;
+    moneyTree = { shake: 0, sway: 0, clicks: 0, leaves: [] };
+    floaters = [];
 
     hide($('menu-screen'));
     hide($('online-match-screen'));
@@ -1310,6 +1552,7 @@
       bindUi();
       uiBound = true;
     }
+    setSpeed(speedMult);
 
     setHint(me.hint);
     renderReadouts();

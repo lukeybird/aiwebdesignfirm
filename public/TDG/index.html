@@ -1638,6 +1638,13 @@
       border-color: #2f6329;
       color: #f7fff2;
     }
+    .farmers-speed { display: flex; gap: 4px; }
+    .farmers-btn.speed { padding: 9px 11px; min-width: 44px; }
+    .farmers-btn.speed.active {
+      background: linear-gradient(180deg, #d9b45a, #a57c2b);
+      border-color: #8a6520;
+      color: #2a1f08;
+    }
     .farmers-main {
       flex: 1;
       min-height: 0;
@@ -8155,6 +8162,11 @@
           <span class="farmers-purse-sub" id="farmers-them-name">Rival</span>
         </div>
         <div class="farmers-top-actions">
+          <div class="farmers-speed" id="farmers-speed" role="group" aria-label="Farm speed">
+            <button type="button" class="farmers-btn speed active" data-farm-speed="1">1&times;</button>
+            <button type="button" class="farmers-btn speed" data-farm-speed="2">2&times;</button>
+            <button type="button" class="farmers-btn speed" data-farm-speed="4">4&times;</button>
+          </div>
           <button type="button" class="farmers-btn" id="farmers-howto-btn">How to play</button>
           <button type="button" class="farmers-btn" id="farmers-leave-btn">Leave farm</button>
         </div>
@@ -8167,9 +8179,9 @@
           <div class="farmers-panel farmers-panel-hint">
             <p class="farmers-hint" id="farmers-hint">Pick a seed, then click your land to plant a farm.</p>
             <div class="farmers-stats">
-              <span>Stand <strong id="farmers-stock">0/14</strong></span>
+              <span>Stand <strong id="farmers-stock">0/18</strong></span>
               <span>Farms <strong id="farmers-farmcount">0/24</strong></span>
-              <span>Hands <strong id="farmers-workers">1/10</strong></span>
+              <span>Hands <strong id="farmers-workers">1/12</strong></span>
               <span>Dogs <strong id="farmers-dogs">0/4</strong></span>
             </div>
           </div>
@@ -8202,9 +8214,12 @@
             <li><strong>Seed Shop:</strong> unlock new crops with gold. Later seeds cost much more and sell for much more.</li>
             <li><strong>Plant:</strong> select an unlocked seed, then click the dashed plots on your land. Each extra farm of a crop costs a little more than the last.</li>
             <li><strong>Farm Skills:</strong> every crop has its own Growth, Yield and Quality tree, three tiers each.</li>
+            <li><strong>Crops ripen once.</strong> A ripe plot stops growing and waits in the field &mdash; nothing regrows until a farmhand picks it and turns the soil over.</li>
             <li><strong>Farmhands</strong> carry ripe produce from your farms to your stand. Hire more so nothing sits waiting.</li>
             <li><strong>Farm Dogs</strong> trot along and make every farmhand quicker.</li>
-            <li><strong>Customers</strong> are knights, swordsmen, archers, snipers and other units. They walk the road, buy a little produce, and pay up. Upgrade the stand for bigger shelves, better prices, and fancier customers.</li>
+            <li><strong>Customers</strong> are knights, swordsmen, archers, snipers and other units. The more produce piled on your stand, the more of them wander over and the richer they get. An empty stand is ignored, so keep it stocked.</li>
+            <li><strong>Money tree:</strong> the tree in the middle of the valley belongs to both farms. Click it any time for +$1 a shake.</li>
+            <li><strong>Speed:</strong> use 1&times; / 2&times; / 4&times; in the top bar to fast-forward a quiet stretch.</li>
           </ol>
           <div class="farmers-howto-actions">
             <button type="button" class="farmers-btn primary" id="farmers-howto-close">Got it</button>
