@@ -566,6 +566,14 @@
     });
   }
 
+  // Profile popup on this page can update the display name live.
+  window.addEventListener('tdg-account-updated', (ev) => {
+    const name = ev?.detail?.displayName;
+    const input = $('online-name-input');
+    if (!input || !name) return;
+    input.value = String(name);
+  });
+
   function showQueueScreen(name) {
     hide($('online-name-screen'));
     hide($('online-match-screen'));

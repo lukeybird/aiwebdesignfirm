@@ -10,7 +10,7 @@ export default function SiteAccountBar() {
   const signedIn = status === 'authenticated' && !!session?.user;
   const label = session?.user?.displayName || session?.user?.name || 'Account';
 
-  // Keep game UIs free of overlapping site chrome (top-right clicks).
+  // TDG serves static public/TDG HTML with its own account overlay (account-overlay.js).
   if (pathname?.startsWith('/TDG') || pathname?.startsWith('/tdg')) return null;
 
   return (
