@@ -2171,6 +2171,11 @@
     .tft-btn.primary { background: linear-gradient(180deg, #7cb87c, #4a7a4a); border-color: #9fd49f; color: #0a120a; }
     .tft-btn.secondary { opacity: 0.85; }
     .tft-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .tft-btn.is-free {
+      border-color: #f0d878;
+      color: #ffeaa0;
+      box-shadow: 0 0 10px rgba(240, 216, 120, 0.35);
+    }
 
     .tft-log { display: none !important; }
     .tft-hint { display: none !important; }
@@ -8562,7 +8567,7 @@
                 <li><strong>Traits:</strong> Matching unit types fill the Traits panel. Hit a breakpoint to unlock the buff shown there (Warrior, Hunter, Beast, Mystic).</li>
                 <li><strong>Augments:</strong> On rounds 1, 3, and 5 pick 1 of 3 power-ups (silver → gold → prismatic) before shopping.</li>
                 <li><strong>Items:</strong> Buy components (2g) into your item bag. Click a bag item (it stays selected), then click a unit to equip — or open the unit and tap unequip. Two components on one unit forge a completed item (max 3). Selling a unit returns its items to your bag. Free loot from round 2.</li>
-                <li><strong>Economy:</strong> Reroll the shop for 2g. Buy XP for 4g to raise your level and board size.</li>
+                <li><strong>Economy:</strong> One free reroll each round — buying a troop forfeits it. After that, rerolls cost 2g. Buy XP for 4g to raise your level and board size.</li>
                 <li><strong>Ready:</strong> Every living human must press <strong>Ready</strong> (CPUs ready themselves). The 50s shop timer only auto-readies CPUs — humans still need to click Ready before fights start.</li>
                 <li><strong>Combat:</strong> Alive players are paired each round (bye if odd). Units fight on their own. Losers lose HP. Last player with HP wins.</li>
               </ol>
@@ -11622,7 +11627,7 @@ function buildManualUI() {
     <div class="manual-card"><h4>2. Bench &amp; board</h4><p>Bought units land on your bench. Drag them onto your board. Your board size equals your commander level. The Front column faces the enemy (near the middle in combat); the Back column is safer for archers and carries.</p></div>
     <div class="manual-card"><h4>3. Merge stars</h4><p>Own 3 copies of the same unit at the same star level and they auto-merge into the next star (stronger stats). 1★ → 2★ → 3★.</p></div>
     <div class="manual-card"><h4>4. Traits</h4><p>Units share traits (Warrior, Hunter, Beast, Mystic). Hit the trait count in the sidebar to unlock bonus HP, damage, or attack speed for those units.</p></div>
-    <div class="manual-card"><h4>5. Gold &amp; XP</h4><p>You earn income each round (plus interest for banking gold). Reroll the shop for 2g. Buy XP for 4g to level up and field more units. Sell units (right-click or drop on the sell zone) for gold.</p></div>
+    <div class="manual-card"><h4>5. Gold &amp; XP</h4><p>You earn income each round (plus interest for banking gold). Every round starts with one <strong>free reroll</strong> — buying a troop forfeits it, and further rerolls cost 2g. Buy XP for 4g to level up and field more units. Sell units (right-click or drop on the sell zone) for gold.</p></div>
     <div class="manual-card"><h4>6. Augments</h4><p>On rounds <strong>1, 3, and 5</strong> you pick 1 of 3 augments before shopping (silver → gold → prismatic). Effects can grant gold/XP, buff combat stats, add board size, boost traits, cheaper rerolls, better sells, or extra player damage. Owned augments show in the sidebar. Pick within 25s or one is chosen for you.</p></div>
     <div class="manual-card"><h4>7. Items</h4><p>Each shop phase has an item row (components cost 2g). Components go to your item bag. Click a bag item to select it, then click a board/bench unit to equip (3 max). Unequip from the inspect panel. Selling a unit returns items to the bag. Two components that form a recipe auto-forge a completed item. From round 2 you also get a free component. Click a selected bag item again to sell it.</p></div>
     <div class="manual-card"><h4>8. Ready &amp; fight</h4><p>Each shop phase lasts <strong>50 seconds</strong> (shown as Shop · Xs). Press Ready early when your board is set, or the fight starts automatically when time runs out. Online: both players Ready (or the timer) starts combat. vs CPU: the CPU readies on its own. After the fight, the loser loses HP and a new shop round begins.</p></div>

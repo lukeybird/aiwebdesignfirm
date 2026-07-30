@@ -609,6 +609,7 @@
       itemBag: Array(ITEM_BAG).fill(null),
       itemShop: Array(ITEM_SHOP).fill(null),
       itemShopGen: 0,
+      freeReroll: true,
       _cpuRerolls: 0,
       _cpuXpBuys: 0,
       _cpuActions: 0,
@@ -879,6 +880,7 @@
       itemBag: Array.isArray(p.itemBag) ? p.itemBag.slice() : Array(ITEM_BAG).fill(null),
       itemShop: Array.isArray(p.itemShop) ? p.itemShop.slice() : Array(ITEM_SHOP).fill(null),
       itemShopGen: p.itemShopGen || 0,
+      freeReroll: !!p.freeReroll,
     };
   }
 
@@ -921,6 +923,7 @@
     if (Array.isArray(snap.itemShop)) p.itemShop = snap.itemShop.slice(0, ITEM_SHOP);
     else if (!Array.isArray(p.itemShop)) p.itemShop = Array(ITEM_SHOP).fill(null);
     if (snap.itemShopGen != null) p.itemShopGen = snap.itemShopGen;
+    if (snap.freeReroll != null) p.freeReroll = !!snap.freeReroll;
   }
 
   function bumpArmyRev(p) {
@@ -2256,6 +2259,7 @@
     for (const p of state.players) {
       p.ready = false;
       p.augmentChoices = null;
+      p.freeReroll = true;
       p._cpuRerolls = 0;
       p._cpuXpBuys = 0;
       p._cpuActions = 0;
@@ -2345,6 +2349,11 @@
     p.gold -= cost;
     p.bench[slot] = makeUnit(type, 1);
     p.shop[shopIdx] = null;
+    // Buying a troop spends this round's free reroll.
+    if (p.freeReroll) {
+      p.freeReroll = false;
+      pushMsg('Free reroll forfeited — you bought a troop.');
+    }
     selected = { area: 'bench', idx: slot };
     sfx('buy');
     tryAutoMerge(p, true);
@@ -2411,8 +2420,14 @@
   function tryReroll() {
     const p = me();
     const cost = rerollCostFor(p);
-    if (state.phase !== 'planning' || p.ready || p.gold < cost) return false;
-    p.gold -= cost;
+    const free = !!p.freeReroll;
+    if (state.phase !== 'planning' || p.ready || (!free && p.gold < cost)) return false;
+    if (free) {
+      p.freeReroll = false;
+      pushMsg('Free reroll used.');
+    } else {
+      p.gold -= cost;
+    }
     rollShop(p);
     syncArmy(p);
     renderHud();
@@ -3163,8 +3178,13 @@
     const rerollBtn = $('tft-reroll-btn');
     if (rerollBtn) {
       const rc = rerollCostFor(p);
-      rerollBtn.textContent = `Reroll (${rc}g)`;
-      rerollBtn.disabled = !planning || p.ready || p.gold < rc || state.phase === 'gameover';
+      const free = !!p.freeReroll;
+      rerollBtn.textContent = free ? 'Reroll (FREE)' : `Reroll (${rc}g)`;
+      rerollBtn.classList.toggle('is-free', free && planning && !p.ready);
+      rerollBtn.title = free
+        ? 'One free reroll each round — lost if you buy a troop first.'
+        : 'Reroll the shop';
+      rerollBtn.disabled = !planning || p.ready || (!free && p.gold < rc) || state.phase === 'gameover';
     }
     if ($('tft-xp-btn')) $('tft-xp-btn').disabled = !planning || p.ready || p.gold < XP_COST || p.level >= MAX_LEVEL || state.phase === 'gameover';
     if ($('tft-forfeit-btn')) $('tft-forfeit-btn').disabled = state.phase === 'gameover';
@@ -3807,6 +3827,7 @@
       p.gold -= cost;
       p.bench[slot] = makeUnit(type, 1);
       p.shop[bestIdx] = null;
+      p.freeReroll = false;
       tryAutoMerge(p, false);
       bought = true;
     }
@@ -3835,16 +3856,18 @@
 
   function cpuReroll(p) {
     const cost = rerollCostFor(p);
-    if ((p._cpuRerolls || 0) >= 18 || p.gold < cost) return false;
+    const free = !!p.freeReroll;
+    if ((p._cpuRerolls || 0) >= 18 || (!free && p.gold < cost)) return false;
     let best = -999;
     for (let i = 0; i < SHOP; i++) best = Math.max(best, cpuScoreShopCard(p, p.shop[i]));
     const press = cpuPressure(p);
     const stage = cpuStage(p);
     const keepThreshold = press.desperate ? 45 : press.behind ? 34 : (stage === 'highroll' ? 28 : 26);
     if (best >= keepThreshold) return false;
-    if (cpuShouldBank(p, cost) && best >= 12) return false;
+    if (!free && cpuShouldBank(p, cost) && best >= 12) return false;
     if (emptyBenchSlot(p) < 0 && !cpuSellWeakBench(p) && best < 60) return false;
-    p.gold -= cost;
+    if (free) p.freeReroll = false;
+    else p.gold -= cost;
     rollShop(p);
     p._cpuRerolls = (p._cpuRerolls || 0) + 1;
     return true;
@@ -4138,6 +4161,9 @@
     if (cpuEquipBestItem(p)) { renderHud(); return; }
     if (cpuBuyItem(p)) { renderHud(); return; }
     if (emptyBenchSlot(p) < 0 && cpuSellWeakBench(p)) { renderHud(); return; }
+
+    // Spend the free reroll before buying, since a purchase forfeits it.
+    if (p.freeReroll && cpuReroll(p)) { renderHud(); return; }
 
     if (stage === 'stabilize') {
       if (cpuBuyBest(p)) { renderHud(); return; }
