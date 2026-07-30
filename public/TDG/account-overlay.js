@@ -5,6 +5,24 @@
 (function () {
   const STYLE_ID = 'tdg-account-overlay-style';
   const ROOT_ID = 'tdg-account-overlay';
+  const CHARACTER_PORTRAITS = [
+    'commander',
+    'archer',
+    'swordsman',
+    'bowman',
+    'tank',
+    'battletank',
+    'striker',
+    'sniper',
+    'wolf_hunter',
+    'yeti',
+    'goblin',
+    'peka',
+    'slime',
+    'angel',
+    'farmer',
+    'engineers',
+  ];
 
   if (document.getElementById(ROOT_ID)) return;
 
@@ -18,6 +36,8 @@
   color: #e8ebe0;
   pointer-events: none;
 }
+#live-feather-cursor { z-index: 300005 !important; }
+#live-feather-tip-glow { z-index: 300004 !important; }
 #${ROOT_ID} * { box-sizing: border-box; }
 #${ROOT_ID} .tdg-acc-btn,
 #${ROOT_ID} .tdg-acc-panel,
@@ -154,6 +174,33 @@
 }
 #${ROOT_ID} .tdg-acc-avatar img { width: 100%; height: 100%; object-fit: cover; }
 #${ROOT_ID} .tdg-acc-email { font-size: 0.82rem; color: rgba(255,255,255,0.45); margin: 2px 0 0; }
+#${ROOT_ID} .tdg-acc-portrait-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+#${ROOT_ID} .tdg-acc-portrait-choice {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.4);
+  cursor: pointer;
+}
+#${ROOT_ID} .tdg-acc-portrait-choice:hover,
+#${ROOT_ID} .tdg-acc-portrait-choice.is-selected {
+  border-color: #f0d878;
+  box-shadow: 0 0 0 2px rgba(240,216,120,0.2);
+}
+#${ROOT_ID} .tdg-acc-portrait-choice img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 #${ROOT_ID} label.tdg-acc-field {
   display: block;
   margin-bottom: 12px;
@@ -246,6 +293,7 @@
 #${ROOT_ID} .tdg-acc-loading { color: rgba(255,255,255,0.55); margin: 0; }
 @media (max-width: 640px) {
   #${ROOT_ID} .tdg-acc-btn { width: 40px; height: 40px; }
+  #${ROOT_ID} .tdg-acc-portrait-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 `;
 
@@ -380,6 +428,14 @@
     const avatar = user.avatarUrl
       ? `<div class="tdg-acc-avatar"><img src="${escapeHtml(user.avatarUrl)}" alt="" referrerpolicy="no-referrer" /></div>`
       : `<div class="tdg-acc-avatar">${initial}</div>`;
+    const portraitChoices = CHARACTER_PORTRAITS.map((id) => {
+      const url = `/TDG/portraits/${id}.webp`;
+      const selected = user.avatarUrl === url ? ' is-selected' : '';
+      const label = id.replace(/_/g, ' ');
+      return `<button type="button" class="tdg-acc-portrait-choice${selected}" data-avatar-url="${url}" title="${escapeHtml(label)}" aria-label="Use ${escapeHtml(label)} as profile picture">
+        <img src="${url}" alt="" loading="lazy" />
+      </button>`;
+    }).join('');
     body.innerHTML = `
       <div class="tdg-acc-row">
         ${avatar}
@@ -392,6 +448,10 @@
         <label class="tdg-acc-field">
           <span>Display name</span>
           <input class="tdg-acc-input" id="tdg-acc-display" name="displayName" maxlength="40" required value="${escapeHtml(user.displayName || '')}" placeholder="Shown in matches &amp; leaderboard" />
+        </label>
+        <label class="tdg-acc-field">
+          <span>Choose your character picture</span>
+          <div class="tdg-acc-portrait-grid">${portraitChoices}</div>
         </label>
         <label class="tdg-acc-field">
           <span>Bio</span>
@@ -471,6 +531,21 @@
         } catch {
           window.location.href = '/api/auth/signout?callbackUrl=' + encodeURIComponent('/TDG');
         }
+        return;
+      }
+
+      const portraitChoice = t.closest('.tdg-acc-portrait-choice');
+      if (portraitChoice) {
+        const form = body.querySelector('#tdg-acc-form');
+        const avatarUrl = portraitChoice.getAttribute('data-avatar-url') || '';
+        if (form) form.dataset.avatarUrl = avatarUrl;
+        body.querySelectorAll('.tdg-acc-portrait-choice').forEach((choice) => {
+          choice.classList.toggle('is-selected', choice === portraitChoice);
+        });
+        const preview = body.querySelector('.tdg-acc-avatar');
+        if (preview && avatarUrl) {
+          preview.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="" />`;
+        }
       }
     });
 
@@ -482,6 +557,7 @@
       const err = body.querySelector('#tdg-acc-err');
       const displayName = body.querySelector('#tdg-acc-display')?.value?.trim() || '';
       const bio = body.querySelector('#tdg-acc-bio')?.value ?? '';
+      const avatarUrl = e.target.dataset.avatarUrl || '';
       if (msg) {
         msg.hidden = true;
         msg.textContent = '';
@@ -496,7 +572,11 @@
           method: 'PATCH',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ displayName, bio }),
+          body: JSON.stringify({
+            displayName,
+            bio,
+            ...(avatarUrl ? { avatarUrl } : {}),
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Save failed');
@@ -528,6 +608,13 @@
       const stage = document.getElementById('game-stage');
       const target = fsEl || stage || document.body;
       if (root.parentElement !== target) target.appendChild(root);
+      // Native fullscreen only paints descendants of the fullscreen element.
+      // Keep the game's feather cursor above this account overlay there too.
+      const cursorTarget = fsEl || document.body;
+      const feather = document.getElementById('live-feather-cursor');
+      const glow = document.getElementById('live-feather-tip-glow');
+      if (feather && feather.parentElement !== cursorTarget) cursorTarget.appendChild(feather);
+      if (glow && glow.parentElement !== cursorTarget) cursorTarget.appendChild(glow);
     };
     document.addEventListener('fullscreenchange', reparent);
     document.addEventListener('webkitfullscreenchange', reparent);

@@ -59,7 +59,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
     }
 
-    let body: { displayName?: string; bio?: string | null };
+    let body: { displayName?: string; bio?: string | null; avatarUrl?: string | null };
     try {
       body = await req.json();
     } catch {
@@ -69,6 +69,7 @@ export async function PATCH(req: Request) {
     const row = await updateUserProfile(session.user.id, {
       displayName: body.displayName,
       bio: body.bio,
+      avatarUrl: body.avatarUrl,
     });
     return NextResponse.json({
       ok: true,

@@ -92,7 +92,7 @@ export async function upsertGoogleUser(input: {
     const rows = (await sql`
       UPDATE site_users
       SET email = ${input.email || existing.email},
-          avatar_url = COALESCE(${input.image || null}, avatar_url),
+          avatar_url = COALESCE(avatar_url, ${input.image || null}),
           updated_at = CURRENT_TIMESTAMP
       WHERE google_sub = ${input.googleSub}
       RETURNING *
@@ -130,6 +130,15 @@ export async function getUserById(id: string): Promise<SiteUser | null> {
   return rows[0] || null;
 }
 
+export async function listSiteUsers(): Promise<SiteUser[]> {
+  await ensureSiteUserTables();
+  return (await sql`
+    SELECT *
+    FROM site_users
+    ORDER BY created_at DESC, display_name ASC
+  `) as unknown as SiteUser[];
+}
+
 export async function getUserByDisplayName(name: string): Promise<SiteUser | null> {
   await ensureSiteUserTables();
   const rows = (await sql`
@@ -140,7 +149,7 @@ export async function getUserByDisplayName(name: string): Promise<SiteUser | nul
 
 export async function updateUserProfile(
   userId: string,
-  patch: { displayName?: string; bio?: string | null },
+  patch: { displayName?: string; bio?: string | null; avatarUrl?: string | null },
 ): Promise<SiteUser> {
   await ensureSiteUserTables();
   const current = await getUserById(userId);
@@ -158,10 +167,20 @@ export async function updateUserProfile(
     bio = patch.bio == null || patch.bio === '' ? null : String(patch.bio).trim().slice(0, 280);
   }
 
+  let avatarUrl = current.avatar_url;
+  if (patch.avatarUrl !== undefined) {
+    const candidate = patch.avatarUrl == null ? '' : String(patch.avatarUrl).trim();
+    if (candidate && !/^\/TDG\/portraits\/[a-z0-9_-]+\.webp$/i.test(candidate)) {
+      throw new Error('Choose a valid Territory Game character portrait');
+    }
+    avatarUrl = candidate || null;
+  }
+
   const rows = (await sql`
     UPDATE site_users
     SET display_name = ${displayName},
         bio = ${bio},
+        avatar_url = ${avatarUrl},
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ${userId}::uuid
     RETURNING *
