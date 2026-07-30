@@ -15,7 +15,8 @@
   let gameWsUrl = null;
   let serverAuthEnabled = false;
   let socketReady = false;
-  let queueMode = 'standard'; // 'standard' | 'limited' | 'tft' | 'farmers'
+  // 'quick' is a queue mode only — the server resolves it into a real game mode.
+  let queueMode = 'standard'; // 'standard' | 'limited' | 'tft' | 'farmers' | 'quick'
   const HEARTBEAT_INTERVAL_MS = 10000;
   const pendingSocketMessages = [];
   /** Last TFT auth snapshot — kept so a late-booting guest still gets shops. */
@@ -535,7 +536,7 @@
   }
 
   function showNameScreen(mode) {
-    queueMode = mode === 'limited' ? 'limited' : (mode === 'tft' ? 'tft' : (mode === 'farmers' ? 'farmers' : 'standard'));
+    queueMode = ['limited', 'tft', 'farmers', 'quick'].includes(mode) ? mode : 'standard';
     hide($('menu-screen'));
     hide($('online-queue-screen'));
     hide($('online-match-screen'));
@@ -554,6 +555,9 @@
     } else if (queueMode === 'farmers') {
       if (title) title.textContent = '🌾 Farmers';
       if (desc) desc.textContent = 'Slow-pace 1v1 farm market. Place farms, haul crops to your stand, sell to customers, hire help, and race to $400.';
+    } else if (queueMode === 'quick') {
+      if (title) title.textContent = '⚡ Quick Match';
+      if (desc) desc.textContent = 'Drops you into the first game it can find. If the other player is also on Quick Match, the mode is picked at random — Online PvP, Draft Battle or TFT. Never Farmers.';
     } else {
       if (title) title.textContent = '🌐 Online PvP';
       if (desc) desc.textContent = 'Enter your name, join the queue, and battle a real opponent in Live Battle mode.';
@@ -589,7 +593,13 @@
     const label = $('online-queue-name');
     if (label) label.textContent = name;
     const title = $('online-queue-title');
-    if (title) title.textContent = queueMode === 'tft' ? 'TFT lobby…' : (queueMode === 'farmers' ? 'Finding a farmer…' : 'Finding opponent…');
+    if (title) {
+      title.textContent = queueMode === 'tft'
+        ? 'TFT lobby…'
+        : (queueMode === 'farmers'
+          ? 'Finding a farmer…'
+          : (queueMode === 'quick' ? 'Finding any match…' : 'Finding opponent…'));
+    }
     updateLobbyUi(null);
   }
 
@@ -1022,12 +1032,17 @@
     const body = {
       name,
       sessionToken: existing?.sessionToken,
-      mode: queueMode === 'limited' ? 'limited' : (queueMode === 'tft' ? 'tft' : (queueMode === 'farmers' ? 'farmers' : 'standard')),
+      mode: ['limited', 'tft', 'farmers', 'quick'].includes(queueMode) ? queueMode : 'standard',
     };
     const result = await fetchJson('/api/tdg-pvp/join', {
       method: 'POST',
       body: JSON.stringify(body),
     });
+
+    // Quick Match is resolved server-side, so adopt whichever mode we landed in.
+    if (queueMode === 'quick' && !result.quick) {
+      queueMode = result.tft ? 'tft' : (result.limited ? 'limited' : 'standard');
+    }
 
     saveSession({
       sessionToken: result.sessionToken,
@@ -1363,6 +1378,7 @@
   }
 
   function bindUi() {
+    $('btn-quick-online')?.addEventListener('click', () => showNameScreen('quick'));
     $('btn-online-pvp')?.addEventListener('click', () => showNameScreen('standard'));
     $('btn-limited-pvp')?.addEventListener('click', () => showNameScreen('limited'));
     $('btn-tft-online')?.addEventListener('click', () => showNameScreen('tft'));

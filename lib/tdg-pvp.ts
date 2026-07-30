@@ -20,6 +20,21 @@ export const TDG_MATCHED_ALIVE_SECONDS = 60;
 
 const MATCHED_STATUSES = ['matched', 'matched_limited', 'matched_tft', 'matched_farmers'] as const;
 
+/**
+ * Quick Match players park here with no mode of their own. They are claimed by
+ * whoever joins next, so this status never becomes a `matched_*` status itself —
+ * it always resolves into one of the real modes first.
+ */
+export const QUICK_WAITING_STATUS = 'waiting_quick';
+
+const WAITING_STATUSES = [
+  'waiting',
+  'waiting_limited',
+  'waiting_tft',
+  'waiting_farmers',
+  QUICK_WAITING_STATUS,
+] as const;
+
 export async function ensureTdgPvpTables() {
   await initDatabase();
   // Match snapshots for ?game= rejoin (kept out of initDatabase so deploys stay additive).
@@ -89,7 +104,7 @@ export async function cleanupStaleTdgQueue() {
 
   await sql`
     DELETE FROM tdg_pvp_queue
-    WHERE status IN ('waiting', 'waiting_limited', 'waiting_tft', 'waiting_farmers')
+    WHERE status = ANY(${WAITING_STATUSES as unknown as string[]})
       AND last_seen_at < NOW() - INTERVAL '30 seconds'
   `;
   await sql`
@@ -131,11 +146,7 @@ export async function findQueueRowByRoomAndToken(roomId: string, token: string) 
 
 export async function isQueueSessionAlive(row: TdgQueueRow) {
   if (!row.last_seen_at) return false;
-  const waiting =
-    row.status === 'waiting' ||
-    row.status === 'waiting_limited' ||
-    row.status === 'waiting_tft' ||
-    row.status === 'waiting_farmers';
+  const waiting = (WAITING_STATUSES as readonly string[]).includes(row.status);
   const rows = waiting
     ? ((await sql`
         SELECT 1

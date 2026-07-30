@@ -8,13 +8,35 @@ import {
   isQueueSessionAlive,
   removeQueueSession,
   touchQueueSession,
+  QUICK_WAITING_STATUS,
 } from '@/lib/tdg-pvp';
 import { recordMatchStart } from '@/lib/tdg-pvp-activity';
 import { mintTdgJoinTicket } from '@/lib/tdg-join-ticket';
-import { joinTftLobby } from '@/lib/tdg-tft-lobby';
+import {
+  findOpenTftLobby,
+  joinTftLobby,
+  listTftLobbyMembers,
+  startTftLobby,
+} from '@/lib/tdg-tft-lobby';
 import { sql } from '@/lib/db';
 
-type QueueMode = 'standard' | 'limited' | 'tft' | 'farmers';
+type QueueMode = 'standard' | 'limited' | 'tft' | 'farmers' | 'quick';
+/** Modes the pairwise (1v1) matchmaker can start directly. */
+type PairMode = 'standard' | 'limited' | 'farmers';
+
+/**
+ * Quick Match rolls one of these when it pairs two players who both asked for
+ * "anything". Farmers is left out on purpose — it's the peaceful mode.
+ */
+const QUICK_RANDOM_MODES = ['standard', 'limited', 'tft'] as const;
+type QuickRandomMode = (typeof QUICK_RANDOM_MODES)[number];
+
+type WaitingPartner = {
+  id: number;
+  session_token: string;
+  player_name: string;
+  status: string;
+};
 
 function makeToken() {
   return randomBytes(24).toString('hex');
@@ -28,6 +50,7 @@ function normalizeQueueMode(mode?: string): QueueMode {
   if (mode === 'limited') return 'limited';
   if (mode === 'tft') return 'tft';
   if (mode === 'farmers') return 'farmers';
+  if (mode === 'quick') return 'quick';
   return 'standard';
 }
 
@@ -35,30 +58,251 @@ function waitingStatusForMode(mode: QueueMode) {
   if (mode === 'limited') return 'waiting_limited';
   if (mode === 'tft') return 'waiting_tft';
   if (mode === 'farmers') return 'waiting_farmers';
+  if (mode === 'quick') return QUICK_WAITING_STATUS;
   return 'waiting';
 }
 
-function matchedStatusForMode(mode: 'standard' | 'limited' | 'farmers') {
+function matchedStatusForMode(mode: PairMode) {
   if (mode === 'limited') return 'matched_limited';
   if (mode === 'farmers') return 'matched_farmers';
   return 'matched';
 }
 
-async function findLiveWaitingPartner(
-  excludeToken: string | undefined,
-  mode: 'standard' | 'limited' | 'farmers',
-) {
-  const waitingStatus = waitingStatusForMode(mode);
+/**
+ * Find someone to play against. Quick Match players carry no mode of their own,
+ * so every queue except Farmers is allowed to claim them.
+ */
+async function findLiveWaitingPartner(excludeToken: string | undefined, mode: PairMode) {
+  const statuses =
+    mode === 'farmers'
+      ? ['waiting_farmers']
+      : [waitingStatusForMode(mode), QUICK_WAITING_STATUS];
+
   const waitingRows = (await sql`
-    SELECT id, session_token, player_name
+    SELECT id, session_token, player_name, status
     FROM tdg_pvp_queue
-    WHERE status = ${waitingStatus}
+    WHERE status = ANY(${statuses})
       AND last_seen_at >= NOW() - INTERVAL '30 seconds'
       AND session_token <> ${excludeToken ?? ''}
     ORDER BY created_at ASC
     LIMIT 1
-  `) as unknown as Array<{ id: number; session_token: string; player_name: string }>;
+  `) as unknown as WaitingPartner[];
   return waitingRows[0] ?? null;
+}
+
+/** Quick Match takes the longest-waiting player from any head-to-head queue. */
+async function findQuickWaitingPartner(excludeToken: string) {
+  const waitingRows = (await sql`
+    SELECT id, session_token, player_name, status
+    FROM tdg_pvp_queue
+    WHERE status = ANY(${['waiting', 'waiting_limited', QUICK_WAITING_STATUS]})
+      AND last_seen_at >= NOW() - INTERVAL '30 seconds'
+      AND session_token <> ${excludeToken}
+    ORDER BY created_at ASC
+    LIMIT 1
+  `) as unknown as WaitingPartner[];
+  return waitingRows[0] ?? null;
+}
+
+/**
+ * Join whatever the partner was already queued for, so nobody gets pulled out of
+ * the mode they picked. Only when both sides asked for Quick Match do we roll.
+ */
+function resolveQuickMode(partnerStatus: string): QuickRandomMode {
+  if (partnerStatus === 'waiting') return 'standard';
+  if (partnerStatus === 'waiting_limited') return 'limited';
+  return QUICK_RANDOM_MODES[Math.floor(Math.random() * QUICK_RANDOM_MODES.length)];
+}
+
+/**
+ * Claim a waiting player and open a 1v1 room. Returns null when someone else got
+ * to them first, so the caller can fall back to waiting.
+ */
+async function pairIntoMatch(params: {
+  partner: WaitingPartner;
+  sessionToken: string;
+  name: string;
+  pairMode: PairMode;
+}) {
+  const { partner, sessionToken, name, pairMode } = params;
+  const matchedStatus = matchedStatusForMode(pairMode);
+  const isLimited = pairMode === 'limited';
+  const isFarmers = pairMode === 'farmers';
+  const roomId = makeRoomId();
+
+  const updated = (await sql`
+    UPDATE tdg_pvp_queue
+    SET status = ${matchedStatus},
+        room_id = ${roomId},
+        player_slot = 0,
+        opponent_name = ${name},
+        opponent_token = ${sessionToken},
+        last_seen_at = CURRENT_TIMESTAMP
+    WHERE id = ${partner.id}
+      AND status = ${partner.status}
+      AND last_seen_at >= NOW() - INTERVAL '30 seconds'
+    RETURNING session_token, player_name
+  `) as unknown as Array<{ session_token: string; player_name: string }>;
+
+  if (!updated[0]) return null;
+  const opponent = updated[0];
+
+  await recordMatchStart(roomId, opponent.player_name, name);
+
+  await sql`
+    INSERT INTO tdg_pvp_queue (
+      session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, last_seen_at
+    ) VALUES (
+      ${sessionToken}, ${name}, ${matchedStatus}, ${roomId}, 1, ${opponent.player_name}, ${opponent.session_token}, CURRENT_TIMESTAMP
+    )
+    ON CONFLICT (session_token) DO UPDATE SET
+      player_name = EXCLUDED.player_name,
+      status = EXCLUDED.status,
+      room_id = EXCLUDED.room_id,
+      player_slot = EXCLUDED.player_slot,
+      opponent_name = EXCLUDED.opponent_name,
+      opponent_token = EXCLUDED.opponent_token,
+      last_seen_at = CURRENT_TIMESTAMP
+  `;
+
+  const startsAt = Date.now() + 4500;
+
+  const hostTicket = isFarmers
+    ? null
+    : mintTdgJoinTicket({
+        roomId,
+        sessionToken: opponent.session_token,
+        playerSlot: 0,
+        playerName: opponent.player_name,
+        opponentName: name,
+        startsAt,
+      });
+  const guestTicket = isFarmers
+    ? null
+    : mintTdgJoinTicket({
+        roomId,
+        sessionToken,
+        playerSlot: 1,
+        playerName: name,
+        opponentName: opponent.player_name,
+        startsAt,
+      });
+
+  await Promise.all([
+    safeTrigger(`tdg-player-${opponent.session_token}`, 'match_found', {
+      roomId,
+      startsAt,
+      playerId: 0,
+      opponentName: name,
+      isHost: true,
+      joinTicket: hostTicket,
+      serverAuth: Boolean(hostTicket),
+      limited: isLimited,
+      tft: false,
+      farmers: isFarmers,
+    }),
+    safeTrigger(`tdg-player-${sessionToken}`, 'match_found', {
+      roomId,
+      startsAt,
+      playerId: 1,
+      opponentName: opponent.player_name,
+      isHost: false,
+      joinTicket: guestTicket,
+      serverAuth: Boolean(guestTicket),
+      limited: isLimited,
+      tft: false,
+      farmers: isFarmers,
+    }),
+  ]);
+
+  return NextResponse.json({
+    status: 'matched',
+    sessionToken,
+    roomId,
+    playerId: 1,
+    opponentName: opponent.player_name,
+    isHost: false,
+    playerName: name,
+    startsAt,
+    joinTicket: guestTicket,
+    serverAuth: Boolean(guestTicket),
+    limited: isLimited,
+    tft: false,
+    farmers: isFarmers,
+  });
+}
+
+/**
+ * Quick Match rolled TFT: seat both players in a fresh lobby and start it right
+ * away. The remaining seats autofill with CPUs on the client.
+ */
+async function pairIntoTftMatch(params: {
+  partner: WaitingPartner;
+  sessionToken: string;
+  name: string;
+}) {
+  const { partner, sessionToken, name } = params;
+  const roomId = makeRoomId();
+
+  const updated = (await sql`
+    UPDATE tdg_pvp_queue
+    SET status = 'waiting_tft',
+        room_id = ${roomId},
+        player_slot = 0,
+        opponent_name = NULL,
+        opponent_token = NULL,
+        last_seen_at = CURRENT_TIMESTAMP
+    WHERE id = ${partner.id}
+      AND status = ${partner.status}
+      AND last_seen_at >= NOW() - INTERVAL '30 seconds'
+    RETURNING session_token, player_name
+  `) as unknown as Array<{ session_token: string; player_name: string }>;
+
+  if (!updated[0]) return null;
+  const host = updated[0];
+
+  await sql`
+    INSERT INTO tdg_pvp_queue (
+      session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, last_seen_at
+    ) VALUES (
+      ${sessionToken}, ${name}, 'waiting_tft', ${roomId}, 1, NULL, NULL, CURRENT_TIMESTAMP
+    )
+    ON CONFLICT (session_token) DO UPDATE SET
+      player_name = EXCLUDED.player_name,
+      status = EXCLUDED.status,
+      room_id = EXCLUDED.room_id,
+      player_slot = EXCLUDED.player_slot,
+      opponent_name = NULL,
+      opponent_token = NULL,
+      created_at = CURRENT_TIMESTAMP,
+      last_seen_at = CURRENT_TIMESTAMP
+  `;
+
+  // Slot 0 is the lobby host, so start on their behalf; this also broadcasts
+  // match_found to everyone in the room, including us.
+  const started = await startTftLobby(roomId, host.session_token);
+  const members = await listTftLobbyMembers(roomId);
+
+  return NextResponse.json({
+    status: 'matched',
+    sessionToken,
+    roomId,
+    playerId: 1,
+    opponentName: members
+      .filter((m) => m.sessionToken !== sessionToken)
+      .map((m) => m.playerName)
+      .join(', '),
+    isHost: false,
+    playerName: name,
+    startsAt: started.startsAt,
+    joinTicket: null,
+    serverAuth: false,
+    limited: false,
+    tft: true,
+    farmers: false,
+    roster: members.map((m) => ({ slot: m.playerSlot, name: m.playerName })),
+    lobby: started.lobby,
+  });
 }
 
 async function tryResumeExistingSession(existingToken: string) {
@@ -126,7 +370,8 @@ async function tryResumeExistingSession(existingToken: string) {
   if (
     row.status === 'waiting' ||
     row.status === 'waiting_limited' ||
-    row.status === 'waiting_farmers'
+    row.status === 'waiting_farmers' ||
+    row.status === QUICK_WAITING_STATUS
   ) {
     await touchQueueSession(existingToken);
     return NextResponse.json({
@@ -136,6 +381,7 @@ async function tryResumeExistingSession(existingToken: string) {
       limited: row.status === 'waiting_limited',
       tft: false,
       farmers: row.status === 'waiting_farmers',
+      quick: row.status === QUICK_WAITING_STATUS,
     });
   }
 
@@ -153,6 +399,7 @@ export async function POST(request: NextRequest) {
     const isLimited = queueMode === 'limited';
     const isTft = queueMode === 'tft';
     const isFarmers = queueMode === 'farmers';
+    const isQuick = queueMode === 'quick';
 
     if (!name || name.length < 2) {
       return NextResponse.json({ error: 'Enter a name (at least 2 characters).' }, { status: 400 });
@@ -174,116 +421,27 @@ export async function POST(request: NextRequest) {
       if (resumed) return resumed;
     }
 
-    const pairMode: 'standard' | 'limited' | 'farmers' = isFarmers
-      ? 'farmers'
-      : isLimited
-        ? 'limited'
-        : 'standard';
-    const matchedStatus = matchedStatusForMode(pairMode);
-    const waiting = await findLiveWaitingPartner(sessionToken, pairMode);
-    if (waiting) {
-      const roomId = makeRoomId();
-      const updated = (await sql`
-        UPDATE tdg_pvp_queue
-        SET status = ${matchedStatus},
-            room_id = ${roomId},
-            player_slot = 0,
-            opponent_name = ${name},
-            opponent_token = ${sessionToken},
-            last_seen_at = CURRENT_TIMESTAMP
-        WHERE id = ${waiting.id}
-          AND status = ${waitingStatus}
-          AND last_seen_at >= NOW() - INTERVAL '30 seconds'
-        RETURNING session_token, player_name
-      `) as unknown as Array<{ session_token: string; player_name: string }>;
+    if (isQuick) {
+      const partner = await findQuickWaitingPartner(sessionToken);
+      if (partner) {
+        const rolled = resolveQuickMode(partner.status);
+        const paired =
+          rolled === 'tft'
+            ? await pairIntoTftMatch({ partner, sessionToken, name })
+            : await pairIntoMatch({ partner, sessionToken, name, pairMode: rolled });
+        if (paired) return paired;
+      }
 
-      if (updated[0]) {
-        const partner = updated[0];
-
-        await recordMatchStart(roomId, partner.player_name, name);
-
-        await sql`
-          INSERT INTO tdg_pvp_queue (
-            session_token, player_name, status, room_id, player_slot, opponent_name, opponent_token, last_seen_at
-          ) VALUES (
-            ${sessionToken}, ${name}, ${matchedStatus}, ${roomId}, 1, ${partner.player_name}, ${partner.session_token}, CURRENT_TIMESTAMP
-          )
-          ON CONFLICT (session_token) DO UPDATE SET
-            player_name = EXCLUDED.player_name,
-            status = EXCLUDED.status,
-            room_id = EXCLUDED.room_id,
-            player_slot = EXCLUDED.player_slot,
-            opponent_name = EXCLUDED.opponent_name,
-            opponent_token = EXCLUDED.opponent_token,
-            last_seen_at = CURRENT_TIMESTAMP
-        `;
-
-        const matchPayload = {
-          roomId,
-          startsAt: Date.now() + 4500,
-        };
-
-        const hostTicket = isFarmers
-          ? null
-          : mintTdgJoinTicket({
-              roomId,
-              sessionToken: partner.session_token,
-              playerSlot: 0,
-              playerName: partner.player_name,
-              opponentName: name,
-              startsAt: matchPayload.startsAt,
-            });
-        const guestTicket = isFarmers
-          ? null
-          : mintTdgJoinTicket({
-              roomId,
-              sessionToken,
-              playerSlot: 1,
-              playerName: name,
-              opponentName: partner.player_name,
-              startsAt: matchPayload.startsAt,
-            });
-
-        await Promise.all([
-          safeTrigger(`tdg-player-${partner.session_token}`, 'match_found', {
-            ...matchPayload,
-            playerId: 0,
-            opponentName: name,
-            isHost: true,
-            joinTicket: hostTicket,
-            serverAuth: Boolean(hostTicket),
-            limited: isLimited,
-            tft: false,
-            farmers: isFarmers,
-          }),
-          safeTrigger(`tdg-player-${sessionToken}`, 'match_found', {
-            ...matchPayload,
-            playerId: 1,
-            opponentName: partner.player_name,
-            isHost: false,
-            joinTicket: guestTicket,
-            serverAuth: Boolean(guestTicket),
-            limited: isLimited,
-            tft: false,
-            farmers: isFarmers,
-          }),
-        ]);
-
-        return NextResponse.json({
-          status: 'matched',
-          sessionToken,
-          roomId,
-          playerId: 1,
-          opponentName: partner.player_name,
-          isHost: false,
-          playerName: name,
-          startsAt: matchPayload.startsAt,
-          joinTicket: guestTicket,
-          serverAuth: Boolean(guestTicket),
-          limited: isLimited,
-          tft: false,
-          farmers: isFarmers,
-        });
+      // Nobody head-to-head, but an open TFT lobby still counts as "a game to join".
+      if (await findOpenTftLobby()) {
+        return NextResponse.json(await joinTftLobby({ name, sessionToken }));
+      }
+    } else {
+      const pairMode: PairMode = isFarmers ? 'farmers' : isLimited ? 'limited' : 'standard';
+      const partner = await findLiveWaitingPartner(sessionToken, pairMode);
+      if (partner) {
+        const paired = await pairIntoMatch({ partner, sessionToken, name, pairMode });
+        if (paired) return paired;
       }
     }
 
@@ -308,6 +466,7 @@ export async function POST(request: NextRequest) {
       limited: isLimited,
       tft: false,
       farmers: isFarmers,
+      quick: isQuick,
     });
   } catch (error) {
     console.error('tdg-pvp join error:', error);
