@@ -5,8 +5,10 @@
  * You unlock seeds at your shop, cover your land in farms, hire farmhands to
  * carry produce to your stand, and sell to wandering units. Money only goes up.
  *
- * Each client simulates its own farm and broadcasts a small status summary, so
- * the opponent's side is a live display rather than a synced simulation.
+ * Host-authoritative over Pusher (same path as TFT / Online PvP): the host ticks
+ * the whole valley and publishes full match state; the guest only renders and
+ * sends actions. Every match has one shared gameId (the PvP room id / ?game=).
+ * Solo play is just a host with an empty neighbouring stall.
  */
 (function () {
   'use strict';
@@ -28,8 +30,12 @@
   const FARM_SIZE = 38;
 
   const START_GOLD = 60;
-  const STATUS_BROADCAST_MS = 1500;
+  const AUTH_SYNC_MS = 220;
   const PERSIST_MS = 6000;
+  /** Fraction of the last plot cost returned when you sell a farm. */
+  const SELL_REFUND = 0.6;
+  /** Buy the neighbour's whole farm for this much and you win the valley. */
+  const BUYOUT_COST = 1000000;
 
   // ─── Farm ladder — later seeds cost far more and sell for far more ────────
   const FARM_TYPES = [
@@ -68,18 +74,30 @@
   const YIELD_PER_TIER = 2;
   const QUALITY_PER_TIER = 0.3;
 
-  // ─── Farmhands & dogs ─────────────────────────────────────────────────────
-  const WORKER_BASE_COST = 60;
-  const WORKER_COST_GROWTH = 1.26;
-  const MAX_WORKERS = 12;
-  const WORKER_SPEED = 78;
-  const WORKER_CAPACITY = 9;
+  // ─── Helpers (each type hauls more than the last) ──────────────────────────
+  const WORKER_TYPES = [
+    { id: 'farmer', name: 'Farmhand', emoji: '🧑‍🌾', sprite: 'farmer', cost: 60, growth: 1.22, speed: 72, carry: 4, size: 20 },
+    { id: 'goblin', name: 'Goblin Hauler', emoji: '👺', sprite: 'goblin', cost: 150, growth: 1.24, speed: 94, carry: 6, size: 18 },
+    { id: 'swordsman', name: 'Swordsman', emoji: '⚔️', sprite: 'swordsman', cost: 360, growth: 1.26, speed: 78, carry: 9, size: 21 },
+    { id: 'bowman', name: 'Archer Runner', emoji: '🏹', sprite: 'bowman', cost: 820, growth: 1.28, speed: 88, carry: 12, size: 20 },
+    { id: 'wolf_hunter', name: 'Hunter', emoji: '🗡️', sprite: 'wolf_hunter', cost: 1800, growth: 1.3, speed: 102, carry: 16, size: 24 },
+    { id: 'yeti', name: 'Yeti Porter', emoji: '🧊', sprite: 'yeti', cost: 4000, growth: 1.32, speed: 66, carry: 24, size: 28 },
+    { id: 'tank', name: 'Elephant', emoji: '🐘', sprite: 'tank', cost: 9000, growth: 1.34, speed: 50, carry: 34, size: 30 },
+    { id: 'peka', name: 'Dragon', emoji: '🐉', sprite: 'peka', cost: 21000, growth: 1.36, speed: 86, carry: 48, size: 32 },
+  ];
+  const WORKER_BY_ID = {};
+  for (const w of WORKER_TYPES) WORKER_BY_ID[w.id] = w;
+  const MAX_WORKERS = 16;
+  const WORKER_SKILL_MAX = 3;
+  const WORKER_SPEED_PER_TIER = 0.18;
+  const WORKER_CARRY_PER_TIER = 2;
+  const WORKER_SKILL_COSTS = [1.2, 3.5, 9];
 
   const DOG_BASE_COST = 200;
   const DOG_COST_GROWTH = 1.4;
   const MAX_DOGS = 4;
-  /** Each dog makes every farmhand this much quicker. */
-  const DOG_SPEED_BONUS = 0.16;
+  /** Each dog makes every helper this much quicker. */
+  const DOG_SPEED_BONUS = 0.12;
 
   // ─── Stand ────────────────────────────────────────────────────────────────
   const STAND_UPGRADES = [320, 950, 2800, 7600];
@@ -108,6 +126,8 @@
   // ─── Runtime ──────────────────────────────────────────────────────────────
   let active = false;
   let cfg = null;
+  /** Shared match: { players: [p0, p1], elapsed }. */
+  let match = null;
   let me = null;
   let peer = null;
   let canvas = null;
@@ -115,17 +135,21 @@
   let raf = 0;
   let lastTs = 0;
   let clock = 0;
-  let lastStatusAt = 0;
+  let lastAuthPublishAt = 0;
   let lastPersistAt = 0;
   let lastPanelAt = -99;
   let selectedSeed = 'wheat';
   let treeType = 'wheat';
+  let selectedHelper = 'farmer';
+  let helperTreeType = 'farmer';
+  let activeSheet = null;
+  let sellMode = false;
   let uiBound = false;
   let hudDirty = true;
+  let gotAuthSnapshot = false;
   /** Shake/leaf state for the shared money tree, plus the floating "+$1" coins. */
   let moneyTree = { shake: 0, sway: 0, clicks: 0, leaves: [] };
   let floaters = [];
-  let speedMult = 1;
 
   function $(id) {
     return document.getElementById(id);
@@ -146,6 +170,17 @@
   function money(n) {
     const v = Math.floor(n || 0);
     return `$${v.toLocaleString('en-US')}`;
+  }
+
+  function mintSoloGameId() {
+    const rand = Math.random().toString(36).slice(2, 8);
+    return `farm-${Date.now().toString(36)}-${rand}`;
+  }
+
+  function shortGameId(id) {
+    const s = String(id || '');
+    if (s.length <= 18) return s || '—';
+    return `${s.slice(0, 8)}…${s.slice(-6)}`;
   }
 
   /** roundRect isn't in every engine we ship to. */
@@ -198,8 +233,15 @@
     return tree;
   }
 
-  function freshFarmer(x, y) {
+  function freshWorkerSkills() {
+    const tree = {};
+    for (const w of WORKER_TYPES) tree[w.id] = { speed: 0, carry: 0 };
+    return tree;
+  }
+
+  function freshWorker(x, y, typeId) {
     return {
+      type: typeId || 'farmer',
       x,
       y,
       state: 'idle',
@@ -221,13 +263,15 @@
       sold: 0,
       unlocked: { wheat: true },
       tree: freshTree(),
+      workerSkills: freshWorkerSkills(),
+      hired: { farmer: 1 },
       placed: {},
       farms: [],
-      farmers: [freshFarmer(lay.standX, lay.standY - 10)],
+      farmers: [freshWorker(lay.standX, lay.standY - 10, 'farmer')],
       dogs: [],
       stand: { level: 0, stock: [], customerAcc: 2 },
       customers: [],
-      hint: 'Plant Wheat on your land, then click the money tree in the middle for pocket change.',
+      hint: 'Open Seeds below, plant Wheat, hire helpers, and race to $1,000,000.',
     };
   }
 
@@ -263,16 +307,36 @@
     return Math.round(base * mult * branchWeight);
   }
 
-  function workerCost(p) {
-    return Math.round(WORKER_BASE_COST * Math.pow(WORKER_COST_GROWTH, p.farmers.length - 1));
+  function workerHireCost(p, typeId) {
+    const def = WORKER_BY_ID[typeId];
+    if (!def) return null;
+    const count = p.hired?.[typeId] || 0;
+    return Math.round(def.cost * Math.pow(def.growth, count));
   }
 
   function dogCost(p) {
     return Math.round(DOG_BASE_COST * Math.pow(DOG_COST_GROWTH, p.dogs.length));
   }
 
-  function workerSpeed(p) {
-    return WORKER_SPEED * (1 + p.dogs.length * DOG_SPEED_BONUS);
+  function workerSkillCost(typeId, branchId, tier) {
+    const def = WORKER_BY_ID[typeId];
+    if (!def || tier >= WORKER_SKILL_MAX) return null;
+    const mult = WORKER_SKILL_COSTS[tier] || WORKER_SKILL_COSTS[WORKER_SKILL_COSTS.length - 1];
+    const weight = branchId === 'carry' ? 1.25 : 1;
+    return Math.round(def.cost * mult * weight * 0.55);
+  }
+
+  function workerSpeed(p, worker) {
+    const def = WORKER_BY_ID[worker.type] || WORKER_TYPES[0];
+    const tier = p.workerSkills?.[worker.type]?.speed || 0;
+    const base = def.speed * (1 + tier * WORKER_SPEED_PER_TIER);
+    return base * (1 + p.dogs.length * DOG_SPEED_BONUS);
+  }
+
+  function workerCapacity(p, worker) {
+    const def = WORKER_BY_ID[worker.type] || WORKER_TYPES[0];
+    const tier = p.workerSkills?.[worker.type]?.carry || 0;
+    return def.carry + tier * WORKER_CARRY_PER_TIER;
   }
 
   function standCapacity(p) {
@@ -301,7 +365,45 @@
     return clamp(2 + (p.tree[typeId]?.yield || 0), 2, 4);
   }
 
-  // ─── Simulation (local player only) ───────────────────────────────────────
+  function isAuthority() {
+    return !!(cfg && (cfg.isHost || cfg.solo));
+  }
+
+  function rebindPlayers() {
+    if (!match?.players) {
+      me = null;
+      peer = null;
+      return;
+    }
+    const slot = cfg?.myPlayerId === 1 ? 1 : 0;
+    me = match.players[slot] || null;
+    peer = match.players[slot === 0 ? 1 : 0] || null;
+  }
+
+  /** Gold returned for selling one farm of this type (based on last purchase cost). */
+  function farmSellValue(p, typeId) {
+    const def = FARM_BY_ID[typeId];
+    const count = p.placed[typeId] || 0;
+    if (!def || count <= 0) return 0;
+    const lastCost = Math.round(def.cost * Math.pow(FARM_COST_GROWTH, count - 1));
+    return Math.max(1, Math.floor(lastCost * SELL_REFUND));
+  }
+
+  function occupiedFarmNear(p, x, y) {
+    let best = null;
+    let bestD = Infinity;
+    for (const farm of p.farms) {
+      const pos = slotPosition(p.slot, farm.slot);
+      const d = Math.hypot(pos.x - x, pos.y - y);
+      if (d < bestD) {
+        bestD = d;
+        best = farm;
+      }
+    }
+    return best && bestD <= 48 ? { farm: best, dist: bestD } : null;
+  }
+
+  // ─── Simulation ───────────────────────────────────────────────────────────
   function freeSlotNear(p, x, y) {
     const used = new Set(p.farms.map((f) => f.slot));
     let best = -1;
@@ -381,12 +483,14 @@
 
   function tickFarmers(p, dt) {
     const lay = sideLayout(p.slot);
-    const speed = workerSpeed(p);
     for (const farmer of p.farmers) {
+      if (!farmer.type) farmer.type = 'farmer';
       const before = { x: farmer.x, y: farmer.y };
+      const speed = workerSpeed(p, farmer);
+      const cap = workerCapacity(p, farmer);
 
       if (farmer.state === 'idle') {
-        const idx = farmer.carry.length >= WORKER_CAPACITY ? -1 : pickFarmFor(p, farmer);
+        const idx = farmer.carry.length >= cap ? -1 : pickFarmFor(p, farmer);
         if (idx >= 0) {
           farmer.state = 'to_farm';
           farmer.target = idx;
@@ -401,19 +505,18 @@
         } else {
           const pos = slotPosition(p.slot, farm.slot);
           if (moveToward(farmer, pos.x, pos.y + 16, speed, dt)) {
-            const room = WORKER_CAPACITY - farmer.carry.length;
+            const room = cap - farmer.carry.length;
             const take = Math.min(room, farm.ready);
             const value = unitPrice(p, farm.type);
             for (let i = 0; i < take; i++) farmer.carry.push({ v: value, e: farm.type });
             farm.ready -= take;
             if (farm.ready <= 0) {
-              // Picked clean — the plot is turned over and reseeded.
               farm.ready = 0;
               farm.acc = 0;
               farm.progress = 0;
             }
             farmer.target = -1;
-            farmer.state = farmer.carry.length >= WORKER_CAPACITY ? 'to_stand' : 'idle';
+            farmer.state = farmer.carry.length >= cap ? 'to_stand' : 'idle';
           }
         }
       } else if (farmer.state === 'to_stand') {
@@ -430,13 +533,12 @@
       farmer.animT = (farmer.animT || 0) + dt;
     }
 
-    // Dogs trot after their farmhand.
     for (let i = 0; i < p.dogs.length; i++) {
       const dog = p.dogs[i];
       const host = p.farmers[i % p.farmers.length];
       if (!host) continue;
       const offset = (i % 2 === 0 ? -1 : 1) * 20;
-      moveToward(dog, host.x + offset, host.y + 14, speed * 1.25, dt);
+      moveToward(dog, host.x + offset, host.y + 14, workerSpeed(p, host) * 1.2, dt);
       dog.animT = (dog.animT || 0) + dt;
     }
   }
@@ -541,11 +643,188 @@
     }
   }
 
-  /** Both farmers share the tree; each shake drops a coin into your own purse. */
-  function shakeMoneyTree() {
-    if (!me) return;
-    me.gold += TREE_CLICK_REWARD;
-    me.earned += TREE_CLICK_REWARD;
+  // ─── Actions (host applies; guests send over Pusher) ───────────────────────
+  function setHintFor(p, text) {
+    if (!p) return;
+    p.hint = text;
+    if (p === me) {
+      const el = $('farmers-hint');
+      if (el) el.textContent = text;
+    }
+  }
+
+  function setHint(text) {
+    setHintFor(me, text);
+  }
+
+  function applyPlaceFarm(p, x, y, seedId) {
+    const typeId = seedId || selectedSeed;
+    const def = FARM_BY_ID[typeId];
+    if (!def || !p.unlocked[def.id]) {
+      setHintFor(p, 'Unlock that seed at your shop first.');
+      return false;
+    }
+    const cost = nextFarmCost(p, def.id);
+    if (p.gold < cost) {
+      setHintFor(p, `${def.name} costs ${money(cost)} — keep selling.`);
+      return false;
+    }
+    const spot = freeSlotNear(p, x, y);
+    if (spot.slot < 0) {
+      setHintFor(p, 'Your land is full of farms.');
+      return false;
+    }
+    if (spot.dist > 150) {
+      setHintFor(p, 'Click your own side of the road to plant.');
+      return false;
+    }
+    p.gold -= cost;
+    p.placed[def.id] = (p.placed[def.id] || 0) + 1;
+    p.farms.push({ slot: spot.slot, type: def.id, acc: 0, ready: 0, progress: 0 });
+    setHintFor(p, `${def.name} planted. Next one costs ${money(nextFarmCost(p, def.id))}.`);
+    hudDirty = true;
+    return true;
+  }
+
+  function applySellFarm(p, slotIndex) {
+    const idx = p.farms.findIndex((f) => f.slot === slotIndex);
+    if (idx < 0) {
+      setHintFor(p, 'No farm on that plot.');
+      return false;
+    }
+    const farm = p.farms[idx];
+    const refund = farmSellValue(p, farm.type);
+    const def = FARM_BY_ID[farm.type] || FARM_TYPES[0];
+    p.farms.splice(idx, 1);
+    p.placed[farm.type] = Math.max(0, (p.placed[farm.type] || 1) - 1);
+    p.gold += refund;
+    // Farmhands aiming at a later index need their target shifted; clear all.
+    for (const farmer of p.farmers) {
+      farmer.target = -1;
+      if (farmer.state === 'to_farm') farmer.state = farmer.carry.length ? 'to_stand' : 'idle';
+    }
+    const pos = slotPosition(p.slot, farm.slot);
+    addFloater(pos.x, pos.y - 20, `+${money(refund)}`, '#ffe08a');
+    setHintFor(p, `Sold ${def.name} plot for ${money(refund)}.`);
+    hudDirty = true;
+    return true;
+  }
+
+  function applyUnlockSeed(p, typeId) {
+    const def = FARM_BY_ID[typeId];
+    if (!def || p.unlocked[typeId]) return false;
+    if (p.gold < def.unlock) {
+      setHintFor(p, `${def.name} seeds cost ${money(def.unlock)}.`);
+      return false;
+    }
+    p.gold -= def.unlock;
+    p.unlocked[typeId] = true;
+    if (p === me) {
+      selectedSeed = typeId;
+      treeType = typeId;
+    }
+    setHintFor(p, `${def.name} unlocked — sells for ${money(def.price)} each.`);
+    hudDirty = true;
+    return true;
+  }
+
+  function applyBuyBranch(p, typeId, branchId) {
+    if (!p.unlocked[typeId]) return false;
+    const rec = p.tree[typeId];
+    const tier = rec[branchId] || 0;
+    if (tier >= BRANCH_MAX) return false;
+    const cost = branchCost(typeId, branchId, tier);
+    if (p.gold < cost) {
+      setHintFor(p, `That upgrade costs ${money(cost)}.`);
+      return false;
+    }
+    p.gold -= cost;
+    rec[branchId] = tier + 1;
+    const def = FARM_BY_ID[typeId];
+    setHintFor(p, `${def.name} ${branchId} upgraded to ${rec[branchId]}/${BRANCH_MAX}.`);
+    hudDirty = true;
+    return true;
+  }
+
+  function applyHireWorker(p, typeId) {
+    const def = WORKER_BY_ID[typeId];
+    if (!def) return false;
+    if (p.farmers.length >= MAX_WORKERS) {
+      setHintFor(p, 'Helper roster is full.');
+      return false;
+    }
+    if (!p.hired) p.hired = {};
+    if (!p.workerSkills) p.workerSkills = freshWorkerSkills();
+    const cost = workerHireCost(p, typeId);
+    if (p.gold < cost) {
+      setHintFor(p, `${def.name} costs ${money(cost)}.`);
+      return false;
+    }
+    const lay = sideLayout(p.slot);
+    p.gold -= cost;
+    p.hired[typeId] = (p.hired[typeId] || 0) + 1;
+    p.farmers.push(freshWorker(lay.standX - lay.dir * 30, lay.standY + 8, typeId));
+    setHintFor(p, `${def.name} hired — carries ${workerCapacity(p, { type: typeId })} crops (${p.farmers.length}/${MAX_WORKERS}).`);
+    hudDirty = true;
+    return true;
+  }
+
+  function applyWorkerBranch(p, typeId, branchId) {
+    const def = WORKER_BY_ID[typeId];
+    if (!def) return false;
+    if (!p.workerSkills) p.workerSkills = freshWorkerSkills();
+    if (!p.workerSkills[typeId]) p.workerSkills[typeId] = { speed: 0, carry: 0 };
+    // Must own at least one of this helper type before training them.
+    if (!(p.hired?.[typeId] > 0)) {
+      setHintFor(p, `Hire a ${def.name} before training that skill tree.`);
+      return false;
+    }
+    const tier = p.workerSkills[typeId][branchId] || 0;
+    if (tier >= WORKER_SKILL_MAX) return false;
+    const cost = workerSkillCost(typeId, branchId, tier);
+    if (cost == null || p.gold < cost) {
+      setHintFor(p, `That helper upgrade costs ${money(cost)}.`);
+      return false;
+    }
+    p.gold -= cost;
+    p.workerSkills[typeId][branchId] = tier + 1;
+    setHintFor(p, `${def.name} ${branchId} → ${p.workerSkills[typeId][branchId]}/${WORKER_SKILL_MAX}.`);
+    hudDirty = true;
+    return true;
+  }
+
+  function applyBuyDog(p) {
+    if (p.dogs.length >= MAX_DOGS) return false;
+    const cost = dogCost(p);
+    if (p.gold < cost) {
+      setHintFor(p, `A farm dog costs ${money(cost)}.`);
+      return false;
+    }
+    const lay = sideLayout(p.slot);
+    p.gold -= cost;
+    p.dogs.push({ x: lay.standX, y: lay.standY + 20, facing: 0, animT: 0 });
+    setHintFor(p, 'A dog joins the farm — every farmhand moves quicker.');
+    hudDirty = true;
+    return true;
+  }
+
+  function applyUpgradeStand(p) {
+    if (p.stand.level >= STAND_UPGRADES.length) return false;
+    const cost = STAND_UPGRADES[p.stand.level];
+    if (p.gold < cost) {
+      setHintFor(p, `Stand upgrade costs ${money(cost)}.`);
+      return false;
+    }
+    p.gold -= cost;
+    p.stand.level += 1;
+    setHintFor(p, 'Stand upgraded — busier customers, bigger shelves, better prices.');
+    hudDirty = true;
+    return true;
+  }
+
+  function applyShakeTree(p) {
+    p.gold += TREE_CLICK_REWARD;
+    p.earned += TREE_CLICK_REWARD;
     moneyTree.clicks += 1;
     moneyTree.shake = 1;
     hudDirty = true;
@@ -566,184 +845,297 @@
         life: 1,
       });
     }
+    return true;
   }
 
-  function tickPeerDisplay(dt) {
-    if (!peer) return;
-    // The rival's side is a display: grow their crops and stroll their staff.
-    for (const farm of peer.farms) {
-      farm.acc = (farm.acc || 0) + dt;
-      const interval = farm.grow || 4;
-      if (farm.acc >= interval) farm.acc -= interval;
-      farm.progress = clamp(farm.acc / interval, 0, 0.999);
+  function rivalOf(slot) {
+    return match?.players?.[slot === 0 ? 1 : 0] || null;
+  }
+
+  function canBuyout(p) {
+    if (!match || match.ended || !p || p.gone || p.solo) return false;
+    const rival = rivalOf(p.slot);
+    if (!rival || rival.solo || rival.gone) return false;
+    return p.gold >= BUYOUT_COST;
+  }
+
+  function showEndScreen() {
+    const panel = $('farmers-end');
+    if (!panel || !match?.ended) return;
+    const winner = match.players[match.winnerSlot];
+    const iWon = match.winnerSlot === cfg?.myPlayerId;
+    const title = $('farmers-end-title');
+    const body = $('farmers-end-body');
+    if (title) title.textContent = iWon ? 'You own the valley' : 'Farm sold';
+    if (body) {
+      body.textContent = iWon
+        ? `You bought ${rivalOf(cfg.myPlayerId)?.name || 'your neighbour'}'s farm for ${money(BUYOUT_COST)}.`
+        : `${winner?.name || 'Your neighbour'} bought your farm for ${money(BUYOUT_COST)}.`;
     }
-    for (const farmer of peer.farmers) {
-      farmer.wanderT = (farmer.wanderT || Math.random() * 6) + dt;
-      if (farmer.wanderT > 3.5) {
-        farmer.wanderT = 0;
-        const slotCount = peer.farms.length;
-        const target = slotCount
-          ? slotPosition(peer.slot, peer.farms[Math.floor(Math.random() * slotCount)].slot)
-          : { x: peer.standX, y: peer.standY };
-        farmer.tx = target.x;
-        farmer.ty = target.y + 16;
+    show(panel);
+  }
+
+  function endMatch(winnerSlot) {
+    if (!match || match.ended) return;
+    match.ended = true;
+    match.winnerSlot = winnerSlot;
+    const winner = match.players[winnerSlot];
+    const loser = rivalOf(winnerSlot);
+    if (loser) loser.gone = true;
+    setHintFor(winner, `Bought the neighbouring farm for ${money(BUYOUT_COST)}. You win!`);
+    if (loser) setHintFor(loser, `${winner?.name || 'Your neighbour'} bought your farm. Game over.`);
+    hudDirty = true;
+    publishAuthState(true);
+    showEndScreen();
+    if (!cfg?.solo) {
+      window.TDG_PVP?.notifyGameOver?.({
+        winnerSlot,
+        endReason: 'buyout',
+      });
+    }
+  }
+
+  function applyBuyout(p) {
+    if (!canBuyout(p)) {
+      if (p && p.gold < BUYOUT_COST) {
+        setHintFor(p, `Buying their farm costs ${money(BUYOUT_COST)}. Keep selling.`);
       }
-      if (farmer.tx != null) moveToward(farmer, farmer.tx, farmer.ty, 42, dt);
-      farmer.animT = (farmer.animT || 0) + dt;
+      return false;
     }
+    p.gold -= BUYOUT_COST;
+    endMatch(p.slot);
+    return true;
   }
 
-  // ─── Actions ──────────────────────────────────────────────────────────────
-  function placeFarm(x, y) {
-    if (!me) return;
-    const def = FARM_BY_ID[selectedSeed];
-    if (!def || !me.unlocked[def.id]) {
-      setHint('Unlock that seed at your shop first.');
-      return;
+  /** Host-only mutation entry for every player action. */
+  function applyAction(fromSlot, action) {
+    if (!match || !action?.type) return false;
+    if (match.ended && action.type !== 'farmers_request_sync') return false;
+    const p = match.players[fromSlot];
+    if (!p || p.gone) return false;
+    const type = action.type;
+    let ok = false;
+    if (type === 'farmers_place_farm') {
+      ok = applyPlaceFarm(p, Number(action.x), Number(action.y), action.seed);
+    } else if (type === 'farmers_sell_farm') {
+      ok = applySellFarm(p, Number(action.slot));
+    } else if (type === 'farmers_unlock_seed') {
+      ok = applyUnlockSeed(p, action.seed);
+    } else if (type === 'farmers_buy_branch') {
+      ok = applyBuyBranch(p, action.seed, action.branch);
+    } else if (type === 'farmers_hire') {
+      ok = applyHireWorker(p, action.worker || 'farmer');
+    } else if (type === 'farmers_worker_branch') {
+      ok = applyWorkerBranch(p, action.worker, action.branch);
+    } else if (type === 'farmers_buy_dog') {
+      ok = applyBuyDog(p);
+    } else if (type === 'farmers_upgrade_stand') {
+      ok = applyUpgradeStand(p);
+    } else if (type === 'farmers_shake_tree') {
+      ok = applyShakeTree(p);
+    } else if (type === 'farmers_buyout') {
+      ok = applyBuyout(p);
+      // endMatch already published
+      return ok;
+    } else if (type === 'farmers_request_sync') {
+      ok = true;
+    } else {
+      return false;
     }
-    const cost = nextFarmCost(me, def.id);
-    if (me.gold < cost) {
-      setHint(`${def.name} costs ${money(cost)} — keep selling.`);
-      return;
-    }
-    const spot = freeSlotNear(me, x, y);
-    if (spot.slot < 0) {
-      setHint('Your land is full of farms.');
-      return;
-    }
-    me.gold -= cost;
-    me.placed[def.id] = (me.placed[def.id] || 0) + 1;
-    me.farms.push({ slot: spot.slot, type: def.id, acc: 0, ready: 0, progress: 0 });
-    setHint(`${def.name} planted. Next one costs ${money(nextFarmCost(me, def.id))}.`);
-    hudDirty = true;
+    if (ok) publishAuthState(true);
+    return ok;
   }
 
-  function unlockSeed(typeId) {
-    const def = FARM_BY_ID[typeId];
-    if (!me || !def || me.unlocked[typeId]) return;
-    if (me.gold < def.unlock) {
-      setHint(`${def.name} seeds cost ${money(def.unlock)}.`);
+  function dispatchLocal(action) {
+    if (!active || !cfg || !action) return;
+    if (isAuthority()) {
+      applyAction(cfg.myPlayerId, action);
       return;
     }
-    me.gold -= def.unlock;
-    me.unlocked[typeId] = true;
-    selectedSeed = typeId;
-    treeType = typeId;
-    setHint(`${def.name} unlocked — sells for ${money(def.price)} each.`);
-    hudDirty = true;
-  }
-
-  function buyBranch(typeId, branchId) {
-    if (!me || !me.unlocked[typeId]) return;
-    const rec = me.tree[typeId];
-    const tier = rec[branchId] || 0;
-    if (tier >= BRANCH_MAX) return;
-    const cost = branchCost(typeId, branchId, tier);
-    if (me.gold < cost) {
-      setHint(`That upgrade costs ${money(cost)}.`);
-      return;
+    // Guest: optimistic tree shake FX while waiting for the host snapshot.
+    if (action.type === 'farmers_shake_tree') {
+      moneyTree.shake = 1;
+      for (let i = 0; i < 2; i++) {
+        moneyTree.leaves.push({
+          x: TREE_X + (Math.random() - 0.5) * TREE_RADIUS,
+          y: TREE_Y - 8 + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 36,
+          vy: -8 - Math.random() * 16,
+          spin: Math.random() * Math.PI,
+          vs: (Math.random() - 0.5) * 6,
+          life: 1,
+        });
+      }
     }
-    me.gold -= cost;
-    rec[branchId] = tier + 1;
-    const def = FARM_BY_ID[typeId];
-    setHint(`${def.name} ${branchId} upgraded to ${rec[branchId]}/${BRANCH_MAX}.`);
-    hudDirty = true;
+    window.TDG_PVP?.sendAction?.(action);
   }
 
-  function hireFarmer() {
-    if (!me || me.farmers.length >= MAX_WORKERS) return;
-    const cost = workerCost(me);
-    if (me.gold < cost) {
-      setHint(`A farmhand costs ${money(cost)}.`);
-      return;
-    }
-    const lay = sideLayout(me.slot);
-    me.gold -= cost;
-    me.farmers.push(freshFarmer(lay.standX - lay.dir * 30, lay.standY + 8));
-    setHint(`Farmhand hired (${me.farmers.length}/${MAX_WORKERS}).`);
-    hudDirty = true;
-  }
-
-  function buyDog() {
-    if (!me || me.dogs.length >= MAX_DOGS) return;
-    const cost = dogCost(me);
-    if (me.gold < cost) {
-      setHint(`A farm dog costs ${money(cost)}.`);
-      return;
-    }
-    const lay = sideLayout(me.slot);
-    me.gold -= cost;
-    me.dogs.push({ x: lay.standX, y: lay.standY + 20, facing: 0, animT: 0 });
-    setHint('A dog joins the farm — every farmhand moves quicker.');
-    hudDirty = true;
-  }
-
-  function upgradeStand() {
-    if (!me || me.stand.level >= STAND_UPGRADES.length) return;
-    const cost = STAND_UPGRADES[me.stand.level];
-    if (me.gold < cost) {
-      setHint(`Stand upgrade costs ${money(cost)}.`);
-      return;
-    }
-    me.gold -= cost;
-    me.stand.level += 1;
-    setHint('Stand upgraded — busier customers, bigger shelves, better prices.');
-    hudDirty = true;
-  }
-
-  function setHint(text) {
-    if (!me) return;
-    me.hint = text;
-    const el = $('farmers-hint');
-    if (el) el.textContent = text;
-  }
-
-  // ─── Peer status exchange ─────────────────────────────────────────────────
-  function statusPayload() {
+  function serializeFarmer(f) {
     return {
-      type: 'farmers_status',
-      name: me.name,
-      gold: Math.floor(me.gold),
-      sold: me.sold,
-      workers: me.farmers.length,
-      dogs: me.dogs.length,
-      standLevel: me.stand.level,
-      stock: me.stand.stock.length,
-      farms: me.farms.map((f) => ({ s: f.slot, t: f.type })),
+      type: f.type || 'farmer',
+      x: Math.round(f.x * 10) / 10,
+      y: Math.round(f.y * 10) / 10,
+      state: f.state,
+      target: f.target,
+      carry: (f.carry || []).map((c) => ({ v: c.v, e: c.e })),
+      animT: Math.round((f.animT || 0) * 100) / 100,
+      facing: Math.round((f.facing || 0) * 100) / 100,
+      moving: f.moving ? 1 : 0,
     };
   }
 
-  function broadcastStatus() {
-    if (!me || cfg?.solo) return;
-    lastStatusAt = clock;
-    window.TDG_PVP?.sendAction?.(statusPayload());
+  function serializeDog(d) {
+    return {
+      x: Math.round(d.x * 10) / 10,
+      y: Math.round(d.y * 10) / 10,
+      facing: Math.round((d.facing || 0) * 100) / 100,
+      animT: Math.round((d.animT || 0) * 100) / 100,
+    };
   }
 
-  function applyPeerStatus(data) {
-    if (!peer || !data) return;
-    peer.name = data.name || peer.name;
-    peer.gold = Number(data.gold) || 0;
-    peer.sold = Number(data.sold) || 0;
-    peer.standLevel = Number(data.standLevel) || 0;
-    peer.stock = Number(data.stock) || 0;
-    peer.dogCount = Number(data.dogs) || 0;
+  function serializeCustomer(c) {
+    return {
+      type: c.type,
+      want: c.want,
+      tip: c.tip,
+      size: c.size,
+      x: Math.round(c.x * 10) / 10,
+      y: Math.round(c.y * 10) / 10,
+      speed: c.speed,
+      state: c.state,
+      timer: Math.round((c.timer || 0) * 100) / 100,
+      facing: Math.round((c.facing || 0) * 100) / 100,
+      lane: Math.round((c.lane || 0) * 10) / 10,
+      animT: Math.round((c.animT || 0) * 100) / 100,
+    };
+  }
 
-    const incoming = Array.isArray(data.farms) ? data.farms : [];
-    const bySlot = new Map(peer.farms.map((f) => [f.slot, f]));
-    peer.farms = incoming.map((f) => {
-      const existing = bySlot.get(f.s);
-      const def = FARM_BY_ID[f.t] || FARM_TYPES[0];
-      return existing && existing.type === f.t
-        ? existing
-        : { slot: f.s, type: f.t, acc: Math.random() * def.grow, grow: def.grow, progress: 0 };
-    });
+  function serializePlayer(p) {
+    return {
+      name: p.name,
+      slot: p.slot,
+      gold: Math.floor(p.gold),
+      earned: Math.floor(p.earned || 0),
+      sold: p.sold || 0,
+      unlocked: { ...p.unlocked },
+      tree: JSON.parse(JSON.stringify(p.tree)),
+      workerSkills: JSON.parse(JSON.stringify(p.workerSkills || freshWorkerSkills())),
+      hired: { ...(p.hired || {}) },
+      placed: { ...p.placed },
+      farms: p.farms.map((f) => ({
+        slot: f.slot,
+        type: f.type,
+        acc: Math.round((f.acc || 0) * 100) / 100,
+        ready: f.ready || 0,
+        progress: Math.round((f.progress || 0) * 1000) / 1000,
+      })),
+      farmers: p.farmers.map(serializeFarmer),
+      dogs: p.dogs.map(serializeDog),
+      stand: {
+        level: p.stand.level,
+        stock: (p.stand.stock || []).map((s) => ({ v: s.v, e: s.e })),
+        customerAcc: Math.round((p.stand.customerAcc || 0) * 100) / 100,
+      },
+      customers: (p.customers || []).map(serializeCustomer),
+      hint: p.hint || '',
+      gone: !!p.gone,
+      solo: !!p.solo,
+    };
+  }
 
-    const wanted = clamp(Number(data.workers) || 1, 0, MAX_WORKERS);
-    while (peer.farmers.length < wanted) {
-      peer.farmers.push({ x: peer.standX, y: peer.standY, facing: 0, animT: 0 });
+  function serializeMatchState() {
+    return {
+      mode: 'farmers',
+      gameId: match?.gameId || cfg?.roomId || null,
+      ended: !!match?.ended,
+      winnerSlot: match?.ended ? match.winnerSlot : null,
+      elapsed: Math.round((match?.elapsed || clock) * 100) / 100,
+      moneyTree: {
+        shake: moneyTree.shake,
+        sway: moneyTree.sway,
+        clicks: moneyTree.clicks,
+      },
+      players: match.players.map(serializePlayer),
+    };
+  }
+
+  function publishAuthState(force = false) {
+    if (!active || !match || !isAuthority() || cfg.solo) return;
+    const now = performance.now();
+    if (!force && now - lastAuthPublishAt < AUTH_SYNC_MS) return;
+    lastAuthPublishAt = now;
+    const snap = serializeMatchState();
+    window.TDG_PVP?.sendState?.(snap);
+  }
+
+  function hydratePlayer(raw, fallbackSlot) {
+    const slot = raw?.slot ?? fallbackSlot;
+    const base = freshPlayer(raw?.name || (slot === 0 ? 'Farmer' : 'Rival'), slot);
+    if (!raw) return base;
+    base.gold = Number(raw.gold) || START_GOLD;
+    base.earned = Number(raw.earned) || 0;
+    base.sold = Number(raw.sold) || 0;
+    base.unlocked = raw.unlocked || { wheat: true };
+    base.placed = raw.placed || {};
+    base.hired = raw.hired || { farmer: 1 };
+    base.workerSkills = freshWorkerSkills();
+    if (raw.workerSkills) {
+      for (const id of Object.keys(base.workerSkills)) {
+        if (raw.workerSkills[id]) Object.assign(base.workerSkills[id], raw.workerSkills[id]);
+      }
     }
-    if (peer.farmers.length > wanted) peer.farmers.length = wanted;
-    hudDirty = true;
+    if (raw.tree) {
+      for (const id of Object.keys(base.tree)) {
+        if (raw.tree[id]) Object.assign(base.tree[id], raw.tree[id]);
+      }
+    }
+    base.farms = (raw.farms || [])
+      .filter((f) => FARM_BY_ID[f.type])
+      .map((f) => ({
+        slot: f.slot,
+        type: f.type,
+        acc: f.acc || 0,
+        ready: f.ready || 0,
+        progress: f.progress || 0,
+      }));
+    const lay = sideLayout(slot);
+    base.farmers = (raw.farmers && raw.farmers.length)
+      ? raw.farmers.map((f) => ({
+          type: WORKER_BY_ID[f.type] ? f.type : 'farmer',
+          x: f.x, y: f.y,
+          state: f.state || 'idle',
+          target: f.target ?? -1,
+          carry: Array.isArray(f.carry) ? f.carry.map((c) => ({ v: c.v, e: c.e })) : [],
+          animT: f.animT || 0,
+          facing: f.facing || 0,
+          moving: f.moving ? 1 : 0,
+        }))
+      : [freshWorker(lay.standX, lay.standY - 10, 'farmer')];
+    base.dogs = (raw.dogs || []).map((d) => ({
+      x: d.x, y: d.y, facing: d.facing || 0, animT: d.animT || 0,
+    }));
+    base.stand = {
+      level: clamp(Number(raw.stand?.level) || 0, 0, STAND_UPGRADES.length),
+      stock: Array.isArray(raw.stand?.stock) ? raw.stand.stock.map((s) => ({ v: s.v, e: s.e })) : [],
+      customerAcc: Number(raw.stand?.customerAcc) || 2,
+    };
+    base.customers = (raw.customers || []).map((c) => ({
+      type: c.type,
+      want: c.want,
+      tip: c.tip,
+      size: c.size,
+      x: c.x, y: c.y,
+      speed: c.speed,
+      state: c.state,
+      timer: c.timer || 0,
+      facing: c.facing || 0,
+      lane: c.lane || 0,
+      animT: c.animT || 0,
+    }));
+    base.hint = raw.hint || base.hint;
+    base.gone = !!raw.gone;
+    base.solo = !!raw.solo;
+    return base;
   }
 
   // ─── Rendering ────────────────────────────────────────────────────────────
@@ -891,13 +1283,22 @@
 
   function drawPlacementHints() {
     if (!me) return;
-    const used = new Set(me.farms.map((f) => f.slot));
-    if (used.size >= FARM_SLOTS) return;
-    const def = FARM_BY_ID[selectedSeed];
-    const affordable = def && me.unlocked[def.id] && me.gold >= nextFarmCost(me, def.id);
     ctx.save();
     ctx.setLineDash([5, 6]);
     ctx.lineWidth = 1.5;
+    if (sellMode) {
+      ctx.strokeStyle = 'rgba(255, 140, 100, 0.7)';
+      for (const farm of me.farms) {
+        const pos = slotPosition(me.slot, farm.slot);
+        ctx.strokeRect(pos.x - FARM_SIZE, pos.y - FARM_SIZE * 0.72, FARM_SIZE * 2, FARM_SIZE * 1.44);
+      }
+      ctx.restore();
+      return;
+    }
+    const used = new Set(me.farms.map((f) => f.slot));
+    if (used.size >= FARM_SLOTS) { ctx.restore(); return; }
+    const def = FARM_BY_ID[selectedSeed];
+    const affordable = def && me.unlocked[def.id] && me.gold >= nextFarmCost(me, def.id);
     ctx.strokeStyle = affordable ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.16)';
     for (let i = 0; i < FARM_SLOTS; i++) {
       if (used.has(i)) continue;
@@ -912,7 +1313,7 @@
     for (const farm of state.farms) {
       const pos = slotPosition(state.slot, farm.slot);
       const def = FARM_BY_ID[farm.type] || FARM_TYPES[0];
-      const density = isMine ? densityFor(state, farm.type) : 2;
+      const density = densityFor(state, farm.type);
       if (drawPlot) {
         ctx.save();
         drawPlot(ctx, pos.x, pos.y, FARM_SIZE, {
@@ -925,7 +1326,7 @@
         ctx.restore();
         ctx.globalAlpha = 1;
       }
-      if (isMine && farm.ready > 0) {
+      if (farm.ready > 0) {
         const bx = pos.x + FARM_SIZE * 0.72;
         const by = pos.y - FARM_SIZE * 0.62;
         ctx.fillStyle = 'rgba(18, 24, 16, 0.66)';
@@ -946,8 +1347,8 @@
     const lay = sideLayout(state.slot);
     const x = lay.standX;
     const y = lay.standY;
-    const level = isMine ? state.stand.level : (state.standLevel || 0);
-    const stock = isMine ? state.stand.stock.length : (state.stock || 0);
+    const level = state.stand?.level || 0;
+    const stock = state.stand?.stock?.length || 0;
     const w = 92 + level * 7;
 
     ctx.save();
@@ -992,9 +1393,9 @@
     ctx.fillStyle = isMine ? '#bff5c0' : '#ffd2ad';
     ctx.font = 'bold 12px Rajdhani, sans-serif';
     ctx.textAlign = 'center';
-    const label = isMine || !state.solo ? `${state.name} · ${money(state.gold)}` : state.name;
+    const label = state.solo ? state.name : `${state.name} · ${money(state.gold)}`;
     ctx.fillText(label, x, y + 40);
-    if (isMine || !state.solo) {
+    if (!state.solo) {
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.font = '10px Rajdhani, sans-serif';
       ctx.fillText(`Stand Lv ${level + 1} · ${stock} ready`, x, y + 53);
@@ -1172,8 +1573,9 @@
   function drawPeople(state, isMine) {
     const ownerId = state.slot;
     for (const farmer of state.farmers) {
-      drawActor('farmer', farmer, 20, { moveSpeed: farmer.moving ? 40 : 0, ownerId });
-      if (isMine && farmer.carry?.length) {
+      const wdef = WORKER_BY_ID[farmer.type] || WORKER_TYPES[0];
+      drawActor(wdef.sprite, farmer, wdef.size, { moveSpeed: farmer.moving ? 40 : 0, ownerId });
+      if (farmer.carry?.length) {
         const def = FARM_BY_ID[farmer.carry[farmer.carry.length - 1].e] || FARM_TYPES[0];
         const bx = farmer.x;
         const by = farmer.y - 26;
@@ -1190,16 +1592,13 @@
         ctx.textBaseline = 'alphabetic';
       }
     }
-    const dogs = isMine ? state.dogs : [];
-    for (const dog of dogs) drawActor('speed', dog, 20, { moveSpeed: 30, ownerId });
-    if (isMine) {
-      for (const c of state.customers) {
-        drawActor(c.type, c, c.size * 0.78, { moveSpeed: c.state === 'buying' ? 0 : 30, ownerId });
-        if (c.state === 'buying') {
-          ctx.textAlign = 'center';
-          ctx.font = '13px serif';
-          ctx.fillText('💰', c.x, c.y - c.size * 0.78 - 8);
-        }
+    for (const dog of (state.dogs || [])) drawActor('speed', dog, 20, { moveSpeed: 30, ownerId });
+    for (const c of (state.customers || [])) {
+      drawActor(c.type, c, c.size * 0.78, { moveSpeed: c.state === 'buying' ? 0 : 30, ownerId });
+      if (c.state === 'buying') {
+        ctx.textAlign = 'center';
+        ctx.font = '13px serif';
+        ctx.fillText('💰', c.x, c.y - c.size * 0.78 - 8);
       }
     }
   }
@@ -1237,11 +1636,73 @@
     set('farmers-you-gold', money(me.gold));
     set('farmers-you-sold', `${me.sold}`);
     set('farmers-them-name', peer ? peer.name : 'Rival');
-    set('farmers-them-gold', peer && !peer.solo ? money(peer.gold) : '—');
+    set('farmers-them-gold', peer && !peer.solo && !peer.gone ? money(peer.gold) : '—');
+    const gid = match?.gameId || cfg?.roomId || window.TDG_PVP?.getGameId?.() || '';
+    set('farmers-game-id', shortGameId(gid));
+    const gidEl = $('farmers-game-id');
+    if (gidEl) gidEl.title = gid ? `Game ID: ${gid}` : 'No game id';
     set('farmers-stock', `${me.stand.stock.length}/${standCapacity(me)}`);
     set('farmers-workers', `${me.farmers.length}/${MAX_WORKERS}`);
     set('farmers-dogs', `${me.dogs.length}/${MAX_DOGS}`);
     set('farmers-farmcount', `${me.farms.length}/${FARM_SLOTS}`);
+  }
+
+  function openSheet(name) {
+    activeSheet = name || null;
+    sellMode = false;
+    const sheet = $('farmers-sheet');
+    const title = $('farmers-sheet-title');
+    const titles = {
+      seeds: '🌱 Seed Shop',
+      helpers: '🧑‍🌾 Helpers',
+      skills: '🌿 Farm Skills',
+      stand: '🏪 Stand & Buyout',
+    };
+    if (!sheet) return;
+    if (!activeSheet) {
+      sheet.classList.remove('open');
+      sheet.setAttribute('aria-hidden', 'true');
+    } else {
+      sheet.classList.add('open');
+      sheet.setAttribute('aria-hidden', 'false');
+      if (title) title.textContent = titles[activeSheet] || 'Menu';
+    }
+    for (const pane of document.querySelectorAll('.farmers-sheet-pane')) {
+      const showPane = pane.getAttribute('data-pane') === activeSheet;
+      pane.classList.toggle('hidden', !showPane);
+    }
+    for (const tab of document.querySelectorAll('.farmers-dock-tab[data-sheet]')) {
+      tab.classList.toggle('active', tab.getAttribute('data-sheet') === activeSheet);
+    }
+    const sellBtn = $('farmers-btn-sell');
+    sellBtn?.classList.toggle('active', false);
+    hudDirty = true;
+  }
+
+  function closeSheet() {
+    openSheet(null);
+  }
+
+  function branchRowsHtml(branches, rec, maxTier, costFn, dataPrefix, dataId) {
+    return branches.map((branch) => {
+      const tier = rec[branch.id] || 0;
+      const maxed = tier >= maxTier;
+      const cost = maxed ? 0 : costFn(branch.id, tier);
+      const pips = Array.from({ length: maxTier }, (_, i) =>
+        `<i class="farmers-pip${i < tier ? ' on' : ''}"></i>`).join('');
+      const btn = maxed
+        ? '<span class="farmers-branch-max">MAX</span>'
+        : `<button type="button" class="farmers-branch-buy" data-${dataPrefix}-branch="${branch.id}" data-${dataPrefix}-id="${dataId}"${me.gold >= cost ? '' : ' disabled'}>${money(cost)}</button>`;
+      return `<div class="farmers-branch">
+        <span class="farmers-branch-icon">${branch.icon}</span>
+        <span class="farmers-branch-body">
+          <span class="farmers-branch-name">${branch.name}</span>
+          <span class="farmers-branch-blurb">${branch.blurb}</span>
+          <span class="farmers-pips">${pips}</span>
+        </span>
+        ${btn}
+      </div>`;
+    }).join('');
   }
 
   /** Rebuilds the shop / tree markup. Only call when something actually changed. */
@@ -1269,6 +1730,55 @@
       }).join('');
     }
 
+    const helperRow = $('farmers-helper-row');
+    if (helperRow) {
+      helperRow.innerHTML = WORKER_TYPES.map((def) => {
+        const cost = workerHireCost(me, def.id);
+        const owned = me.hired?.[def.id] || 0;
+        const full = me.farmers.length >= MAX_WORKERS;
+        const cls = ['farmers-helper', owned ? 'owned' : '', selectedHelper === def.id ? 'chosen' : '']
+          .filter(Boolean).join(' ');
+        const disabled = full || me.gold < cost || match?.ended ? ' disabled' : '';
+        const skills = me.workerSkills?.[def.id] || { speed: 0, carry: 0 };
+        const carry = def.carry + (skills.carry || 0) * WORKER_CARRY_PER_TIER;
+        const spd = Math.round(def.speed * (1 + (skills.speed || 0) * WORKER_SPEED_PER_TIER));
+        return `<button type="button" class="${cls}" data-hire="${def.id}"${disabled}>
+          <span class="farmers-helper-emoji">${def.emoji}</span>
+          <span class="farmers-helper-body">
+            <span class="farmers-helper-name">${def.name}${owned ? ` ×${owned}` : ''}</span>
+            <span class="farmers-helper-meta">carry ${carry} · spd ${spd}</span>
+          </span>
+          <span class="farmers-helper-cost">Hire ${money(cost)}</span>
+        </button>`;
+      }).join('');
+    }
+
+    const helperTabs = $('farmers-helper-tabs');
+    if (helperTabs) {
+      helperTabs.innerHTML = WORKER_TYPES
+        .filter((d) => (me.hired?.[d.id] || 0) > 0)
+        .map((d) => `<button type="button" class="farmers-tab${helperTreeType === d.id ? ' chosen' : ''}" data-helper-tree="${d.id}">${d.emoji}</button>`)
+        .join('') || '<span class="farmers-tree-head">Hire a helper to unlock its skill tree.</span>';
+    }
+    const helperTree = $('farmers-helper-tree');
+    if (helperTree) {
+      if (!(me.hired?.[helperTreeType] > 0)) {
+        const first = WORKER_TYPES.find((d) => (me.hired?.[d.id] || 0) > 0);
+        helperTreeType = first ? first.id : 'farmer';
+      }
+      if (!me.workerSkills) me.workerSkills = freshWorkerSkills();
+      const def = WORKER_BY_ID[helperTreeType] || WORKER_TYPES[0];
+      const rec = me.workerSkills[helperTreeType] || { speed: 0, carry: 0 };
+      const branches = [
+        { id: 'speed', name: 'Speed', icon: '💨', blurb: 'Moves to plots and the stand faster' },
+        { id: 'carry', name: 'Carry', icon: '📦', blurb: 'Hauls more produce per trip' },
+      ];
+      const cap = workerCapacity(me, { type: helperTreeType });
+      const spd = Math.round(workerSpeed(me, { type: helperTreeType }));
+      helperTree.innerHTML = `<div class="farmers-tree-head">${def.emoji} ${def.name} — speed ${spd}, carry ${cap}</div>`
+        + branchRowsHtml(branches, rec, WORKER_SKILL_MAX, (branch, tier) => workerSkillCost(helperTreeType, branch, tier), 'worker', helperTreeType);
+    }
+
     const treeTabs = $('farmers-tree-tabs');
     if (treeTabs) {
       treeTabs.innerHTML = FARM_TYPES.filter((d) => me.unlocked[d.id])
@@ -1281,45 +1791,32 @@
       if (!me.unlocked[treeType]) treeType = 'wheat';
       const def = FARM_BY_ID[treeType];
       const rec = me.tree[treeType];
-      const rows = FARM_BRANCHES.map((branch) => {
-        const tier = rec[branch.id] || 0;
-        const maxed = tier >= BRANCH_MAX;
-        const cost = maxed ? 0 : branchCost(treeType, branch.id, tier);
-        const pips = Array.from({ length: BRANCH_MAX }, (_, i) =>
-          `<i class="farmers-pip${i < tier ? ' on' : ''}"></i>`).join('');
-        const btn = maxed
-          ? '<span class="farmers-branch-max">MAX</span>'
-          : `<button type="button" class="farmers-branch-buy" data-branch="${branch.id}"${me.gold >= cost ? '' : ' disabled'}>${money(cost)}</button>`;
-        return `<div class="farmers-branch">
-          <span class="farmers-branch-icon">${branch.icon}</span>
-          <span class="farmers-branch-body">
-            <span class="farmers-branch-name">${branch.name}</span>
-            <span class="farmers-branch-blurb">${branch.blurb}</span>
-            <span class="farmers-pips">${pips}</span>
-          </span>
-          ${btn}
-        </div>`;
-      }).join('');
       const per = yieldPer(me, treeType);
-      treeBody.innerHTML = `<div class="farmers-tree-head">${def.emoji} ${def.name} — ${per} crop${per === 1 ? '' : 's'} every ${growInterval(me, treeType).toFixed(1)}s, ${money(unitPrice(me, treeType))} each</div>${rows}`;
+      treeBody.innerHTML = `<div class="farmers-tree-head">${def.emoji} ${def.name} — ${per} crop${per === 1 ? '' : 's'} every ${growInterval(me, treeType).toFixed(1)}s, ${money(unitPrice(me, treeType))} each</div>`
+        + branchRowsHtml(FARM_BRANCHES, rec, BRANCH_MAX, (branch, tier) => branchCost(treeType, branch, tier), 'farm', treeType);
     }
 
-    const wCost = me.farmers.length >= MAX_WORKERS ? null : workerCost(me);
     const dCost = me.dogs.length >= MAX_DOGS ? null : dogCost(me);
     const sCost = me.stand.level >= STAND_UPGRADES.length ? null : STAND_UPGRADES[me.stand.level];
-    setBtn('farmers-btn-hire', wCost == null ? 'Farmhands full' : `Hire Farmhand ${money(wCost)}`, wCost != null && me.gold >= wCost);
-    setBtn('farmers-btn-dog', dCost == null ? 'Dog pack full' : `Buy Farm Dog ${money(dCost)}`, dCost != null && me.gold >= dCost);
-    setBtn('farmers-btn-stand', sCost == null ? 'Stand maxed' : `Upgrade Stand ${money(sCost)}`, sCost != null && me.gold >= sCost);
-    hudDirty = false;
-  }
+    setBtn('farmers-btn-dog', dCost == null ? 'Dog pack full' : `Buy Farm Dog ${money(dCost)}`, dCost != null && me.gold >= dCost && !match?.ended);
+    setBtn('farmers-btn-stand', sCost == null ? 'Stand maxed' : `Upgrade Stand ${money(sCost)}`, sCost != null && me.gold >= sCost && !match?.ended);
 
-  function setSpeed(mult) {
-    speedMult = clamp(mult, 1, 4);
-    const group = $('farmers-speed');
-    if (!group) return;
-    for (const btn of group.querySelectorAll('[data-farm-speed]')) {
-      btn.classList.toggle('active', Number(btn.getAttribute('data-farm-speed')) === speedMult);
+    const sellBtn = $('farmers-btn-sell');
+    if (sellBtn) {
+      sellBtn.textContent = sellMode ? 'Cancel sell' : 'Sell a plot';
+      sellBtn.classList.toggle('active', sellMode);
+      sellBtn.disabled = !!(match?.ended) || (!sellMode && me.farms.length === 0);
     }
+    const buyBtn = $('farmers-btn-buyout');
+    if (buyBtn) {
+      const rival = peer && !peer.solo && !peer.gone;
+      const ended = !!match?.ended;
+      buyBtn.textContent = ended
+        ? (match.winnerSlot === me.slot ? 'Valley claimed' : 'Farm sold')
+        : `Buy their farm ${money(BUYOUT_COST)}`;
+      buyBtn.disabled = ended || !rival || me.gold < BUYOUT_COST;
+    }
+    hudDirty = false;
   }
 
   function setBtn(id, label, enabled) {
@@ -1339,11 +1836,21 @@
   }
 
   function onCanvasClick(e) {
-    if (!me) return;
+    if (!me || match?.ended) return;
     const pt = canvasToLogic(e.clientX, e.clientY);
 
     if (Math.hypot(pt.x - TREE_X, pt.y - (TREE_Y + 4)) <= TREE_RADIUS) {
-      shakeMoneyTree();
+      dispatchLocal({ type: 'farmers_shake_tree' });
+      return;
+    }
+
+    if (sellMode) {
+      const hit = occupiedFarmNear(me, pt.x, pt.y);
+      if (!hit) {
+        setHint('Click one of your highlighted plots to sell it.');
+        return;
+      }
+      dispatchLocal({ type: 'farmers_sell_farm', slot: hit.farm.slot });
       return;
     }
 
@@ -1356,7 +1863,7 @@
       setHint('Click your own side of the road to plant.');
       return;
     }
-    placeFarm(pt.x, pt.y);
+    dispatchLocal({ type: 'farmers_place_farm', x: pt.x, y: pt.y, seed: selectedSeed });
   }
 
   function bindUi() {
@@ -1367,11 +1874,36 @@
       if (me?.unlocked[id]) {
         selectedSeed = id;
         treeType = id;
+        sellMode = false;
         setHint(`${FARM_BY_ID[id].name} selected — click your land to plant.`);
         hudDirty = true;
       } else {
-        unlockSeed(id);
+        dispatchLocal({ type: 'farmers_unlock_seed', seed: id });
       }
+    });
+    $('farmers-helper-row')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-hire]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-hire');
+      selectedHelper = id;
+      helperTreeType = id;
+      dispatchLocal({ type: 'farmers_hire', worker: id });
+    });
+    $('farmers-helper-tabs')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-helper-tree]');
+      if (!btn) return;
+      helperTreeType = btn.getAttribute('data-helper-tree');
+      selectedHelper = helperTreeType;
+      hudDirty = true;
+    });
+    $('farmers-helper-tree')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-worker-branch]');
+      if (!btn) return;
+      dispatchLocal({
+        type: 'farmers_worker_branch',
+        worker: btn.getAttribute('data-worker-id'),
+        branch: btn.getAttribute('data-worker-branch'),
+      });
     });
     $('farmers-tree-tabs')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-tree]');
@@ -1380,20 +1912,45 @@
       hudDirty = true;
     });
     $('farmers-tree-body')?.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-branch]');
+      const btn = e.target.closest('[data-farm-branch]');
       if (!btn) return;
-      buyBranch(treeType, btn.getAttribute('data-branch'));
+      dispatchLocal({
+        type: 'farmers_buy_branch',
+        seed: btn.getAttribute('data-farm-id') || treeType,
+        branch: btn.getAttribute('data-farm-branch'),
+      });
     });
-    $('farmers-speed')?.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-farm-speed]');
-      if (!btn) return;
-      setSpeed(Number(btn.getAttribute('data-farm-speed')) || 1);
+    document.querySelector('.farmers-dock-tabs')?.addEventListener('click', (e) => {
+      const tab = e.target.closest('.farmers-dock-tab');
+      if (!tab) return;
+      if (tab.id === 'farmers-btn-sell') {
+        if (match?.ended) return;
+        closeSheet();
+        sellMode = !sellMode;
+        tab.classList.toggle('active', sellMode);
+        setHint(sellMode
+          ? 'Sell mode — click a planted plot to sell it back for 60% of what you paid.'
+          : 'Plant mode — select a seed and click empty land.');
+        hudDirty = true;
+        return;
+      }
+      const sheet = tab.getAttribute('data-sheet');
+      if (!sheet) return;
+      openSheet(activeSheet === sheet ? null : sheet);
     });
-    $('farmers-btn-hire')?.addEventListener('click', hireFarmer);
-    $('farmers-btn-dog')?.addEventListener('click', buyDog);
-    $('farmers-btn-stand')?.addEventListener('click', upgradeStand);
+    $('farmers-sheet-close')?.addEventListener('click', closeSheet);
+    $('farmers-btn-dog')?.addEventListener('click', () => dispatchLocal({ type: 'farmers_buy_dog' }));
+    $('farmers-btn-stand')?.addEventListener('click', () => dispatchLocal({ type: 'farmers_upgrade_stand' }));
+    $('farmers-btn-buyout')?.addEventListener('click', () => {
+      if (match?.ended) return;
+      dispatchLocal({ type: 'farmers_buyout' });
+    });
     $('farmers-howto-btn')?.addEventListener('click', () => show($('farmers-howto')));
     $('farmers-howto-close')?.addEventListener('click', () => hide($('farmers-howto')));
+    $('farmers-end-home')?.addEventListener('click', () => {
+      cleanup(true);
+      window.TDG_PVP?.goHome?.();
+    });
     $('farmers-leave-btn')?.addEventListener('click', () => {
       cleanup(true);
       window.TDG_PVP?.goHome?.();
@@ -1407,83 +1964,37 @@
     if (!lastTs) lastTs = ts;
     const frame = clamp((ts - lastTs) / 1000, 0, 0.05);
     lastTs = ts;
-    const dt = frame * speedMult;
+    const dt = frame;
     clock += dt;
+    if (match) match.elapsed = (match.elapsed || 0) + dt;
 
-    // Fast-forward runs the same small steps repeatedly so movement stays smooth.
-    const steps = speedMult > 1 ? speedMult : 1;
-    const step = dt / steps;
-    for (let i = 0; i < steps; i++) {
-      if (me) {
-        tickFarms(me, step);
-        tickFarmers(me, step);
-        tickCustomers(me, step);
+    if (isAuthority() && match && !match.ended) {
+      for (const p of match.players) {
+        if (!p || p.gone || p.solo) continue;
+        tickFarms(p, dt);
+        tickFarmers(p, dt);
+        tickCustomers(p, dt);
       }
-      tickPeerDisplay(step);
+      tickExtras(dt);
+      publishAuthState(false);
+      if (clock - lastPersistAt > PERSIST_MS / 1000) {
+        lastPersistAt = clock;
+        window.TDG_PVP?.persistLiveState?.(serializeMatchState(), {
+          mode: 'farmers',
+          roomId: match.gameId || cfg.roomId,
+        });
+      }
+    } else {
+      // Guest: only animate local FX; the host owns the sim.
+      tickExtras(dt);
     }
-    tickExtras(dt);
 
     renderScene();
     renderReadouts();
-    // Prices/affordability shift as gold climbs, so refresh the panels on a slow beat.
     if (hudDirty || clock - lastPanelAt > 1) {
       lastPanelAt = clock;
       renderPanels();
     }
-
-    if (clock - lastStatusAt > STATUS_BROADCAST_MS / 1000) broadcastStatus();
-    if (clock - lastPersistAt > PERSIST_MS / 1000) {
-      lastPersistAt = clock;
-      window.TDG_PVP?.persistLiveState?.(serialize(), { mode: 'farmers' });
-    }
-  }
-
-  // ─── Save / restore ───────────────────────────────────────────────────────
-  function serialize() {
-    return {
-      mode: 'farmers',
-      slot: me.slot,
-      gold: me.gold,
-      earned: me.earned,
-      sold: me.sold,
-      unlocked: me.unlocked,
-      tree: me.tree,
-      placed: me.placed,
-      farms: me.farms.map((f) => ({ slot: f.slot, type: f.type, acc: f.acc, ready: f.ready })),
-      workers: me.farmers.length,
-      dogs: me.dogs.length,
-      standLevel: me.stand.level,
-    };
-  }
-
-  function restore(saved) {
-    if (!saved || saved.mode !== 'farmers') return;
-    me.gold = Number(saved.gold) || START_GOLD;
-    me.earned = Number(saved.earned) || 0;
-    me.sold = Number(saved.sold) || 0;
-    me.unlocked = saved.unlocked || { wheat: true };
-    me.placed = saved.placed || {};
-    me.stand.level = clamp(Number(saved.standLevel) || 0, 0, STAND_UPGRADES.length);
-    const tree = freshTree();
-    for (const id of Object.keys(tree)) {
-      if (saved.tree?.[id]) Object.assign(tree[id], saved.tree[id]);
-    }
-    me.tree = tree;
-    me.farms = (saved.farms || [])
-      .filter((f) => FARM_BY_ID[f.type])
-      .map((f) => ({ slot: f.slot, type: f.type, acc: f.acc || 0, ready: f.ready || 0, progress: 0 }));
-    const lay = sideLayout(me.slot);
-    const workers = clamp(Number(saved.workers) || 1, 1, MAX_WORKERS);
-    me.farmers = Array.from({ length: workers }, () => freshFarmer(lay.standX, lay.standY - 10));
-    me.dogs = Array.from({ length: clamp(Number(saved.dogs) || 0, 0, MAX_DOGS) }, () => ({
-      x: lay.standX,
-      y: lay.standY + 20,
-      facing: 0,
-      animT: 0,
-    }));
-    const firstUnlocked = FARM_TYPES.find((d) => me.unlocked[d.id]);
-    selectedSeed = firstUnlocked ? firstUnlocked.id : 'wheat';
-    treeType = selectedSeed;
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -1494,44 +2005,70 @@
     const myName = mySlot === 0 ? opts.player0Name : opts.player1Name;
     const theirName = mySlot === 0 ? opts.player1Name : opts.player0Name;
 
-    cfg = { myPlayerId: mySlot, roomId: opts.roomId, isHost: !!opts.isHost, solo: !!opts.solo };
-    me = freshPlayer(myName || 'You', mySlot);
-
-    const theirLay = sideLayout(theirSlot);
-    peer = {
-      name: theirName || 'Rival',
-      slot: theirSlot,
+    const gameId = opts.roomId || opts.gameId || (opts.solo ? mintSoloGameId() : null);
+    cfg = {
+      myPlayerId: mySlot,
+      roomId: gameId,
+      gameId,
+      isHost: !!opts.isHost,
       solo: !!opts.solo,
-      gold: START_GOLD,
-      sold: 0,
-      stock: 0,
-      standLevel: 0,
-      dogCount: 0,
-      farms: [],
-      farmers: [{ x: theirLay.standX, y: theirLay.standY, facing: 0, animT: 0 }],
-      standX: theirLay.standX,
-      standY: theirLay.standY,
     };
+    // Same URL contract as Online PvP / TFT: one ?game= id for the whole match.
+    if (gameId) window.TDG_PVP?.setGameUrl?.(gameId, 'farmers');
+
+    const p0 = freshPlayer(
+      mySlot === 0 ? (myName || 'You') : (theirName || 'Rival'),
+      0,
+    );
+    const p1 = freshPlayer(
+      mySlot === 1 ? (myName || 'You') : (theirName || 'Rival'),
+      1,
+    );
     if (opts.solo) {
-      // Nobody home next door — leave a few sleepy plots so the valley looks lived in.
-      peer.farms = [0, 5, 9].map((slot) => ({
+      const empty = mySlot === 0 ? p1 : p0;
+      empty.solo = true;
+      empty.name = theirName || 'Empty stall';
+      empty.farms = [0, 5, 9].map((slot) => ({
         slot,
         type: 'wheat',
         acc: Math.random() * 4,
-        grow: 4,
+        ready: 0,
         progress: 0,
       }));
+      empty.farmers = [];
+      empty.dogs = [];
+      empty.customers = [];
+      empty.stand.stock = [];
     }
 
-    if (opts.savedState) restore(opts.savedState);
+    match = {
+      gameId,
+      players: [p0, p1],
+      elapsed: 0,
+      ended: false,
+      winnerSlot: null,
+    };
+    rebindPlayers();
+
+    if (opts.savedState && opts.savedState.mode === 'farmers') {
+      applyAuthState(opts.savedState, true);
+      rebindPlayers();
+      gotAuthSnapshot = true;
+      if (match?.ended) showEndScreen();
+    }
 
     active = true;
     lastTs = 0;
-    clock = 0;
-    lastStatusAt = -99;
+    clock = match.elapsed || 0;
+    lastAuthPublishAt = 0;
     lastPersistAt = 0;
     hudDirty = true;
-    moneyTree = { shake: 0, sway: 0, clicks: 0, leaves: [] };
+    sellMode = false;
+    activeSheet = null;
+    selectedHelper = 'farmer';
+    helperTreeType = 'farmer';
+    gotAuthSnapshot = isAuthority();
+    moneyTree = { shake: 0, sway: 0, clicks: opts.savedState?.moneyTree?.clicks || 0, leaves: [] };
     floaters = [];
 
     hide($('menu-screen'));
@@ -1539,7 +2076,9 @@
     hide($('online-queue-screen'));
     hide($('tft-game-screen'));
     hide($('farmers-howto'));
+    hide($('farmers-end'));
     show($('farmers-game-screen'));
+    closeSheet();
 
     canvas = $('farmers-canvas');
     if (canvas) {
@@ -1552,14 +2091,20 @@
       bindUi();
       uiBound = true;
     }
-    setSpeed(speedMult);
-
-    setHint(me.hint);
+    setHint(me?.hint || 'Plant Wheat on your land, then click the money tree in the middle for pocket change.');
     renderReadouts();
     renderPanels();
     renderScene();
     raf = requestAnimationFrame(loop);
-    broadcastStatus();
+
+    if (isAuthority()) {
+      publishAuthState(true);
+      [300, 900, 1800].forEach((ms) => {
+        setTimeout(() => { if (active && isAuthority()) publishAuthState(true); }, ms);
+      });
+    } else {
+      dispatchLocal({ type: 'farmers_request_sync' });
+    }
   }
 
   function cleanup(hard) {
@@ -1569,6 +2114,7 @@
     if (hard) {
       me = null;
       peer = null;
+      match = null;
       cfg = null;
       hide($('farmers-game-screen'));
     }
@@ -1577,23 +2123,75 @@
   function handleRemote(from, action) {
     if (!active || !action) return false;
     const nested = action.action && action.action.type ? action.action : action;
-    if (nested.type !== 'farmers_status') return false;
+    if (!String(nested.type || '').startsWith('farmers_')) return false;
     if (from === cfg?.myPlayerId) return true;
-    applyPeerStatus(nested);
+    if (!isAuthority()) return true;
+    applyAction(from, nested);
     return true;
   }
 
   /** Peaceful mode: a departing rival just leaves an empty stall behind. */
   function applyForfeit(fromSlot) {
-    if (!peer || fromSlot === cfg?.myPlayerId) return;
-    peer.gone = true;
-    setHint(`${peer.name} packed up and left. Your farm keeps going.`);
+    if (!match?.players?.[fromSlot]) return;
+    if (fromSlot === cfg?.myPlayerId) return;
+    const rival = match.players[fromSlot];
+    rival.gone = true;
+    setHint(`${rival.name} packed up and left. Your farm keeps going.`);
+    if (isAuthority()) publishAuthState(true);
   }
 
-  function applyAuthState(snap) {
-    if (!snap || snap.mode !== 'farmers' || !me) return;
-    // Only used to seed a resumed session; live play is simulated locally.
-    if (!me.farms.length && snap.slot === me.slot) restore(snap);
+  /**
+   * Guest (or resume) applies the host's full valley snapshot.
+   * Host ignores remote states — it is the source of truth.
+   */
+  function applyAuthState(snap, force = false) {
+    if (!snap || snap.mode !== 'farmers') return false;
+    if (!force && isAuthority()) return false;
+    if (!Array.isArray(snap.players) || snap.players.length < 2) {
+      // Legacy single-player save from the pre-shared-state build.
+      if (me && snap.slot === me.slot) {
+        const hydrated = hydratePlayer(snap, me.slot);
+        match.players[me.slot] = hydrated;
+        rebindPlayers();
+        hudDirty = true;
+      }
+      return true;
+    }
+
+    gotAuthSnapshot = true;
+    const snapGameId = snap.gameId || snap.roomId || null;
+    if (snapGameId && cfg?.gameId && snapGameId !== cfg.gameId) {
+      console.warn('Farmers auth state gameId mismatch', snapGameId, cfg.gameId);
+      return false;
+    }
+    match = match || { gameId: snapGameId || cfg?.gameId || null, players: [null, null], elapsed: 0 };
+    if (snapGameId) {
+      match.gameId = snapGameId;
+      if (cfg) {
+        cfg.gameId = snapGameId;
+        cfg.roomId = snapGameId;
+      }
+    }
+    match.elapsed = Number(snap.elapsed) || match.elapsed || 0;
+    const wasEnded = !!match.ended;
+    match.ended = !!snap.ended;
+    match.winnerSlot = match.ended && (snap.winnerSlot === 0 || snap.winnerSlot === 1)
+      ? snap.winnerSlot
+      : null;
+    match.players[0] = hydratePlayer(snap.players[0], 0);
+    match.players[1] = hydratePlayer(snap.players[1], 1);
+    if (snap.moneyTree) {
+      moneyTree.shake = Math.max(moneyTree.shake || 0, Number(snap.moneyTree.shake) || 0);
+      moneyTree.sway = Number(snap.moneyTree.sway) || moneyTree.sway;
+      moneyTree.clicks = Number(snap.moneyTree.clicks) || moneyTree.clicks;
+    }
+    rebindPlayers();
+    if (me?.hint) setHint(me.hint);
+    hudDirty = true;
+    if (match.ended && !wasEnded) showEndScreen();
+    else if (match.ended) showEndScreen();
+    else hide($('farmers-end'));
+    return true;
   }
 
   window.FARMERS_ONLINE = {
