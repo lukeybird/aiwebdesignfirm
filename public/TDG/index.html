@@ -11465,19 +11465,10 @@ function closeSkinsShop() {
 
 function refreshPortraitsAfterSkinChange() {
   try { updateBarracksUpgradeUI?.(true); } catch (_) {}
-  try { updateHotbarUI?.(); } catch (_) {}
-  try { renderHotbar?.(); } catch (_) {}
-  // Refresh any visible hotbar slot portraits.
   try {
-    document.querySelectorAll('.hot-slot').forEach((slot) => {
-      const tool = slot.dataset?.tool;
-      if (!tool) return;
-      const img = slot.querySelector('.hot-slot-portrait');
-      const src = hotbarPortraitSrc?.(tool);
-      if (img && src) {
-        img.src = src;
-        img.hidden = false;
-      }
+    document.querySelectorAll('#hotbar .hot-slot, .hl-slot-cell, .hl-catalog-cell').forEach((slot) => {
+      const tool = slot.dataset?.tool || slot.dataset?.loadoutTool;
+      if (tool) paintHotbarIcon(slot, tool);
     });
   } catch (_) {}
 }
