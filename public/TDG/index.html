@@ -35160,6 +35160,8 @@ function getMovementGoal(unit) {
     if (hunt) return { x: hunt.x, y: hunt.y };
     const tower = findNearestEnemyTowerAnywhere(unit);
     if (tower) return { x: tower.x, y: tower.y };
+    // King falls back to his own base when the field is clear; Angel holds position.
+    if (behavior === 'axoloti_king') return basePos(unit.owner);
     return { x: unit.x, y: unit.y };
   }
 
@@ -36752,6 +36754,7 @@ function updateAxolotiKing(king, dt) {
   const targets = findAxolotiKingTargets(king, n);
   if (!targets.length) {
     king.attackPhase = 'idle';
+    // No beam targets in range — chase elsewhere, or retreat home if the map is empty.
     steerUnit(king, dt);
     return;
   }
