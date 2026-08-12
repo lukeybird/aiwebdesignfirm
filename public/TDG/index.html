@@ -37010,7 +37010,8 @@ function fireAxolotiKingBeam(king, target, dt, handIndex = 0, handCount = 1) {
     else if (king._faceLeft == null) king._faceLeft = c < 0;
   }
   // Damage already includes Red Crystal via live-army modifyUnitDef.
-  const dps = (ut.damage || 16) * (ut.attackRate || 2.4);
+  let dps = (ut.damage || 16) * (ut.attackRate || 2.4);
+  if (axolotiReefChorusActive(king)) dps *= (king.axoChorusAtkMult || AXO_CHORUS_ATK_MULT);
   const beamWidth = 14;
   const color = unitHasSkillSafe(king, 'red_crystal') ? '#fb7185' : '#fde047';
 
