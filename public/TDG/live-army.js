@@ -317,7 +317,12 @@ window.LIVE_ARMY = (function () {
         'Crown crystal flares — beam damage ×1.55.',
         { effects: { damage: 0.55 } },
       );
-      const order = [seaweed.id, dual.id, crystal.id];
+      const chorus = mk(
+        'reef_chorus', 'Reef Chorus', 230, '🫧',
+        'Passive royal tide — every 5s, all of your Axolotis gain +15% attack and +15% heal rate for 5s.',
+        { effects: { reefChorus: true } },
+      );
+      const order = [seaweed.id, dual.id, crystal.id, chorus.id];
       return {
         style: 'bazaar',
         order,
@@ -325,6 +330,7 @@ window.LIVE_ARMY = (function () {
           [seaweed.id]: seaweed,
           [dual.id]: dual,
           [crystal.id]: crystal,
+          [chorus.id]: chorus,
         },
         layout: { bazaar: order },
       };
@@ -496,6 +502,10 @@ window.LIVE_ARMY = (function () {
 
   function axolotiKingHealthMult(rec) {
     return unitHasSkill(rec, 'golden_seaweed') ? 2 : 1;
+  }
+
+  function axolotiKingHasReefChorus(rec) {
+    return unitHasSkill(rec, 'reef_chorus');
   }
 
   function unitSkillCost(type, skillId) {
@@ -1464,6 +1474,7 @@ window.LIVE_ARMY = (function () {
     axolotiKingBeamTargets,
     axolotiKingDamageMult,
     axolotiKingHealthMult,
+    axolotiKingHasReefChorus,
     unitBranchMultipliers,
     KNIGHT_SKILLS,
     KNIGHT_SKILL_ORDER,
