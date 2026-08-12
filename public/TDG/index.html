@@ -10356,17 +10356,27 @@ function unitAnimSample(type, opts = {}) {
       if (keys === walkKeys) {
         // Slow infantry (sniper/hunter ~34) — old spd/16 floor made them slide.
         // Keep a natural ~5–6.5 fps walk even at low ground speed.
-        fps = (type === 'sniper' || type === 'wolf_hunter')
-          ? clamp(spd / 7, 5.0, 6.8)
-          : clamp(spd / 16, 3.2, 7.5);
+        // Axolotis use denser 8-pose strips — play a touch faster so strides read smooth.
+        if (type === 'axoloti' || type === 'axoloti_king' || type === 'axoloti_king_royal') {
+          fps = clamp(spd / 10, 6.0, 9.5);
+        } else if (type === 'sniper' || type === 'wolf_hunter') {
+          fps = clamp(spd / 7, 5.0, 6.8);
+        } else {
+          fps = clamp(spd / 16, 3.2, 7.5);
+        }
       } else if (keys === runKeys) {
-        fps = clamp(spd / 12, 7, 14);
+        fps = (type === 'axoloti' || type === 'axoloti_king' || type === 'axoloti_king_royal')
+          ? clamp(spd / 10, 9, 16)
+          : clamp(spd / 12, 7, 14);
       }
       return swordsmanSampleLoop(keys, t, fps);
     }
   }
   const idleKeys = unitAnimAvailableKeys(`${type}-idle`, 4);
-  if (idleKeys.length) return swordsmanSampleLoop(idleKeys, t, 2.2);
+  if (idleKeys.length) {
+    const idleFps = (type === 'axoloti' || type === 'axoloti_king' || type === 'axoloti_king_royal') ? 3.2 : 2.2;
+    return swordsmanSampleLoop(idleKeys, t, idleFps);
+  }
   const fallback = combatSprite(type) ? type : `${type}-idle1`;
   return { a: fallback, b: null, blend: 0 };
 }
