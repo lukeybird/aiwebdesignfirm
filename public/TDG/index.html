@@ -10038,6 +10038,13 @@ function setEquippedSkin(unitType, skinId) {
     equippedSkinsByUnit[unitType] = skinId;
   }
   saveEquippedSkins();
+  // Live units pick up the cosmetic immediately for the local player.
+  try {
+    const localId = typeof getLocalPlayerId === 'function' ? getLocalPlayerId() : 0;
+    for (const u of combatUnits) {
+      if (u.type === unitType && u.owner === localId) u.skinId = skinId || null;
+    }
+  } catch (_) { /* combatUnits may not exist yet */ }
 }
 
 function resolveUnitSpriteType(type, opts = {}) {
