@@ -11463,6 +11463,25 @@ function closeSkinsShop() {
   document.getElementById('btn-skins')?.classList.remove('is-active');
 }
 
+function refreshPortraitsAfterSkinChange() {
+  try { updateBarracksUpgradeUI?.(true); } catch (_) {}
+  try { updateHotbarUI?.(); } catch (_) {}
+  try { renderHotbar?.(); } catch (_) {}
+  // Refresh any visible hotbar slot portraits.
+  try {
+    document.querySelectorAll('.hot-slot').forEach((slot) => {
+      const tool = slot.dataset?.tool;
+      if (!tool) return;
+      const img = slot.querySelector('.hot-slot-portrait');
+      const src = hotbarPortraitSrc?.(tool);
+      if (img && src) {
+        img.src = src;
+        img.hidden = false;
+      }
+    });
+  } catch (_) {}
+}
+
 function openAiStats() {
   closeMenuModesPop();
   closeSkinsShop();
@@ -13836,7 +13855,7 @@ function barracksHunterBazaarHtml(p, ut) {
   html += '<button type="button" class="brk-skill-back" data-barracks-skills-back="1">← All troops</button>';
   html += '<div class="brk-skill-hero">';
   html += '<div class="brk-skill-hero-art">';
-  html += `<img class="brk-troop-portrait" src="/TDG/portraits/${ut}.webp" alt="" loading="lazy" decoding="async" />`;
+  html += `<img class="brk-troop-portrait" src="${menuPortraitSrc(ut) || ''}" alt="" loading="lazy" decoding="async" />`;
   html += '<div class="brk-troop-vignette"></div>';
   html += '</div>';
   html += '<div class="brk-skill-hero-copy">';
@@ -13875,7 +13894,7 @@ function barracksKnightSkillTreeHtml(p, ut) {
   html += '<button type="button" class="brk-skill-back" data-barracks-skills-back="1">← All troops</button>';
   html += '<div class="brk-skill-hero">';
   html += '<div class="brk-skill-hero-art">';
-  html += `<img class="brk-troop-portrait" src="/TDG/portraits/${ut}.webp" alt="" loading="lazy" decoding="async" />`;
+  html += `<img class="brk-troop-portrait" src="${menuPortraitSrc(ut) || ''}" alt="" loading="lazy" decoding="async" />`;
   html += '<div class="brk-troop-vignette"></div>';
   html += '</div>';
   html += '<div class="brk-skill-hero-copy">';
@@ -13887,7 +13906,7 @@ function barracksKnightSkillTreeHtml(p, ut) {
   html += '<div class="brk-knight-tree">';
   html += '<div class="brk-knight-root">';
   html += '<div class="brk-knight-root-art">';
-  html += `<img src="/TDG/portraits/${ut}.webp" alt="" loading="lazy" decoding="async" />`;
+  html += `<img src="${menuPortraitSrc(ut) || ''}" alt="" loading="lazy" decoding="async" />`;
   html += '<div class="brk-troop-vignette"></div>';
   html += '</div>';
   html += `<div class="brk-knight-root-name">${escapeHtml(label)}</div>`;
@@ -13940,7 +13959,7 @@ function barracksUnitSkillTreeHtml(p, ut) {
   html += '<button type="button" class="brk-skill-back" data-barracks-skills-back="1">← All troops</button>';
   html += '<div class="brk-skill-hero">';
   html += '<div class="brk-skill-hero-art">';
-  html += `<img class="brk-troop-portrait" src="/TDG/portraits/${ut}.webp" alt="" loading="lazy" decoding="async" />`;
+  html += `<img class="brk-troop-portrait" src="${menuPortraitSrc(ut) || ''}" alt="" loading="lazy" decoding="async" />`;
   html += '<div class="brk-troop-vignette"></div>';
   html += '</div>';
   html += '<div class="brk-skill-hero-copy">';
@@ -14038,7 +14057,7 @@ function updateBarracksUpgradeUI(force) {
 
     html += `<div class="brk-troop-card${unlocked ? ' is-owned' : ''}${locked ? ' is-locked' : ''}${isHero ? ' is-hero' : ''}">`;
     html += '<div class="brk-troop-portrait-wrap">';
-    html += `<img class="brk-troop-portrait" src="/TDG/portraits/${ut}.webp" alt="" loading="lazy" decoding="async" />`;
+    html += `<img class="brk-troop-portrait" src="${menuPortraitSrc(ut) || ''}" alt="" loading="lazy" decoding="async" />`;
     html += '<div class="brk-troop-vignette"></div>';
     if (unlocked) {
       html += '<div class="brk-troop-badge is-owned-tag">Recruited</div>';
@@ -41661,12 +41680,14 @@ document.getElementById('skins-content')?.addEventListener('click', (e) => {
     const skin = CUSTOM_SKINS[equip.getAttribute('data-skin-equip')];
     if (skin) setEquippedSkin(skin.unitType, skin.id);
     buildSkinsShopUI();
+    refreshPortraitsAfterSkinChange();
     return;
   }
   const unequip = e.target.closest('[data-skin-unequip]');
   if (unequip) {
     setEquippedSkin(unequip.getAttribute('data-skin-unequip'), null);
     buildSkinsShopUI();
+    refreshPortraitsAfterSkinChange();
   }
 });
 
