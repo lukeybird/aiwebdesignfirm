@@ -162,7 +162,8 @@
     #game-stage:has(#farmers-game-screen:not(.hidden)) #hud-top,
     #game-stage:has(#survival-difficulty-screen:not(.hidden)) #hud-top,
     #game-stage:has(#manual-screen:not(.hidden)) #hud-top,
-    #game-stage:has(#rulebook-screen:not(.hidden)) #hud-top {
+    #game-stage:has(#rulebook-screen:not(.hidden)) #hud-top,
+    #game-stage:has(#skins-screen:not(.hidden)) #hud-top {
       display: none !important;
     }
 
@@ -1240,6 +1241,91 @@
       filter: brightness(1.15);
       transform: translateY(-1px);
       border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .menu-icon-btn.is-active {
+      border-color: rgba(96, 165, 250, 0.95);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 0 0 5px rgba(59, 130, 246, 0.55), 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    #skins-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 14, 12, 0.97);
+      z-index: 25;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .skins-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      padding: 4px 2px 12px;
+    }
+
+    .skin-card {
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(18, 26, 44, 0.92);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .skin-card.is-equipped {
+      border-color: rgba(250, 204, 21, 0.75);
+      box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.35), 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .skin-card-art {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #0b1220;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .skin-card-meta h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #f3efe4;
+    }
+
+    .skin-card-meta .skin-unit {
+      margin: 2px 0 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.55;
+    }
+
+    .skin-card-meta p {
+      margin: 6px 0 0;
+      font-size: 0.86rem;
+      line-height: 1.4;
+      opacity: 0.78;
+    }
+
+    .skin-card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .skin-card-actions .banner-btn {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      padding: 9px 10px;
+      font-size: 0.88rem;
+      border-radius: 10px;
     }
 
     .menu-modes-pop {
@@ -8570,6 +8656,7 @@
             <button class="menu-icon-btn" id="btn-menu-modes" type="button" title="Other game modes" aria-label="Other game modes" aria-expanded="false" aria-controls="menu-modes-pop">🎮</button>
             <button class="menu-icon-btn" id="btn-manual" type="button" title="Instruction Manual" aria-label="Instruction Manual">📘</button>
             <button class="menu-icon-btn" id="btn-rulebook" type="button" title="Rule Book" aria-label="Rule Book">📖</button>
+            <button class="menu-icon-btn" id="btn-skins" type="button" title="Custom Skins Shop" aria-label="Custom Skins Shop">🏪</button>
           </div>
         </div>
       </div>
@@ -8788,6 +8875,18 @@
           <div class="rulebook-actions">
             <button class="banner-btn secondary" id="btn-rules-reset" type="button">Reset Defaults</button>
             <button class="banner-btn" id="btn-rules-back" type="button">Save &amp; Back</button>
+          </div>
+        </div>
+      </div>
+      <div id="skins-screen" class="hidden">
+        <div class="rulebook-panel">
+          <div class="rulebook-header">
+            <h2>🏪 Custom Skins</h2>
+            <p>Cosmetic looks for your troops. Equip a skin and it appears in battle — stats stay the same.</p>
+          </div>
+          <div class="rulebook-scroll" id="skins-content"></div>
+          <div class="rulebook-actions">
+            <button class="banner-btn" id="btn-skins-back" type="button">Back to Menu</button>
           </div>
         </div>
       </div>
@@ -9753,6 +9852,8 @@ function ensureHotbarCustomSlots() {
 
 function menuPortraitSrc(id) {
   if (!id) return null;
+  const skin = getEquippedSkin(id);
+  if (skin?.portrait) return skin.portrait;
   return `/TDG/portraits/${id}.webp`;
 }
 
@@ -9847,6 +9948,22 @@ for (const type of UNIT_SPRITE_KIT_TYPES) {
 for (let i = 1; i <= 4; i++) {
   COMBAT_SPRITE_SRCS[`peka-scratch${i}`] = `/TDG/sprites/peka-scratch${i}.png`;
 }
+
+/** Cosmetic skin sprite prefixes (same frame layout as base unit kits). */
+const CUSTOM_SKIN_SPRITE_PREFIXES = ['axoloti_king_royal'];
+for (const prefix of CUSTOM_SKIN_SPRITE_PREFIXES) {
+  COMBAT_SPRITE_SRCS[prefix] = `/TDG/sprites/${prefix}.png`;
+  for (let i = 1; i <= 4; i++) {
+    COMBAT_SPRITE_SRCS[`${prefix}-idle${i}`] = `/TDG/sprites/${prefix}-idle${i}.png`;
+    COMBAT_SPRITE_SRCS[`${prefix}-block${i}`] = `/TDG/sprites/${prefix}-block${i}.png`;
+    COMBAT_SPRITE_SRCS[`${prefix}-hurt${i}`] = `/TDG/sprites/${prefix}-hurt${i}.png`;
+  }
+  for (let i = 1; i <= 8; i++) {
+    COMBAT_SPRITE_SRCS[`${prefix}-walk${i}`] = `/TDG/sprites/${prefix}-walk${i}.png`;
+    COMBAT_SPRITE_SRCS[`${prefix}-run${i}`] = `/TDG/sprites/${prefix}-run${i}.png`;
+    COMBAT_SPRITE_SRCS[`${prefix}-atk${i}`] = `/TDG/sprites/${prefix}-atk${i}.png`;
+  }
+}
 const COMBAT_SPRITES = Object.create(null);
 const COMBAT_SPRITE_READY = Object.create(null);
 
@@ -9867,6 +9984,73 @@ function combatSprite(key) {
   if (!img || !COMBAT_SPRITE_READY[key] || !img.complete || !(img.naturalWidth > 0)) return null;
   return img;
 }
+
+/** Custom cosmetic skins (shop). Equipped skins change sprite/portrait only. */
+const CUSTOM_SKINS = {
+  axoloti_king_royal: {
+    id: 'axoloti_king_royal',
+    unitType: 'axoloti_king',
+    name: 'Royal Court',
+    unitLabel: 'Axoloti King',
+    desc: 'Purple royal robes, jeweled crown, and the axolotl-topped staff — same stats, new look.',
+    portrait: '/TDG/portraits/axoloti_king_royal.webp',
+    spritePrefix: 'axoloti_king_royal',
+  },
+};
+const CUSTOM_SKINS_STORAGE_KEY = 'tdg_equipped_skins_v1';
+let equippedSkinsByUnit = Object.create(null);
+
+function loadEquippedSkins() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_SKINS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    equippedSkinsByUnit = (parsed && typeof parsed === 'object') ? parsed : Object.create(null);
+  } catch (_) {
+    equippedSkinsByUnit = Object.create(null);
+  }
+}
+
+function saveEquippedSkins() {
+  try {
+    localStorage.setItem(CUSTOM_SKINS_STORAGE_KEY, JSON.stringify(equippedSkinsByUnit));
+  } catch (_) { /* ignore quota */ }
+}
+
+function getEquippedSkinId(unitType) {
+  const id = equippedSkinsByUnit[unitType];
+  if (!id) return null;
+  const skin = CUSTOM_SKINS[id];
+  if (!skin || skin.unitType !== unitType) return null;
+  return id;
+}
+
+function getEquippedSkin(unitType) {
+  const id = getEquippedSkinId(unitType);
+  return id ? CUSTOM_SKINS[id] : null;
+}
+
+function setEquippedSkin(unitType, skinId) {
+  if (!skinId) {
+    delete equippedSkinsByUnit[unitType];
+  } else {
+    const skin = CUSTOM_SKINS[skinId];
+    if (!skin || skin.unitType !== unitType) return;
+    equippedSkinsByUnit[unitType] = skinId;
+  }
+  saveEquippedSkins();
+}
+
+function resolveUnitSpriteType(type, opts = {}) {
+  const skinId = opts.skinId
+    || (opts.unitId ? combatUnits.find((u) => u.id === opts.unitId)?.skinId : null)
+    || (opts.ownerId != null && typeof getLocalPlayerId === 'function' && opts.ownerId === getLocalPlayerId()
+      ? getEquippedSkinId(type) : null)
+    || (!opts.unitId && opts.ownerId == null ? getEquippedSkinId(type) : null);
+  if (skinId && CUSTOM_SKINS[skinId]?.spritePrefix) return CUSTOM_SKINS[skinId].spritePrefix;
+  return type;
+}
+
+loadEquippedSkins();
 
 /** Shortest signed delta from `from` to `to` in radians (−π..π). */
 function angleDelta(from, to) {
@@ -10067,8 +10251,10 @@ function drawSwordsmanCombatFrames(opts, dw, dh, footY) {
   return drawUnitCombatFrames('swordsman', opts, dw, dh, footY, true);
 }
 
-function unitSpriteKitReady(type) {
-  return !!(combatSprite(`${type}-idle1`) || combatSprite(type));
+function unitSpriteKitReady(type, opts = {}) {
+  const kitType = resolveUnitSpriteType(type, opts);
+  return !!(combatSprite(`${kitType}-idle1`) || combatSprite(kitType)
+    || combatSprite(`${type}-idle1`) || combatSprite(type));
 }
 
 function unitAnimAvailableKeys(prefix, maxN) {
@@ -10179,8 +10365,11 @@ function unitAnimSample(type, opts = {}) {
 }
 
 function drawUnitCombatFrames(type, opts, dw, dh, footY, sideView) {
-  const sample = unitAnimSample(type, opts);
+  const kitType = resolveUnitSpriteType(type, opts);
+  const sample = unitAnimSample(kitType, opts);
   const imgA = combatSprite(sample.a)
+    || combatSprite(`${kitType}-idle1`)
+    || combatSprite(kitType)
     || combatSprite(`${type}-idle1`)
     || combatSprite(type);
   if (!imgA) return false;
@@ -11223,8 +11412,53 @@ function closeRulebook() {
 let aiStatsOppFilter = 'all';
 let aiStatsRange = 'match';
 
+function buildSkinsShopUI() {
+  const el = document.getElementById('skins-content');
+  if (!el) return;
+  const skins = Object.values(CUSTOM_SKINS);
+  let html = '<div class="skins-grid">';
+  for (const skin of skins) {
+    const equipped = getEquippedSkinId(skin.unitType) === skin.id;
+    html += `<article class="skin-card${equipped ? ' is-equipped' : ''}" data-skin-id="${skin.id}">`;
+    html += `<img class="skin-card-art" src="${skin.portrait}" alt="" loading="lazy" decoding="async" />`;
+    html += '<div class="skin-card-meta">';
+    html += `<h3>${skin.name}</h3>`;
+    html += `<div class="skin-unit">${skin.unitLabel}</div>`;
+    html += `<p>${skin.desc}</p>`;
+    html += '</div>';
+    html += '<div class="skin-card-actions">';
+    if (equipped) {
+      html += `<button type="button" class="banner-btn secondary" data-skin-unequip="${skin.unitType}">Unequip</button>`;
+    } else {
+      html += `<button type="button" class="banner-btn" data-skin-equip="${skin.id}">Equip</button>`;
+    }
+    html += '</div></article>';
+  }
+  html += '</div>';
+  if (!skins.length) {
+    html = '<p style="opacity:0.7;padding:8px;">No custom skins available yet.</p>';
+  }
+  el.innerHTML = html;
+}
+
+function openSkinsShop() {
+  closeMenuModesPop();
+  closeAiStats();
+  document.getElementById('manual-screen')?.classList.add('hidden');
+  document.getElementById('rulebook-screen')?.classList.add('hidden');
+  buildSkinsShopUI();
+  document.getElementById('skins-screen')?.classList.remove('hidden');
+  document.getElementById('btn-skins')?.classList.add('is-active');
+}
+
+function closeSkinsShop() {
+  document.getElementById('skins-screen')?.classList.add('hidden');
+  document.getElementById('btn-skins')?.classList.remove('is-active');
+}
+
 function openAiStats() {
   closeMenuModesPop();
+  closeSkinsShop();
   document.getElementById('manual-screen')?.classList.add('hidden');
   document.getElementById('rulebook-screen')?.classList.add('hidden');
   document.getElementById('ai-stats-screen')?.classList.remove('hidden');
@@ -11829,6 +12063,7 @@ function buildManualUI() {
 }
 
 function openManual() {
+  closeSkinsShop();
   buildManualUI();
   document.getElementById('manual-screen').classList.remove('hidden');
 }
@@ -21474,6 +21709,7 @@ function serializeUnit(u) {
     whRetaliateTypes: u.whRetaliateTypes ? [...u.whRetaliateTypes] : [],
     whFocusId: u.whFocusId || null,
     spearBleed: u.spearBleed ? { ...u.spearBleed } : undefined,
+    skinId: u.skinId || null,
   };
 }
 
@@ -26041,6 +26277,7 @@ function makeCombatUnit(d, ownerId) {
     isMini: false,
     joustReady: ut.behavior === 'knight',
     farmAcc: d.type === 'farmer' ? 0 : undefined,
+    skinId: d.skinId || getEquippedSkinId(d.type) || null,
   };
   if (d.type === 'yeti' || ut.behavior === 'wander') {
     u.homeX = d.x;
@@ -30659,7 +30896,7 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
   const h = sz * 1.1 * sc;
 
   // Ellipse fallback only when we won't draw a sprite-shaped shadow.
-  const kitSpriteReady = unitSpriteKitReady(type) || (type === 'swordsman' && !!(combatSprite('swordsman-idle1') || combatSprite('swordsman')));
+  const kitSpriteReady = unitSpriteKitReady(type, opts) || (type === 'swordsman' && !!(combatSprite('swordsman-idle1') || combatSprite('swordsman')));
   if (!kitSpriteReady && type !== 'swordsman' && type !== 'wolf_hunter' && type !== 'yeti' && type !== 'angel' && type !== 'bowman') {
     drawGroundShadow(x, cy, w * 0.5, h * 0.22);
   }
@@ -30699,7 +30936,7 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
   ctx.scale(attackPose.sx, attackPose.sy);
 
   // Generic combat sprites for all kit units (swordsman keeps special strike FX below).
-  if (type !== 'swordsman' && unitSpriteKitReady(type)) {
+  if (type !== 'swordsman' && unitSpriteKitReady(type, opts)) {
     // Top-down kits sit in padded frames — scale up the ones that read tiny in battle.
     const typeScale = type === 'peka' ? 1.32
       : type === 'tank' ? 1.35
@@ -32841,6 +33078,7 @@ function drawUnit(u) {
         : (hunterAction ? (u.attackPhase || 'strike') : (u.attackPhase || 'idle'));
       drawUnitSprite(spriteType, drawX, u.y + shakeY - leapLift - angelLift, u.facing, sz, {
         bob, isMini: u.isMini, freeBloopTier: u.freeBloopTier, unitId: u.id, ownerId: u.owner,
+        skinId: u.skinId || null,
         joustReady: u.joustReady,
         attackPhase: drawAtkPhase,
         attackProgress: (isWerewolf || hunterMoving || drawAtkPhase === 'idle')
@@ -36674,9 +36912,10 @@ function findAxolotiKingTargets(king, count) {
 /** World-space muzzle for Axoloti King solar beam (extended hands). */
 function axolotiKingBeamMuzzle(king, angle, handIndex, handCount) {
   const sz = getUnitSize(king) || unitDef(king.type, king.owner)?.size || 26;
-  // Hands sit forward of center at roughly chest height on the side-view kit.
-  const forward = sz * 0.92;
-  const lift = -sz * 0.22;
+  const royal = (king.skinId || getEquippedSkinId(king.type)) === 'axoloti_king_royal';
+  // Default: palms; Royal Court skin fires from the staff's axolotl tip.
+  const forward = royal ? sz * 1.35 : sz * 0.92;
+  const lift = royal ? -sz * 0.55 : -sz * 0.22;
   let ox = Math.cos(angle) * forward - Math.sin(angle) * lift;
   let oy = Math.sin(angle) * forward + Math.cos(angle) * lift;
   if (handCount > 1) {
@@ -41333,15 +41572,36 @@ document.getElementById('hotbar-loadout-clear-tool')?.addEventListener('click', 
 
 document.getElementById('btn-rulebook').addEventListener('click', () => {
   closeMenuModesPop();
+  closeSkinsShop();
   openRulebook();
 });
 document.getElementById('btn-rules-back').addEventListener('click', closeRulebook);
 document.getElementById('btn-rules-reset').addEventListener('click', resetRulesToDefaults);
 document.getElementById('btn-manual').addEventListener('click', () => {
   closeMenuModesPop();
+  closeSkinsShop();
   openManual();
 });
 document.getElementById('btn-manual-back').addEventListener('click', closeManual);
+document.getElementById('btn-skins')?.addEventListener('click', () => {
+  closeMenuModesPop();
+  openSkinsShop();
+});
+document.getElementById('btn-skins-back')?.addEventListener('click', closeSkinsShop);
+document.getElementById('skins-content')?.addEventListener('click', (e) => {
+  const equip = e.target.closest('[data-skin-equip]');
+  if (equip) {
+    const skin = CUSTOM_SKINS[equip.getAttribute('data-skin-equip')];
+    if (skin) setEquippedSkin(skin.unitType, skin.id);
+    buildSkinsShopUI();
+    return;
+  }
+  const unequip = e.target.closest('[data-skin-unequip]');
+  if (unequip) {
+    setEquippedSkin(unequip.getAttribute('data-skin-unequip'), null);
+    buildSkinsShopUI();
+  }
+});
 
 function closeMenuModesPop() {
   const pop = document.getElementById('menu-modes-pop');
