@@ -8985,6 +8985,20 @@ const UNIT_TYPES = {
     prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: false,
     unique: true,
   },
+  /** Water spear troop — close-range trident melee. Slow HP regen. */
+  axoloti: {
+    name: 'Axoloti', hp: 88, speed: 50, damage: 18, attackRate: 0.92, range: 34, cost: 55,
+    color: '#f9a8d4', accent: '#22d3ee', size: 22, behavior: 'axoloti',
+    element: 'water', waterRegen: true,
+    prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: true,
+  },
+  /** Hero — golden solar beam (≈2/5 Archer Tower range). Hits air + ground. Slow HP regen. */
+  axoloti_king: {
+    name: 'Axoloti King', hp: 210, speed: 44, damage: 16, attackRate: 2.4, range: 208, cost: 220,
+    color: '#facc15', accent: '#b91c1c', size: 26, behavior: 'axoloti_king',
+    element: 'water', waterRegen: true, unique: true, beamTargets: 1,
+    prefersUnits: true, targetsUnits: true, targetsTowers: true, targetsBase: false,
+  },
 };
 
 const TOWER_TYPES = {
@@ -9358,7 +9372,7 @@ const DEFAULT_GAME_RULES = {
   mintIncome: 42,
   bloopBounty: true,
   achievements: true,
-  units: { tank: true, speed: true, striker: true, farmer: false, sniper: true, bowman: true, swordsman: true, bloop: true, peka: true, goblin: false, yeti: false, angel: true, wolf_hunter: true },
+  units: { tank: true, speed: true, striker: true, farmer: false, sniper: true, bowman: true, swordsman: true, bloop: true, peka: true, goblin: false, yeti: false, angel: true, wolf_hunter: true, axoloti: true, axoloti_king: true },
   towers: { turret: true, laser: true, spread: true, missile: false, archer: true, catapult: true, mint: true, farm: true, barracks: false, engineers: false, laboratory: false },
 };
 
@@ -9378,7 +9392,7 @@ function enabledTowerTypes() {
 function firstEnabledDeployTool() {
   const live = typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive();
   if (live) return 'move';
-  const order = ['tank', 'speed', 'striker', 'swordsman', 'sniper', 'bowman', 'peka', 'turret', 'laser', 'spread', 'archer', 'catapult', 'farm', 'mint'];
+  const order = ['tank', 'speed', 'striker', 'swordsman', 'axoloti', 'sniper', 'bowman', 'axoloti_king', 'peka', 'turret', 'laser', 'spread', 'archer', 'catapult', 'farm', 'mint'];
   for (const t of order) {
     if (UNIT_TYPES[t] && isUnitEnabled(t)) return t;
     if (TOWER_TYPES[t] && isTowerEnabled(t)) return t;
@@ -9409,7 +9423,7 @@ const HOTBAR_GAME_START = [
 const HOTBAR_FILL_ORDER = [
   'barracks', 'engineers', 'laboratory',
   'farm', 'mint',
-  'wolf_hunter', 'angel', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
+  'wolf_hunter', 'angel', 'axoloti_king', 'axoloti', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
   'turret', 'laser', 'spread', 'archer', 'catapult',
   'fireball', 'slime', 'heal', 'slow', 'rage',
 ];
@@ -9456,6 +9470,8 @@ const HOTBAR_GLYPHS = {
   speed: '🐺',
   wolf_hunter: '🔱',
   angel: '👼',
+  axoloti: '🔱',
+  axoloti_king: '👑',
   striker: '🐴',
   swordsman: '⚔️',
   farmer: '👨‍🌾',
@@ -9484,7 +9500,7 @@ const HOTBAR_GLYPHS = {
 };
 
 const HOTBAR_PORTRAIT_IDS = new Set([
-  'wolf_hunter', 'angel', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
+  'wolf_hunter', 'angel', 'axoloti_king', 'axoloti', 'striker', 'swordsman', 'farmer', 'tank', 'goblin', 'speed', 'sniper', 'bowman', 'yeti', 'peka',
   'turret', 'laser', 'spread', 'archer', 'catapult',
   'fireball', 'slime', 'heal', 'slow', 'rage',
   'farm', 'mint', 'barracks', 'engineers', 'laboratory', 'commander',
@@ -9806,11 +9822,11 @@ const COMBAT_SPRITE_SRCS = {
 
 /** Auto-register full knight-parity kits for non-swordsman units (files may load progressively). */
 const UNIT_SPRITE_KIT_TYPES = [
-  'bowman', 'wolf_hunter', 'yeti', 'angel', 'tank', 'speed', 'striker',
+  'bowman', 'wolf_hunter', 'yeti', 'angel', 'axoloti', 'axoloti_king', 'tank', 'speed', 'striker',
   'farmer', 'sniper', 'peka', 'bloop', 'goblin',
 ];
 const UNIT_SPRITE_SIDE_VIEW = new Set([
-  'swordsman', 'bowman', 'sniper', 'wolf_hunter', 'yeti', 'angel',
+  'swordsman', 'bowman', 'sniper', 'wolf_hunter', 'yeti', 'angel', 'axoloti', 'axoloti_king',
   'tank', 'speed', 'striker', 'peka', 'bloop', 'goblin', 'farmer',
 ]);
 /** Fast units prefer run cycle when those frames exist. */
@@ -11685,6 +11701,8 @@ const UNIT_MANUAL = {
   peka: 'Epic flying dragon. Hunts Goblins first, ignores Snipers. Weak to Turrets and Snipers. Lobs meteor blasts that explode for area damage and leave a weaker fire field behind.',
   yeti: 'Hero ice giant. Only one on the field. A blizzard whirls around it — slight damage, half speed, and disoriented attacks for enemies inside. Scratches with frosty claws (area damage). Every 10s it leaps onto the nearest troop with a slam. Puts out nearby fire. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s.',
   angel: 'Hero of wrath. Only one on the field. From the sky it looses a quiver of holy arrows (3, or 6/9 from the barracks bazaar) — preferring distinct targets, looping if few remain. One nearby troop → dives to cut it down, then rises again. Keeps hunting enemy units (and towers) — never rushes the enemy base. Landing blast stuns 0.5s. Wings block up to 3 projectiles and hurl them back. Barracks bazaar: Fire Arrows (seal at 3) or More Arrows (6), then Electric (stay at 6) or Max Quiver (9).',
+  axoloti: 'Water spear troop. Close-range trident melee. Slowly regenerates health over time. Barracks branch tree upgrades Attack, Health, and Speed.',
+  axoloti_king: 'Hero of the reef. Only one on the field. Fires a short golden solar beam (≈2/5 Archer Tower range) that hits both air and ground — Inferno Dragon style. Barracks bazaar: Golden Seaweed (HP ×2), Twin Solar Beams (2 targets), Red Crystal (+beam damage). Slow water regen.',
   bloop: 'Cheap jelly rush unit. Ignores fights and beelines for the enemy base. Splits into two mini-Bloops when killed. Killing enemy Bloops earns you gold bounties!',
 };
 
@@ -12376,7 +12394,7 @@ function tieredStatIcon(glyph, tier) {
 }
 
 const UNIT_THEME_MAP = {
-  tank: 'tank', speed: 'speed', goblin: 'goblin', striker: 'knight', swordsman: 'knight', farmer: 'farm', sniper: 'sniper', bowman: 'sniper', yeti: 'yeti', peka: 'peka', angel: 'peka',
+  tank: 'tank', speed: 'speed', goblin: 'goblin', striker: 'knight', swordsman: 'knight', farmer: 'farm', sniper: 'sniper', bowman: 'sniper', yeti: 'yeti', peka: 'peka', angel: 'peka', axoloti: 'knight', axoloti_king: 'peka',
 };
 const STAT_THEME_MAP = { speed: 'spd', damage: 'atk', health: 'hp' };
 const ENG_THEME_MAP = { damage: 'eng-dmg', range: 'eng-rng', health: 'eng-hp', knockback: 'eng-push', firerate: 'eng-rate' };
@@ -12469,7 +12487,7 @@ function econRoofArcherArrowMeta(tier) {
   };
 }
 
-const UNIT_SKILL_ICONS = { tank: '🐘', speed: '🐺', goblin: '👺', striker: '🐴', swordsman: '⚔️', farmer: '👨‍🌾', sniper: '🎯', bowman: '🏹', yeti: '❄️', peka: '🐉', angel: '👼' };
+const UNIT_SKILL_ICONS = { tank: '🐘', speed: '🐺', goblin: '👺', striker: '🐴', swordsman: '⚔️', farmer: '👨‍🌾', sniper: '🎯', bowman: '🏹', yeti: '❄️', peka: '🐉', angel: '👼', axoloti: '🔱', axoloti_king: '👑' };
 const STAT_SKILL_ICONS = { speed: '⚡', damage: '⚔️', health: '❤️' };
 
 function barracksUnlockMeta(ut) {
@@ -12487,6 +12505,11 @@ function barracksUnlockMeta(ut) {
     swordsman: `Unlock Swordsmen (${cost} gold). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Shiny plate footsoldiers — same pace as Archers, strong melee line.`,
     yeti: `Unlock Yeti hero (${cost} gold). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Personal blizzard: slight damage, half move speed, and confused attack aim. Claw scratch hits in an area. Leaps onto the nearest troop every 10s. Puts out nearby fire. Wolves that bite it freeze solid 5s then keep permanent frost. Death freezes nearby 3s; frozen take ×3 damage.`,
     angel: `Unlock Angel hero (${cost} gold). Deploy ${base.cost} gold. Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Only one on the field. Aerial quiver (3/6/9), landing stun, sword until a kill, wing reflects. Bazaar: Fire (3) vs More Arrows (6) → Electric or Max Quiver (9).`,
+<<<<<<< HEAD
+=======
+    axoloti: `Unlock Axoloti (${cost} gold). Deploy ${base.cost} gold. Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Close-range water spear troop with slow HP regen.`,
+    axoloti_king: `Unlock Axoloti King hero (${cost} gold). Deploy ${base.cost} gold. Base stats: ${base.hp} HP, ${base.damage} dmg, range ${base.range}. Only one on the field. Golden solar beam hits air + ground. Bazaar: Golden Seaweed, Twin Beams, Red Crystal. Water regen.`,
+>>>>>>> 9f4a159 (Add Axoloti and Axoloti King units with sprite packs and upgrades.)
     peka: `Unlock Dragons (${cost} gold). Base stats: ${base.hp} HP, ${base.damage} dmg, speed ${base.speed}. Flies farther out; lob meteor blasts that explode for area damage and leave mild ground fire; uses a heavy 2.25× claw swipe up close; chases Goblins first; weak to Turrets & Snipers.`,
   };
   return {
@@ -22530,37 +22553,39 @@ function endSurvivalLive() {
 // Counter multipliers: attacker type -> defender type
 const COUNTERS = {
   // Elephant: strong vs Spreaders (immune to shock/knockback), extremely weak vs Wolves.
-  tank:    { tank: 1.0, speed: 0.45, wolf_hunter: 0.85, angel: 1.0, striker: 1.2,  swordsman: 1.15, farmer: 1.15, sniper: 0.85, bowman: 0.9,  yeti: 0.9,  peka: 0.85, bloop: 1.05, goblin: 1.1,  turret: 1.15, laser: 1.2,  spread: 1.45, missile: 0.95, archer: 1.25, catapult: 1.2,  mint: 1.1,  farm: 1.1,  base: 0.95 },
+  tank:    { tank: 1.0, speed: 0.45, wolf_hunter: 0.85, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 1.2,  swordsman: 1.15, farmer: 1.15, sniper: 0.85, bowman: 0.9,  yeti: 0.9,  peka: 0.85, bloop: 1.05, goblin: 1.1,  turret: 1.15, laser: 1.2,  spread: 1.45, missile: 0.95, archer: 1.25, catapult: 1.2,  mint: 1.1,  farm: 1.1,  base: 0.95 },
   // Wolf: pack devours Elephants; double damage to Snipers (who can't track them); strong vs most towers.
-  speed:   { tank: 1.45, speed: 1.0, wolf_hunter: 0.35, angel: 1.2, striker: 1.3,  swordsman: 1.25, farmer: 1.35, sniper: 2.0,  bowman: 1.85, yeti: 1.15, peka: 0.6,  bloop: 1.05, goblin: 1.1,  turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  archer: 0.75, catapult: 1.15, mint: 1.15, farm: 1.15, base: 1.25 },
+  speed:   { tank: 1.45, speed: 1.0, wolf_hunter: 0.35, angel: 1.2, axoloti: 1.0, axoloti_king: 1.0, striker: 1.3,  swordsman: 1.25, farmer: 1.35, sniper: 2.0,  bowman: 1.85, yeti: 1.15, peka: 0.6,  bloop: 1.05, goblin: 1.1,  turret: 1.25, laser: 0.6,  spread: 0.65, missile: 1.2,  archer: 0.75, catapult: 1.15, mint: 1.15, farm: 1.15, base: 1.25 },
   // Wolf Hunter: assassin specialized to cull wolves; soft into every other fight.
-  wolf_hunter: { tank: 1.35, speed: 2.2, wolf_hunter: 1.0, angel: 1.0, striker: 0.55, swordsman: 0.6, farmer: 0.7, sniper: 0.55, bowman: 0.6, yeti: 0.45, peka: 0.3, bloop: 0.7, goblin: 0.65, turret: 0.4, laser: 0.35, spread: 0.4, missile: 0.4, archer: 0.4, catapult: 0.4, mint: 0.5, farm: 0.5, base: 0.35 },
+  wolf_hunter: { tank: 1.35, speed: 2.2, wolf_hunter: 1.0, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.55, swordsman: 0.6, farmer: 0.7, sniper: 0.55, bowman: 0.6, yeti: 0.45, peka: 0.3, bloop: 0.7, goblin: 0.65, turret: 0.4, laser: 0.35, spread: 0.4, missile: 0.4, archer: 0.4, catapult: 0.4, mint: 0.5, farm: 0.5, base: 0.35 },
   // Knight: strong vs Wolves and almost every unit/tower; does only 1/4 damage to Elephants; weak vs Sniper and Dragons.
-  striker: { tank: 0.25, speed: 1.35, wolf_hunter: 1.1, angel: 1.0, striker: 1.0,  swordsman: 1.05, farmer: 1.1,  sniper: 1.2,  bowman: 1.15, yeti: 1.05, peka: 0.65, bloop: 1.15, goblin: 1.2,  turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.2,  farm: 1.2,  base: 1.2 },
+  striker: { tank: 0.25, speed: 1.35, wolf_hunter: 1.1, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 1.0,  swordsman: 1.05, farmer: 1.1,  sniper: 1.2,  bowman: 1.15, yeti: 1.05, peka: 0.65, bloop: 1.15, goblin: 1.2,  turret: 1.3,  laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.2,  farm: 1.2,  base: 1.2 },
   // Swordsman: polished footsoldier — strong vs Wolves; plate shrugs off arrows (see archer/bowman rows); struggles into Elephant hide.
-  swordsman: { tank: 0.45, speed: 1.3,  wolf_hunter: 1.05, angel: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.1,  sniper: 1.15, bowman: 1.2,  yeti: 1.05, peka: 0.7,  bloop: 1.15, goblin: 1.2,  turret: 1.25, laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.15, farm: 1.15, base: 1.15 },
+  swordsman: { tank: 0.45, speed: 1.3,  wolf_hunter: 1.05, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.1,  sniper: 1.15, bowman: 1.2,  yeti: 1.05, peka: 0.7,  bloop: 1.15, goblin: 1.2,  turret: 1.25, laser: 1.05, spread: 1.1,  missile: 1.0,  archer: 1.15, catapult: 1.1,  mint: 1.15, farm: 1.15, base: 1.15 },
   // Farmer: half-Knight scrap stats — same matchups, a bit softer presence.
-  farmer:  { tank: 0.25, speed: 1.35, wolf_hunter: 1.0, angel: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.0,  sniper: 1.15, bowman: 1.1,  yeti: 1.0,  peka: 0.6,  bloop: 1.1,  goblin: 2.3, turret: 1.25, laser: 1.0,  spread: 1.05, missile: 0.95, archer: 1.1,  catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.15 },
+  farmer:  { tank: 0.25, speed: 1.35, wolf_hunter: 1.0, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.95, swordsman: 1.0, farmer: 1.0,  sniper: 1.15, bowman: 1.1,  yeti: 1.0,  peka: 0.6,  bloop: 1.1,  goblin: 2.3, turret: 1.25, laser: 1.0,  spread: 1.05, missile: 0.95, archer: 1.1,  catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.15 },
   // Sniper: strong with a frontline tank; extremely weak vs Wolves (their hard counter).
-  sniper:  { tank: 1.05, speed: 0.4,  wolf_hunter: 0.95, angel: 1.3, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.0,  bowman: 1.0,  yeti: 1.25, peka: 1.35, bloop: 0.95, goblin: 0.9,  turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, archer: 0.9,  catapult: 0.95, mint: 1.2,  farm: 1.2,  base: 1.1 },
+  sniper:  { tank: 1.05, speed: 0.4,  wolf_hunter: 0.95, angel: 1.3, axoloti: 1.0, axoloti_king: 1.0, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.0,  bowman: 1.0,  yeti: 1.25, peka: 1.35, bloop: 0.95, goblin: 0.9,  turret: 1.25, laser: 0.75, spread: 0.7,  missile: 0.85, archer: 0.9,  catapult: 0.95, mint: 1.2,  farm: 1.2,  base: 1.1 },
   // Archer (troop): mid-range bowmen — can hit Wolves but only at 1/4 damage; arrows deal 1/2 vs Swordsmen plate.
-  bowman:  { tank: 1.1,  speed: 0.25, wolf_hunter: 0.95, angel: 1.2, striker: 1.2,  swordsman: 0.5, farmer: 1.25, sniper: 0.95, bowman: 1.0,  yeti: 1.2,  peka: 1.25, bloop: 1.0,  goblin: 1.0,  turret: 1.2,  laser: 0.8,  spread: 0.75, missile: 0.9,  archer: 0.95, catapult: 1.0,  mint: 1.15, farm: 1.15, base: 1.05 },
+  bowman:  { tank: 1.1,  speed: 0.25, wolf_hunter: 0.95, angel: 1.2, axoloti: 1.0, axoloti_king: 1.0, striker: 1.2,  swordsman: 0.5, farmer: 1.25, sniper: 0.95, bowman: 1.0,  yeti: 1.2,  peka: 1.25, bloop: 1.0,  goblin: 1.0,  turret: 1.2,  laser: 0.8,  spread: 0.75, missile: 0.9,  archer: 0.95, catapult: 1.0,  mint: 1.15, farm: 1.15, base: 1.05 },
   // Yeti: freezing punches punish packs; struggles vs long range and dragons.
-  yeti:    { tank: 1.1,  speed: 1.25, wolf_hunter: 1.05, angel: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1,  sniper: 0.85, bowman: 0.9,  yeti: 1.0,  peka: 0.7,  bloop: 1.1,  goblin: 1.15, turret: 1.15, laser: 0.9,  spread: 1.2,  missile: 1.0,  archer: 0.85, catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.1 },
-  angel:    { tank: 1.05, speed: 1.15, wolf_hunter: 0.85, angel: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1, sniper: 0.95, bowman: 1.0, yeti: 1.0, peka: 1.2, bloop: 1.1, goblin: 1.2, turret: 1.15, laser: 0.95, spread: 1.05, missile: 0.95, archer: 0.9, catapult: 1.0, mint: 1.1, farm: 1.1, base: 1.1 },
+  yeti:    { tank: 1.1,  speed: 1.25, wolf_hunter: 1.05, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1,  sniper: 0.85, bowman: 0.9,  yeti: 1.0,  peka: 0.7,  bloop: 1.1,  goblin: 1.15, turret: 1.15, laser: 0.9,  spread: 1.2,  missile: 1.0,  archer: 0.85, catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.1 },
+  angel:    { tank: 1.05, speed: 1.15, wolf_hunter: 0.85, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1, sniper: 0.95, bowman: 1.0, yeti: 1.0, peka: 1.2, bloop: 1.1, goblin: 1.2, turret: 1.15, laser: 0.95, spread: 1.05, missile: 0.95, archer: 0.9, catapult: 1.0, mint: 1.1, farm: 1.1, base: 1.1 },
+  axoloti: { tank: 0.55, speed: 1.25, wolf_hunter: 1.0, angel: 1.0, axoloti: 1.0, axoloti_king: 0.9, striker: 1.0, swordsman: 1.05, farmer: 1.1, sniper: 1.1, bowman: 1.15, yeti: 1.05, peka: 0.75, bloop: 1.15, goblin: 1.2, turret: 1.2, laser: 1.0, spread: 1.1, missile: 1.0, archer: 1.1, catapult: 1.05, mint: 1.15, farm: 1.15, base: 1.1 },
+  axoloti_king: { tank: 1.05, speed: 1.1, wolf_hunter: 0.9, angel: 1.05, axoloti: 1.1, axoloti_king: 1.0, striker: 1.05, swordsman: 1.05, farmer: 1.1, sniper: 1.15, bowman: 1.1, yeti: 1.05, peka: 1.25, bloop: 1.1, goblin: 1.15, turret: 1.1, laser: 0.95, spread: 1.05, missile: 0.95, archer: 0.95, catapult: 1.0, mint: 1.1, farm: 1.1, base: 1.05 },
   // Dragon: weak to Turrets & Snipers; hates Goblins (chases them first). Archer volleys also threaten them.
-  peka:    { tank: 1.15, speed: 0.5,  wolf_hunter: 0.7, angel: 1.0, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 1.2,  bowman: 1.15, yeti: 1.15, peka: 1.0,  bloop: 0.9,  goblin: 1.5,  turret: 1.35, laser: 1.3,  spread: 0.95, missile: 1.15, archer: 1.2,  catapult: 0.7,  mint: 1.25, farm: 1.25, base: 1.15 },
-  bloop:   { tank: 0.9,  speed: 1.0,  wolf_hunter: 0.85, angel: 1.0, striker: 0.8,  swordsman: 0.85, farmer: 0.85, sniper: 0.8,  bowman: 0.85, yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 0.95, turret: 1.0,  laser: 0.85, spread: 1.05, missile: 1.05, archer: 1.05, catapult: 1.05, mint: 1.05, farm: 1.05, base: 1.0 },
-  goblin:  { tank: 0.85, speed: 0.9,  wolf_hunter: 0.75, angel: 1.0, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 0.7,  bowman: 0.75, yeti: 0.8,  peka: 0.55, bloop: 1.0,  goblin: 1.0,  turret: 1.35, laser: 0,    spread: 1.1,  missile: 0.9,  archer: 1.05, catapult: 1.1,  mint: 1.4,  farm: 1.4,  base: 0.4 },
-  turret:  { tank: 0.9,  speed: 0.7,  wolf_hunter: 0, angel: 1.25, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.15, bowman: 1.1,  yeti: 1.05, peka: 1.1,  bloop: 0.85, goblin: 1.1,  turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
-  laser:   { tank: 1.15, speed: 0.5,  wolf_hunter: 0, angel: 1.0, striker: 0.85, swordsman: 0.88, farmer: 0.9,  sniper: 1.35, bowman: 1.25, yeti: 1.1,  peka: 1.2,  bloop: 1.0,  goblin: 0,    turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
-  spread:  { tank: 0.55, speed: 1.1,  wolf_hunter: 0, angel: 1.0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.25, bowman: 1.2,  yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 1.15, turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  peka:    { tank: 1.15, speed: 0.5,  wolf_hunter: 0.7, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 1.2,  bowman: 1.15, yeti: 1.15, peka: 1.0,  bloop: 0.9,  goblin: 1.5,  turret: 1.35, laser: 1.3,  spread: 0.95, missile: 1.15, archer: 1.2,  catapult: 0.7,  mint: 1.25, farm: 1.25, base: 1.15 },
+  bloop:   { tank: 0.9,  speed: 1.0,  wolf_hunter: 0.85, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.8,  swordsman: 0.85, farmer: 0.85, sniper: 0.8,  bowman: 0.85, yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 0.95, turret: 1.0,  laser: 0.85, spread: 1.05, missile: 1.05, archer: 1.05, catapult: 1.05, mint: 1.05, farm: 1.05, base: 1.0 },
+  goblin:  { tank: 0.85, speed: 0.9,  wolf_hunter: 0.75, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.75, swordsman: 0.8, farmer: 0.8,  sniper: 0.7,  bowman: 0.75, yeti: 0.8,  peka: 0.55, bloop: 1.0,  goblin: 1.0,  turret: 1.35, laser: 0,    spread: 1.1,  missile: 0.9,  archer: 1.05, catapult: 1.1,  mint: 1.4,  farm: 1.4,  base: 0.4 },
+  turret:  { tank: 0.9,  speed: 0.7,  wolf_hunter: 0, angel: 1.25,axoloti: 1.0, axoloti_king: 1.0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.15, bowman: 1.1,  yeti: 1.05, peka: 1.1,  bloop: 0.85, goblin: 1.1,  turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  laser:   { tank: 1.15, speed: 0.5,  wolf_hunter: 0, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.85, swordsman: 0.88, farmer: 0.9,  sniper: 1.35, bowman: 1.25, yeti: 1.1,  peka: 1.2,  bloop: 1.0,  goblin: 0,    turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
+  spread:  { tank: 0.55, speed: 1.1,  wolf_hunter: 0, angel: 1.0, axoloti: 1.0, axoloti_king: 1.0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.25, bowman: 1.2,  yeti: 0.85, peka: 0.7,  bloop: 1.0,  goblin: 1.15, turret: 1.0, laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 1.0, farm: 1.0, base: 0 },
   // Missile: targets Dragons first when they are on the field.
-  missile: { tank: 0.85, speed: 1.15, wolf_hunter: 0, angel: 1.25, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.1,  bowman: 1.05, yeti: 1.05, peka: 1.35, bloop: 1.1,  goblin: 1.0,  turret: 0.8,  laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 0.9,  farm: 0.9,  base: 0.4 },
+  missile: { tank: 0.85, speed: 1.15, wolf_hunter: 0, angel: 1.25,axoloti: 1.0, axoloti_king: 1.0, striker: 0.85, swordsman: 0.9, farmer: 0.9,  sniper: 1.1,  bowman: 1.05, yeti: 1.05, peka: 1.35, bloop: 1.1,  goblin: 1.0,  turret: 0.8,  laser: 1.0, spread: 1.0, missile: 1.0, archer: 1.0, catapult: 1.0, mint: 0.9,  farm: 0.9,  base: 0.4 },
   // Archer tower: heavy vs ground; 1/4 vs Wolves; 1/2 vs Swordsmen plate; half vs dragons baked in combat.
-  archer:  { tank: 1.35, speed: 0.25, wolf_hunter: 0, angel: 1.15, striker: 1.25, swordsman: 0.5, farmer: 1.3,  sniper: 1.15, bowman: 1.2,  yeti: 1.2,  peka: 1.0,  bloop: 1.15, goblin: 1.2,  turret: 0.7,  laser: 0.75, spread: 0.8,  missile: 0.7,  archer: 1.0, catapult: 1.0, mint: 1.0,  farm: 1.0,  base: 0.35 },
+  archer:  { tank: 1.35, speed: 0.25, wolf_hunter: 0, angel: 1.15,axoloti: 1.0, axoloti_king: 1.0, striker: 1.25, swordsman: 0.5, farmer: 1.3,  sniper: 1.15, bowman: 1.2,  yeti: 1.2,  peka: 1.0,  bloop: 1.15, goblin: 1.2,  turret: 0.7,  laser: 0.75, spread: 0.8,  missile: 0.7,  archer: 1.0, catapult: 1.0, mint: 1.0,  farm: 1.0,  base: 0.35 },
   // Catapult: siege vs high-HP ground (elephants/yetis); weak vs fliers/wolves.
-  catapult:{ tank: 1.45, speed: 0.75, wolf_hunter: 0, angel: 0.7, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.1,  bowman: 1.05, yeti: 1.35, peka: 0.55, bloop: 1.05, goblin: 1.0,  turret: 0.85, laser: 0.9,  spread: 0.9,  missile: 0.85, archer: 0.9,  catapult: 1.0, mint: 1.05, farm: 1.05, base: 0.45 },
+  catapult:{ tank: 1.45, speed: 0.75, wolf_hunter: 0, angel: 0.7,axoloti: 1.0, axoloti_king: 1.0, striker: 1.15, swordsman: 1.1, farmer: 1.2,  sniper: 1.1,  bowman: 1.05, yeti: 1.35, peka: 0.55, bloop: 1.05, goblin: 1.0,  turret: 0.85, laser: 0.9,  spread: 0.9,  missile: 0.85, archer: 0.9,  catapult: 1.0, mint: 1.05, farm: 1.05, base: 0.45 },
 };
 
 const BLOOP_BOUNTY_FULL = 1.0; // full bloop cost to killer
@@ -35129,8 +35154,8 @@ function getMovementGoal(unit) {
     return yetiMovementGoal(unit, ut);
   }
 
-  // Angel: always hunt enemy units (then towers). Never path to the enemy base.
-  if (behavior === 'angel') {
+  // Angel / Axoloti King: always hunt enemy units (then towers). Never path to the enemy base.
+  if (behavior === 'angel' || behavior === 'axoloti_king') {
     const hunt = findNearestEnemyUnitAnywhere(unit);
     if (hunt) return { x: hunt.x, y: hunt.y };
     const tower = findNearestEnemyTowerAnywhere(unit);
@@ -35217,7 +35242,7 @@ function getMovementGoal(unit) {
     return basePos(enemy);
   }
 
-  if (behavior === 'knight' || behavior === 'hunter') {
+  if (behavior === 'knight' || behavior === 'hunter' || behavior === 'axoloti') {
     let bestU = null, bestUD = Infinity;
     for (const u of combatUnits) {
       if (u.owner !== enemy || u.hp <= 0 || unitIsFlying(u)) continue;
@@ -36554,6 +36579,163 @@ const DRAGON_IGNITE_DPS = 1.8;
 const DRAGON_IGNITE_LIFE = 3;
 const DRAGON_BURN_MAX_STACKS = 12;
 
+
+/** Water-type units slowly regenerate health while alive. */
+const WATER_REGEN_FRAC_PER_SEC = 0.012; // 1.2% max HP / sec
+
+function unitIsWaterType(u) {
+  if (!u) return false;
+  const ut = unitDef(u.type, u.owner) || UNIT_TYPES[u.type] || {};
+  return !!(ut.waterRegen || ut.element === 'water' || u.waterRegen || u.element === 'water');
+}
+
+function tickWaterRegen(u, dt) {
+  if (!unitIsWaterType(u) || u.hp <= 0) return;
+  if (u.hp >= u.maxHp) return;
+  const rate = (u.maxHp || 1) * WATER_REGEN_FRAC_PER_SEC;
+  u.hp = Math.min(u.maxHp, u.hp + rate * dt);
+}
+
+function isAxolotiKing(u) {
+  return !!u && (u.type === 'axoloti_king' || unitDef(u.type, u.owner)?.behavior === 'axoloti_king');
+}
+
+function axolotiKingBeamCount(u) {
+  const rec = (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive?.())
+    ? LIVE_ARMY.unitRecord?.(players[u.owner], 'axoloti_king')
+    : null;
+  if (rec && typeof LIVE_ARMY.axolotiKingBeamTargets === 'function') {
+    return LIVE_ARMY.axolotiKingBeamTargets(rec);
+  }
+  return unitDef(u.type, u.owner)?.beamTargets || 1;
+}
+
+function axolotiKingDmgMult(u) {
+  const rec = (typeof LIVE_ARMY !== 'undefined' && LIVE_ARMY.isActive?.())
+    ? LIVE_ARMY.unitRecord?.(players[u.owner], 'axoloti_king')
+    : null;
+  if (rec && typeof LIVE_ARMY.axolotiKingDamageMult === 'function') {
+    return LIVE_ARMY.axolotiKingDamageMult(rec);
+  }
+  return 1;
+}
+
+/** Beam hit test that includes flying units (gold solar beam hits air + ground). */
+function unitsOnSolarBeam(tx, ty, angle, range, beamWidth, ownerId) {
+  const cos = Math.cos(angle), sin = Math.sin(angle);
+  const hits = [];
+  for (const u of combatUnits) {
+    if (u.owner === ownerId || u.hp <= 0) continue;
+    if (wolfHunterUntargetableByTowers(u)) continue;
+    const dx = u.x - tx, dy = u.y - ty;
+    const along = dx * cos + dy * sin;
+    if (along < 0 || along > range) continue;
+    const perp = Math.abs(-dx * sin + dy * cos);
+    if (perp <= beamWidth + getUnitSize(u) * 0.45) {
+      hits.push({ unit: u, dist: along });
+    }
+  }
+  hits.sort((a, b) => a.dist - b.dist);
+  return hits;
+}
+
+function findAxolotiKingTargets(king, count) {
+  const ut = unitDef(king.type, king.owner);
+  const range = ut.range || 208;
+  const scored = [];
+  for (const u of combatUnits) {
+    if (u.owner === king.owner || u.hp <= 0) continue;
+    const d = dist(king, u);
+    if (d > range) continue;
+    scored.push({ u, d });
+  }
+  // Also allow towers if no units nearby
+  scored.sort((a, b) => a.d - b.d);
+  const picks = scored.slice(0, Math.max(1, count)).map((s) => s.u);
+  if (picks.length) return picks;
+  let bestT = null, bestD = Infinity;
+  for (const t of players[enemyId(king.owner)].turrets) {
+    if (t.hp <= 0) continue;
+    if (t.towerType === 'farm' || t.towerType === 'mint' || t.towerType === 'barracks' || t.towerType === 'engineers' || t.towerType === 'laboratory') continue;
+    const d = dist(king, t);
+    if (d < bestD && d <= range) { bestD = d; bestT = t; }
+  }
+  return bestT ? [bestT] : [];
+}
+
+function fireAxolotiKingBeam(king, target, dt) {
+  const ut = unitDef(king.type, king.owner);
+  const range = ut.range || 208;
+  const angle = Math.atan2(target.y - king.y, target.x - king.x);
+  king.facing = angle;
+  // Damage already includes Red Crystal via live-army modifyUnitDef.
+  const dps = (ut.damage || 16) * (ut.attackRate || 2.4);
+  const beamWidth = 14;
+  const color = unitHasSkillSafe(king, 'red_crystal') ? '#fb7185' : '#fde047';
+
+  // Direct aim damage on primary target + pierce soft hits along beam
+  const hits = unitsOnSolarBeam(king.x, king.y, angle, range, beamWidth, king.owner);
+  const damaged = new Set();
+  for (const hit of hits) {
+    if (damaged.has(hit.unit.id)) continue;
+    damaged.add(hit.unit.id);
+    const ctr = getCounter('axoloti_king', hit.unit.type);
+    const dmg = dps * dt * ctr;
+    hit.unit.lastHitBy = king.owner;
+    applyHpLoss(hit.unit, dmg);
+    if (Math.random() < 0.25) spawnParticles(hit.unit.x, hit.unit.y, color, 1);
+  }
+  // If primary is a tower and no units hit it via beam, damage tower directly
+  if (target.towerType && target.hp > 0) {
+    const along = Math.hypot(target.x - king.x, target.y - king.y);
+    if (along <= range) {
+      const ctr = getCounter('axoloti_king', target.towerType);
+      applyHpLoss(target, dps * dt * ctr);
+    }
+  }
+  const len = Math.min(range, hits.length ? hits[hits.length - 1].dist + 18 : Math.hypot(target.x - king.x, target.y - king.y));
+  beams.push({
+    x1: king.x, y1: king.y,
+    x2: king.x + Math.cos(angle) * len,
+    y2: king.y + Math.sin(angle) * len,
+    color, life: 0.09, maxLife: 0.09,
+    style: 'laser', width: 7, pierce: true,
+  });
+}
+
+function unitHasSkillSafe(u, skillId) {
+  try {
+    if (typeof LIVE_ARMY === 'undefined' || !LIVE_ARMY.isActive?.()) return false;
+    const rec = LIVE_ARMY.unitRecord?.(players[u.owner], u.type);
+    return !!(rec && LIVE_ARMY.unitHasSkill?.(rec, skillId));
+  } catch (_) { return false; }
+}
+
+function updateAxolotiKing(king, dt) {
+  const n = axolotiKingBeamCount(king);
+  const targets = findAxolotiKingTargets(king, n);
+  if (!targets.length) {
+    king.attackPhase = 'idle';
+    steerUnit(king, dt);
+    return;
+  }
+  king.attackPhase = 'strike';
+  king.attackT = (king.attackT || 0) + dt;
+  // Dual beam: second target gets its own ray
+  const used = Math.min(n, targets.length);
+  for (let i = 0; i < used; i++) {
+    fireAxolotiKingBeam(king, targets[i], dt);
+  }
+  // Hold position while beaming if target is in comfortable range
+  const ut = unitDef(king.type, king.owner);
+  const nearest = targets[0];
+  const d = dist(king, nearest);
+  if (d > (ut.range || 208) * 0.72) steerUnit(king, dt);
+  else {
+    king.vx = 0; king.vy = 0;
+  }
+}
+
 /** Preferred fight distance + attack-phase timings per unit type. */
 const UNIT_ATTACK_STANCE = {
   tank:    { standoff: 34, windup: 0.26, recover: 0.18 },
@@ -36566,6 +36748,8 @@ const UNIT_ATTACK_STANCE = {
   bowman:  { standoff: 220, windup: 0.18, recover: 0.12 },
   swordsman: { standoff: 30, windup: 0.42, recover: 0.24, strike: 0.22 },
   angel:    { standoff: 28, windup: 0.07, recover: 0.05, strike: 0.05 },
+  axoloti: { standoff: 28, windup: 0.2, recover: 0.14, strike: 0.1 },
+  axoloti_king: { standoff: 160, windup: 0.08, recover: 0.06, strike: 0.05 },
   peka:    { standoff: DRAGON_STANDOFF, windup: 0.2, recover: 0.15 },
   bloop:   { standoff: 22, windup: 0.2, recover: 0.14 },
 };
@@ -39666,6 +39850,15 @@ function updateCombat(dt) {
       u._douseSplashCd = Math.max(0, (u._douseSplashCd || 0) - dt);
       yetiExtinguishNearbyFire(u);
       if (updateYetiLeap(u, dt * unitSpellMoveMult(u))) continue;
+    }
+
+    // Water types: slow HP regen over time.
+    tickWaterRegen(u, dt);
+
+    // Axoloti King — continuous golden solar beam (air + ground).
+    if (isAxolotiKing(u)) {
+      updateAxolotiKing(u, dt * unitSpellAttackMult(u));
+      continue;
     }
 
     // Speared wolves panic/bleed elsewhere — skip normal AI. Other speared units keep fighting.

@@ -10,16 +10,20 @@ window.LIVE_ARMY = (function () {
 
   const COMBAT_TOWERS = ['turret', 'laser', 'spread', 'archer', 'catapult'];
   const ECON_TOWERS = ['farm', 'mint'];
-  const HERO_UNITS = ['wolf_hunter', 'angel', 'yeti'];
-  const UNIT_ORDER = ['wolf_hunter', 'angel', 'tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
+  const HERO_UNITS = ['wolf_hunter', 'angel', 'yeti', 'axoloti_king'];
+  const UNIT_ORDER = ['wolf_hunter', 'angel', 'axoloti_king', 'axoloti', 'tank', 'speed', 'goblin', 'striker', 'swordsman', 'farmer', 'sniper', 'bowman', 'yeti', 'peka'];
   const UNIT_LABELS = {
     wolf_hunter: 'Hunter',
     angel: 'Angel',
+    axoloti_king: 'Axoloti King',
+    axoloti: 'Axoloti',
     tank: 'Elephant', speed: 'Wolf', striker: 'Knight', swordsman: 'Swordsman', farmer: 'Farmer', sniper: 'Sniper', bowman: 'Archer', goblin: 'Goblin', yeti: 'Yeti', peka: 'Dragon',
   };
   const UNIT_UNLOCK_COST = {
     wolf_hunter: 300,
     angel: 150,
+    axoloti_king: 280,
+    axoloti: 90,
     tank: 100, speed: 150, striker: 100, swordsman: 50, farmer: 200, sniper: 250, bowman: 50, goblin: 125, yeti: 250, peka: 500,
   };
   function isHeroUnit(type) {
@@ -280,6 +284,52 @@ window.LIVE_ARMY = (function () {
       fin: { id: 'blizzard_king', label: 'Blizzard King', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', icon: '/TDG/portraits/skill-blizzard-king.webp' },
     }),
 
+    // Axoloti — close-range spear troop with standard branch tree.
+    axoloti: mkStandardBranchTree({
+      a: { id: 'honed_prong', label: 'Honed Prong', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', glyph: '🔱' },
+      b: { id: 'reef_stride', label: 'Reef Stride', effects: { speed: BRANCH_THIRD }, blurb: '+⅓× Speed', glyph: '🌊' },
+      mid: { id: 'tide_mail', label: 'Tide Mail', effects: { health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Health & Speed', glyph: '🛡️' },
+      c: { id: 'coral_thrust', label: 'Coral Thrust', effects: { damage: BRANCH_THIRD }, blurb: '+⅓× Attack', glyph: '⚔️' },
+      d: { id: 'gill_guard', label: 'Gill Guard', effects: { health: BRANCH_THIRD }, blurb: '+⅓× Health', glyph: '🫧' },
+      fin: { id: 'trident_crest', label: 'Trident Crest', effects: { damage: BRANCH_THIRD, health: BRANCH_THIRD, speed: BRANCH_THIRD }, blurb: '+⅓× Attack, Health & Speed — base stats ×2', glyph: '👑' },
+    }),
+
+    // Axoloti King — bazaar hero upgrades (seaweed / dual beam / red crystal).
+    axoloti_king: (() => {
+      const mk = (id, label, cost, glyph, blurb, opts = {}) => ({
+        id, label, cost, glyph, blurb,
+        requires: opts.requires || [],
+        excludes: opts.excludes || [],
+        effects: opts.effects || {},
+      });
+      const seaweed = mk(
+        'golden_seaweed', 'Golden Seaweed', 220, '🌿',
+        'Feast on golden seaweed — maximum health ×2.',
+        { effects: { healthDouble: true } },
+      );
+      const dual = mk(
+        'dual_beam', 'Twin Solar Beams', 260, '☀️',
+        'Golden laser locks onto two targets at once instead of one.',
+        { effects: { dualBeam: true } },
+      );
+      const crystal = mk(
+        'red_crystal', 'Red Crystal', 240, '💎',
+        'Crown crystal flares — beam damage ×1.55.',
+        { effects: { damage: 0.55 } },
+      );
+      const order = [seaweed.id, dual.id, crystal.id];
+      return {
+        style: 'bazaar',
+        order,
+        skills: {
+          [seaweed.id]: seaweed,
+          [dual.id]: dual,
+          [crystal.id]: crystal,
+        },
+        layout: { bazaar: order },
+      };
+    })(),
+
     // Angel — bazaar arrow path (forking like Archer Tower).
     // T1: Fire (terminal, quiver 3) OR More Arrows (quiver 6).
     // T2 after More: Electric (terminal, quiver 6) OR Max Quiver (quiver 9).
@@ -435,6 +485,19 @@ window.LIVE_ARMY = (function () {
     return els;
   }
 
+  /** Axoloti King dual-target gold beam. */
+  function axolotiKingBeamTargets(rec) {
+    return unitHasSkill(rec, 'dual_beam') ? 2 : 1;
+  }
+
+  function axolotiKingDamageMult(rec) {
+    return unitHasSkill(rec, 'red_crystal') ? 1.55 : 1;
+  }
+
+  function axolotiKingHealthMult(rec) {
+    return unitHasSkill(rec, 'golden_seaweed') ? 2 : 1;
+  }
+
   function unitSkillCost(type, skillId) {
     return unitSkillDef(type, skillId)?.cost ?? null;
   }
@@ -452,6 +515,7 @@ window.LIVE_ARMY = (function () {
       if (e.damage) damage += e.damage;
       if (e.health) health += e.health;
       if (e.speed) speed += e.speed;
+      if (e.healthDouble) health *= 2;
     }
     return { damage, health, speed };
   }
@@ -646,6 +710,8 @@ window.LIVE_ARMY = (function () {
     gameRules.units.goblin = true;
     gameRules.units.yeti = true;
     gameRules.units.angel = true;
+    gameRules.units.axoloti = true;
+    gameRules.units.axoloti_king = true;
     gameRules.units.farmer = true;
     gameRules.units.bowman = true;
     gameRules.units.swordsman = true;
@@ -816,6 +882,19 @@ window.LIVE_ARMY = (function () {
       u.targetsBase = false;
       u.immuneRailgun = true;
       u.lootMult = dmgMult;
+    } else if (type === 'axoloti') {
+      u.name = 'Axoloti';
+      u.behavior = 'axoloti';
+      u.element = 'water';
+      u.waterRegen = true;
+    } else if (type === 'axoloti_king') {
+      u.name = 'Axoloti King';
+      u.behavior = 'axoloti_king';
+      u.element = 'water';
+      u.waterRegen = true;
+      u.unique = true;
+      const recKing = playersRef?.[pid]?.liveArmy?.barracks?.units?.axoloti_king;
+      u.beamTargets = axolotiKingBeamTargets(recKing);
     }
 
     const baseHp = u.hp || 0;
@@ -1382,6 +1461,9 @@ window.LIVE_ARMY = (function () {
     unitSkillCost,
     angelQuiverSize,
     angelArrowElements,
+    axolotiKingBeamTargets,
+    axolotiKingDamageMult,
+    axolotiKingHealthMult,
     unitBranchMultipliers,
     KNIGHT_SKILLS,
     KNIGHT_SKILL_ORDER,
