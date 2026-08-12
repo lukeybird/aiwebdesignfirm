@@ -30672,7 +30672,8 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
     // head stays on top (a full π rotate would draw them upside-down).
     let faceLeft = Math.cos(faceAng) < 0;
     // Sticky side so near-vertical aim doesn't flicker L/R every frame.
-    if ((type === 'swordsman' || type === 'sniper' || type === 'bowman') && opts.unitId) {
+    if ((type === 'swordsman' || type === 'sniper' || type === 'bowman'
+        || type === 'axoloti' || type === 'axoloti_king') && opts.unitId) {
       const su = combatUnits.find((u) => u.id === opts.unitId);
       if (su) {
         const c = Math.cos(faceAng);
@@ -30709,6 +30710,8 @@ function drawUnitSprite(type, x, y, facing, sz, opts = {}) {
       : type === 'goblin' ? 1.08
       : type === 'farmer' ? 1.12
       : type === 'bloop' ? 1.2
+      : type === 'axoloti' ? 1.14
+      : type === 'axoloti_king' ? 1.18
       : 1;
     // Legacy top-down thickness (unused for side-view elephants).
     const thickY = 1;
@@ -35970,6 +35973,12 @@ function steerUnit(unit, dt) {
     if (unit.type === 'swordsman' && tgt) {
       const aim = attackTargetWorldPos(tgt);
       if (aim) unit.facing = Math.atan2(aim.y - unit.y, aim.x - unit.x);
+    } else if ((unit.type === 'axoloti' || unit.type === 'axoloti_king') && tgt) {
+      // Side-view reef troops: face chase target (or movement) so flip reads clearly.
+      const aim = attackTargetWorldPos(tgt);
+      const moveSpd = Math.hypot(unit.vx, unit.vy);
+      if (moveSpd > 8) unit.facing = Math.atan2(unit.vy, unit.vx);
+      else if (aim) unit.facing = Math.atan2(aim.y - unit.y, aim.x - unit.x);
     } else {
       const moveSpd = Math.hypot(unit.vx, unit.vy);
       if (moveSpd > 10) unit.facing = Math.atan2(unit.vy, unit.vx);
@@ -36660,18 +36669,47 @@ function findAxolotiKingTargets(king, count) {
   return bestT ? [bestT] : [];
 }
 
-function fireAxolotiKingBeam(king, target, dt) {
+/** World-space muzzle for Axoloti King solar beam (extended hands). */
+function axolotiKingBeamMuzzle(king, angle, handIndex, handCount) {
+  const sz = getUnitSize(king) || unitDef(king.type, king.owner)?.size || 26;
+  // Hands sit forward of center at roughly chest height on the side-view kit.
+  const forward = sz * 0.92;
+  const lift = -sz * 0.22;
+  let ox = Math.cos(angle) * forward - Math.sin(angle) * lift;
+  let oy = Math.sin(angle) * forward + Math.cos(angle) * lift;
+  if (handCount > 1) {
+    // Twin Solar Beams: slight lateral offset so each ray leaves a different hand.
+    const spread = sz * 0.28;
+    const side = (handIndex === 0 ? -1 : 1) * spread;
+    ox += -Math.sin(angle) * side;
+    oy += Math.cos(angle) * side;
+  }
+  return { x: king.x + ox, y: king.y + oy };
+}
+
+function fireAxolotiKingBeam(king, target, dt, handIndex = 0, handCount = 1) {
   const ut = unitDef(king.type, king.owner);
   const range = ut.range || 208;
-  const angle = Math.atan2(target.y - king.y, target.x - king.x);
-  king.facing = angle;
+  // Seed aim from body, then lock muzzle to hands and re-aim from there.
+  const rough = Math.atan2(target.y - king.y, target.x - king.x);
+  let origin = axolotiKingBeamMuzzle(king, rough, handIndex, handCount);
+  const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
+  origin = axolotiKingBeamMuzzle(king, angle, handIndex, handCount);
+  // Primary beam owns facing so dual-target fire doesn't flicker.
+  if (handIndex === 0) {
+    king.facing = angle;
+    const c = Math.cos(angle);
+    if (c < -0.28) king._faceLeft = true;
+    else if (c > 0.28) king._faceLeft = false;
+    else if (king._faceLeft == null) king._faceLeft = c < 0;
+  }
   // Damage already includes Red Crystal via live-army modifyUnitDef.
   const dps = (ut.damage || 16) * (ut.attackRate || 2.4);
   const beamWidth = 14;
   const color = unitHasSkillSafe(king, 'red_crystal') ? '#fb7185' : '#fde047';
 
   // Direct aim damage on primary target + pierce soft hits along beam
-  const hits = unitsOnSolarBeam(king.x, king.y, angle, range, beamWidth, king.owner);
+  const hits = unitsOnSolarBeam(origin.x, origin.y, angle, range, beamWidth, king.owner);
   const damaged = new Set();
   for (const hit of hits) {
     if (damaged.has(hit.unit.id)) continue;
@@ -36684,17 +36722,18 @@ function fireAxolotiKingBeam(king, target, dt) {
   }
   // If primary is a tower and no units hit it via beam, damage tower directly
   if (target.towerType && target.hp > 0) {
-    const along = Math.hypot(target.x - king.x, target.y - king.y);
+    const along = Math.hypot(target.x - origin.x, target.y - origin.y);
     if (along <= range) {
       const ctr = getCounter('axoloti_king', target.towerType);
       applyHpLoss(target, dps * dt * ctr);
     }
   }
-  const len = Math.min(range, hits.length ? hits[hits.length - 1].dist + 18 : Math.hypot(target.x - king.x, target.y - king.y));
+  const aimDist = Math.hypot(target.x - origin.x, target.y - origin.y);
+  const len = Math.min(range, hits.length ? hits[hits.length - 1].dist + 18 : aimDist);
   beams.push({
-    x1: king.x, y1: king.y,
-    x2: king.x + Math.cos(angle) * len,
-    y2: king.y + Math.sin(angle) * len,
+    x1: origin.x, y1: origin.y,
+    x2: origin.x + Math.cos(angle) * len,
+    y2: origin.y + Math.sin(angle) * len,
     color, life: 0.09, maxLife: 0.09,
     style: 'laser', width: 7, pierce: true,
   });
@@ -36718,10 +36757,10 @@ function updateAxolotiKing(king, dt) {
   }
   king.attackPhase = 'strike';
   king.attackT = (king.attackT || 0) + dt;
-  // Dual beam: second target gets its own ray
+  // Dual beam: second target gets its own ray from the other hand
   const used = Math.min(n, targets.length);
   for (let i = 0; i < used; i++) {
-    fireAxolotiKingBeam(king, targets[i], dt);
+    fireAxolotiKingBeam(king, targets[i], dt, i, used);
   }
   // Hold position while beaming if target is in comfortable range
   const ut = unitDef(king.type, king.owner);
