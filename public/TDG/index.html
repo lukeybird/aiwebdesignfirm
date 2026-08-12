@@ -11963,7 +11963,7 @@ const UNIT_MANUAL = {
   yeti: 'Hero ice giant. Only one on the field. A blizzard whirls around it — slight damage, half speed, and disoriented attacks for enemies inside. Scratches with frosty claws (area damage). Every 10s it leaps onto the nearest troop with a slam. Puts out nearby fire. Wolves that bite it freeze solid 5s, then keep permanent frost. Death freezes nearby units/towers 3s.',
   angel: 'Hero of wrath. Only one on the field. From the sky it looses a quiver of holy arrows (3, or 6/9 from the barracks bazaar) — preferring distinct targets, looping if few remain. One nearby troop → dives to cut it down, then rises again. Keeps hunting enemy units (and towers) — never rushes the enemy base. Landing blast stuns 0.5s. Wings block up to 3 projectiles and hurl them back. Barracks bazaar: Fire Arrows (seal at 3) or More Arrows (6), then Electric (stay at 6) or Max Quiver (9).',
   axoloti: 'Water spear troop. Close-range trident melee. Slowly regenerates health over time. Barracks branch tree upgrades Attack, Health, and Speed.',
-  axoloti_king: 'Hero of the reef. Only one on the field. Fires a short golden solar beam (≈2/5 Archer Tower range) that hits both air and ground — Inferno Dragon style. Barracks bazaar: Golden Seaweed (HP ×2), Twin Solar Beams (2 targets), Red Crystal (+beam damage), Reef Chorus (every 5s +15% attack & heal rate to all Axolotis). Slow water regen.',
+  axoloti_king: 'Hero of the reef. Only one on the field. Fires a short golden solar beam (≈2/5 Archer Tower range) that hits both air and ground — Inferno Dragon style (damage ramps up while locked on; towers heat slowly). Barracks bazaar: Golden Seaweed (HP ×2), Twin Solar Beams (2 targets), Red Crystal (+beam damage), Reef Chorus (every 5s +15% attack & heal rate to all Axolotis). Slow water regen.',
   bloop: 'Cheap jelly rush unit. Ignores fights and beelines for the enemy base. Splits into two mini-Bloops when killed. Killing enemy Bloops earns you gold bounties!',
 };
 
@@ -21741,6 +21741,7 @@ function serializeUnit(u) {
     axoChorusAtkMult: u.axoChorusAtkMult || undefined,
     axoChorusHealMult: u.axoChorusHealMult || undefined,
     axoChorusCd: u.axoChorusCd,
+    beamLocks: u.beamLocks ? { ...u.beamLocks } : undefined,
   };
 }
 
@@ -37013,6 +37014,50 @@ function axolotiKingBeamMuzzle(king, angle, handIndex, handCount) {
   return { x: king.x + ox, y: king.y + oy };
 }
 
+/** Inferno lock key for solar-beam ramp (per target). */
+function axolotiKingBeamTargetKey(target) {
+  if (!target) return null;
+  if (target.towerType) return `t:${target.id}`;
+  if (target.id != null) return `u:${target.id}`;
+  return null;
+}
+
+/**
+ * Clash-style inferno ramp: starts weak, builds while the beam stays on the same target.
+ * Towers use a longer / colder ramp so they take sustained pressure, not instant melt.
+ */
+const AXO_BEAM_RAMP_START = 0.18;
+const AXO_BEAM_RAMP_SEC = 2.6;
+const AXO_BEAM_TOWER_RAMP_START = 0.07;
+const AXO_BEAM_TOWER_RAMP_SEC = 4.2;
+
+function axolotiKingBeamRampMult(king, target, dt) {
+  const key = axolotiKingBeamTargetKey(target);
+  if (!key) return AXO_BEAM_RAMP_START;
+  if (!king.beamLocks) king.beamLocks = Object.create(null);
+  king.beamLocks[key] = (king.beamLocks[key] || 0) + Math.max(0, dt);
+  const lockT = king.beamLocks[key];
+  const isTower = !!target.towerType;
+  const start = isTower ? AXO_BEAM_TOWER_RAMP_START : AXO_BEAM_RAMP_START;
+  const rampSec = isTower ? AXO_BEAM_TOWER_RAMP_SEC : AXO_BEAM_RAMP_SEC;
+  const t = clamp(lockT / rampSec, 0, 1);
+  // Ease-in: keep early DPS low longer, then climb to full burn.
+  const eased = t * t;
+  return start + (1 - start) * eased;
+}
+
+function pruneAxolotiKingBeamLocks(king, activeTargets) {
+  if (!king.beamLocks) return;
+  const keep = new Set();
+  for (const t of activeTargets) {
+    const k = axolotiKingBeamTargetKey(t);
+    if (k) keep.add(k);
+  }
+  for (const k of Object.keys(king.beamLocks)) {
+    if (!keep.has(k)) delete king.beamLocks[k];
+  }
+}
+
 function fireAxolotiKingBeam(king, target, dt, handIndex = 0, handCount = 1) {
   const ut = unitDef(king.type, king.owner);
   const range = ut.range || 208;
@@ -37029,11 +37074,15 @@ function fireAxolotiKingBeam(king, target, dt, handIndex = 0, handCount = 1) {
     else if (c > 0.28) king._faceLeft = false;
     else if (king._faceLeft == null) king._faceLeft = c < 0;
   }
+  // Inferno-style ramp: weak at first contact, builds while locked on the same target.
+  // Towers ramp slower so they aren't deleted in the opening second.
+  const ramp = axolotiKingBeamRampMult(king, target, dt);
   // Damage already includes Red Crystal via live-army modifyUnitDef.
-  let dps = (ut.damage || 16) * (ut.attackRate || 2.4);
+  let dps = (ut.damage || 16) * (ut.attackRate || 2.4) * ramp;
   if (axolotiReefChorusActive(king)) dps *= (king.axoChorusAtkMult || AXO_CHORUS_ATK_MULT);
   const beamWidth = 14;
   const color = unitHasSkillSafe(king, 'red_crystal') ? '#fb7185' : '#fde047';
+  const beamWidthFx = 5 + ramp * 5;
 
   // Direct aim damage on primary target + pierce soft hits along beam
   const hits = unitsOnSolarBeam(origin.x, origin.y, angle, range, beamWidth, king.owner);
@@ -37042,6 +37091,7 @@ function fireAxolotiKingBeam(king, target, dt, handIndex = 0, handCount = 1) {
     if (damaged.has(hit.unit.id)) continue;
     damaged.add(hit.unit.id);
     const ctr = getCounter('axoloti_king', hit.unit.type);
+    // Pierce units also inherit this beam's lock ramp (primary target drives the heat).
     const dmg = dps * dt * ctr;
     hit.unit.lastHitBy = king.owner;
     applyHpLoss(hit.unit, dmg);
@@ -37062,7 +37112,7 @@ function fireAxolotiKingBeam(king, target, dt, handIndex = 0, handCount = 1) {
     x2: origin.x + Math.cos(angle) * len,
     y2: origin.y + Math.sin(angle) * len,
     color, life: 0.09, maxLife: 0.09,
-    style: 'laser', width: 7, pierce: true,
+    style: 'laser', width: beamWidthFx, pierce: true,
   });
 }
 
@@ -37080,6 +37130,7 @@ function updateAxolotiKing(king, dt) {
   const targets = findAxolotiKingTargets(king, n);
   if (!targets.length) {
     king.attackPhase = 'idle';
+    pruneAxolotiKingBeamLocks(king, []);
     // No beam targets in range — chase elsewhere, or retreat home if the map is empty.
     steerUnit(king, dt);
     return;
@@ -37091,6 +37142,7 @@ function updateAxolotiKing(king, dt) {
   for (let i = 0; i < used; i++) {
     fireAxolotiKingBeam(king, targets[i], dt, i, used);
   }
+  pruneAxolotiKingBeamLocks(king, targets.slice(0, used));
   // Hold position while beaming if target is in comfortable range
   const ut = unitDef(king.type, king.owner);
   const nearest = targets[0];
