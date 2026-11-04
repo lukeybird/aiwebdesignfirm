@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
+import BillingPanel from './BillingPanel';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
 type ProfileUser = {
@@ -61,7 +62,7 @@ export default function AccountClient() {
     setSigningIn(true);
     setError(null);
     try {
-      await signIn('google', { callbackUrl: '/account' });
+      await signIn('google', { callbackUrl: window.location.pathname + window.location.search });
     } catch {
       setError('Could not start Google sign-in.');
       setSigningIn(false);
@@ -102,6 +103,7 @@ export default function AccountClient() {
         }}
       />
       <div className="relative mx-auto max-w-xl px-5 py-16">
+        {status === "authenticated" && <BillingPanel />}
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-teal-300/80">AiWebDesignFirm</p>
@@ -209,7 +211,7 @@ export default function AccountClient() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => signOut({ callbackUrl: '/account' })}
+                  onClick={() => signOut({ callbackUrl: window.location.pathname + window.location.search })}
                   className="rounded-xl border border-white/20 px-5 py-3 text-white/80 hover:border-white/40 hover:text-white"
                 >
                   Sign out
