@@ -95,7 +95,7 @@ export async function upsertGoogleUser(input: {
           avatar_url = COALESCE(avatar_url, ${input.image || null}),
           updated_at = CURRENT_TIMESTAMP
       WHERE google_sub = ${input.googleSub}
-      RETURNING *
+      RETURNING id, google_sub, email, display_name, avatar_url, bio, created_at, updated_at
     `) as unknown as SiteUser[];
     return rows[0] || existing;
   }
@@ -109,7 +109,7 @@ export async function upsertGoogleUser(input: {
       ${displayName},
       ${input.image || null}
     )
-    RETURNING *
+    RETURNING id, google_sub, email, display_name, avatar_url, bio, created_at, updated_at
   `) as unknown as SiteUser[];
   return rows[0];
 }
@@ -117,7 +117,7 @@ export async function upsertGoogleUser(input: {
 export async function getUserByGoogleSub(googleSub: string): Promise<SiteUser | null> {
   await ensureSiteUserTables();
   const rows = (await sql`
-    SELECT * FROM site_users WHERE google_sub = ${googleSub} LIMIT 1
+    SELECT id, google_sub, email, display_name, avatar_url, bio, created_at, updated_at FROM site_users WHERE google_sub = ${googleSub} LIMIT 1
   `) as unknown as SiteUser[];
   return rows[0] || null;
 }
@@ -125,7 +125,7 @@ export async function getUserByGoogleSub(googleSub: string): Promise<SiteUser | 
 export async function getUserById(id: string): Promise<SiteUser | null> {
   await ensureSiteUserTables();
   const rows = (await sql`
-    SELECT * FROM site_users WHERE id = ${id}::uuid LIMIT 1
+    SELECT id, google_sub, email, display_name, avatar_url, bio, created_at, updated_at FROM site_users WHERE id = ${id}::uuid LIMIT 1
   `) as unknown as SiteUser[];
   return rows[0] || null;
 }
@@ -133,7 +133,7 @@ export async function getUserById(id: string): Promise<SiteUser | null> {
 export async function listSiteUsers(): Promise<SiteUser[]> {
   await ensureSiteUserTables();
   return (await sql`
-    SELECT *
+    SELECT id, google_sub, email, display_name, avatar_url, bio, created_at, updated_at
     FROM site_users
     ORDER BY created_at DESC, display_name ASC
   `) as unknown as SiteUser[];
@@ -142,7 +142,7 @@ export async function listSiteUsers(): Promise<SiteUser[]> {
 export async function getUserByDisplayName(name: string): Promise<SiteUser | null> {
   await ensureSiteUserTables();
   const rows = (await sql`
-    SELECT * FROM site_users WHERE LOWER(display_name) = LOWER(${name.trim()}) LIMIT 1
+    SELECT id, google_sub, email, display_name, avatar_url, bio, created_at, updated_at FROM site_users WHERE LOWER(display_name) = LOWER(${name.trim()}) LIMIT 1
   `) as unknown as SiteUser[];
   return rows[0] || null;
 }
@@ -183,7 +183,7 @@ export async function updateUserProfile(
         avatar_url = ${avatarUrl},
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ${userId}::uuid
-    RETURNING *
+    RETURNING id, google_sub, email, display_name, avatar_url, bio, created_at, updated_at
   `) as unknown as SiteUser[];
   return rows[0];
 }
