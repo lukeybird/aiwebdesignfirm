@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import BillingPanel from './BillingPanel';
+import AccountForm from '@/components/auth/AccountForm';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
 type ProfileUser = {
@@ -128,31 +129,7 @@ export default function AccountClient() {
           {loading ? (
             <p className="text-white/60">Loading…</p>
           ) : !user ? (
-            <div className="space-y-5">
-              <p className="text-white/75 leading-relaxed">
-                Press the button below to sign in with Google. That creates your saved profile so you can
-                edit your display name and show up on the leaderboard.
-              </p>
-              {!googleConfigured && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
-                  Google sign-in env vars are incomplete. Check{' '}
-                  <a className="underline" href="/api/account/health">
-                    /api/account/health
-                  </a>
-                  .
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={onGoogleSignIn}
-                disabled={signingIn}
-                className="inline-flex w-full items-center justify-center gap-3 rounded-xl bg-[#e8ebe0] px-5 py-3.5 text-base font-semibold text-[#0a0a0f] transition hover:bg-white disabled:opacity-60"
-              >
-                <GoogleMark />
-                {signingIn ? 'Opening Google…' : 'Sign in with Google'}
-              </button>
-              {error && <p className="text-sm text-red-300">{error}</p>}
-            </div>
+            <AccountForm callbackUrl="/account" initialMode="signin" />
           ) : (
             <form onSubmit={onSave} className="space-y-5">
               <div className="flex items-center gap-4">

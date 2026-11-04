@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 export default function SiteAccountBar() {
   const pathname = usePathname();
@@ -24,7 +24,7 @@ export default function SiteAccountBar() {
       {signedIn ? (
         <>
           <Link
-            href="/account"
+            href="/product"
             className="rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-[#e8ebe0] backdrop-blur hover:border-teal-400/50 hover:text-teal-200 transition-colors"
           >
             {label}
@@ -38,14 +38,7 @@ export default function SiteAccountBar() {
           </button>
         </>
       ) : (
-        <button
-          type="button"
-          onClick={() => signIn('google', { callbackUrl: '/account' })}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#e8ebe0] px-3 py-1.5 font-semibold text-[#0a0a0f] shadow-sm transition hover:bg-white"
-        >
-          <GoogleMark />
-          Sign in with Google
-        </button>
+        <Link href="/login" className="rounded-lg bg-[#e8ebe0] px-3 py-1.5 font-semibold text-[#0a0a0f]">Sign in</Link>
       )}
     </div>
   );

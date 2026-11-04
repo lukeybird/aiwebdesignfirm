@@ -1,6 +1,8 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
-import { getUserByGoogleSub, upsertGoogleUser } from '@/lib/site-users';
+import Credentials from 'next-auth/providers/credentials';
+import { allowAuthAttempt, authenticatePassword, normalizeEmail } from '@/lib/password-accounts';
+import { getUserByGoogleSub, getUserById, upsertGoogleUser } from '@/lib/site-users';
 
 declare module 'next-auth' {
   interface Session {
@@ -34,7 +36,15 @@ export function isGoogleAuthConfigured() {
   return Boolean(googleId && googleSecret && authSecret);
 }
 
-const providers = [];
+const providers: NextAuthConfig['providers'] = [Credentials({
+  credentials: { email: { type: 'email' }, password: { type: 'password' } },
+  async authorize(credentials, request) {
+    const ip = request.headers.get('x-vercel-forwarded-for') || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    if (!(await allowAuthAttempt('login-ip:' + ip, 60))) return null;
+    const user = await authenticatePassword(normalizeEmail(credentials.email), typeof credentials.password === 'string' ? credentials.password : '');
+    return user ? { id: user.id, name: user.display_name, email: user.email, image: user.avatar_url } : null;
+  },
+})];
 if (googleId && googleSecret) {
   providers.push(
     Google({
@@ -48,11 +58,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: authSecret || 'dev-only-missing-auth-secret',
   providers,
   pages: {
-    signIn: '/account',
+    signIn: '/login',
     error: '/account',
   },
   callbacks: {
     async signIn({ user, account, profile }) {
+      if (account?.provider === 'credentials') return Boolean(user.id);
       if (account?.provider !== 'google' || !account.providerAccountId) return false;
       try {
         await upsertGoogleUser({
@@ -67,11 +78,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
     },
-    async jwt({ token, account }) {
-      const sub = account?.providerAccountId || (token.sub as string | undefined);
-      if (!sub) return token;
+    async jwt({ token, account, user }) {
+      const sub = account?.provider === 'google' ? account.providerAccountId : undefined;
+      const userId = account?.provider === 'credentials' ? user?.id : token.userId as string | undefined;
+      if (!sub && !userId) return token;
       try {
-        const row = await getUserByGoogleSub(sub);
+        const row = sub ? await getUserByGoogleSub(sub) : await getUserById(userId!);
         if (row) {
           token.userId = row.id;
           token.displayName = row.display_name;
