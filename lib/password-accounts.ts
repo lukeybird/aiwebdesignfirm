@@ -37,10 +37,11 @@ export async function createPasswordAccount(email: string, password: string, nam
   const passwordHash = await hash(password, 12);
   const id = randomUUID();
   const displayName = (name.replace(/[^\w\s\-'.]/g, '').trim().slice(0, 28) || 'Member') + ' ' + id.slice(0, 8);
-  await sql.begin(async (tx) => {
-    await tx`INSERT INTO site_users (id, google_sub, email, display_name) VALUES (${id}, ${'email:' + id}, ${email}, ${displayName})`;
-    await tx`INSERT INTO site_password_accounts (email, user_id, password_hash) VALUES (${email}, ${id}, ${passwordHash})`;
-  });
+  await sql`WITH new_user AS (
+    INSERT INTO site_users (id, google_sub, email, display_name)
+    VALUES (${id}, ${'email:' + id}, ${email}, ${displayName}) RETURNING id
+  ) INSERT INTO site_password_accounts (email, user_id, password_hash)
+    SELECT ${email}, id, ${passwordHash} FROM new_user`;
 }
 
 export async function authenticatePassword(email: string, password: string) {
