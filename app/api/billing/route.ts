@@ -22,6 +22,7 @@ async function stripe<T>(path: string, fields?: Record<string, string>, idempote
 type Subscription = {
   status: string;
   trial_end: number | null;
+  cancel_at_period_end: boolean;
   items: { data: { price: { id: string }; current_period_end?: number }[] };
 };
 
@@ -55,6 +56,7 @@ export async function GET() {
       status: current?.status ?? null,
       trialEnd: current?.trial_end ?? null,
       periodEnd: item?.current_period_end ?? null,
+      cancelAtPeriodEnd: current?.cancel_at_period_end ?? false,
       hasAccess: Boolean(plan && current && ['active', 'trialing'].includes(current.status)),
     });
   } catch {
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
     }
     if (!price || records.some((entry) => !['canceled', 'incomplete_expired'].includes(entry.status))) {
       const portal = await stripe<{ url: string }>('billing_portal/sessions', {
-        customer, return_url: origin + '/account',
+        customer, return_url: origin + '/settings',
       });
       return NextResponse.redirect(portal.url, 303);
     }
