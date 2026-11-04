@@ -99,16 +99,16 @@ export default function AiImplementationChatWidget() {
       className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(1.25rem,env(safe-area-inset-right,0px))] z-[10000] flex flex-col items-end gap-3"
     >
       {open ? (
-        <div className="w-[min(92vw,24rem)] rounded-2xl border border-cyan-400/25 bg-[#071325]/95 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)] backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-cyan-300/15 px-4 py-3">
+        <div className="w-[min(92vw,24rem)] rounded-2xl border border-[#66E3FF]/25 bg-[#101A2D]/95 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)] backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-[#66E3FF]/15 px-4 py-3">
             <div>
               <p className="text-sm font-bold text-white">AiWebDesignFirm AI Assistant</p>
-              <p className="text-xs text-cyan-200/70">AI implementation help</p>
+              <p className="text-xs text-[#66E3FF]/70">AI implementation help</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-md p-1 text-cyan-100/80 hover:bg-white/10 hover:text-white"
+              className="rounded-md p-1 text-[#66E3FF]/80 hover:bg-white/10 hover:text-white"
               aria-label="Close AI assistant"
             >
               <X className="h-4 w-4" />
@@ -121,7 +121,7 @@ export default function AiImplementationChatWidget() {
                 <div
                   className={
                     msg.role === 'user'
-                      ? 'max-w-[85%] rounded-2xl rounded-br-md bg-cyan-500 px-3 py-2 text-sm font-medium text-black'
+                      ? 'max-w-[85%] rounded-2xl rounded-br-md bg-[#66E3FF] px-3 py-2 text-sm font-medium text-black'
                       : 'max-w-[85%] rounded-2xl rounded-bl-md bg-white/10 px-3 py-2 text-sm text-white whitespace-pre-wrap'
                   }
                 >
@@ -129,24 +129,24 @@ export default function AiImplementationChatWidget() {
                 </div>
               </div>
             ))}
-            {isSending ? <p className="text-xs text-cyan-200/70">Thinking…</p> : null}
+            {isSending ? <p className="text-xs text-[#66E3FF]/70">Thinking…</p> : null}
             {error ? <p className="text-xs text-red-300">{error}</p> : null}
           </div>
 
-          <form onSubmit={sendMessage} className="space-y-2 border-t border-cyan-300/15 p-3">
+          <form onSubmit={sendMessage} className="space-y-2 border-t border-[#66E3FF]/15 p-3">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about implementing AI for your business..."
-              className="min-h-[86px] border-cyan-300/30 bg-[#081a31] text-sm text-white placeholder:text-cyan-200/40 focus-visible:ring-cyan-400/60"
+              className="min-h-[86px] border-[#66E3FF]/30 bg-[#080D1B] text-sm text-white placeholder:text-[#66E3FF]/40 focus-visible:ring-[#66E3FF]/60"
               maxLength={2000}
             />
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-cyan-200/55">Logs are saved for follow-up.</p>
+              <p className="text-[11px] text-[#66E3FF]/55">Logs are saved for follow-up.</p>
               <Button
                 type="submit"
                 size="sm"
-                className="bg-cyan-500 text-black hover:bg-cyan-400 disabled:opacity-50"
+                className="bg-[#66E3FF] text-black hover:bg-[#66E3FF] disabled:opacity-50"
                 disabled={!canSend}
               >
                 <Send className="h-3.5 w-3.5" />
@@ -161,7 +161,7 @@ export default function AiImplementationChatWidget() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         size="icon"
-        className="h-14 w-14 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black shadow-[0_12px_32px_-12px_rgba(0,212,255,0.9)] hover:from-[#1b7bff] hover:to-[#27dcff]"
+        className="h-14 w-14 rounded-full bg-gradient-to-r from-[#66E3FF] to-[#A2EEFF] text-black shadow-[0_12px_32px_-12px_rgba(0,212,255,0.9)] hover:from-[#A2EEFF] hover:to-[#66E3FF]"
         aria-label={open ? 'Close AI implementation chat' : 'Open AI implementation chat'}
       >
         <MessageCircle className="h-6 w-6" />

@@ -41,12 +41,12 @@ export default function BillingPanel() {
             {billing.plan && <p>{billing.plan} · {billing.status}</p>}
             {date && <p>{billing.status === 'trialing' ? 'Trial ends' : 'Current period ends'} {new Date(date * 1000).toLocaleDateString()}.</p>}
             {billing.plan && ['active', 'trialing'].includes(billing.status || '') && <a href="/product" className="block underline">Open workspace</a>}
-            {billing.cancelAtPeriodEnd && <p className="text-amber-200">Cancellation scheduled. Your subscription will end at the end of the current trial or billing period.</p>}
-            {billing.hasCustomer && <button name="action" value="portal" className="block rounded-lg border border-slate-600 px-4 py-3">Manage billing or cancel subscription</button>}
+            {billing.cancelAtPeriodEnd && <p className="text-[#FF6B7A]">Cancellation scheduled. Your subscription will end at the end of the current trial or billing period.</p>}
+            {billing.hasCustomer && <button name="action" value="portal" className="block rounded-lg border border-[#38506C] px-4 py-3">Manage billing or cancel subscription</button>}
             {!billing.status && billing.trialEligible && (
               <>
                 <p>Seven days free, then {expert ? '$999' : '$99.99'} per month unless canceled before your trial ends. Card required.</p>
-                <button name="action" value={expert ? 'expert' : 'diy'} className="rounded bg-emerald-200 px-4 py-2 font-bold text-slate-950">Start 7-Day Trial</button>
+                <button name="action" value={expert ? 'expert' : 'diy'} className="rounded bg-[#66E3FF] px-4 py-2 font-bold text-[#080D1B]">Start 7-Day Trial</button>
               </>
             )}
           </form>

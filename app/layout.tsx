@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 
 /** Tab / mobile browser chrome — matches AiWebDesignFirm dark background */
 export const viewport: Viewport = {
-  themeColor: "#0a0a0f",
+  themeColor: "#080D1B",
   colorScheme: "dark",
 };
 
@@ -50,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="font-sans antialiased min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7]">
+      <body className="font-sans antialiased min-h-[100dvh] bg-[#080D1B] text-[#F4F7FB]">
         <AuthProvider>
           <SiteChrome part="account" />
           <SitePresenceTracker />
