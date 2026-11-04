@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 import { GaPageView } from "@/components/analytics/GaPageView";
-import AiImplementationChatWidget from "@/components/chat/AiImplementationChatWidget";
+
 import AuthProvider from "@/components/auth/AuthProvider";
-import SiteAccountBar from "@/components/auth/SiteAccountBar";
+import SiteChrome from "@/components/auth/SiteChrome";
 import SitePresenceTracker from "@/components/presence/SitePresenceTracker";
 import "./globals.css";
 
@@ -52,14 +52,14 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="font-sans antialiased min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7]">
         <AuthProvider>
-          <SiteAccountBar />
+          <SiteChrome part="account" />
           <SitePresenceTracker />
           {children}
         </AuthProvider>
         <Suspense fallback={null}>
           <GaPageView />
         </Suspense>
-        <AiImplementationChatWidget />
+        <SiteChrome part="chat" />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"

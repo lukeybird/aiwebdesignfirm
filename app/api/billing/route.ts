@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   const price = action === 'diy' ? process.env.STRIPE_DIY_PRICE_ID
     : action === 'expert' ? process.env.STRIPE_EXPERT_PRICE_ID : undefined;
   if (!process.env.STRIPE_SECRET_KEY || (!price && action !== 'portal')) {
-    return NextResponse.redirect(new URL('/account?billing=unavailable', origin), 303);
+    return NextResponse.redirect(new URL('/start?plan=' + (action === 'expert' ? 'expert' : 'diy') + '&billing=unavailable', origin), 303);
   }
   try {
     let customer = await billingCustomer(user.id);
@@ -83,6 +83,9 @@ export async function POST(request: Request) {
     }
     if (!customer) return NextResponse.redirect(new URL('/account', origin), 303);
     const records = price ? await subscriptions(customer) : [];
+    if (price && records.some((entry) => ['active', 'trialing'].includes(entry.status))) {
+      return NextResponse.redirect(new URL('/product', origin), 303);
+    }
     if (!price || records.some((entry) => !['canceled', 'incomplete_expired'].includes(entry.status))) {
       const portal = await stripe<{ url: string }>('billing_portal/sessions', {
         customer, return_url: origin + '/account',
@@ -94,10 +97,10 @@ export async function POST(request: Request) {
       customer, mode: 'subscription', payment_method_collection: 'always',
       'line_items[0][price]': price, 'line_items[0][quantity]': '1',
       'subscription_data[trial_period_days]': '7',
-      success_url: origin + '/account', cancel_url: origin + '/account',
-    }, 'site-checkout-' + customer + '-' + price + '-' + Math.floor(Date.now() / 1800000));
+      success_url: origin + '/product', cancel_url: origin + '/start?plan=' + action + '&canceled=1',
+    }, 'site-checkout-product-v1-' + customer + '-' + price + '-' + Math.floor(Date.now() / 1800000));
     return NextResponse.redirect(checkout.url, 303);
   } catch {
-    return NextResponse.redirect(new URL('/account?billing=unavailable', origin), 303);
+    return NextResponse.redirect(new URL('/start?plan=' + (action === 'expert' ? 'expert' : 'diy') + '&billing=unavailable', origin), 303);
   }
 }

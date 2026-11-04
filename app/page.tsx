@@ -34,7 +34,7 @@ export default function Home() {
                 <p className="my-4 text-3xl font-bold">{plan.price} <span className="text-sm font-normal">/ month</span></p>
                 <p className="mb-4 text-slate-300">{plan.description}</p>
                 <p className="mb-6 text-sm text-slate-300">7-day trial, then {plan.price}/month.</p>
-                <a className="mt-auto rounded-lg bg-emerald-200 px-4 py-3 text-center font-bold text-slate-950" href={index === 0 ? '/account?plan=diy' : '/account?plan=expert'}>Start 7-Day Trial</a>
+                <a className="mt-auto rounded-lg bg-emerald-200 px-4 py-3 text-center font-bold text-slate-950" href={index === 0 ? '/start?plan=diy' : '/start?plan=expert'}>Start 7-Day Trial</a>
               </article>
             ))}
             <article className="flex flex-col rounded-2xl border border-slate-700 bg-slate-900 p-6">
