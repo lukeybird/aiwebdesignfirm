@@ -39,6 +39,7 @@ export default function BillingPanel() {
           <form action="/api/billing" method="post" className="mt-3 space-y-3">
             {billing.plan && <p>{billing.plan} · {billing.status}</p>}
             {date && <p>{billing.status === 'trialing' ? 'Trial ends' : 'Current period ends'} {new Date(date * 1000).toLocaleDateString()}.</p>}
+            {billing.plan && ['active', 'trialing'].includes(billing.status || '') && <a href="/product" className="block underline">Open workspace</a>}
             {billing.hasCustomer && <button name="action" value="portal" className="block underline">Manage Billing</button>}
             {!billing.status && billing.trialEligible && (
               <>
