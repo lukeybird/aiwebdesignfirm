@@ -42,7 +42,7 @@ export default function BillingPanel() {
             {date && <p>{billing.status === 'trialing' ? 'Trial ends' : 'Current period ends'} {new Date(date * 1000).toLocaleDateString()}.</p>}
             {billing.plan && ['active', 'trialing'].includes(billing.status || '') && <a href="/product" className="inline-block text-[#66E3FF] hover:underline">Open workspace</a>}
             {billing.cancelAtPeriodEnd && <p className="text-[#FF6B7A]">Cancellation scheduled. Your subscription will end at the end of the current trial or billing period.</p>}
-            {billing.hasCustomer && <button name="action" value="portal" className="brand-button brand-button-secondary block">Manage billing or cancel subscription</button>}
+            {billing.hasCustomer && <a href="/settings" className="brand-button brand-button-secondary">Manage billing or cancel subscription</a>}
             {!billing.status && billing.trialEligible && (
               <>
                 <p>Seven days free, then {expert ? '$999' : '$99.99'} per month unless canceled before your trial ends. Card required.</p>
