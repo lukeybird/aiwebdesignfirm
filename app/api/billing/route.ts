@@ -36,7 +36,7 @@ async function billingCustomer(userId: string) {
   await ensureSiteUserTables();
   await sql`ALTER TABLE site_users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`;
   const result = await sql`SELECT stripe_customer_id FROM site_users WHERE id = ${userId}`;
-  return result.rows[0]?.stripe_customer_id as string | undefined;
+  return result[0]?.stripe_customer_id as string | undefined;
 }
 
 export async function GET() {
