@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Brand from './Brand';
 import { signOut, useSession } from 'next-auth/react';
 
 export default function SiteAccountBar() {
@@ -12,6 +13,14 @@ export default function SiteAccountBar() {
 
   // TDG serves static public/TDG HTML with its own account overlay (account-overlay.js).
   if (pathname?.startsWith('/TDG') || pathname?.startsWith('/tdg')) return null;
+
+  if (['/', '/book', '/account'].includes(pathname)) return (
+    <header className="brand-header"><nav aria-label="Main" className="brand-container brand-navigation">
+      <Brand /><div className="brand-nav-links"><Link href="/#plans">Plans</Link>
+      {signedIn ? <Link className="brand-button brand-button-secondary" href="/product">Open workspace <span aria-hidden="true">↗</span></Link> : <Link className="brand-button brand-button-secondary" href="/login">Sign in <span aria-hidden="true">↗</span></Link>}
+      </div>
+    </nav></header>
+  );
 
   return (
     <div className="fixed top-3 right-3 z-[60] flex items-center gap-2 text-sm pointer-events-auto">

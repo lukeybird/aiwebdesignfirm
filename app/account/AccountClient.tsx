@@ -95,7 +95,7 @@ export default function AccountClient() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#080D1B] text-[#F4F7FB]">
+    <main className="brand-shell">
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
@@ -125,7 +125,7 @@ export default function AccountClient() {
           </div>
         </div>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+        <section className="brand-card p-6 sm:p-8">
           {loading ? (
             <p className="text-white/60">Loading…</p>
           ) : !user ? (
@@ -182,14 +182,14 @@ export default function AccountClient() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-xl bg-[#66E3FF] px-5 py-3 font-semibold text-[#080D1B] hover:bg-[#66E3FF] disabled:opacity-50"
+                  className="brand-button brand-button-primary"
                 >
                   {saving ? 'Saving…' : 'Save profile'}
                 </button>
                 <button
                   type="button"
                   onClick={() => signOut({ callbackUrl: window.location.pathname + window.location.search })}
-                  className="rounded-xl border border-white/20 px-5 py-3 text-white/80 hover:border-white/40 hover:text-white"
+                  className="brand-button brand-button-secondary"
                 >
                   Sign out
                 </button>

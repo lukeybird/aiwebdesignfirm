@@ -1,57 +1,39 @@
 import type { Metadata } from 'next';
-
+import Brand from '@/components/auth/Brand';
 export const metadata: Metadata = {
   title: 'AI Web Design Firm | Build your next website or app',
-  description: 'Build with AI, call a dedicated specialist, or bring in our engineering team.',
+  description: 'Choose your approach to websites, apps, and automations. Start with a seven-day trial or talk through a full-team project.',
 };
-
 const plans = [
-  { name: 'Build It Yourself', price: '$99.99', description: 'Describe what you want in plain English and use AI to build and update it. Self-serve, with no reports.' },
-  { name: 'Build With a Dedicated Specialist', price: '$999', description: 'Call one dedicated AI specialist for technical work within your plan, including site updates, integrations, and troubleshooting.' },
+  { label: 'Self-serve', name: 'Build it yourself', price: '$99.99', description: 'For independent builders who want to shape their own ideas.', details: ['Describe your ideas in plain English', 'Self-serve AI building approach', 'No reports or managed intervention'], href: '/start?plan=diy', cta: 'Start 7-day trial' },
+  { label: 'Recommended', name: 'A dedicated specialist', price: '$999', description: 'For businesses that want one point of contact for technical work.', details: ['One dedicated AI phone specialist', 'Help with updates and integrations', 'Technical troubleshooting within your plan'], href: '/start?plan=expert', cta: 'Start 7-day trial' },
+  { label: 'Full engineering team', name: 'Your bigger vision', price: '$9,999', description: 'For ambitious projects that need a defined scope and a team.', details: ['Start with a project interview', 'Discuss scope with an AI coordinator', 'Engineering delivery for the agreed project'], href: '/book', cta: 'Start the interview' },
 ];
-
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-[#080D1B] px-6 pb-8 pt-20 text-[#F4F7FB]">
-      <div className="mx-auto max-w-6xl">
-        <nav aria-label="Main" className="flex flex-wrap items-center gap-8 border-b border-[#293B55] pb-5">
-          <strong>AI Web Design Firm</strong>
-          <a className="text-[#66E3FF] underline" href="#plans">Compare plans</a>
-        </nav>
-        <header className="relative py-20" style={{ background: 'radial-gradient(ellipse at 15% 30%, rgba(102,227,255,0.08), transparent 65%), radial-gradient(ellipse at 90% 25%, rgba(255,107,122,0.08), transparent 55%)' }}>
-          <p className="font-semibold uppercase tracking-widest text-[#66E3FF]">Websites · Apps · Automations</p>
-          <h1 className="my-5 max-w-4xl text-5xl font-bold tracking-tight sm:text-7xl">Bring the idea. Choose who builds it.</h1>
-          <p className="mb-8 max-w-2xl text-lg text-[#C7D2E2]">Launch a website, connect your booking tools, or build a custom app. Start by describing what you want, call a dedicated AI specialist, or bring in our engineering team for the full build.</p>
-          <a className="inline-block rounded-lg bg-[#66E3FF] transition hover:bg-[#A2EEFF] hover:shadow-[0_0_22px_rgba(102,227,255,0.20)] px-5 py-3 font-bold text-[#080D1B]" href="#plans">Get Started</a>
-        </header>
-        <section id="plans" className="scroll-mt-8" aria-labelledby="plan-title">
-          <h2 id="plan-title" className="mb-6 text-3xl font-bold">How hands-on do you want to be?</h2>
-          <div className="grid gap-5 md:grid-cols-3">
-            {plans.map((plan, index) => (
-              <article key={plan.name} className={index === 1 ? 'flex flex-col rounded-2xl border border-[#FF6B7A]/70 bg-[#101F32] p-6 shadow-[0_0_30px_rgba(255,107,122,0.08)]' : 'flex flex-col rounded-2xl border border-[#293B55] bg-[#101A2D] p-6'}>
-                <p className={index === 1 ? "mb-2 text-sm font-semibold uppercase tracking-wide text-[#FF6B7A]" : "mb-2 text-sm font-semibold uppercase tracking-wide text-[#66E3FF]"}>{index === 1 ? 'Recommended' : 'Self-serve'}</p>
-                <h3 className="text-xl font-bold">{plan.name}</h3>
-                <p className="my-4 text-3xl font-bold">{plan.price} <span className="text-sm font-normal">/ month</span></p>
-                <p className="mb-4 text-[#C7D2E2]">{plan.description}</p>
-                <p className="mb-6 text-sm text-[#C7D2E2]">7-day trial, then {plan.price}/month.</p>
-                <a className="mt-auto rounded-lg bg-[#66E3FF] transition hover:bg-[#A2EEFF] hover:shadow-[0_0_22px_rgba(102,227,255,0.20)] px-4 py-3 text-center font-bold text-[#080D1B]" href={index === 0 ? '/start?plan=diy' : '/start?plan=expert'}>Start 7-Day Trial</a>
-              </article>
-            ))}
-            <article className="flex flex-col rounded-2xl border border-[#293B55] bg-[#101A2D] p-6">
-              <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#66E3FF]">Full engineering team</p>
-              <h3 className="text-xl font-bold">Build With Our Engineering Team</h3>
-              <p className="my-4 text-3xl font-bold">$9,999 <span className="text-sm font-normal">/ month</span></p>
-              <p className="mb-6 text-[#C7D2E2]">Talk through your idea with an AI phone coordinator. Our engineering team scopes, designs, builds, tests, and launches the agreed project.</p>
-              <a className="mt-auto rounded-lg bg-[#66E3FF] transition hover:bg-[#A2EEFF] hover:shadow-[0_0_22px_rgba(102,227,255,0.20)] px-4 py-3 text-center font-bold text-[#080D1B]" href="/book">Start the Interview Process</a>
-            </article>
-          </div>
-        </section>
-        <section className="py-16" aria-labelledby="examples">
-          <h2 id="examples" className="mb-4 text-3xl font-bold">What do you want to build?</h2>
-          <p className="max-w-2xl text-[#C7D2E2]">A website that turns visitors into leads. A portal where customers can book and manage appointments. A dashboard that brings your team’s daily work into one place.</p>
-        </section>
-        <footer className="border-t border-[#293B55] pt-6 text-[#C7D2E2]">AI Web Design Firm</footer>
+  return <main className="brand-shell">
+    <div className="brand-container">
+      <header className="brand-hero">
+        <p className="brand-eyebrow">Websites · Apps · Automations</p>
+        <h1 className="brand-hero-title mt-7">Bring the idea.<br /><span>Choose who builds it.</span></h1>
+        <p className="brand-muted mt-7 max-w-xl text-base sm:text-lg">A website that brings in leads. An app that simplifies your work. An automation that gives you time back. Find the right approach for your next build.</p>
+        <div className="mt-9 flex flex-wrap items-center gap-4"><a href="#plans" className="brand-button brand-button-primary">Find your plan <span aria-hidden="true">↗</span></a><span className="text-xs text-[#9AAAC0]">Two trial plans. One full-team option.</span></div>
+      </header>
+      <div className="grid gap-6 border-y border-white/10 py-7 sm:grid-cols-3">
+        {['Choose how hands-on you want to be', 'Create your account', 'Start your trial or project interview'].map((text, i) => <div className="flex items-center gap-4" key={text}><span className="text-xs font-medium text-[#FF6B7A]">0{i + 1}</span><p className="text-sm text-[#C7D2E2]">{text}</p></div>)}
       </div>
-    </main>
-  );
+      <section id="plans" className="brand-section scroll-mt-8" aria-labelledby="plan-title">
+        <div className="mb-9 flex flex-wrap items-end justify-between gap-5"><div><p className="brand-eyebrow">A plan for your pace</p><h2 id="plan-title" className="brand-title mt-4">How hands-on do you want to be?</h2></div><p className="max-w-xs text-sm leading-6 text-[#9AAAC0]">Start small or bring a bigger brief. Choose the level of help that fits your business.</p></div>
+        <div className="grid gap-5 lg:grid-cols-3">{plans.map((plan, i) => <article key={plan.name} className={'brand-card brand-price-card ' + (i === 1 ? 'brand-price-recommended' : '')}>
+          <div className="mb-6"><span className={'brand-chip ' + (i === 1 ? 'brand-chip-coral' : '')}>{plan.label}</span></div>
+          <h3 className="font-[family-name:var(--font-heading)] text-2xl font-medium tracking-tight">{plan.name}</h3><p className="mt-3 min-h-[48px] text-sm leading-6 text-[#9AAAC0]">{plan.description}</p>
+          <p className="my-7 text-[36px] font-semibold tracking-tight">{plan.price}<span className="ml-2 text-xs font-normal tracking-normal text-[#9AAAC0]">/ month</span></p>
+          <hr className="brand-rule mb-6" /><ul className="mb-8 space-y-4">{plan.details.map(detail => <li key={detail} className="flex gap-3 text-sm leading-6 text-[#C7D2E2]"><span aria-hidden="true" className="text-[#66E3FF]">✓</span>{detail}</li>)}</ul>
+          <div className="mt-auto"><a className={'brand-button w-full ' + (i === 1 ? 'brand-button-primary' : 'brand-button-secondary')} href={plan.href}>{plan.cta}<span aria-hidden="true">↗</span></a><p className="mt-4 text-center text-[11px] leading-5 text-[#9AAAC0]">{i < 2 ? '7 days free. Card required. Cancel before billing.' : 'Interview first. Scope agreed before work begins.'}</p></div>
+        </article>)}</div>
+        <p className="mt-5 text-xs leading-6 text-[#9AAAC0]">Trial plans renew monthly at the listed price unless canceled. Account and billing are available now; the building tools are in development.</p>
+      </section>
+      <section className="brand-section border-t border-white/10" aria-labelledby="ideas-title"><div className="grid gap-8 md:grid-cols-2"><div><p className="brand-eyebrow">Make room for what’s next</p><h2 id="ideas-title" className="brand-title mt-4 max-w-sm">Less friction.<br />More possibility.</h2></div><div className="space-y-5 text-sm leading-7 text-[#9AAAC0]"><p>Your next project could be a customer portal, a booking experience, or a dashboard that brings your daily work into one place.</p><p>Start by choosing your level of support. Your workspace keeps your account and subscription together, with billing settings always within reach.</p><a href="#plans" className="inline-flex items-center gap-3 font-medium text-[#66E3FF]">Explore the plans <span aria-hidden="true">↗</span></a></div></div></section>
+      <footer className="brand-footer"><Brand /><span>Websites. Apps. Possibilities.</span><a href="/settings" className="hover:text-[#66E3FF]">Account & billing</a></footer>
+    </div>
+  </main>;
 }

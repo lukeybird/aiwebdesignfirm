@@ -31,22 +31,22 @@ export default function BillingPanel() {
   const date = billing?.status === 'trialing' ? billing.trialEnd : billing?.periodEnd;
 
   return (
-    <section className="mb-8 rounded-xl border border-white/20 p-5" aria-labelledby="billing-title">
-      <h2 id="billing-title" className="text-xl font-semibold">Subscription and billing</h2>
+    <section className="brand-card mb-6 p-6 sm:p-8" aria-labelledby="billing-title">
+      <h2 id="billing-title" className="text-lg font-semibold tracking-tight">Subscription and billing</h2>
       {failed || billing?.available === false || query.get('billing') === 'unavailable'
         ? <p>Billing is temporarily unavailable.</p>
         : !billing ? <p>Loading subscription…</p>
         : (
-          <form action="/api/billing" method="post" className="mt-3 space-y-3">
+          <form action="/api/billing" method="post" className="mt-5 space-y-4 text-sm text-[#C7D2E2]">
             {billing.plan && <p>{billing.plan} · {billing.status}</p>}
             {date && <p>{billing.status === 'trialing' ? 'Trial ends' : 'Current period ends'} {new Date(date * 1000).toLocaleDateString()}.</p>}
-            {billing.plan && ['active', 'trialing'].includes(billing.status || '') && <a href="/product" className="block underline">Open workspace</a>}
+            {billing.plan && ['active', 'trialing'].includes(billing.status || '') && <a href="/product" className="inline-block text-[#66E3FF] hover:underline">Open workspace</a>}
             {billing.cancelAtPeriodEnd && <p className="text-[#FF6B7A]">Cancellation scheduled. Your subscription will end at the end of the current trial or billing period.</p>}
-            {billing.hasCustomer && <button name="action" value="portal" className="block rounded-lg border border-[#38506C] px-4 py-3">Manage billing or cancel subscription</button>}
+            {billing.hasCustomer && <button name="action" value="portal" className="brand-button brand-button-secondary block">Manage billing or cancel subscription</button>}
             {!billing.status && billing.trialEligible && (
               <>
                 <p>Seven days free, then {expert ? '$999' : '$99.99'} per month unless canceled before your trial ends. Card required.</p>
-                <button name="action" value={expert ? 'expert' : 'diy'} className="rounded bg-[#66E3FF] px-4 py-2 font-bold text-[#080D1B]">Start 7-Day Trial</button>
+                <button name="action" value={expert ? 'expert' : 'diy'} className="brand-button brand-button-primary">Start 7-Day Trial</button>
               </>
             )}
           </form>
