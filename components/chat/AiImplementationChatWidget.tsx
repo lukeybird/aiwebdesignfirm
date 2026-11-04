@@ -99,7 +99,7 @@ export default function AiImplementationChatWidget() {
       className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(1.25rem,env(safe-area-inset-right,0px))] z-[10000] flex flex-col items-end gap-3"
     >
       {open ? (
-        <div className="w-[min(92vw,24rem)] rounded-2xl border border-[#66E3FF]/25 bg-[#101A2D]/95 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)] backdrop-blur-md">
+        <div className="brand-card w-[min(92vw,24rem)] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)] backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-[#66E3FF]/15 px-4 py-3">
             <div>
               <p className="text-sm font-bold text-white">AiWebDesignFirm AI Assistant</p>
@@ -146,7 +146,7 @@ export default function AiImplementationChatWidget() {
               <Button
                 type="submit"
                 size="sm"
-                className="bg-[#66E3FF] text-black hover:bg-[#66E3FF] disabled:opacity-50"
+                className="brand-button brand-button-primary"
                 disabled={!canSend}
               >
                 <Send className="h-3.5 w-3.5" />

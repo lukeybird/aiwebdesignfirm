@@ -36,7 +36,7 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 @layer utilities {
@@ -94,3 +94,60 @@ body {
   }
 }
 
+
+/* Electric Coral: shared business interface primitives. */
+.brand-shell { min-height: 100dvh; background: var(--brand-navy); color: #F4F7FB; }
+.brand-container { width: min(100% - 3rem, 1160px); margin-inline: auto; }
+.brand-header { border-bottom: 1px solid #FFFFFF0F; background: #080D1BF2; }
+.brand-navigation { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 88px; }
+.brand-wordmark { display: inline-flex; align-items: center; gap: 12px; font-family: var(--font-heading), sans-serif; font-size: 17px; font-weight: 650; letter-spacing: -.04em; white-space: nowrap; color: #F4F7FB; }
+.brand-wordmark-light { color: #9AAAC0; font-weight: 400; }
+.brand-symbol { display: flex; gap: 4px; align-items: center; justify-content: center; width: 34px; height: 36px; }
+.brand-symbol span { display: block; width: 5px; height: 19px; border-radius: 3px; background: var(--brand-blue); transform: rotate(22deg); }
+.brand-symbol span:nth-child(2) { height: 29px; }
+.brand-symbol span:nth-child(3) { height: 15px; background: var(--brand-coral); }
+.brand-nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 28px; font-size: 14px; color: #AAB9CD; }
+.brand-nav-links a:hover, .brand-nav-links a[aria-current="page"] { color: var(--brand-blue); }
+.brand-nav-links a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--brand-coral); text-underline-offset: 9px; }
+.brand-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 12px 20px; border: 1px solid transparent; border-radius: 12px; font-size: 14px; line-height: 1.4; font-weight: 650; transition: background .18s, border-color .18s, box-shadow .18s; }
+.brand-button-primary { background: var(--brand-blue); color: var(--brand-navy); box-shadow: 0 4px 20px #66E3FF0D; }
+.brand-button-primary:hover { background: #A2EEFF; box-shadow: 0 4px 24px #66E3FF26; }
+.brand-button-secondary { background: #FFFFFF03; border-color: #FFFFFF26; color: #F4F7FB; }
+.brand-button-secondary:hover { background: #FFFFFF08; border-color: #66E3FF80; }
+.brand-button-quiet { min-height: 40px; padding: 8px 12px; color: #AAB9CD; }
+.brand-button-quiet:hover { background: #FFFFFF08; color: #F4F7FB; }
+.brand-button:disabled { opacity: .5; cursor: not-allowed; }
+.brand-button:focus-visible, .brand-shell a:focus-visible, .brand-tabs button:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 4px; }
+.brand-card { background: linear-gradient(145deg, #111D30, #0E1728); border: 1px solid #FFFFFF12; border-radius: 20px; }
+.brand-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-blue); font-size: 11px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase; }
+.brand-eyebrow::before { content: ''; width: 5px; height: 5px; background: var(--brand-coral); border-radius: 50%; }
+.brand-title { font-family: var(--font-heading), sans-serif; font-size: clamp(30px, 4vw, 40px); line-height: 1.14; font-weight: 550; letter-spacing: -.045em; }
+.brand-muted { color: #AAB9CD; line-height: 1.75; }
+.brand-input { display: block; margin-top: 8px; width: 100%; min-height: 48px; border-radius: 10px; border: 1px solid #50617A; background: #080D1B; padding: 12px 14px; color: #F4F7FB; font-size: 14px; outline: none; transition: border-color .18s, box-shadow .18s; }
+.brand-input:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px #66E3FF12; }
+.brand-tabs { display: flex; padding: 4px; gap: 4px; border-radius: 12px; background: #080D1B; border: 1px solid #FFFFFF0F; }
+.brand-tabs button { flex: 1; min-height: 40px; border-radius: 8px; color: #9AAAC0; font-size: 13px; }
+.brand-tabs button[aria-pressed="true"] { color: #F4F7FB; background: #1C2B42; box-shadow: 0 2px 6px #0003; }
+.brand-auth { display: grid; min-height: 100dvh; place-items: center; padding: 40px 20px; background: radial-gradient(ellipse at 15% 0%, #66E3FF0C, transparent 50%), radial-gradient(ellipse at 90% 90%, #FF6B7A09, transparent 50%), var(--brand-navy); }
+.brand-auth-card { width: 100%; max-width: 448px; padding: 32px; box-shadow: 0 24px 80px #0003; }
+.brand-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid #66E3FF33; border-radius: 999px; background: #66E3FF08; color: var(--brand-blue); font-size: 11px; font-weight: 600; }
+.brand-chip-coral { color: var(--brand-coral); border-color: #FF6B7A40; background: #FF6B7A08; }
+.brand-rule { height: 1px; border: 0; background: #FFFFFF0F; }
+.brand-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 24px; padding: 32px 0; border-top: 1px solid #FFFFFF0F; color: #9AAAC0; font-size: 12px; }
+.brand-hero { padding: 88px 0 80px; background: radial-gradient(ellipse at 90% 20%, #FF6B7A0A, transparent 55%); }
+.brand-hero-title { max-width: 840px; font-family: var(--font-heading), sans-serif; font-size: clamp(44px, 6.8vw, 84px); line-height: 1.05; font-weight: 550; letter-spacing: -.055em; }
+.brand-hero-title span { color: var(--brand-blue); }
+.brand-price-card { display: flex; flex-direction: column; position: relative; padding: 28px; }
+.brand-price-recommended { border-color: #FF6B7A70; box-shadow: 0 0 40px #FF6B7A08; }
+.brand-section { padding: 72px 0; }
+@media (max-width: 640px) {
+  .brand-container { width: calc(100% - 40px); }
+  .brand-navigation { min-height: 80px; padding-block: 18px; flex-wrap: wrap; gap: 18px; }
+  .brand-nav-links { gap: 18px; font-size: 13px; }
+  .brand-wordmark { font-size: 16px; }
+  .brand-hero { padding: 56px 0 48px; }
+  .brand-section { padding: 48px 0; }
+  .brand-auth-card { padding: 24px; }
+  .brand-price-card { padding: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .brand-button, .brand-input { transition: none; } }

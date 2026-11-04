@@ -164,13 +164,13 @@ function BookContent() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#080D1B] text-white px-6 py-12 sm:py-16">
+    <div className="brand-shell px-6 py-12 sm:py-16">
       <div className="mx-auto max-w-6xl">
         <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 mb-8 inline-block">
           ← AiWebDesignFirm
         </Link>
-        <div className="max-w-4xl mx-auto">
-          <div className="rounded-3xl border border-white/10 bg-[#101A2D] overflow-hidden">
+        <div className="max-w-4xl mx-auto"><p className="brand-eyebrow mb-4">Let’s talk about your project</p><h1 className="brand-title mb-4">Start with a conversation.</h1><p className="brand-muted mb-8 max-w-xl text-sm">Choose a day and time for your project interview. We’ll discuss your goals and the right next steps.</p>
+          <div className="brand-card overflow-hidden">
             <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
               <div>
                 <p className="text-sm font-bold text-white">
@@ -322,7 +322,7 @@ function BookContent() {
                   type="button"
                   disabled={!selected || booking || !nameOk || !emailOk || !phoneOk}
                   onClick={confirm}
-                  className="mt-6 w-full rounded-2xl h-12 bg-gradient-to-r from-[#66E3FF] to-[#A2EEFF] text-black font-bold"
+                  className="brand-button brand-button-primary mt-6 w-full"
                 >
                   {booking ? 'Booking…' : selected ? 'Confirm booking' : 'Select a time'}
                 </Button>
