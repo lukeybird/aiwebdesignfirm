@@ -14,7 +14,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#080D1B] px-6 pb-8 pt-20 text-[#F4F7FB]">
       <div className="mx-auto max-w-6xl">
-        <nav aria-label="Main" className="flex items-center justify-between gap-4 border-b border-[#293B55] pb-5">
+        <nav aria-label="Main" className="flex flex-wrap items-center gap-8 border-b border-[#293B55] pb-5">
           <strong>AI Web Design Firm</strong>
           <a className="text-[#66E3FF] underline" href="#plans">Compare plans</a>
         </nav>
