@@ -139,7 +139,7 @@ function BookContent() {
 
   if (done) {
     return (
-      <div className="min-h-[100dvh] bg-[#0a0a0f] text-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-[100dvh] bg-[#080D1B] text-white flex flex-col items-center justify-center px-6 text-center">
         <h1 className="text-3xl font-bold font-heading mb-4">You&apos;re set</h1>
         <p className="text-gray-400 max-w-md mb-8">
           We sent a confirmation email with your time (US Eastern). If you don&apos;t see it, check spam.
@@ -153,7 +153,7 @@ function BookContent() {
 
   if (alreadyBooked) {
     return (
-      <div className="min-h-[100dvh] bg-[#0a0a0f] text-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-[100dvh] bg-[#080D1B] text-white flex flex-col items-center justify-center px-6 text-center">
         <h1 className="text-2xl font-bold font-heading mb-4">You already have a call scheduled</h1>
         <p className="text-gray-400 max-w-md mb-8">Check your email for the time, or reply to reach us.</p>
         <Button asChild className="rounded-full bg-white text-black">
@@ -164,13 +164,13 @@ function BookContent() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0f] text-white px-6 py-12 sm:py-16">
+    <div className="min-h-[100dvh] bg-[#080D1B] text-white px-6 py-12 sm:py-16">
       <div className="mx-auto max-w-6xl">
         <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 mb-8 inline-block">
           ← AiWebDesignFirm
         </Link>
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-3xl border border-white/10 bg-[#0d0d1a] overflow-hidden">
+          <div className="rounded-3xl border border-white/10 bg-[#101A2D] overflow-hidden">
             <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
               <div>
                 <p className="text-sm font-bold text-white">
@@ -258,8 +258,8 @@ function BookContent() {
                                   ? 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
                                   : 'border-transparent bg-white/0 text-white/20 cursor-not-allowed',
                                 picked &&
-                                  'bg-[#0066ff] border-[#0066ff] text-white hover:bg-[#0066ff] ring-2 ring-[#00d4ff]/60 ring-offset-2 ring-offset-[#0d0d1a]',
-                                isToday && !picked && 'ring-1 ring-[#00d4ff]/30',
+                                  'bg-[#66E3FF] border-[#66E3FF] text-[#080D1B] hover:bg-[#66E3FF] ring-2 ring-[#A2EEFF]/60 ring-offset-2 ring-offset-[#101A2D]',
+                                isToday && !picked && 'ring-1 ring-[#A2EEFF]/30',
                               )}
                               aria-label={`${ymd}${available ? '' : ' (unavailable)'}`}
                             >
@@ -293,7 +293,7 @@ function BookContent() {
                           className={classNames(
                             'w-full rounded-2xl border px-3 py-2.5 text-center text-sm font-semibold transition-all',
                             picked
-                              ? 'bg-[#0066ff] border-[#0066ff] text-white'
+                              ? 'bg-[#66E3FF] border-[#66E3FF] text-[#080D1B]'
                               : s.taken
                                 ? 'border-white/5 bg-white/0 text-white/25 cursor-not-allowed line-through'
                                 : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-gray-200',
@@ -322,7 +322,7 @@ function BookContent() {
                   type="button"
                   disabled={!selected || booking || !nameOk || !emailOk || !phoneOk}
                   onClick={confirm}
-                  className="mt-6 w-full rounded-2xl h-12 bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-black font-bold"
+                  className="mt-6 w-full rounded-2xl h-12 bg-gradient-to-r from-[#66E3FF] to-[#A2EEFF] text-black font-bold"
                 >
                   {booking ? 'Booking…' : selected ? 'Confirm booking' : 'Select a time'}
                 </Button>
@@ -341,7 +341,7 @@ export default function BookPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[100dvh] bg-[#0a0a0f] text-white flex items-center justify-center">
+        <div className="min-h-[100dvh] bg-[#080D1B] text-white flex items-center justify-center">
           <p className="text-gray-400">Loading…</p>
         </div>
       }

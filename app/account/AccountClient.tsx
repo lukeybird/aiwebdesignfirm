@@ -95,25 +95,25 @@ export default function AccountClient() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#0a0a0f] text-[#f5f5f7]">
+    <main className="min-h-[100dvh] bg-[#080D1B] text-[#F4F7FB]">
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
           background:
-            'radial-gradient(ellipse at 20% 0%, rgba(45,120,110,0.28), transparent 50%), radial-gradient(ellipse at 90% 10%, rgba(180,120,40,0.18), transparent 45%)',
+            'radial-gradient(ellipse at 20% 0%, rgba(102,227,255,0.10), transparent 50%), radial-gradient(ellipse at 90% 10%, rgba(255,107,122,0.08), transparent 45%)',
         }}
       />
       <div className="relative mx-auto max-w-xl px-5 py-16">
         {status === "authenticated" && <BillingPanel />}
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-teal-300/80">AiWebDesignFirm</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-[#66E3FF]/80">AiWebDesignFirm</p>
             <h1 className="mt-2 font-[family-name:var(--font-heading)] text-3xl font-semibold tracking-tight">
               Account
             </h1>
           </div>
           <div className="flex gap-3 text-sm">
-            <Link href="/leaderboard" className="text-amber-200/90 hover:text-amber-100">
+            <Link href="/leaderboard" className="text-[#FF6B7A]/90 hover:text-[#FF6B7A]">
               Leaderboard
             </Link>
             <Link href="/TDG" className="text-white/70 hover:text-white">
@@ -141,7 +141,7 @@ export default function AccountClient() {
                     className="h-14 w-14 rounded-full border border-white/15 object-cover"
                   />
                 ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-900/50 text-lg font-semibold text-teal-100">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#66E3FF]/10 text-lg font-semibold text-[#66E3FF]">
                     {user.displayName.slice(0, 1).toUpperCase()}
                   </div>
                 )}
@@ -157,7 +157,7 @@ export default function AccountClient() {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   maxLength={40}
-                  className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none ring-teal-400/40 focus:ring-2"
+                  className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none ring-[#66E3FF]/40 focus:ring-2"
                   placeholder="Shown in TDG and on the leaderboard"
                   required
                 />
@@ -170,19 +170,19 @@ export default function AccountClient() {
                   onChange={(e) => setBio(e.target.value)}
                   maxLength={280}
                   rows={4}
-                  className="w-full resize-y rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none ring-teal-400/40 focus:ring-2"
+                  className="w-full resize-y rounded-xl border border-white/15 bg-black/40 px-4 py-3 outline-none ring-[#66E3FF]/40 focus:ring-2"
                   placeholder="Optional short bio"
                 />
               </label>
 
-              {message && <p className="text-sm text-teal-200/90">{message}</p>}
+              {message && <p className="text-sm text-[#66E3FF]/90">{message}</p>}
               {error && <p className="text-sm text-red-300">{error}</p>}
 
               <div className="flex flex-wrap gap-3 pt-1">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-xl bg-teal-300 px-5 py-3 font-semibold text-[#06221f] hover:bg-teal-200 disabled:opacity-50"
+                  className="rounded-xl bg-[#66E3FF] px-5 py-3 font-semibold text-[#080D1B] hover:bg-[#66E3FF] disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : 'Save profile'}
                 </button>

@@ -16,8 +16,8 @@ export default function CheckoutRedirect({ plan, interrupted, failed }: {
   return (
     <form ref={form} method="post" action="/api/billing" className="mt-6">
       <input type="hidden" name="action" value={plan} />
-      <p className="mb-4 text-sm text-slate-400">{failed ? 'We could not open checkout. Please try again.' : interrupted ? 'Your trial has not started. Continue when you’re ready.' : 'Your account is ready. Opening secure Stripe checkout…'}</p>
-      <button className="w-full rounded-lg bg-emerald-300 px-5 py-3 font-semibold text-slate-950">Continue to card details</button>
+      <p className="mb-4 text-sm text-[#9AAAC0]">{failed ? 'We could not open checkout. Please try again.' : interrupted ? 'Your trial has not started. Continue when you’re ready.' : 'Your account is ready. Opening secure Stripe checkout…'}</p>
+      <button className="w-full rounded-lg bg-[#66E3FF] px-5 py-3 font-semibold text-[#080D1B]">Continue to card details</button>
     </form>
   );
 }

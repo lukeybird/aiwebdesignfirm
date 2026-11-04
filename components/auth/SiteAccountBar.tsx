@@ -17,7 +17,7 @@ export default function SiteAccountBar() {
     <div className="fixed top-3 right-3 z-[60] flex items-center gap-2 text-sm pointer-events-auto">
       <Link
         href="/leaderboard"
-        className="rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-[#e8ebe0] backdrop-blur hover:border-amber-400/50 hover:text-amber-200 transition-colors"
+        className="rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-[#66E3FF] backdrop-blur hover:border-[#FF6B7A]/50 hover:text-[#FF6B7A] transition-colors"
       >
         Leaderboard
       </Link>
@@ -25,7 +25,7 @@ export default function SiteAccountBar() {
         <>
           <Link
             href="/product"
-            className="rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-[#e8ebe0] backdrop-blur hover:border-teal-400/50 hover:text-teal-200 transition-colors"
+            className="rounded-lg border border-white/15 bg-black/50 px-3 py-1.5 text-[#66E3FF] backdrop-blur hover:border-[#66E3FF]/50 hover:text-[#66E3FF] transition-colors"
           >
             {label}
           </Link>
@@ -38,7 +38,7 @@ export default function SiteAccountBar() {
           </button>
         </>
       ) : (
-        <Link href="/login" className="rounded-lg bg-[#e8ebe0] px-3 py-1.5 font-semibold text-[#0a0a0f]">Sign in</Link>
+        <Link href="/login" className="rounded-lg bg-[#66E3FF] px-3 py-1.5 font-semibold text-[#080D1B]">Sign in</Link>
       )}
     </div>
   );

@@ -4,14 +4,18 @@
 
 /* Default canvas matches AiWebDesignFirm / booking (dark brand); avoids white flash on home & /book */
 :root {
-  --background: #0a0a0f;
-  --foreground: #f5f5f7;
+  --brand-navy: #080D1B;
+  --brand-blue: #66E3FF;
+  --brand-coral: #FF6B7A;
+  --brand-surface: #101A2D;
+  --background: #080D1B;
+  --foreground: #F4F7FB;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0f;
-    --foreground: #f5f5f7;
+    --background: #080D1B;
+    --foreground: #F4F7FB;
   }
 }
 
