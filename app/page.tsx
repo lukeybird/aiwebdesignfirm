@@ -6,8 +6,8 @@ export const metadata: Metadata = {
 };
 
 const plans = [
-  { name: 'Build It Yourself', price: '$99.99', description: 'Describe what you want in plain English and use AI to build and update it. Self-serve, with no reports.', checkout: process.env.SQUARE_DIY_CHECKOUT_URL },
-  { name: 'Build With a Dedicated Specialist', price: '$999', description: 'Call one dedicated AI specialist for technical work within your plan, including site updates, integrations, and troubleshooting.', checkout: process.env.SQUARE_EXPERT_CHECKOUT_URL },
+  { name: 'Build It Yourself', price: '$99.99', description: 'Describe what you want in plain English and use AI to build and update it. Self-serve, with no reports.' },
+  { name: 'Build With a Dedicated Specialist', price: '$999', description: 'Call one dedicated AI specialist for technical work within your plan, including site updates, integrations, and troubleshooting.' },
 ];
 
 export default function Home() {
@@ -34,7 +34,7 @@ export default function Home() {
                 <p className="my-4 text-3xl font-bold">{plan.price} <span className="text-sm font-normal">/ month</span></p>
                 <p className="mb-4 text-slate-300">{plan.description}</p>
                 <p className="mb-6 text-sm text-slate-300">7-day trial, then {plan.price}/month.</p>
-                {plan.checkout ? <a className="mt-auto rounded-lg bg-emerald-200 px-4 py-3 text-center font-bold text-slate-950" href={plan.checkout}>Start 7-Day Trial</a> : <p className="mt-auto rounded-lg bg-slate-800 px-4 py-3 text-center text-sm">Trial signup coming soon</p>}
+                <a className="mt-auto rounded-lg bg-emerald-200 px-4 py-3 text-center font-bold text-slate-950" href={index === 0 ? '/account?plan=diy' : '/account?plan=expert'}>Start 7-Day Trial</a>
               </article>
             ))}
             <article className="flex flex-col rounded-2xl border border-slate-700 bg-slate-900 p-6">
