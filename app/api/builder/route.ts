@@ -19,7 +19,7 @@ export async function GET(request:Request){
       const versions=await sql`SELECT revision,created_at FROM site_builder_versions WHERE project_id=${id} ORDER BY revision DESC LIMIT 30`;
       return reply({project:rows[0],versions,aiAvailable:providerConfigured()});
     }
-    const projects=await sql`SELECT id,source_url,document->>'businessName' AS name,revision,slug,published_document IS NOT NULL AS published,updated_at FROM site_builder_projects WHERE user_id=${user.id} ORDER BY updated_at DESC LIMIT 100`;
+    const projects=await sql`SELECT id,source_url,document->>'businessName' AS name,revision,slug,published_document IS NOT NULL AS published,updated_at,document->'content' IS NOT NULL AS redesigned FROM site_builder_projects WHERE user_id=${user.id} ORDER BY updated_at DESC LIMIT 100`;
     return reply({projects,aiAvailable:providerConfigured()});
   }catch{return reply({error:'Could not load projects. Please try again.'},502);}
 }
@@ -38,15 +38,14 @@ export async function POST(request:Request){
     const billing=await (await getBilling()).json();
     if(!billing.hasAccess)return reply({error:'An active subscription or trial is required to build and publish.',requiresPlan:true},403);
     if(input.action==='create'){
-      const goal=typeof input.goal==='string'?input.goal.trim().slice(0,500):'Get more inquiries';
-      if(input.ownsSite!==true)return reply({error:'Confirm that you own or have permission to use this website’s content.'},400);
+      const goal='Improve the appearance of this exact page while preserving its content, structure, pricing, and link destinations.';
       await consumeGeneration(user.id);
       let source:SiteSource;
       if(typeof input.pastedText==='string'&&input.pastedText.trim().length>=100){source={url:'',title:typeof input.businessName==='string'?input.businessName.slice(0,100):'Your business',description:'',headings:[],text:input.pastedText.trim().slice(0,14000),images:[],email:'',phone:''};}
       else{if(typeof input.url!=='string'||input.url.length>2000)return reply({error:'Enter a website URL or paste at least 100 characters of homepage text.'},400);source=await importWebsite(input.url);}
       let document=importedDraft(source),mode='imported',notice='';
-      if(providerConfigured()){try{document=await redesign(source,goal);mode='ai';}catch{notice='The AI service is temporarily unavailable. We saved an imported layout you can edit manually.';}}
-      else notice='Your content was placed into a modern layout. AI rewriting is not enabled yet; all fields can be edited manually.';
+      if(providerConfigured()){try{document=await redesign(source,goal);mode='ai';}catch{notice='Your page has been rebuilt with automatic styling. Further refinements are temporarily unavailable.';}}
+      else notice='Your page has been rebuilt with automatic styling.';
       const slug=randomBytes(12).toString('hex');
       const rows=await sql`INSERT INTO site_builder_projects(user_id,source_url,source,goal,document,slug,mode) VALUES(${user.id},${source.url},${sql.json(source)},${goal},${sql.json(document)},${slug},${mode}) RETURNING id`;
       await sql`INSERT INTO site_builder_versions(project_id,revision,document) VALUES(${rows[0].id},1,${sql.json(document)})`;
@@ -66,7 +65,7 @@ export async function POST(request:Request){
     if(input.action==='save')document=pageSchema.parse(input.document);
     else if(input.action==='edit_ai'){
       if(typeof input.instruction!=='string'||!input.instruction.trim()||input.instruction.length>1500)return reply({error:'Describe the change in 1–1500 characters.'},400);
-      await consumeGeneration(user.id);document=await redesign(current.source,'Improve this homepage',current.document,input.instruction);
+      await consumeGeneration(user.id);document=await redesign(current.source,'Improve this exact page',current.document,input.instruction);
     }else if(input.action==='restore'){
       const versions=await sql`SELECT document FROM site_builder_versions WHERE project_id=${id} AND revision=${Number(input.version)}`;
       if(!versions[0])return reply({error:'Version not found.'},404);document=pageSchema.parse(versions[0].document);

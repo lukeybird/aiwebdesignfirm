@@ -1,3 +1,4 @@
+import { contentSchema, renderContentPage } from './page-content';
 import { z } from 'zod';
 export const pageSchema=z.object({
   businessName:z.string().min(1).max(100),headline:z.string().min(1).max(160),intro:z.string().max(600),
@@ -5,11 +6,13 @@ export const pageSchema=z.object({
   aboutTitle:z.string().max(100),aboutText:z.string().max(1000),
   services:z.array(z.object({title:z.string().max(80),text:z.string().max(350)})).max(6),
   accent:z.enum(['ocean','coral','forest','violet']),theme:z.enum(['light','dark']),
+  content:contentSchema.optional(),
   image:z.string().max(2000),logo:z.string().max(2000).default(''),footer:z.string().max(200),
 });
 export type PageDocument=z.infer<typeof pageSchema>;
 export function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!));}
 export function renderPage(page:PageDocument) {
+  if(page.content)return renderContentPage({...page,content:page.content});
   const e=escapeHtml;
   const colors={ocean:['#1264A3','#DBEFFC'],coral:['#BE3F4D','#FFE8E9'],forest:['#21664B','#E1F2E9'],violet:['#6744AC','#EEE7FC']};
   const [accent,soft]=colors[page.accent];const dark=page.theme==='dark';
