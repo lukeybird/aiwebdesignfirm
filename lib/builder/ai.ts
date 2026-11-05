@@ -3,7 +3,7 @@ import { pageSchema, type PageDocument } from './document';
 import { contentSchema, type PageContent } from './page-content';
 import type { SiteSource } from './source';
 export function importedDraft(source:SiteSource):PageDocument {
- const name=source.title.split(/[|–—]/)[0].trim().slice(0,100)||new URL(source.url||'https://example.com').hostname;
+ const name=source.page?.brandName||source.title.split(/[|–—]/)[0].trim().slice(0,100)||new URL(source.url||'https://example.com').hostname;
  const content:PageContent=source.page?contentSchema.parse(source.page):{navigation:[],sections:[{id:'page-intro',heading:source.headings[0]||name,blocks:[{kind:'text',text:source.text,url:'',items:[],level:3}],cards:[],layout:'stack',tone:'plain'}],footer:[],logo:'',font:'sans'};
  return {businessName:name,headline:(content.sections.find(s=>s.heading)?.heading||name).slice(0,160),intro:source.description,ctaLabel:'',contactEmail:source.email,contactPhone:source.phone,aboutTitle:'',aboutText:'',services:[],accent:'ocean',theme:'light',image:'',logo:content.logo,footer:'',content};
 }

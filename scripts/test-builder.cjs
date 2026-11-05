@@ -99,3 +99,16 @@ test('AI styling cannot alter content, prices or destinations even if it returns
  try{const after=await ai.redesign(imported,'ignored');assert.equal(after.accent,'coral');assert.equal(after.headline,before.headline);assert.deepEqual(after.content.sections.map(s=>s.blocks),before.content.sections.map(s=>s.blocks));assert.ok(document.renderPage(after).includes('$250 per session.'));}
  finally{global.fetch=oldFetch;if(oldKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldKey;}
 });
+test('inline and list links stay in place instead of becoming duplicate CTA buttons',()=>{
+ const doc=ai.importedDraft(source.extractSource('<main><h1>Repairs</h1><p>Read about <a href="/repairs">our repairs</a> here.</p><ul><li><a href="/water">Water lines</a></li><li><a href="/sewers">Sewer lines</a></li></ul></main>','https://example.com/services'));
+ const html=document.renderPage(doc);assert.equal((html.match(/href="https:\/\/example.com\/repairs"/g)||[]).length,1);assert.ok(html.includes('<li><a href="https://example.com/water"'));assert.ok(!html.includes('class="action"'));
+});
+test('large menus collapse automatically while keeping original destinations',()=>{
+ const nav=Array.from({length:14},(_,i)=>`<a href="/service-${i}">Service ${i}</a>`).join('');
+ const doc=ai.importedDraft(source.extractSource('<meta property="og:site_name" content="Acme"><nav>'+nav+'</nav><main><h1>Our page</h1><p>Original copy.</p></main>','https://example.com/services'));
+ const html=document.renderPage(doc);assert.equal(doc.businessName,'Acme');assert.ok(html.includes('<summary>More</summary>'));assert.ok(html.includes('https://example.com/service-13'));
+});
+test('site footer is separated from page content and original preview imagery is retained',()=>{
+ const doc=ai.importedDraft(source.extractSource('<meta property="og:image" content="https://example.com/team.jpg"><main><h1>Our page</h1><p>Body copy.</p><div class="site-footer"><h4>Reach us</h4><a href="tel:+15551234567">Call</a></div></main>','https://example.com/services'));
+ assert.ok(doc.content.footer.some(b=>b.text==='Reach us'));assert.ok(!doc.content.sections.some(s=>s.blocks.some(b=>b.text==='Reach us')));assert.ok(document.renderPage(doc).includes('src="https://example.com/team.jpg"'));
+});
