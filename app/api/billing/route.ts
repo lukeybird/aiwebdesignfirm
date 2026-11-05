@@ -94,13 +94,12 @@ export async function POST(request: Request) {
       });
       return NextResponse.redirect(portal.url, 303);
     }
-    if (records.length) return NextResponse.redirect(new URL('/account', origin), 303);
     const checkout = await stripe<{ url: string }>('checkout/sessions', {
       customer, mode: 'subscription', payment_method_collection: 'always',
       'line_items[0][price]': price, 'line_items[0][quantity]': '1',
-      'subscription_data[trial_period_days]': '7',
+      ...(records.length === 0 ? { 'subscription_data[trial_period_days]': '7' } : {}),
       success_url: origin + '/product', cancel_url: origin + '/start?plan=' + action + '&canceled=1',
-    }, 'site-checkout-product-v1-' + customer + '-' + price + '-' + Math.floor(Date.now() / 1800000));
+    }, 'site-checkout-product-v2-' + customer + '-' + price + '-' + Math.floor(Date.now() / 1800000));
     return NextResponse.redirect(checkout.url, 303);
   } catch {
     return NextResponse.redirect(new URL('/start?plan=' + (action === 'expert' ? 'expert' : 'diy') + '&billing=unavailable', origin), 303);
