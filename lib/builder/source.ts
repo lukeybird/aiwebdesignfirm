@@ -1,8 +1,10 @@
+import { extractPage } from './extract';
+import type { PageContent } from './page-content';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import http from 'node:http';
 import https from 'node:https';
-export type SiteSource = { url: string; title: string; description: string; headings: string[]; text: string; images: string[]; email: string; phone: string };
+export type SiteSource = { url: string; title: string; description: string; headings: string[]; text: string; images: string[]; email: string; phone: string; page?: PageContent };
 export function publicAddress(address: string) {
   if (isIP(address) === 4) {
     const [a,b] = address.split('.').map(Number);
@@ -49,13 +51,14 @@ export function extractSource(html: string,url: string): SiteSource {
   const description=plainText(attribute(metas.find(tag=>attribute(tag,'name').toLowerCase()==='description')||'','content')).slice(0,500);
   const headings=Array.from(html.matchAll(/<h[12]\b[^>]*>([\s\S]*?)<\/h[12]>/gi)).map(match=>plainText(match[1])).filter(Boolean).slice(0,12);
   const text=plainText(html).slice(0,14000);
+  const page=extractPage(html,url);
   const images=Array.from(html.matchAll(/<img\b[^>]*>/gi)).map(match=>attribute(match[0],'src')).map(src=>{try{const image=new URL(src,url);return image.protocol==='https:'&&!image.username&&!image.password&&image.host===new URL(url).host?image.href:'';}catch{return '';}}).filter(Boolean).slice(0,8);
   const email=html.match(/href=["']mailto:([^?"']+)/i)?.[1]||'';
   const phone=html.match(/href=["']tel:([^"']+)/i)?.[1]||'';
-  return {url,title,description,headings,text,images:[...new Set(images)],email:email.slice(0,150),phone:phone.slice(0,50)};
+  return {url,title,description,headings,text,images:[...new Set([...images,...page.sections.flatMap(s=>[...s.blocks,...s.cards.flatMap(c=>c.blocks)]).filter(b=>b.kind==='image').map(b=>b.url),...(page.logo?[page.logo]:[])])],page,email:email.slice(0,150),phone:phone.slice(0,50)};
 }
 export async function importWebsite(raw:string) {
   let url=siteUrl(raw);
-  for(let i=0;i<4;i++){const result=await requestHtml(url);if(result.location){url=siteUrl(new URL(result.location,url).href);continue;}const source=extractSource(result.html,url.href);if(source.text.length<100)throw new Error('This site needs browser rendering to read. Paste its homepage text below instead.');return source;}
+  for(let i=0;i<4;i++){const result=await requestHtml(url);if(result.location){url=siteUrl(new URL(result.location,url).href);continue;}const source=extractSource(result.html,url.href);if(source.text.length<100)throw new Error('This site needs browser rendering to read. Try its public page URL instead.');return source;}
   throw new Error('The website redirects too many times. Paste its final URL or its text.');
 }
