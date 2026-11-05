@@ -1,4 +1,6 @@
 'use client';
+import { usePathname } from 'next/navigation';
+import homeStyles from '@/app/home.module.css';
 
 import { FormEvent, useMemo, useState } from 'react';
 import { MessageCircle, Send, X } from 'lucide-react';
@@ -29,6 +31,7 @@ function getSessionId(): string {
 }
 
 export default function AiImplementationChatWidget() {
+  const homepage = usePathname() === '/';
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -160,11 +163,11 @@ export default function AiImplementationChatWidget() {
       <Button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        size="icon"
-        className="h-14 w-14 rounded-full bg-gradient-to-r from-[#66E3FF] to-[#A2EEFF] text-black shadow-[0_12px_32px_-12px_rgba(0,212,255,0.9)] hover:from-[#A2EEFF] hover:to-[#66E3FF]"
+        size={homepage ? "default" : "icon"}
+        className={homepage ? homeStyles.chatTrigger : "h-14 w-14 rounded-full bg-gradient-to-r from-[#66E3FF] to-[#A2EEFF] text-black shadow-[0_12px_32px_-12px_rgba(0,212,255,0.9)] hover:from-[#A2EEFF] hover:to-[#66E3FF]"}
         aria-label={open ? 'Close AI implementation chat' : 'Open AI implementation chat'}
       >
-        <MessageCircle className="h-6 w-6" />
+        <MessageCircle className={homepage ? "h-4 w-4" : "h-6 w-6"} />{homepage && <span>Ask a question</span>}
       </Button>
     </div>
   );
