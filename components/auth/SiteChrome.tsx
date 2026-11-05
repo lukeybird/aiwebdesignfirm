@@ -6,6 +6,6 @@ import AiImplementationChatWidget from '@/components/chat/AiImplementationChatWi
 
 export default function SiteChrome({ part }: { part: 'account' | 'chat' }) {
   const pathname = usePathname();
-  if (['/product', '/start', '/settings', '/login'].includes(pathname)) return null;
+  if (['/product', '/start', '/settings', '/login'].includes(pathname) || pathname.startsWith('/builder') || pathname.startsWith('/s/')) return null;
   return part === 'account' ? <SiteAccountBar /> : <AiImplementationChatWidget />;
 }
