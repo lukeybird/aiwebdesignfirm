@@ -6,8 +6,9 @@ const clean=(value:string)=>value.replace(/\s+/g,' ').trim();
 const block=(kind:PageBlock['kind'],text='',url='',items:string[]=[],level=3):PageBlock=>({kind,text,url,items,level});
 export function extractPage(html:string,url:string):PageContent{
  const $=load(html);$('script,style,noscript,svg,template,iframe,[hidden],[aria-hidden="true"]').remove();
+ $('br').replaceWith(' ');
  const absolute=(raw:string)=>{try{return safeDestination(new URL(raw,url).href);}catch{return '';}};
- const image=(el:Element)=>{const n=$(el);const candidates=[n.attr('src'),n.attr('data-src'),(n.attr('srcset')||'').split(',')[0]?.trim().split(/\s+/)[0]];if(Number(n.attr('width'))>0&&Number(n.attr('width'))<=16)return '';for(const raw of candidates){const src=absolute(raw||'');if(src.startsWith('https:'))return src;}return '';};
+ const image=(el:Element)=>{const n=$(el);const candidates=[n.attr('src'),n.attr('data-src'),(n.attr('srcset')||'').split(',')[0]?.trim().split(/\s+/)[0]];if(Number(n.attr('width'))>0&&Number(n.attr('width'))<=16)return '';for(const raw of candidates){if(!raw)continue;const src=absolute(raw);if(src.startsWith('https:'))return src;}return '';};
  const nav:Array<{label:string;url:string}>=[];
  $('nav a, [role="navigation"] a').each((_,el)=>{const label=clean($(el).text());const href=absolute($(el).attr('href')||'');if(label&&href&&label.length<=300&&!nav.some(l=>l.label===label&&l.url===href)&&nav.length<12)nav.push({label,url:href});});
  let logo='';$('img').each((_,el)=>{if(!logo&&/logo/i.test(($(el).attr('alt')||'')+' '+($(el).attr('src')||'')))logo=image(el);});
@@ -23,6 +24,7 @@ export function extractPage(html:string,url:string):PageContent{
    if(node.type!=='tag')continue;
    const tag=node.name.toLowerCase(),n=$(node);
    if(['nav','footer'].includes(tag)||n.attr('role')==='navigation')continue;
+   if(tag==='header'&&n.find('nav,[role="navigation"]').length&&!n.find('h1,h2').length)continue;
    if(!target&&['div','section','ul'].includes(tag)){
     const children=n.children().toArray();
     if(children.length>=2&&children.length<=12&&children.every(child=>$(child).find('h2,h3,h4,h5,h6').length===1&&!$(child).find('h1').length)){
