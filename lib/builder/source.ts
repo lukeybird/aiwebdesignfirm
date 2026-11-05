@@ -23,7 +23,7 @@ async function requestHtml(url: URL): Promise<{ status: number; location?: strin
   const address = addresses[0];
   return new Promise((resolve,reject) => {
     const request = (url.protocol === 'https:' ? https : http).get(url, {
-      family: address.family, autoSelectFamily: false,
+      family: address.family,
       headers: { 'User-Agent': 'AIWebDesignFirm-Importer/1.0', Accept: 'text/html,application/xhtml+xml' },
       lookup: ((_host: unknown,_options: unknown,callback: (error: Error|null,address: string,family: number)=>void) => callback(null,address.address,address.family)) as never,
       timeout: 12000,

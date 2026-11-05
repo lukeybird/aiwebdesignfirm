@@ -2,7 +2,7 @@ import { pageSchema, type PageDocument } from './document';
 import type { SiteSource } from './source';
 export function importedDraft(source:SiteSource):PageDocument {
   const name=source.title.split(/[|–—]/)[0].trim().slice(0,100)||'Your business';
-  return {businessName:name,headline:source.headings[0]?.slice(0,160)||name,intro:source.description||source.text.slice(0,350),ctaLabel:source.phone?'Call us':'Get in touch',contactEmail:source.email,contactPhone:source.phone,aboutTitle:'About '+name,aboutText:source.text.slice(0,800),services:source.headings.slice(1,4).map(title=>({title:title.slice(0,80),text:'Add a short description of this service in the editor.'})),accent:'ocean',theme:'light',image:source.images.find(image=>!/logo|icon|favicon/i.test(image))||'',logo:source.images.find(image=>/logo/i.test(image))||'',footer:name};
+  return {businessName:name,headline:source.headings[0]?.slice(0,160)||name,intro:source.description||source.text.slice(0,350),ctaLabel:source.phone?'Call us':'Get in touch',contactEmail:source.email,contactPhone:source.phone,aboutTitle:('About '+name).slice(0,100),aboutText:source.text.slice(0,800),services:source.headings.slice(1,4).map(title=>({title:title.slice(0,80),text:'Add a short description of this service in the editor.'})),accent:'ocean',theme:'light',image:source.images.find(image=>!/logo|icon|favicon/i.test(image))||'',logo:source.images.find(image=>/logo/i.test(image))||'',footer:name};
 }
 export function providerConfigured(){return Boolean(process.env.DEEPSEEK_API_KEY||process.env.OPENAI_API_KEY||process.env.CLAUDE_API_KEY);}
 export async function redesign(source:SiteSource,goal:string,current?:PageDocument,instruction?:string):Promise<PageDocument> {
