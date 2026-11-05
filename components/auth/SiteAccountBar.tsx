@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Brand from './Brand';
+import homeStyles from '@/app/home.module.css';
 import { signOut, useSession } from 'next-auth/react';
 
 export default function SiteAccountBar() {
@@ -13,6 +14,11 @@ export default function SiteAccountBar() {
 
   // TDG serves static public/TDG HTML with its own account overlay (account-overlay.js).
   if (pathname?.startsWith('/TDG') || pathname?.startsWith('/tdg')) return null;
+
+  if (pathname === '/') return <header className={homeStyles.navShell}><nav aria-label="Main" className={homeStyles.nav}>
+    <Link href="/" className={homeStyles.wordmark} aria-label="AI Web Design Firm home"><span className={homeStyles.mark} aria-hidden="true"><i/><i/><i/></span><span>AI Web Design Firm</span></Link>
+    <div className={homeStyles.navLinks}><Link href="/#how-it-works" className={homeStyles.desktopLink}>How it works</Link><Link href="/#plans">Plans</Link><Link className={homeStyles.navAction} href={signedIn?'/product':'/login'}>{signedIn?'Your workspace':'Sign in'} <span aria-hidden="true">↗</span></Link></div>
+  </nav></header>;
 
   if (['/', '/book', '/account'].includes(pathname)) return (
     <header className="brand-header"><nav aria-label="Main" className="brand-container brand-navigation">
