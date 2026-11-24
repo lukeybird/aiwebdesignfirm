@@ -31,8 +31,8 @@ export default function AccountForm({ callbackUrl, initialMode = 'signup' }: { c
     <form onSubmit={submit} className="space-y-4">
       {mode === 'signup' && <label className="block text-sm">Name<input name="name" autoComplete="name" required maxLength={100} className={field} /></label>}
       <label className="block text-sm">Email<input name="email" type="email" autoComplete="email" required maxLength={254} className={field} /></label>
-      <label className="block text-sm">Password<input key={mode} name="password" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={mode === 'signup' ? 12 : undefined} required className={field} /></label>
-      {mode === 'signup' && <p className="text-xs text-[#9AAAC0]">Use at least 12 characters. Keep your password somewhere safe.</p>}
+      <label className="block text-sm">Password<input key={mode} name="password" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={mode === 'signup' ? 8 : undefined} required className={field} /></label>
+      {mode === 'signup' && <p className="text-xs text-[#9AAAC0]">Use at least 8 characters. Keep your password somewhere safe.</p>}
       {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
       <button disabled={busy} className="brand-button brand-button-primary w-full">{busy ? 'Please wait…' : mode === 'signup' ? 'Create account & continue' : 'Sign in & continue'}</button>
     </form>
