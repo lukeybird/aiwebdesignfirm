@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { auth } from "@/auth";
+import { isFreeSignupOwner } from "@/lib/free-owner";
 import { sql } from "@/lib/db";
 import { initFree } from "@/lib/free-pixashop";
 import "../free.css";
@@ -9,13 +9,7 @@ export const metadata = {
 };
 export const dynamic = "force-dynamic";
 export default async function Activity() {
-  const user = (await auth())?.user;
-  if (
-    !process.env.PIXA_OWNER_USER_ID ||
-    user?.id !== process.env.PIXA_OWNER_USER_ID ||
-    user?.email?.toLowerCase() !== "luke@webstarts.com"
-  )
-    notFound();
+  if (!(await isFreeSignupOwner())) notFound();
   await initFree();
   const [daily, sources, recent] = await Promise.all([
     sql`SELECT (confirmed AT TIME ZONE 'America/New_York')::date::text AS day,count(*)::int AS total,count(inviter)::int AS referred FROM pixa_free_members WHERE confirmed>=now()-interval '30 days' GROUP BY day ORDER BY day DESC`,

@@ -128,6 +128,19 @@ test(
       const [{ count }] =
         await sql`SELECT count(*)::int AS count FROM pixa_free_members WHERE confirmed IS NOT NULL AND inviter=${first.referral}`;
       assert.equal(count, 1);
+      const rewards = load("lib/free-rewards.ts");
+      const rewardRoute = load("app/api/free/reward/route.ts", {
+        ...shared,
+        "@/lib/free-rewards": rewards,
+      });
+      for (const reward of rewards.rewards) {
+        const response = await storage.run(owner.session, () =>
+          rewardRoute.GET(
+            new Request(origin + "/api/free/reward?file=" + reward.file),
+          ),
+        );
+        assert.equal(response.status, reward.threshold === 1 ? 200 : 403);
+      }
       const fresh = await send({ action: "download", key: owner.download });
       assert.equal(fresh.status, 303);
       const mac = fresh.cookies.get("pixa_free").value;

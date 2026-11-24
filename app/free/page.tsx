@@ -1,6 +1,7 @@
 import { freeMember, freeOrigin } from "@/lib/free-pixashop";
 import { sql } from "@/lib/db";
 import "./free.css";
+import { rewards } from "@/lib/free-rewards";
 
 export const metadata = {
   title: { absolute: "Free PixaShop for Mac | PixaWorld" },
@@ -8,12 +9,6 @@ export const metadata = {
     "Get PixaShop for Mac by confirming your email. No card required.",
 };
 type Query = Record<string, string | undefined>;
-const ranks = [
-  [1, "Scout"],
-  [3, "Guide"],
-  [10, "Ambassador"],
-] as const;
-
 export default async function FreePage({
   searchParams,
 }: {
@@ -38,8 +33,9 @@ export default async function FreePage({
     ? await sql`SELECT count(*)::int AS total FROM pixa_free_members WHERE inviter=${member.referral} AND confirmed IS NOT NULL`
     : [{ total: 0 }];
   const count = Number(stats.total);
-  const rank = [...ranks].reverse().find(([n]) => count >= n)?.[1] || "Member";
-  const next = ranks.find(([n]) => count < n);
+  const rank =
+    [...rewards].reverse().find((r) => count >= r.threshold)?.rank || "Member";
+  const next = rewards.find((r) => count < r.threshold);
   return (
     <main className="freePixa">
       <header>
@@ -101,14 +97,23 @@ export default async function FreePage({
             />
             <p>
               {next
-                ? `${next[0] - count} more to earn ${next[1]}.`
+                ? `${next.threshold - count} more to earn ${next.rank}.`
                 : "You earned Ambassador."}
             </p>
             <ul>
-              {ranks.map(([n, name]) => (
-                <li key={name}>
-                  {count >= n ? "✓ " : ""}
-                  {name} · {n}
+              {rewards.map((r) => (
+                <li key={r.file}>
+                  <strong>
+                    {r.rank} · {r.threshold}
+                  </strong>
+                  <br />
+                  {count >= r.threshold ? (
+                    <a href={"/api/free/reward?file=" + r.file}>
+                      Download {r.name.toLowerCase()} ↓
+                    </a>
+                  ) : (
+                    r.name
+                  )}
                 </li>
               ))}
             </ul>
