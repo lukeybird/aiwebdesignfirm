@@ -13,6 +13,7 @@ async function ensure() {
     user_id UUID REFERENCES site_users(id) ON DELETE CASCADE,
     expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), revoked BOOLEAN NOT NULL DEFAULT FALSE
   )`;
+  await sql`ALTER TABLE pixashop_devices ADD COLUMN IF NOT EXISTS free_email text`;
 }
 async function secondsForUser(id: string) {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -46,9 +47,10 @@ export async function POST(request: Request) {
     }
     if (input.action === 'check') {
       if (!validDeviceToken(input.token)) return reply({access:false, accessSeconds:0, message:'Invalid activation. Choose Use another account.'});
-      const rows = await sql`SELECT user_id FROM pixashop_devices WHERE token_hash=${tokenHash(input.token)} AND NOT revoked AND expires_at>NOW()`;
+      const rows = await sql`SELECT user_id,free_email FROM pixashop_devices WHERE token_hash=${tokenHash(input.token)} AND NOT revoked AND expires_at>NOW()`;
       const device = rows[0];
       if (!device) return reply({access:false, accessSeconds:0, message:'Activation expired or was revoked. Choose Use another account.'});
+      if (device.free_email) return reply({access:true,accessSeconds:300,message:'Free PixaShop access active.'});
       if (!device.user_id) return reply({access:false, accessSeconds:0, message:'Waiting for you to approve this device on the website.'});
       if (!await allowAuthAttempt('pixashop:check:' + tokenHash(input.token), 120)) return reply({message:'Please wait before checking again.'}, 429);
       const seconds = await secondsForUser(device.user_id);
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
       const code = normalizeDeviceCode(input.code);
       if (!/^[A-F0-9]{10}$/.test(code)) return reply({message:'Enter the ten-character code shown in PixaShop.'},400);
       if (!await secondsForUser(user.id)) return reply({message:'Start your trial or renew your subscription first.'},403);
-      const rows = await sql`UPDATE pixashop_devices SET user_id=${user.id},expires_at=NOW()+INTERVAL '90 days' WHERE code=${code} AND user_id IS NULL AND NOT revoked AND expires_at>NOW() RETURNING code`;
+      const rows = await sql`UPDATE pixashop_devices SET user_id=${user.id},expires_at=NOW()+INTERVAL '90 days' WHERE code=${code} AND user_id IS NULL AND free_email IS NULL AND NOT revoked AND expires_at>NOW() RETURNING code`;
       return rows.length ? reply({message:'Device activated. Return to PixaShop.'}) : reply({message:'Code expired, already used or not found. Create a new code in PixaShop.'},400);
     }
     if (input.action === 'revoke-all') {
