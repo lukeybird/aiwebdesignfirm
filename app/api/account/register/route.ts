@@ -9,8 +9,8 @@ export async function POST(request: Request) {
     const email = normalizeEmail(input.email);
     const password = typeof input.password === 'string' ? input.password : '';
     const name = typeof input.name === 'string' ? input.name.trim() : '';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !name || name.length > 100 || password.length < 12 || Buffer.byteLength(password) > 72) {
-      return NextResponse.json({ error: 'Enter your name, a valid email, and a password of at least 12 characters (up to 72 bytes).' }, { status: 400 });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !name || name.length > 100 || password.length < 8 || Buffer.byteLength(password) > 72) {
+      return NextResponse.json({ error: 'Enter your name, a valid email, and a password of at least 8 characters (up to 72 bytes).' }, { status: 400 });
     }
     const ip = request.headers.get('x-vercel-forwarded-for') || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     if (!(await allowAuthAttempt('register-ip:' + ip, 10)) || !(await allowAuthAttempt('register-email:' + email, 5))) return NextResponse.json({ error: 'Too many attempts. Please try again in 15 minutes.' }, { status: 429 });
